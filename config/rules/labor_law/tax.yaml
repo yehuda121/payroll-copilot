@@ -1,0 +1,40 @@
+version: "2026.1.0"
+effective_from: "2026-01-01"
+
+rules:
+  income_tax_brackets:
+    id: legal.tax.income_brackets
+    description:
+      he: "מדרגות מס הכנסה"
+      en: "Income tax brackets"
+    parameters:
+      brackets:
+        - up_to: 7010
+          rate: 0.10
+        - up_to: 10060
+          rate: 0.14
+        - up_to: 16050
+          rate: 0.20
+        - up_to: 22400
+          rate: 0.31
+        - up_to: 46690
+          rate: 0.35
+        - up_to: 60130
+          rate: 0.47
+        - up_to: null
+          rate: 0.50
+    legal_reference:
+      he: "פקודת מס הכנסה [נוסח חדש], תשכ\"א-1961"
+    severity: critical
+
+  tax_credit_point_value:
+    id: legal.tax.credit_point
+    description:
+      he: "ערך נקודת זיכוי"
+      en: "Tax credit point value"
+    parameters:
+      monthly_value: 242
+      currency: ILS
+    legal_reference:
+      he: "פקודת מס הכנסה"
+    severity: info

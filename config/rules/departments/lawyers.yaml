@@ -1,0 +1,14 @@
+profile: lawyers
+description:
+  he: "כללי מחלקת משפטים"
+  en: "Legal department rules"
+
+additional_rules:
+  - department.lawyers.overtime_cap
+
+disabled_rules:
+  - legal.overtime.daily_limit
+
+parameters:
+  overtime_cap_monthly: 40
+  court_day_allowance: 500

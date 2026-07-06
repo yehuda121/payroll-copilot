@@ -1,0 +1,10 @@
+profile: interns
+description:
+  he: "כללי מתמחים"
+  en: "Intern rules"
+
+additional_rules:
+  - department.intern.weekly_hours_limit
+
+parameters:
+  max_weekly_hours: 30

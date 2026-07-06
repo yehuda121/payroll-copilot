@@ -1,0 +1,10 @@
+profile: pre_interns
+description:
+  he: "כללי טרום-מתמחים"
+  en: "Pre-intern rules"
+
+additional_rules:
+  - department.intern.weekly_hours_limit
+
+parameters:
+  max_weekly_hours: 20

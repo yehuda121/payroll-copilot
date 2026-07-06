@@ -1,0 +1,25 @@
+version: "2026.1.0"
+effective_from: "2026-01-01"
+
+rules:
+  transportation_allowance_max:
+    id: legal.transportation.max_allowance
+    description:
+      he: "מקסימום דמי נסיעות"
+      en: "Maximum transportation allowance"
+    parameters:
+      daily_max: 26.40
+      monthly_max: 580.80
+      currency: ILS
+    legal_reference:
+      he: "הסכם קיבוצי / צו הרחבה"
+    severity: warning
+
+  public_transport_reimbursement:
+    id: legal.transportation.public_transport
+    description:
+      he: "החזר נסיעות בתחבורה ציבורית"
+      en: "Public transport reimbursement"
+    parameters:
+      reimbursement_rate: 1.0
+    severity: info

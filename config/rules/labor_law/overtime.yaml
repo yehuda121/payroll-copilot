@@ -1,0 +1,49 @@
+version: "2026.1.0"
+effective_from: "2026-01-01"
+
+rules:
+  daily_overtime_limit:
+    id: legal.overtime.daily_limit
+    description:
+      he: "מגבלת שעות נוספות יומיות"
+      en: "Daily overtime limit"
+    parameters:
+      max_hours: 2
+      applies_to_employment_types:
+        - full_time
+        - part_time
+    legal_reference:
+      he: "חוק שעות עבודה ומנוחה, תשי\"א-1951, סעיף 16"
+      en: "Hours of Work and Rest Law, 1951, Section 16"
+    severity: warning
+
+  weekly_overtime_limit:
+    id: legal.overtime.weekly_limit
+    description:
+      he: "מגבלת שעות נוספות שבועיות"
+      en: "Weekly overtime limit"
+    parameters:
+      max_hours: 16
+    legal_reference:
+      he: "חוק שעות עבודה ומנוחה, תשי\"א-1951"
+    severity: warning
+
+  overtime_rate_tier_1:
+    id: legal.overtime.rate_tier_1
+    description:
+      he: "שיעור שעות נוספות - שתי השעות הראשונות"
+      en: "Overtime rate - first two hours"
+    parameters:
+      hours_range: [0, 2]
+      multiplier: 1.25
+    severity: critical
+
+  overtime_rate_tier_2:
+    id: legal.overtime.rate_tier_2
+    description:
+      he: "שיעור שעות נוספות - מעבר לשתי שעות"
+      en: "Overtime rate - beyond two hours"
+    parameters:
+      hours_range: [2, null]
+      multiplier: 1.50
+    severity: critical

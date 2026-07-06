@@ -1,0 +1,43 @@
+version: "2026.1.0"
+effective_from: "2026-01-01"
+
+rules:
+  annual_vacation_days:
+    id: legal.vacation.annual_entitlement
+    description:
+      he: "זכות לחופשה שנתית"
+      en: "Annual vacation entitlement"
+    parameters:
+      tiers:
+        - years: [1, 5]
+          days: 12
+        - years: [5, 10]
+          days: 15
+        - years: [10, null]
+          days: 18
+    legal_reference:
+      he: "חוק חופשה שנתית, התשי\"א-1951"
+    severity: warning
+
+  vacation_accrual_monthly:
+    id: legal.vacation.monthly_accrual
+    description:
+      he: "צבירת ימי חופשה חודשית"
+      en: "Monthly vacation accrual"
+    parameters:
+      days_per_month: 1.0
+    legal_reference:
+      he: "חוק חופשה שנתית, התשי\"א-1951"
+    severity: info
+
+  sick_leave_annual:
+    id: legal.sick_leave.annual_entitlement
+    description:
+      he: "זכות למחלה שנתית"
+      en: "Annual sick leave entitlement"
+    parameters:
+      days: 18
+      accrual_rate: 1.5
+    legal_reference:
+      he: "חוק דמי מחלה, התש\"ל-1976"
+    severity: warning

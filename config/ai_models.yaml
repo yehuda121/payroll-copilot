@@ -1,0 +1,54 @@
+# Default model assignments per agent — swap without code changes
+providers:
+  default: ollama
+
+agents:
+  payslip_splitter:
+    provider: ollama
+    model: llama3.1:8b
+    temperature: 0.0
+
+  payslip_extractor:
+    provider: ollama
+    model: llama3.1:8b
+    temperature: 0.0
+
+  contract_analyzer:
+    provider: ollama
+    model: llama3.1:8b
+    temperature: 0.1
+
+  compliance_explainer:
+    provider: ollama
+    model: llama3.1:8b
+    temperature: 0.3
+
+  vacation_sick_leave:
+    provider: ollama
+    model: llama3.1:8b
+    temperature: 0.0
+
+  email_parser:
+    provider: ollama
+    model: llama3.1:8b
+    temperature: 0.0
+
+embeddings:
+  provider: ollama
+  model: nomic-embed-text
+  dimensions: 768
+
+# Future cloud providers — enable per organization
+cloud_providers:
+  openai:
+    enabled: false
+    model: gpt-4o
+  claude:
+    enabled: false
+    model: claude-sonnet-4-20250514
+  gemini:
+    enabled: false
+    model: gemini-2.0-flash
+  azure_openai:
+    enabled: false
+    deployment: gpt-4o

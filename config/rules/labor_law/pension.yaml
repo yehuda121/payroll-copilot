@@ -1,0 +1,37 @@
+version: "2026.1.0"
+effective_from: "2026-01-01"
+
+rules:
+  pension_employee_minimum:
+    id: legal.pension.contribution
+    description:
+      he: "הפרשה מינימלית לפנסיה - עובד"
+      en: "Minimum pension contribution - employee"
+    parameters:
+      minimum_rate: 0.06
+      applies_from_month: 7
+    legal_reference:
+      he: "צו הרחבה להסדר פנסיה מקיפה בישראל"
+    severity: critical
+
+  pension_employer_minimum:
+    id: legal.pension.employer_contribution
+    description:
+      he: "הפרשה מינימלית לפנסיה - מעסיק"
+      en: "Minimum pension contribution - employer"
+    parameters:
+      minimum_rate: 0.065
+    legal_reference:
+      he: "צו הרחבה להסדר פנסיה מקיפה בישראל"
+    severity: critical
+
+  severance_component:
+    id: legal.pension.severance
+    description:
+      he: "רכיב פיצויים"
+      en: "Severance component"
+    parameters:
+      rate: 0.0833
+    legal_reference:
+      he: "חוק פיצויי פיטורים, התשכ\"ג-1963"
+    severity: warning

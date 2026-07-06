@@ -1,0 +1,40 @@
+version: "2026.1.0"
+effective_from: "2026-01-01"
+
+rules:
+  minimum_wage_hourly:
+    id: legal.minimum_wage
+    description:
+      he: "שכר מינימום שעתי"
+      en: "Hourly minimum wage"
+      ar: "الحد الأدنى للأجر بالساعة"
+    parameters:
+      amount: 32.11
+      currency: ILS
+    legal_reference:
+      he: "חוק שכר מינימום, התשמ\"א-1987"
+      en: "Minimum Wage Law, 1987"
+    severity: critical
+
+  youth_minimum_age:
+    id: legal.youth.minimum_age
+    description:
+      he: "גיל מינימום לעבודת נוער"
+      en: "Minimum age for youth employment"
+    parameters:
+      min_age: 15
+    legal_reference:
+      he: "חוק עבודת הנוער, התשי\"ג-1953"
+    severity: critical
+
+  youth_max_hours:
+    id: legal.youth.max_daily_hours
+    description:
+      he: "מגבלת שעות יומיות לנוער"
+      en: "Daily hour limit for youth"
+    parameters:
+      max_hours: 8
+      max_age: 18
+    legal_reference:
+      he: "חוק עבודת הנוער, התשי\"ג-1953, סעיף 16"
+    severity: warning
