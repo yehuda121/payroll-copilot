@@ -63,25 +63,65 @@ See [docs/architecture.md](docs/architecture.md) for full design.
 ```
 payroll-copilot/
 ├── README.md
-├── pyproject.toml
 ├── .env.example
 ├── docker-compose.yml
-├── Dockerfile
-├── alembic/                    # Database migrations
-├── config/
-│   ├── rules/labor_law/        # YAML legal rules (source of truth)
-│   ├── rules/departments/      # Department rule profiles
-│   ├── prompts/                # AI agent system prompts
-│   └── ai_models.yaml          # Model selection per agent
 ├── docs/                       # Technical documentation
-├── mcp/                        # MCP server for legal rule sync
-├── src/payroll_copilot/
-│   ├── domain/                 # Entities, value objects, rule interfaces
-│   ├── application/            # Use cases, ports, DTOs
-│   ├── infrastructure/         # DB, storage, OCR, AI, Celery
-│   └── presentation/           # FastAPI app, routes, middleware
-└── tests/
+├── backend/
+│   ├── pyproject.toml
+│   ├── Dockerfile
+│   ├── alembic/                # Database migrations
+│   ├── config/
+│   │   ├── rules/labor_law/    # YAML legal rules (source of truth)
+│   │   ├── rules/departments/   # Department rule profiles
+│   │   ├── prompts/             # AI agent system prompts
+│   │   └── ai_models.yaml       # Model selection per agent
+│   ├── mcp/                     # MCP server for legal rule sync
+│   ├── src/payroll_copilot/
+│   │   ├── domain/              # Entities, value objects, rule interfaces
+│   │   ├── application/         # Use cases, ports, DTOs
+│   │   ├── infrastructure/      # DB, storage, OCR, AI, Celery
+│   │   └── presentation/        # FastAPI app, routes, middleware
+│   └── tests/
+└── frontend/                    # React + TypeScript + Vite
+    └── src/
+        ├── app/                 # Routing
+        ├── auth/                # Dev auth + Cognito boundary
+        ├── layouts/             # Role-based portal shells
+        ├── pages/
+        │   ├── public/          # Landing, login, signup
+        │   ├── employee/        # Employee portal
+        │   ├── accountant/      # Payroll accountant portal
+        │   └── admin/           # Developer/admin portal
+        ├── components/          # Shared UI
+        ├── services/            # Typed API client stubs
+        └── types/
 ```
+
+---
+
+## Implementation Status
+
+| Area | Status |
+|------|--------|
+| Backend API (FastAPI, validation engine, batch, RAG) | **Implemented** |
+| Database schema & migrations | **Implemented** |
+| Docker orchestration | **Implemented** |
+| Frontend monorepo foundation | **Implemented** |
+| Role-based UI portals (employee, accountant, admin) | **Frontend foundation** — placeholder pages, no API wiring |
+| Dev auth mode (`VITE_DEV_AUTH_ENABLED`) | **Frontend foundation** — localStorage only |
+| AWS Cognito / production auth | **Planned** |
+| Guest upload & chat (public landing) | **Frontend foundation** — UI only |
+| RTL / i18n UI | **Planned** |
+
+---
+
+## Project Principles
+
+1. **Deterministic validation** — The rule engine decides pass/fail. AI never overrides compliance outcomes.
+2. **Extensible rule packs** — Legal, department, contract, and org rules live in backend configuration — not hardcoded in the frontend.
+3. **AI assists, does not judge** — OCR, document understanding, RAG, and explanations support human review.
+4. **Clean architecture** — Backend uses domain-driven design; frontend keeps auth and API boundaries separate from UI.
+5. **Multi-tenant SaaS** — Organization isolation, RBAC, and audit trails are first-class concerns.
 
 ---
 
@@ -240,23 +280,75 @@ Ensure Ollama is running on your host with the required models, or start the Doc
 ### Local Development
 
 ```bash
+cd backend
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
+
+# Root .env is loaded automatically (../.env from backend/)
+# Or copy: cp ../.env .env
 
 # In .env set:
 #   OLLAMA_BASE_URL=http://localhost:11434
 #   OLLAMA_HOST_URL=http://localhost:11434
 
-# Start dependencies only (no Docker Ollama required if host Ollama is running)
+# From repository root — start dependencies only (no Docker Ollama required if host Ollama is running)
 docker compose up -d postgres redis minio
 
-# Run API locally
+# Run API locally (from backend/)
 uvicorn payroll_copilot.presentation.main:app --reload
 
-# Run worker
+# Run worker (from backend/)
 celery -A payroll_copilot.infrastructure.tasks.celery_app worker -l info
 ```
+
+### Frontend Development
+
+```bash
+cd frontend
+cp .env.example .env.local   # Enable dev auth and set API URL
+npm install
+npm run dev
+```
+
+| URL | Purpose |
+|-----|---------|
+| http://localhost:3000 | Frontend (Vite dev server) |
+| http://localhost:8000/docs | Backend Swagger UI |
+| http://localhost:8000/health | API health check |
+
+### Frontend Environment Variables
+
+Create `frontend/.env.local` (see `frontend/.env.example`):
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VITE_API_BASE_URL` | Backend API base URL | `http://localhost:8000/api/v1` |
+| `VITE_DEV_AUTH_ENABLED` | Enable dev role selector login (no password) | `false` — set `true` for local UI development |
+
+When `VITE_DEV_AUTH_ENABLED=true`, the login page shows a dev-only role selector for:
+
+| Role | Portal path | Dev identity |
+|------|-------------|--------------|
+| `employee` | `/employee` | Sarah Cohen |
+| `payroll_accountant` | `/accountant` | David Levy |
+| `developer_admin` | `/admin` | Yael Administrator |
+
+Dev sessions are stored in `localStorage` only. Production auth will use AWS Cognito via `frontend/src/auth/authProvider.ts` — dev auth is isolated in `frontend/src/auth/devAuth.ts`.
+
+### Role-Based UI
+
+The frontend provides three distinct portals after login:
+
+**Employee Portal** — Dashboard, document upload, payslips, attendance, contract, AI chat (explanations only), validation history.
+
+**Payroll Accountant Portal** — Employee management table, bulk payroll upload, batch monitor, validation findings, approval queue, audit logs.
+
+**Developer/Admin Portal** — Rule packs, department rules, MCP legal sync, AI models, RAG management, system configuration.
+
+Public landing page (`/`) includes guest document upload and payroll chat UI — not yet connected to the backend.
+
+API service stubs live in `frontend/src/services/` with `@integration-point` markers for safe future wiring.
 
 ---
 
@@ -369,6 +461,7 @@ See [docs/api.md](docs/api.md).
 ## Testing
 
 ```bash
+cd backend
 pytest                          # All tests
 pytest tests/unit               # Unit tests
 pytest tests/integration        # Integration tests (requires Docker)
@@ -380,7 +473,12 @@ mypy src                        # Type check
 
 ## Future Roadmap
 
-- [ ] Web frontend (React, RTL-aware)
+- [x] Monorepo structure (`backend/`, `frontend/`)
+- [x] Frontend role-based portal foundation (React, TypeScript, Vite)
+- [x] Dev auth mode for local role testing
+- [ ] Frontend API integration (auth, documents, validation, batch)
+- [ ] AWS Cognito production authentication
+- [ ] RTL-aware UI (Hebrew, English, Arabic)
 - [ ] SSO / SAML integration
 - [ ] Real-time batch progress via WebSocket
 - [ ] Advanced analytics dashboard for accountants

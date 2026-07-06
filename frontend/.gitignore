@@ -1,0 +1,4 @@
+# See root .gitignore for shared ignores.
+node_modules/
+dist/
+*.local
