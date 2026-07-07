@@ -1,14 +1,11 @@
-import type { DocumentUploadResponse } from '../types';
+import type { DocumentUploadResponse, DocumentResponse } from '../types';
 import { apiRequest } from './api';
+import type { GuestDocumentSlot } from '../lib/guest/document-slots';
 
-export type DocumentType = 'payslip' | 'attendance' | 'contract' | 'id_document';
+export type BackendDocumentType = GuestDocumentSlot['backendType'];
 
-/**
- * Document upload and retrieval.
- * @integration-point DOCUMENTS_SERVICE
- */
 export const documentsService = {
-  async upload(file: File, documentType: DocumentType): Promise<DocumentUploadResponse> {
+  async upload(file: File, documentType: BackendDocumentType): Promise<DocumentUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('document_type', documentType);
@@ -17,11 +14,11 @@ export const documentsService = {
       method: 'POST',
       body: formData,
       rawBody: true,
+      auth: true,
     });
   },
 
-  async listMyDocuments(): Promise<unknown[]> {
-    // @integration-point DOCUMENTS_LIST
-    return [];
+  async getDocument(documentId: string): Promise<DocumentResponse> {
+    return apiRequest<DocumentResponse>(`/documents/${documentId}`, { auth: true });
   },
 };

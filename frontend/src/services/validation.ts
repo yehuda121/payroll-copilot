@@ -1,25 +1,18 @@
 import type { ValidationRunRequest, ValidationRunResponse } from '../types';
 import { apiRequest } from './api';
 
-/**
- * Deterministic validation runs — backend decides pass/fail, not AI.
- * @integration-point VALIDATION_SERVICE
- */
 export const validationService = {
   async runValidation(payload: ValidationRunRequest): Promise<ValidationRunResponse> {
     return apiRequest<ValidationRunResponse>('/validation/run', {
       method: 'POST',
       body: JSON.stringify(payload),
+      auth: true,
     });
   },
 
-  async getRunHistory(): Promise<unknown[]> {
-    // @integration-point VALIDATION_HISTORY
-    return [];
-  },
-
-  async getFindings(_runId: string): Promise<unknown[]> {
-    // @integration-point VALIDATION_FINDINGS
-    return [];
+  async getValidationRun(validationRunId: string): Promise<ValidationRunResponse> {
+    return apiRequest<ValidationRunResponse>(`/validation/runs/${validationRunId}`, {
+      auth: true,
+    });
   },
 };

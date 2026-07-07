@@ -30,10 +30,21 @@ async def test_guest_session_creation(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_validation_run(client: AsyncClient) -> None:
-    response = await client.post(
+async def test_validation_run(
+    client_with_storage: AsyncClient,
+    mock_document_processing: None,
+) -> None:
+    upload_response = await client_with_storage.post(
+        "/api/v1/documents/upload",
+        files={"file": ("payslip.pdf", b"%PDF-1.4 validation", "application/pdf")},
+        data={"document_type": "payslip"},
+    )
+    assert upload_response.status_code == 201
+    document_id = upload_response.json()["document_id"]
+
+    response = await client_with_storage.post(
         "/api/v1/validation/run",
-        json={"document_id": "test-doc-id"},
+        json={"document_id": document_id},
     )
     assert response.status_code == 202
     data = response.json()

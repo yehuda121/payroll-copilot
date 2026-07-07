@@ -10,10 +10,19 @@ type UploadSlot = {
 
 type UploadPanelProps = {
   slots: UploadSlot[];
+  selectedFileName?: string;
+  errorMessage?: string;
   onFilesSelected?: (slotId: string, file: File) => void;
+  onRemove?: (slotId: string) => void;
 };
 
-export function UploadPanel({ slots, onFilesSelected }: UploadPanelProps) {
+export function UploadPanel({
+  slots,
+  selectedFileName,
+  errorMessage,
+  onFilesSelected,
+  onRemove,
+}: UploadPanelProps) {
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleChange = (slotId: string) => (event: ChangeEvent<HTMLInputElement>) => {
@@ -36,9 +45,15 @@ export function UploadPanel({ slots, onFilesSelected }: UploadPanelProps) {
             className="upload-panel__dropzone"
             onClick={() => inputRefs.current[slot.id]?.click()}
           >
-            <span>Click to select file</span>
+            <span>{selectedFileName ? selectedFileName : 'Click to select file'}</span>
             <span className="upload-panel__hint">{slot.accept}</span>
           </button>
+          {selectedFileName && onRemove && (
+            <button type="button" className="btn btn--ghost" onClick={() => onRemove(slot.id)}>
+              Remove file
+            </button>
+          )}
+          {errorMessage && <p className="document-slot__error">{errorMessage}</p>}
           <input
             ref={(el) => {
               inputRefs.current[slot.id] = el;

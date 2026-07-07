@@ -2,14 +2,18 @@
 
 from celery import Celery
 
+from payroll_copilot.infrastructure.config.service_resolver import (
+    get_resolved_celery_broker_url,
+    get_resolved_celery_result_backend,
+)
 from payroll_copilot.infrastructure.config.settings import get_settings
 
 settings = get_settings()
 
 celery_app = Celery(
     "payroll_copilot",
-    broker=settings.celery_broker_url,
-    backend=settings.celery_result_backend,
+    broker=get_resolved_celery_broker_url(settings),
+    backend=get_resolved_celery_result_backend(settings),
 )
 
 celery_app.conf.update(

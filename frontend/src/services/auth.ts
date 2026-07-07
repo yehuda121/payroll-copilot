@@ -1,23 +1,13 @@
-import type { GuestSessionResponse, LoginCredentials } from '../types';
+import type { GuestSessionResponse } from '../types';
 import { apiRequest } from './api';
+import { setGuestSession } from '../lib/guest/guest-session';
 
-/**
- * Authentication service.
- * Production: replace dev flow with Cognito via authProvider.ts.
- * @integration-point AUTH_SERVICE
- */
 export const authService = {
   async createGuestSession(): Promise<GuestSessionResponse> {
-    return apiRequest<GuestSessionResponse>('/auth/guest/session', { method: 'POST' });
-  },
-
-  async login(_credentials: LoginCredentials): Promise<void> {
-    // @integration-point AUTH_LOGIN — POST /auth/login when Cognito/JWT is wired
-    throw new Error('Production login is not connected. Enable VITE_DEV_AUTH_ENABLED for development.');
-  },
-
-  async logout(): Promise<void> {
-    // @integration-point AUTH_LOGOUT
-    return;
+    const response = await apiRequest<GuestSessionResponse>('/auth/guest/session', {
+      method: 'POST',
+    });
+    setGuestSession(response.guest_token, response.expires_at);
+    return response;
   },
 };

@@ -3,17 +3,23 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from uuid import uuid4
+from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from payroll_copilot.application.use_cases.validation import RunValidationCommand, RunValidationUseCase
-from payroll_copilot.domain.entities import Department, Employee
-from payroll_copilot.domain.enums import EmploymentType, EmployeeStatus, SalaryType
-from payroll_copilot.domain.value_objects import Money, PayPeriod
-from payroll_copilot.infrastructure.config.settings import get_settings
-from payroll_copilot.infrastructure.rules.yaml_loader import YamlLegalRulesLoader
+from payroll_copilot.application.dto.validation_run import ValidationRunRecord
+from payroll_copilot.application.exceptions import DocumentNotFoundError
+from payroll_copilot.application.use_cases.persisted_validation import (
+    GetValidationRunUseCase,
+    RunPersistedValidationCommand,
+    RunPersistedValidationUseCase,
+)
+from payroll_copilot.infrastructure.ai.agents.validation_report_store import cache_validation_report
+from payroll_copilot.presentation.api.dependencies import (
+    get_run_persisted_validation_use_case,
+    get_validation_run_use_case,
+)
 
 router = APIRouter()
 
@@ -23,9 +29,25 @@ class ValidationRunRequest(BaseModel):
     employee_id: str | None = None
     include_historical: bool = True
     include_contract_rag: bool = True
+    supporting_document_ids: list[str] = Field(default_factory=list)
+
+
+class ValidationScopeItemResponse(BaseModel):
+    key: str
+    label: str
+    status: str
+    reason: str | None = None
+
+
+class UploadedDocumentResponse(BaseModel):
+    document_type: str
+    document_id: str
+    uploaded: bool
+    original_filename: str | None = None
 
 
 class FindingResponse(BaseModel):
+    id: str
     rule_id: str
     severity: str
     message_key: str
@@ -37,87 +59,146 @@ class FindingResponse(BaseModel):
 
 class ValidationRunResponse(BaseModel):
     id: str
+    document_id: str
     status: str
     overall_result: str | None = None
     overall_confidence: float | None = None
+    rules_evaluated: int = 0
+    rules_failed: int = 0
+    checks_passed_count: int = 0
+    validation_confidence: float | None = None
+    confidence_explanation: str | None = None
+    validation_scope: list[ValidationScopeItemResponse] = Field(default_factory=list)
+    uploaded_documents: list[UploadedDocumentResponse] = Field(default_factory=list)
+    extraction_connected: bool = False
     findings: list[FindingResponse] = Field(default_factory=list)
 
 
-def _get_validation_use_case() -> RunValidationUseCase:
-    settings = get_settings()
-    loader = YamlLegalRulesLoader(settings.legal_rules_path)
-    return RunValidationUseCase(loader)
+def _parse_uuid(value: str, field_name: str) -> UUID:
+    try:
+        return UUID(value)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid {field_name}: must be a valid UUID",
+        ) from exc
 
 
-@router.post("/run", response_model=ValidationRunResponse, status_code=202)
-async def run_validation(request: ValidationRunRequest) -> ValidationRunResponse:
-    """Trigger deterministic validation for a payslip document."""
-    use_case = _get_validation_use_case()
+def _to_response(record: ValidationRunRecord) -> ValidationRunResponse:
+    enrichment = record.enrichment
+    validation_scope: list[ValidationScopeItemResponse] = []
+    uploaded_documents: list[UploadedDocumentResponse] = []
+    validation_confidence: float | None = None
+    confidence_explanation: str | None = None
+    checks_passed_count = max(record.rules_evaluated - record.rules_failed, 0)
+    extraction_connected = False
 
-    # Demo validation with sample data when document processing not yet complete
-    from payroll_copilot.domain.entities import PayslipData
+    if enrichment is not None:
+        validation_scope = [
+            ValidationScopeItemResponse(
+                key=item.key,
+                label=item.label,
+                status=item.status,
+                reason=item.reason,
+            )
+            for item in enrichment.validation_scope
+        ]
+        uploaded_documents = [
+            UploadedDocumentResponse(
+                document_type=item.document_type,
+                document_id=item.document_id,
+                uploaded=item.uploaded,
+                original_filename=item.original_filename,
+            )
+            for item in enrichment.uploaded_documents
+        ]
+        validation_confidence = float(enrichment.validation_confidence)
+        confidence_explanation = enrichment.confidence_explanation
+        checks_passed_count = enrichment.checks_passed_count
+        extraction_connected = enrichment.extraction_connected
 
-    demo_employee = Employee(
-        id=uuid4(),
-        organization_id=uuid4(),
-        employee_number="12345",
-        first_name="Demo",
-        last_name="Employee",
-        department_id=uuid4(),
-        employment_type=EmploymentType.FULL_TIME,
-        salary_type=SalaryType.HOURLY,
-        hourly_rate=Decimal("35.00"),
-        contract_start_date=__import__("datetime").date(2024, 1, 1),
-        status=EmployeeStatus.ACTIVE,
-    )
-    demo_department = Department(
-        id=uuid4(),
-        organization_id=demo_employee.organization_id,
-        code="payroll",
-        name={"he": "שכר", "en": "Payroll"},
-        rule_profile="payroll",
-    )
-    demo_payslip = PayslipData(
-        employee_number="12345",
-        period=PayPeriod(year=2026, month=6),
-        gross_salary=Money(Decimal("15000")),
-        overtime_hours=Decimal("3"),
-        pension_employee=Money(Decimal("600")),
-    )
-
-    report = use_case.execute(
-        RunValidationCommand(
-            payslip=demo_payslip,
-            employee=demo_employee,
-            department=demo_department,
-            period=PayPeriod(year=2026, month=6),
-            field_confidences={"overtime_hours": 0.95, "gross_salary": 0.98, "hourly_rate": 1.0},
-        )
-    )
-
-    return ValidationRunResponse(
-        id=str(report.validation_run_id),
-        status="completed",
-        overall_result=report.overall_result,
-        overall_confidence=report.overall_confidence.value,
+    response = ValidationRunResponse(
+        id=str(record.id),
+        document_id=str(record.document_id),
+        status=record.status.value,
+        overall_result=record.overall_result.value if record.overall_result else None,
+        overall_confidence=float(record.overall_confidence) if record.overall_confidence else None,
+        rules_evaluated=record.rules_evaluated,
+        rules_failed=record.rules_failed,
+        checks_passed_count=checks_passed_count,
+        validation_confidence=validation_confidence,
+        confidence_explanation=confidence_explanation,
+        validation_scope=validation_scope,
+        uploaded_documents=uploaded_documents,
+        extraction_connected=extraction_connected,
         findings=[
             FindingResponse(
-                rule_id=f.rule_id,
-                severity=f.severity.value,
-                message_key=f.message_key,
-                expected_value=f.expected_value,
-                actual_value=f.actual_value,
-                confidence=f.confidence.value,
-                legal_reference=f.legal_reference,
+                id=str(finding.id),
+                rule_id=finding.rule_id,
+                severity=finding.severity.value,
+                message_key=finding.message_key,
+                expected_value=finding.expected_value,
+                actual_value=finding.actual_value,
+                confidence=float(finding.confidence),
+                legal_reference=finding.legal_reference,
             )
-            for f in report.findings
+            for finding in record.findings
         ],
     )
 
+    cache_validation_report(
+        response.id,
+        {
+            "status": response.status,
+            "overall_result": response.overall_result,
+            "findings": [finding.model_dump() for finding in response.findings],
+        },
+    )
+    return response
+
+
+@router.post("/run", response_model=ValidationRunResponse, status_code=202)
+async def run_validation(
+    request: ValidationRunRequest,
+    use_case: RunPersistedValidationUseCase = Depends(get_run_persisted_validation_use_case),
+) -> ValidationRunResponse:
+    """Trigger deterministic validation for a payslip document."""
+    document_id = _parse_uuid(request.document_id, "document_id")
+    employee_id = (
+        _parse_uuid(request.employee_id, "employee_id") if request.employee_id is not None else None
+    )
+    supporting_document_ids = tuple(
+        _parse_uuid(value, "supporting_document_id") for value in request.supporting_document_ids
+    )
+
+    try:
+        record = await use_case.execute(
+            RunPersistedValidationCommand(
+                document_id=document_id,
+                employee_id=employee_id,
+                include_historical=request.include_historical,
+                include_contract_rag=request.include_contract_rag,
+                supporting_document_ids=supporting_document_ids,
+            )
+        )
+    except DocumentNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {exc.document_id} not found",
+        ) from exc
+    return _to_response(record)
+
 
 @router.get("/runs/{validation_run_id}", response_model=ValidationRunResponse)
-async def get_validation_run(validation_run_id: str) -> ValidationRunResponse:
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"Validation run {validation_run_id} not found",
-    )
+async def get_validation_run(
+    validation_run_id: str,
+    use_case: GetValidationRunUseCase = Depends(get_validation_run_use_case),
+) -> ValidationRunResponse:
+    run_id = _parse_uuid(validation_run_id, "validation_run_id")
+    record = await use_case.execute(run_id)
+    if record is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Validation run {validation_run_id} not found",
+        )
+    return _to_response(record)

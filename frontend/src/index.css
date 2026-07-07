@@ -1,17 +1,18 @@
 :root {
-  --color-bg: #f0f2f5;
+  --color-bg: #f4f6f8;
   --color-surface: #ffffff;
   --color-surface-hover: #eef1f5;
   --color-sidebar: #ffffff;
-  --color-text: #111827;
-  --color-text-muted: #6b7280;
-  --color-text-subtle: #9ca3af;
-  --color-border: #e5e7eb;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-text-subtle: #94a3b8;
+  --color-border: #e2e8f0;
   --color-accent: #1d4ed8;
   --color-accent-hover: #1e40af;
   --color-accent-soft: #eff6ff;
   --radius-sm: 6px;
   --radius-md: 10px;
+  --space-section: 1.5rem;
   font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.5;
   font-weight: 400;

@@ -1,10 +1,41 @@
 # Payroll Copilot
 
-**AI-powered payroll validation platform for Israeli labor law compliance.**
+**A payroll validation platform for Israeli labor law compliance, built around a deterministic rule engine.**
 
-Payroll Copilot helps payroll accountants validate hundreds of payroll slips before salaries are paid, and enables employees to upload slips and employment documents for legal validation, explanations, and personalized recommendations.
+Payroll Copilot lets a guest upload a payslip and receive a structured validation report from a deterministic rule engine, and provides a source-bound payroll assistant that answers payroll/labor-law questions using approved local content only. Compliance pass/fail decisions are always made by the backend rule engine — never by AI.
 
-> **Production SaaS** — designed for multi-tenant deployment, long-term maintainability, and deterministic compliance validation.
+> **Status: work in progress.** The architecture, deterministic validation engine, document upload/persistence, and the public guest experience (assistant + validate-my-payslip) are implemented. Several capabilities are intentionally **not connected yet** (real OCR extraction, vector RAG, contract/attendance/ID analysis, production auth). This README calls out exactly what is and is not built — see **[Current Status](#current-status)** and **[Current Limitations](#current-limitations)**. Nothing here fabricates validation results, OCR output, or legal answers.
+
+---
+
+## Current Status
+
+Honest snapshot of what exists today. "Partial" means real code runs but a downstream capability is deliberately not wired.
+
+### Implemented (working today)
+- **Deterministic validation engine** — rule evaluation, findings, confidence aggregation.
+- **Validation persistence** — `POST /validation/run` and `GET /validation/runs/{id}` persist to PostgreSQL.
+- **Document upload & persistence** — `POST /documents/upload`, `GET /documents/{id}` with server-side upload guardrails.
+- **Public Guest Experience (frontend)** — landing page, Payroll Assistant chat, Validate-My-Payslip upload flow, enterprise validation report with honest scope.
+- **LangGraph Payroll Assistant (backend)** — `POST /assistant/chat` with input/output guardrails, greeting handling, and keyword search over approved YAML legal rules.
+- **Ollama integration** — host-first URL resolution with optional Docker fallback and graceful degradation when unavailable.
+- **Database schema & Alembic migrations**, **Docker Compose orchestration**, **guest JWT tokens** (`POST /auth/guest/session`).
+
+### Partially implemented
+- **Payslip validation input** — the engine runs against a `DemoValidationContextBuilder` (fixed sample payslip context), **not** fields extracted from the uploaded document. Validation scope is reported as `partial` for payroll rules.
+- **Assistant legal search** — keyword search over local YAML rules only; **no vector RAG** yet.
+- **Role-based portals (employee/accountant/admin)** — UI foundation exists; most portal pages are not wired to the backend.
+- **Guest sessions** — guest JWT is issued and sent, but there is **no `guest_sessions` DB table** and routes do not yet enforce the token.
+
+### Planned but not built
+- Real OCR/payslip field extraction feeding the validation engine.
+- Vector RAG over legal rules and employment contracts.
+- Contract / attendance / national-ID analysis.
+- Historical payroll comparison.
+- Production auth (AWS Cognito) and full RBAC enforcement.
+- Batch bulk-PDF splitting/identification pipeline (endpoints are stubs).
+- MCP Kol Zchut legal sync automation.
+- RTL / i18n UI.
 
 ---
 
@@ -101,17 +132,7 @@ payroll-copilot/
 
 ## Implementation Status
 
-| Area | Status |
-|------|--------|
-| Backend API (FastAPI, validation engine, batch, RAG) | **Implemented** |
-| Database schema & migrations | **Implemented** |
-| Docker orchestration | **Implemented** |
-| Frontend monorepo foundation | **Implemented** |
-| Role-based UI portals (employee, accountant, admin) | **Frontend foundation** — placeholder pages, no API wiring |
-| Dev auth mode (`VITE_DEV_AUTH_ENABLED`) | **Frontend foundation** — localStorage only |
-| AWS Cognito / production auth | **Planned** |
-| Guest upload & chat (public landing) | **Frontend foundation** — UI only |
-| RTL / i18n UI | **Planned** |
+See **[Current Status](#current-status)** above for the authoritative, honest breakdown of Implemented / Partial / Planned. The sections below describe the intended full design; anything not listed as Implemented or Partial in Current Status is a design target, not shipped behavior.
 
 ---
 
@@ -146,8 +167,67 @@ See [docs/database.md](docs/database.md).
 | OCR | Pluggable port | Tesseract (default), PaddleOCR |
 | Embeddings | pgvector | Contract/policy RAG |
 | Agents | Specialized orchestrators | Splitter, extractor, explainer, email parser |
+| Payroll Assistant | LangGraph + Ollama | Public guest chat orchestration (tools + guardrails) |
 
 See [docs/ai-architecture.md](docs/ai-architecture.md).
+
+---
+
+## LangGraph Payroll Assistant
+
+**Status: Frontend foundation + backend API implemented.** Guest chat on the public landing page calls `POST /api/v1/assistant/chat`.
+
+### Principles
+
+- The assistant is an **orchestrator only** — it does not decide legal compliance.
+- **Deterministic validation** remains in the backend rule engine.
+- Legal/payroll-rights answers must come from **approved local sources** (currently YAML legal rules; vector RAG planned).
+- If no approved source is found, the assistant returns a **limited response** and does not invent law.
+- AI may assist with explanations, document summaries, and tool orchestration only.
+
+### Architecture
+
+```
+Guest chat → POST /assistant/chat → PayrollAssistantChatUseCase
+                                 → LangGraph (input guardrail → tools → answer → output guardrail)
+                                 → Ollama via ModelProvider (optional synthesis from tool context only)
+```
+
+**Backend layers:**
+- `application/ports/assistant.py` — tool and runner ports
+- `application/use_cases/payroll_assistant.py` — chat use case
+- `infrastructure/ai/agents/payroll_assistant_graph.py` — LangGraph orchestration
+- `infrastructure/ai/agents/payroll_assistant_tools.py` — safe tool adapters
+- `infrastructure/ai/guardrails/payroll_assistant_guardrails.py` — input/tool/output guardrails
+
+### Tools (initial)
+
+| Tool | Purpose |
+|------|---------|
+| `search_approved_labor_law` | Keyword search over approved local YAML legal rules |
+| `get_validation_report` | Read deterministic validation report by `validation_run_id` |
+| `get_uploaded_document_summary` | Guest-scoped document metadata summaries |
+| `explain_validation_finding` | Explain existing deterministic findings only |
+| `fallback_safe_response` | Safe response when guardrails block or sources are insufficient |
+
+### Guardrails
+
+- **Input:** blocks prompt injection, secrets/source-code requests, off-topic content
+- **Tool scope:** guest-only; only explicit `document_ids` / `validation_run_id`
+- **RAG/source:** no approved hit → limited response with knowledge-base message
+- **Output:** requires sources for legal claims; includes deterministic-validation disclaimer
+
+### Environment
+
+Uses existing Ollama settings (`MODEL_PROVIDER=ollama`). If Ollama is unavailable, the assistant falls back to template answers from approved tool context only.
+
+### Planned follow-ups
+
+- [ ] Vector RAG over legal rules and contracts
+- [ ] Connect uploaded `document_ids` from guest upload flow to chat
+- [ ] Connect `validation_run_id` from validation UI to explanations
+- [ ] Production auth/RBAC with AWS Cognito
+- [ ] Persistent chat sessions in PostgreSQL/Redis
 
 ---
 
@@ -279,28 +359,86 @@ Ensure Ollama is running on your host with the required models, or start the Doc
 
 ### Local Development
 
+#### Windows (PowerShell)
+
+**Local Windows run mode** = Docker runs **only** PostgreSQL, Redis, and MinIO; FastAPI, the Celery worker, the frontend, and Ollama all run **on the host**. Because the root `.env` uses Docker hostnames (`postgres`, `redis`, `minio`) so containers can reach each other, a host process must point at `localhost` instead. Set the local service URLs in your shell before launching (these override the `.env` values):
+
+```powershell
+cd backend
+py -3.13 -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -e ".[dev]"
+
+# From the repository root, start the required services only
+# (host Ollama is used directly; the Docker Ollama profile is NOT required):
+docker compose up -d postgres redis minio
+
+# Required local service URLs (localhost, not Docker hostnames):
+$env:DATABASE_URL="postgresql+asyncpg://payroll:payroll@localhost:5432/payroll_copilot"
+$env:REDIS_URL="redis://localhost:6379/0"
+$env:CELERY_BROKER_URL="redis://localhost:6379/1"
+$env:CELERY_RESULT_BACKEND="redis://localhost:6379/2"
+$env:S3_ENDPOINT="http://localhost:9000"
+$env:OLLAMA_LOCAL_URL="http://127.0.0.1:11434"
+$env:OLLAMA_DEFAULT_MODEL="mistral-nemo:12b"
+
+# Run the API locally (from backend/). PYTHONPATH=src is required.
+$env:PYTHONPATH="src"
+py -3.13 -m uvicorn payroll_copilot.presentation.main:app --reload
+
+# Run the worker (from backend/, in a second terminal with the same env vars)
+$env:PYTHONPATH="src"
+celery -A payroll_copilot.infrastructure.tasks.celery_app worker -l info
+```
+
+> **Automatic fallback:** even without the explicit `REDIS_URL`/`CELERY_*`/`S3_ENDPOINT` overrides above, the service resolver (`infrastructure/config/service_resolver.py`) probes the configured Docker host and, if unreachable from the host, falls back to the matching `*_LOCAL_URL` (localhost). Setting the URLs explicitly is still recommended for clarity and because **`DATABASE_URL` is not auto-resolved** — the API needs `localhost` for Postgres when run on the host.
+
+> **Runtime note:** the earlier `ModuleNotFoundError: No module named 'langgraph'` was an environment issue — `langgraph` is already declared in `backend/pyproject.toml`. Running `pip install -e ".[dev]"` into the interpreter you launch `uvicorn` with resolves it. Do not `pip install` it manually.
+
+#### macOS / Linux
+
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -e ".[dev]"
 
-# Root .env is loaded automatically (../.env from backend/)
-# Or copy: cp ../.env .env
-
-# In .env set:
-#   OLLAMA_BASE_URL=http://localhost:11434
-#   OLLAMA_HOST_URL=http://localhost:11434
-
-# From repository root — start dependencies only (no Docker Ollama required if host Ollama is running)
+# From the repository root — dependencies only (host Ollama used directly):
 docker compose up -d postgres redis minio
 
-# Run API locally (from backend/)
-uvicorn payroll_copilot.presentation.main:app --reload
+# Required local service URLs (localhost, not Docker hostnames):
+export DATABASE_URL="postgresql+asyncpg://payroll:payroll@localhost:5432/payroll_copilot"
+export REDIS_URL="redis://localhost:6379/0"
+export CELERY_BROKER_URL="redis://localhost:6379/1"
+export CELERY_RESULT_BACKEND="redis://localhost:6379/2"
+export S3_ENDPOINT="http://localhost:9000"
+export OLLAMA_LOCAL_URL="http://127.0.0.1:11434"
+export OLLAMA_DEFAULT_MODEL="mistral-nemo:12b"
 
-# Run worker (from backend/)
-celery -A payroll_copilot.infrastructure.tasks.celery_app worker -l info
+# Run API locally (from backend/)
+PYTHONPATH=src uvicorn payroll_copilot.presentation.main:app --reload
+
+# Run worker (from backend/, second terminal with the same env vars)
+PYTHONPATH=src celery -A payroll_copilot.infrastructure.tasks.celery_app worker -l info
 ```
+
+Required local services: **PostgreSQL**, **Redis**, **MinIO** (all via `docker compose up -d postgres redis minio`) and a **host Ollama** (`ollama serve`) with the model from `OLLAMA_DEFAULT_MODEL` pulled.
+
+#### Local-vs-Docker service URLs (Redis / Celery / S3)
+
+Docker Compose exposes services by hostname (`redis`, `minio`, `postgres`); those names only resolve **inside** the Compose network. When the backend runs on the host, the service resolver (`infrastructure/config/service_resolver.py`, mirroring the Ollama resolver) uses the configured URL when its host is reachable and otherwise falls back to the matching `*_LOCAL_URL` (localhost):
+
+| Configured (Docker) | Local fallback |
+|---------------------|----------------|
+| `REDIS_URL` | `REDIS_LOCAL_URL` |
+| `CELERY_BROKER_URL` | `CELERY_BROKER_LOCAL_URL` |
+| `CELERY_RESULT_BACKEND` | `CELERY_RESULT_BACKEND_LOCAL_URL` |
+| `S3_ENDPOINT` | `S3_LOCAL_ENDPOINT` |
+
+- **Docker mode:** `redis`/`minio` are reachable, so the configured Docker hostnames are used and Compose behavior is unchanged.
+- **Local mode:** the Docker hostnames are unreachable, so the resolver falls back to `localhost`.
+- Set `SERVICE_AUTO_FALLBACK=false` to disable probing and always use the configured URL.
+- `DATABASE_URL` is **not** auto-resolved — set it to `localhost` explicitly for local runs (shown above).
 
 ### Frontend Development
 
@@ -354,50 +492,62 @@ API service stubs live in `frontend/src/services/` with `@integration-point` mar
 
 ## Ollama
 
-Payroll Copilot prefers an **Ollama instance already running on your host machine**. The Docker Ollama container is an optional fallback.
+Payroll Copilot prefers an **Ollama instance already running on your host machine**. The Docker Ollama container is an **optional** fallback. Payroll Copilot never downloads or starts an Ollama instance for you.
 
 ### URL resolution order
 
-When `MODEL_PROVIDER=ollama`:
+When `MODEL_PROVIDER=ollama` and `OLLAMA_BASE_URL` is empty, the resolver **probes candidates in order** and uses the first that responds (implemented in `backend/src/payroll_copilot/infrastructure/config/ollama_resolver.py`):
 
-1. **`OLLAMA_BASE_URL` set** → use it exactly (no probing)
-2. **`OLLAMA_BASE_URL` empty** and `OLLAMA_AUTO_FALLBACK=true` → probe `OLLAMA_HOST_URL`
-3. Host unreachable → use `OLLAMA_DOCKER_URL` (requires `--profile docker-ollama`)
+1. **`OLLAMA_BASE_URL` set** → used exactly, no probing.
+2. **`OLLAMA_LOCAL_URL`** (`http://127.0.0.1:11434`) → local host Ollama. This is what makes **local backend execution** work.
+3. **`OLLAMA_HOST_URL`** (`http://host.docker.internal:11434`) → host gateway, used when running **inside Docker**.
+4. **`OLLAMA_DOCKER_URL`** (`http://ollama:11434`) → optional Docker service, only reachable with `--profile docker-ollama`.
 
-### Docker Compose (default `.env.example`)
+Because `127.0.0.1` is probed first, a local `uvicorn` process connects straight to host Ollama; inside a container `127.0.0.1` has no Ollama so the probe moves on to the host gateway, then the Docker service. The selected URL is logged at startup, e.g. `Ollama URL: local host Ollama reachable at http://127.0.0.1:11434`.
+
+If **no** candidate responds, the resolver logs a warning and defaults to the local URL, and the assistant **degrades gracefully** (see below) rather than crashing.
+
+### Graceful failure
+
+If the resolved Ollama endpoint is unreachable at request time, the assistant does **not** return HTTP 500. The failure is logged and the assistant returns a controlled answer built only from approved tool context (or a limited/off-topic/greeting response, per the guardrails). Compliance results are unaffected because validation is deterministic and separate from the LLM.
+
+### Environment variables
 
 | Variable | Value | Purpose |
 |----------|-------|---------|
-| `OLLAMA_BASE_URL` | *(empty)* | Enable auto-resolution |
-| `OLLAMA_HOST_URL` | `http://host.docker.internal:11434` | Host Ollama from containers |
-| `OLLAMA_DOCKER_URL` | `http://ollama:11434` | Fallback Docker service |
-| `OLLAMA_AUTO_FALLBACK` | `true` | Probe host before fallback |
+| `OLLAMA_BASE_URL` | *(empty)* | Explicit override; empty enables auto-resolution |
+| `OLLAMA_LOCAL_URL` | `http://127.0.0.1:11434` | Local host Ollama (probed first) |
+| `OLLAMA_HOST_URL` | `http://host.docker.internal:11434` | Host Ollama from inside containers |
+| `OLLAMA_DOCKER_URL` | `http://ollama:11434` | Optional Docker service fallback |
+| `OLLAMA_AUTO_FALLBACK` | `true` | Probe candidates; if `false`, use the local URL deterministically |
+| `OLLAMA_PROBE_TIMEOUT_SECONDS` | `2.0` | Per-candidate probe timeout |
+| `OLLAMA_DEFAULT_MODEL` | `mistral-nemo:12b` | Chat model — set to a model you have pulled locally |
 
-`api` and `worker` include `extra_hosts: host.docker.internal:host-gateway` for Linux compatibility.
+The chat model is read from settings/`.env` only (`OLLAMA_DEFAULT_MODEL`); it is not hardcoded in application code.
 
-### Local development (no Docker for API)
+### Required model
 
-```env
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_HOST_URL=http://localhost:11434
+Pull a model on the host and set it in `.env`:
+
+```bash
+ollama pull mistral-nemo:12b
+ollama list            # confirm mistral-nemo:12b is present
 ```
 
-### Docker Ollama fallback
+```env
+OLLAMA_DEFAULT_MODEL=mistral-nemo:12b
+```
 
-Use when host Ollama is not installed or not reachable:
+`api` and `worker` containers include `extra_hosts: host.docker.internal:host-gateway` for Linux compatibility.
+
+### Docker Ollama fallback (optional)
+
+Use only when host Ollama is not installed or not reachable:
 
 ```bash
 docker compose --profile docker-ollama up -d
-docker compose exec ollama ollama pull llama3.1:8b
+docker compose exec ollama ollama pull mistral-nemo:12b
 docker compose exec ollama ollama pull nomic-embed-text
-```
-
-### Explicit override
-
-To pin a specific endpoint (no probing):
-
-```env
-OLLAMA_BASE_URL=http://host.docker.internal:11434
 ```
 
 ---
@@ -422,16 +572,24 @@ Services: `api`, `worker`, `beat`, `postgres`, `redis`, `minio`, (`ollama` via p
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection | `postgresql+asyncpg://...` |
-| `REDIS_URL` | Redis connection | `redis://localhost:6379/0` |
-| `S3_ENDPOINT` | Object storage endpoint | `http://minio:9000` |
+| `DATABASE_URL` | PostgreSQL connection (use `localhost` for local runs) | `postgresql+asyncpg://...` |
+| `REDIS_URL` | Redis connection (Docker hostname) | `redis://redis:6379/0` |
+| `REDIS_LOCAL_URL` | Local fallback when `REDIS_URL` host is unreachable | `redis://localhost:6379/0` |
+| `CELERY_BROKER_URL` / `CELERY_RESULT_BACKEND` | Celery broker / result store (Docker hostname) | `redis://redis:6379/1`, `/2` |
+| `CELERY_BROKER_LOCAL_URL` / `CELERY_RESULT_BACKEND_LOCAL_URL` | Local fallbacks | `redis://localhost:6379/1`, `/2` |
+| `S3_ENDPOINT` | Object storage endpoint (Docker hostname) | `http://minio:9000` |
+| `S3_LOCAL_ENDPOINT` | Local fallback when `S3_ENDPOINT` host is unreachable | `http://localhost:9000` |
+| `SERVICE_AUTO_FALLBACK` | Probe configured host, fall back to `*_LOCAL_URL` if unreachable | `true` |
+| `SERVICE_PROBE_TIMEOUT_SECONDS` | Per-host TCP probe timeout for service resolution | `0.5` |
 | `S3_ACCESS_KEY` | Storage access key | — |
 | `S3_SECRET_KEY` | Storage secret key | — |
 | `S3_BUCKET` | Bucket name | `payroll-copilot` |
 | `OLLAMA_BASE_URL` | Ollama API (explicit override; empty = auto-resolve) | *(empty)* |
+| `OLLAMA_LOCAL_URL` | Local host Ollama (probed first) | `http://127.0.0.1:11434` |
 | `OLLAMA_HOST_URL` | Host Ollama URL probed from containers | `http://host.docker.internal:11434` |
-| `OLLAMA_DOCKER_URL` | Docker Ollama fallback URL | `http://ollama:11434` |
-| `OLLAMA_AUTO_FALLBACK` | Probe host before using Docker URL | `true` |
+| `OLLAMA_DOCKER_URL` | Optional Docker Ollama fallback URL | `http://ollama:11434` |
+| `OLLAMA_AUTO_FALLBACK` | Probe candidates (local → host → docker) | `true` |
+| `OLLAMA_DEFAULT_MODEL` | Chat model (must be pulled locally) | `mistral-nemo:12b` |
 | `MODEL_PROVIDER` | AI provider | `ollama` |
 | `JWT_SECRET_KEY` | JWT signing key | — |
 | `ENCRYPTION_KEY` | AES key for PII | — |
@@ -448,6 +606,7 @@ REST API at `/api/v1`. Full OpenAPI spec at `/docs`.
 
 Key endpoints:
 - `POST /auth/login` — Authentication
+- `POST /assistant/chat` — Public guest payroll assistant (LangGraph orchestration)
 - `POST /documents/upload` — Document upload
 - `POST /validation/run` — Trigger validation
 - `POST /batch/payslips` — Bulk PDF processing
@@ -460,14 +619,109 @@ See [docs/api.md](docs/api.md).
 
 ## Testing
 
+### Automated tests
+
 ```bash
 cd backend
-pytest                          # All tests
-pytest tests/unit               # Unit tests
-pytest tests/integration        # Integration tests (requires Docker)
-ruff check src tests            # Lint
-mypy src                        # Type check
+# Windows PowerShell: prefix with `$env:PYTHONPATH="src";`
+PYTHONPATH=src pytest                    # All tests
+PYTHONPATH=src pytest tests/unit         # Unit tests
+PYTHONPATH=src pytest tests/integration  # Integration tests
+ruff check src tests                     # Lint
+mypy src                                 # Type check
 ```
+
+Assistant + Ollama-resolver focused run (Windows PowerShell):
+
+```powershell
+cd backend
+$env:PYTHONPATH="src"
+pytest tests/unit/test_ollama_resolver.py tests/unit/test_payroll_assistant_guardrails.py tests/unit/test_payroll_assistant_use_case.py tests/integration/test_assistant_api.py -v
+```
+
+### Manual smoke tests
+
+Assumes the API is running on `http://localhost:8000` and (for the assistant) host Ollama is running with `OLLAMA_DEFAULT_MODEL` pulled.
+
+**Health**
+```bash
+curl http://localhost:8000/health           # {"status":"healthy"}
+curl http://localhost:8000/ready            # DB connectivity
+```
+
+**Frontend**
+```bash
+cd frontend && npm install && npm run dev    # http://localhost:3000
+```
+
+**Assistant** (`POST /api/v1/assistant/chat`)
+```bash
+# Greeting → guardrail_status "passed"
+curl -X POST http://localhost:8000/api/v1/assistant/chat -H "Content-Type: application/json" -d "{\"message\":\"hi\"}"
+# Payroll question → answer from approved context (or clean degraded answer if Ollama is down)
+curl -X POST http://localhost:8000/api/v1/assistant/chat -H "Content-Type: application/json" -d "{\"message\":\"How should overtime appear on a payslip?\"}"
+# Off-topic → scoped response, HTTP 200 (never 500)
+curl -X POST http://localhost:8000/api/v1/assistant/chat -H "Content-Type: application/json" -d "{\"message\":\"Who won the World Cup?\"}"
+```
+
+**Document upload** (`POST /api/v1/documents/upload`)
+```bash
+curl -X POST http://localhost:8000/api/v1/documents/upload -F "file=@payslip.pdf" -F "document_type=payslip"
+# → { "document_id": "...", "status": "uploaded", "processing_job_id": "...", "background_status": "queued" }
+```
+If the Celery broker (Redis) is unavailable, the upload still succeeds and returns `"background_status": "not_queued"` with `"processing_job_id": null` — the document is persisted, only background processing was skipped.
+
+**Validation** (`POST /api/v1/validation/run`, then fetch)
+```bash
+curl -X POST http://localhost:8000/api/v1/validation/run -H "Content-Type: application/json" -d "{\"document_id\":\"<id-from-upload>\"}"
+curl http://localhost:8000/api/v1/validation/runs/<validation-run-id>
+```
+The validation response includes `validation_scope`, `uploaded_documents`, `validation_confidence`, and `findings`. Note that payroll rules run against the demo context builder (see Current Limitations), so scope for payroll rules is reported as `partial`.
+
+---
+
+## Current Limitations
+
+These are intentional and surfaced honestly in the UI/API — nothing is faked:
+
+- **OCR worker is a stub/foundation.** The `process_document_ocr` task returns a placeholder result; no fields are extracted yet. If Celery/Redis is unavailable, upload returns `background_status="not_queued"` and no processing is claimed.
+- **No real OCR extraction yet.** Uploaded files are stored and validated, but payslip fields are **not** parsed from the document.
+- **Validation still uses `DemoValidationContextBuilder`.** The engine evaluates a fixed sample payslip context, so results reflect the demo context, not your uploaded file. Payroll-rule scope is reported as `partial`.
+- **No real vector RAG yet.** The assistant uses keyword search over local YAML legal rules only.
+- **No production auth / Cognito yet.** A dev role selector and guest JWT exist; routes do not enforce auth.
+- **Guest session DB persistence not completed.** Guest JWT is issued and sent, but there is no `guest_sessions` table and routes don't require the token.
+- **Contract / attendance / national-ID analysis not connected.** Uploading these documents is supported, but they are reported as `not_available` in the validation scope because analysis is not wired.
+- **Historical comparison not available.** Always reported as `not_available`.
+- **Batch bulk-PDF, MCP legal sync, RTL/i18n** are design targets, not shipped.
+
+---
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| Frontend shows `ERR_CONNECTION_REFUSED` calling the API | FastAPI is not running | Start it: `PYTHONPATH=src uvicorn payroll_copilot.presentation.main:app --reload` |
+| `getaddrinfo failed` / `Error 11001 connecting to redis:6379` (or `minio`) | Local backend is using Docker hostnames | Set `REDIS_URL`/`CELERY_*`/`S3_ENDPOINT` to `localhost` (see Local Development), or rely on `*_LOCAL_URL` auto-fallback; ensure `docker compose up -d postgres redis minio` is running |
+| Upload returns `"background_status": "not_queued"` | Celery broker (Redis) unreachable | Expected graceful degradation — the document is still persisted; start Redis + the worker to enable background processing |
+| `getaddrinfo failed` for `postgres` | `DATABASE_URL` still points at the Docker hostname | Set `DATABASE_URL` to `...@localhost:5432/...` (Postgres is **not** auto-resolved) |
+| Assistant returns "temporarily unavailable" / limited answers | Ollama not running or misconfigured | Run host Ollama (`ollama serve`), pull `OLLAMA_DEFAULT_MODEL`; see the **Ollama** section |
+| `ModuleNotFoundError: No module named 'langgraph'` | Dependencies not installed into the active interpreter | `pip install -e ".[dev]"` in the venv you launch `uvicorn` with |
+
+---
+
+## Public Guest Experience
+
+The public landing page (`/`) offers two actions, both wired to the backend:
+
+| Feature | Status |
+|---------|--------|
+| **Landing page** | Implemented — two action cards (Payroll Assistant / Validate My Payslip) |
+| **Payroll Assistant** | Implemented — `POST /assistant/chat`; approved-source answers, greeting handling, guardrails; hides assistant confidence from the UI |
+| **Upload** | Implemented — client + server upload guardrails; payslip required, supporting docs optional |
+| **Validation report** | Implemented — overall status, scope, uploaded documents, backend `validation_confidence`, findings with an Explain panel |
+| **Honest scope limitations** | Implemented — scope shows `partial` / `not_available` for capabilities that are not connected; no invented results, OCR, RAG answers, historical comparison, or contract analysis |
+
+Backend remains the source of truth for validation results and validation confidence; the frontend only displays values returned by the API.
 
 ---
 
@@ -475,7 +729,8 @@ mypy src                        # Type check
 
 - [x] Monorepo structure (`backend/`, `frontend/`)
 - [x] Frontend role-based portal foundation (React, TypeScript, Vite)
-- [x] Dev auth mode for local role testing
+- [x] LangGraph Payroll Assistant foundation (public guest chat API + guardrails)
+- [ ] Vector RAG for assistant legal rule search
 - [ ] Frontend API integration (auth, documents, validation, batch)
 - [ ] AWS Cognito production authentication
 - [ ] RTL-aware UI (Hebrew, English, Arabic)

@@ -1,44 +1,62 @@
-import { GuestChatPanel } from '../../components/guest/GuestChatPanel';
-import { GuestUploadArea } from '../../components/guest/GuestUploadArea';
+import { useState } from 'react';
+import type { GuestWorkspaceMode } from '../../features/guest/GuestWorkspace';
+import { GuestWorkspace } from '../../features/guest/GuestWorkspace';
+import '../../features/guest/guest.css';
 import '../../layouts/PublicLayout.css';
 
+export type AssistantFollowUpContext = {
+  validationRunId: string;
+  documentIds: string[];
+};
+
 export function LandingPage() {
+  const [mode, setMode] = useState<GuestWorkspaceMode | null>(null);
+  const [assistantContext, setAssistantContext] = useState<AssistantFollowUpContext | undefined>();
+
   return (
     <div className="landing">
-      <section className="landing__hero">
+      <section className="landing__hero landing__hero--compact">
         <div>
-          <h1>AI-Powered Payroll Compliance</h1>
+          <p className="landing__eyebrow">Payroll compliance for Israeli employers</p>
+          <h1>Validate payslips. Answer employee-rights questions with approved sources.</h1>
           <p className="landing__hero-lead">
-            Payroll Copilot helps organizations validate payslips against Israeli labor law,
-            company policies, and employment contracts — before salaries are paid.
-          </p>
-          <div className="landing__principles">
-            <div className="landing__principle">
-              <strong>Deterministic validation</strong> — Rule engine decides compliance; AI never
-              overrides pass/fail.
-            </div>
-            <div className="landing__principle">
-              <strong>Extensible rule packs</strong> — Legal, department, and contract rules without
-              hardcoded frontend logic.
-            </div>
-            <div className="landing__principle">
-              <strong>AI assistance</strong> — OCR, document understanding, RAG, and explanations
-              support human review.
-            </div>
-          </div>
-        </div>
-        <div className="landing__hero-visual">
-          <h2>Built for payroll accountants & employees</h2>
-          <p>
-            Bulk-process hundreds of payslips, surface validation findings with confidence scores,
-            and give employees transparent explanations of their payroll data.
+            Payroll Copilot combines deterministic payroll validation with a source-bound assistant.
+            Compliance decisions are made by the rule engine, not by AI guesswork.
           </p>
         </div>
       </section>
-      <section className="landing__sections">
-        <GuestUploadArea />
-        <GuestChatPanel />
+
+      <section className="guest-action-cards" aria-label="Primary actions">
+        <button
+          type="button"
+          className={`guest-action-card ${mode === 'assistant' ? 'is-active' : ''}`}
+          onClick={() => setMode('assistant')}
+        >
+          <h2>Payroll Assistant</h2>
+          <p>Ask about payroll rules and employee rights using approved internal sources only.</p>
+        </button>
+        <button
+          type="button"
+          className={`guest-action-card ${mode === 'validate' ? 'is-active' : ''}`}
+          onClick={() => setMode('validate')}
+        >
+          <h2>Validate My Payslip</h2>
+          <p>Upload a payslip and optional supporting documents to receive a structured validation report.</p>
+        </button>
       </section>
+
+      {mode && (
+        <section className="landing__workspace">
+          <GuestWorkspace
+            mode={mode}
+            assistantContext={assistantContext}
+            onFollowUp={(context) => {
+              setAssistantContext(context);
+              setMode('assistant');
+            }}
+          />
+        </section>
+      )}
     </div>
   );
 }

@@ -74,6 +74,24 @@
   margin-bottom: 3rem;
 }
 
+.landing__hero--compact {
+  grid-template-columns: 1fr;
+  margin-bottom: 2rem;
+}
+
+.landing__eyebrow {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.landing__workspace {
+  margin-top: 1.5rem;
+}
+
 .landing__hero h1 {
   margin: 0 0 1rem;
   font-size: 2.25rem;

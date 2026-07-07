@@ -26,13 +26,21 @@ class Settings(BaseSettings):
     database_max_overflow: int = 20
 
     redis_url: str = "redis://localhost:6379/0"
+    redis_local_url: str = "redis://localhost:6379/0"
 
     s3_endpoint: str = "http://localhost:9000"
+    s3_local_endpoint: str = "http://localhost:9000"
     s3_access_key: str = ""
     s3_secret_key: str = ""
     s3_bucket: str = "payroll-copilot"
     s3_region: str = "us-east-1"
     s3_use_ssl: bool = False
+
+    # Local-vs-Docker service resolution. When auto-fallback is enabled and the
+    # configured host is unreachable (e.g. Docker hostname `redis`/`minio` while the
+    # backend runs locally), the resolver probes the *_LOCAL_URL fallback instead.
+    service_auto_fallback: bool = True
+    service_probe_timeout_seconds: float = 0.5
 
     jwt_secret_key: str = Field(min_length=32)
     jwt_algorithm: str = "HS256"
@@ -43,8 +51,16 @@ class Settings(BaseSettings):
 
     guest_session_ttl_hours: int = 24
 
+    guest_validation_confidence_penalty_attendance: float = 0.12
+    guest_validation_confidence_penalty_contract: float = 0.12
+    guest_validation_confidence_penalty_national_id: float = 0.08
+    guest_validation_confidence_penalty_historical: float = 0.08
+    guest_validation_confidence_penalty_extraction: float = 0.20
+    guest_validation_confidence_minimum: float = 0.35
+
     model_provider: str = "ollama"
     ollama_base_url: str = ""
+    ollama_local_url: str = "http://127.0.0.1:11434"
     ollama_host_url: str = "http://host.docker.internal:11434"
     ollama_docker_url: str = "http://ollama:11434"
     ollama_auto_fallback: bool = True
@@ -59,7 +75,9 @@ class Settings(BaseSettings):
     tesseract_lang: str = "heb+eng+ara"
 
     celery_broker_url: str = "redis://localhost:6379/1"
+    celery_broker_local_url: str = "redis://localhost:6379/1"
     celery_result_backend: str = "redis://localhost:6379/2"
+    celery_result_backend_local_url: str = "redis://localhost:6379/2"
 
     max_upload_size_mb: int = 50
     max_bulk_pdf_size_mb: int = 200

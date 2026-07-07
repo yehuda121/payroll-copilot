@@ -1,29 +1,45 @@
 import { env } from '../config/env';
+import { getAuthHeaders } from '../lib/guest/guest-session';
 
 export type RequestOptions = RequestInit & {
-  /** Skip JSON content-type header for multipart uploads. */
   rawBody?: boolean;
+  auth?: boolean;
 };
 
-/**
- * Base HTTP client for backend API calls.
- * @integration-point API_CLIENT
- */
+export class ApiClientError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { rawBody, headers, ...init } = options;
+  const { rawBody, auth = false, headers, ...init } = options;
 
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
     ...init,
     headers: rawBody
-      ? headers
+      ? { ...(auth ? getAuthHeaders() : {}), ...headers }
       : {
           'Content-Type': 'application/json',
+          ...(auth ? getAuthHeaders() : {}),
           ...headers,
         },
   });
 
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    let message = `API request failed: ${response.status} ${response.statusText}`;
+    try {
+      const body = (await response.json()) as { detail?: string };
+      if (body.detail) {
+        message = body.detail;
+      }
+    } catch {
+      // Keep default message when response is not JSON.
+    }
+    throw new ApiClientError(message, response.status);
   }
 
   if (response.status === 204) {
