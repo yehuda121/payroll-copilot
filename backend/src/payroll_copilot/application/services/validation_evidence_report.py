@@ -29,6 +29,8 @@ class ValidationEvidenceReportBuilder:
         supporting_documents: list[Document],
         report: ValidationReport,
         locale: str | None = None,
+        extraction_connected: bool = False,
+        core_fields_usable: bool = False,
     ) -> ValidationReportEnrichment:
         lang = normalize_locale(locale or self._settings.default_locale)
         documents_by_type: dict[DocumentType, Document] = {payslip_document.document_type: payslip_document}
@@ -39,7 +41,12 @@ class ValidationEvidenceReportBuilder:
             payslip_document=payslip_document,
             documents_by_type=documents_by_type,
         )
-        scope = self._build_scope(documents_by_type=documents_by_type, locale=lang)
+        scope = self._build_scope(
+            documents_by_type=documents_by_type,
+            locale=lang,
+            extraction_connected=extraction_connected,
+            core_fields_usable=core_fields_usable,
+        )
         confidence, explanation = self._compute_confidence(scope=scope, locale=lang)
 
         checks_passed = max(report.rules_evaluated - report.rules_failed, 0)
@@ -50,7 +57,7 @@ class ValidationEvidenceReportBuilder:
             validation_confidence=confidence,
             confidence_explanation=explanation,
             checks_passed_count=checks_passed,
-            extraction_connected=False,
+            extraction_connected=extraction_connected,
         )
 
     def _build_uploaded_summaries(
@@ -92,9 +99,18 @@ class ValidationEvidenceReportBuilder:
         *,
         documents_by_type: dict[DocumentType, Document],
         locale: str,
+        extraction_connected: bool = False,
+        core_fields_usable: bool = False,
     ) -> tuple[ValidationScopeItem, ...]:
-        payroll_status = "partial"
-        payroll_reason = scope_reason("extraction_not_connected", locale)
+        if extraction_connected and core_fields_usable:
+            payroll_status = "completed"
+            payroll_reason = scope_reason("payroll_extraction_connected", locale)
+        elif extraction_connected:
+            payroll_status = "partial"
+            payroll_reason = scope_reason("payroll_core_fields_incomplete", locale)
+        else:
+            payroll_status = "partial"
+            payroll_reason = scope_reason("extraction_not_connected", locale)
 
         attendance_doc = documents_by_type.get(DocumentType.ATTENDANCE)
         if attendance_doc is None:

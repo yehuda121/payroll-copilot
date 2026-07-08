@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from payroll_copilot.application.dto.validation_run import ValidationFindingRecord, ValidationRunRecord
-from payroll_copilot.domain.entities import Document
+from payroll_copilot.domain.entities import Document, DocumentExtraction
 
 
 class DocumentRepository(ABC):
@@ -16,6 +16,20 @@ class DocumentRepository(ABC):
 
     @abstractmethod
     async def save(self, document: Document) -> Document:
+        ...
+
+
+class DocumentExtractionRepository(ABC):
+    @abstractmethod
+    async def get_by_id(self, extraction_id: UUID) -> DocumentExtraction | None:
+        ...
+
+    @abstractmethod
+    async def get_latest_for_document(self, document_id: UUID) -> DocumentExtraction | None:
+        ...
+
+    @abstractmethod
+    async def save(self, extraction: DocumentExtraction) -> DocumentExtraction:
         ...
 
 

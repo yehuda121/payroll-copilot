@@ -5,6 +5,7 @@ export type OverallStatusLabel = string;
 export type GuestValidationReport = {
   runId: string;
   documentId: string;
+  overallResult: 'pass' | 'warnings' | 'critical' | null;
   overallStatus: OverallStatusLabel;
   summary: string;
   validationConfidence: number | null;

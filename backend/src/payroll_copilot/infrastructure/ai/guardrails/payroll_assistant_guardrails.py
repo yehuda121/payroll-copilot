@@ -20,11 +20,16 @@ _INJECTION_PATTERNS = (
     r"bypass\s+(guardrails|safety|rules)",
 )
 
+# Broad in-domain payroll / employee-rights intent (EN/HE/AR).
 _PAYROLL_TOPIC_KEYWORDS = (
     "payroll",
     "payslip",
+    "pay slip",
+    "paystub",
+    "pay stub",
     "salary",
     "wage",
+    "wages",
     "minimum wage",
     "overtime",
     "vacation",
@@ -33,7 +38,13 @@ _PAYROLL_TOPIC_KEYWORDS = (
     "leave",
     "pension",
     "tax",
+    "taxes",
+    "deduction",
+    "deductions",
+    "travel",
     "transportation",
+    "expense",
+    "expenses",
     "attendance",
     "contract",
     "employment",
@@ -41,17 +52,48 @@ _PAYROLL_TOPIC_KEYWORDS = (
     "labour",
     "employee",
     "employer",
+    "employee-rights",
+    "employee rights",
     "validation",
+    "validate",
+    "warning",
+    "critical",
     "finding",
+    "findings",
+    "issue",
     "upload",
     "document",
+    "documents",
     "nis",
     "ils",
     "שכר",
     "תלוש",
+    "שעות נוספות",
     "חופשה",
     "מחלה",
     "פנסיה",
+    "מס",
+    "ניכוי",
+    "ניכויים",
+    "נסיעות",
+    "בדיקה",
+    "אזהרה",
+    "קריטי",
+    "מסמך",
+    "מסמכים",
+    "راتب",
+    "رواتب",
+    "كشف راتب",
+    "ساعات إضافية",
+    "إجازة",
+    "مرض",
+    "تقاعد",
+    "ضريبة",
+    "خصم",
+    "مستند",
+    "مستندات",
+    "تحذير",
+    "حرج",
 )
 
 _LEGAL_RIGHTS_KEYWORDS = (
@@ -65,10 +107,15 @@ _LEGAL_RIGHTS_KEYWORDS = (
     "minimum",
     "allowed",
     "require",
+    "required",
     "must",
+    "eligib",
     "חוק",
     "זכות",
     "חובה",
+    "قانون",
+    "حق",
+    "حقوق",
 )
 
 _GREETING_EXACT = {
@@ -94,6 +141,7 @@ class InputGuardrailResult:
     is_validation_question: bool = False
     is_document_question: bool = False
     is_greeting: bool = False
+    in_domain_intent: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,14 +158,14 @@ class PayrollAssistantGuardrails:
         normalized = message.strip().lower()
         if not normalized:
             return InputGuardrailResult(
-                status=AssistantGuardrailStatus.BLOCKED,
+                status=AssistantGuardrailStatus.BLOCKED_SAFETY,
                 reason="empty_message",
             )
 
         for pattern in _INJECTION_PATTERNS:
             if re.search(pattern, normalized):
                 return InputGuardrailResult(
-                    status=AssistantGuardrailStatus.BLOCKED,
+                    status=AssistantGuardrailStatus.BLOCKED_SAFETY,
                     reason="prompt_injection",
                 )
 
@@ -129,7 +177,7 @@ class PayrollAssistantGuardrails:
 
         if not self._is_payroll_related(normalized):
             return InputGuardrailResult(
-                status=AssistantGuardrailStatus.BLOCKED,
+                status=AssistantGuardrailStatus.BLOCKED_OFF_TOPIC,
                 reason="off_topic",
             )
 
@@ -138,6 +186,7 @@ class PayrollAssistantGuardrails:
             is_legal_rights_question=self._is_legal_rights_question(normalized),
             is_validation_question=self._mentions_validation(normalized),
             is_document_question=self._mentions_documents(normalized),
+            in_domain_intent=self._classify_in_domain_intent(normalized),
         )
 
     def evaluate_tool_scope(
@@ -150,13 +199,24 @@ class PayrollAssistantGuardrails:
         if requested_document_ids:
             unknown = set(requested_document_ids) - set(document_ids)
             if unknown:
-                return AssistantGuardrailStatus.BLOCKED
+                return AssistantGuardrailStatus.BLOCKED_SAFETY
         return AssistantGuardrailStatus.PASSED
 
-    def build_limited_legal_response(self, *, locale: str = "en") -> OutputGuardrailResult:
+    def build_limited_legal_response(
+        self,
+        *,
+        locale: str = "en",
+        intent: str | None = None,
+    ) -> OutputGuardrailResult:
+        """Helpful in-domain guidance when no exact approved source is available."""
+        key = {
+            "documents_needed": "limited_documents_needed",
+            "overtime_payslip": "limited_overtime_payslip",
+            "warning_vs_critical": "limited_warning_vs_critical",
+        }.get(intent or "", "limited_full")
         return OutputGuardrailResult(
-            status=AssistantGuardrailStatus.LIMITED,
-            answer=assistant_text("limited_full", locale),
+            status=AssistantGuardrailStatus.LIMITED_IN_DOMAIN,
+            answer=assistant_text(key, locale),
             requires_human_review=True,
         )
 
@@ -166,9 +226,13 @@ class PayrollAssistantGuardrails:
             "off_topic": "blocked_off_topic",
             "empty_message": "blocked_empty",
         }
+        if reason == "off_topic":
+            status = AssistantGuardrailStatus.BLOCKED_OFF_TOPIC
+        else:
+            status = AssistantGuardrailStatus.BLOCKED_SAFETY
         answer = assistant_text(key_by_reason.get(reason, "blocked_generic"), locale)
         return OutputGuardrailResult(
-            status=AssistantGuardrailStatus.BLOCKED,
+            status=status,
             answer=answer,
             requires_human_review=False,
         )
@@ -180,9 +244,20 @@ class PayrollAssistantGuardrails:
         sources: list[dict[str, str | None]],
         made_legal_claim: bool,
         locale: str = "en",
+        intent: str | None = None,
     ) -> OutputGuardrailResult:
-        if made_legal_claim and not sources:
-            return self.build_limited_legal_response(locale=locale)
+        # Missing sources is an in-domain limitation, not an unsafe outcome.
+        if not sources and made_legal_claim:
+            return self.build_limited_legal_response(locale=locale, intent=intent)
+
+        if sources:
+            disclaimer = assistant_text("disclaimer", locale)
+            final_answer = answer if disclaimer.strip() in answer else f"{answer}{disclaimer}"
+            return OutputGuardrailResult(
+                status=AssistantGuardrailStatus.ANSWERED_FROM_SOURCE,
+                answer=final_answer,
+                requires_human_review=False,
+            )
 
         disclaimer = assistant_text("disclaimer", locale)
         final_answer = answer if disclaimer.strip() in answer else f"{answer}{disclaimer}"
@@ -218,9 +293,66 @@ class PayrollAssistantGuardrails:
     def _mentions_validation(normalized: str) -> bool:
         return any(
             token in normalized
-            for token in ("validation", "finding", "findings", "violation", "compliance result")
+            for token in (
+                "validation",
+                "validate",
+                "finding",
+                "findings",
+                "violation",
+                "compliance",
+                "warning",
+                "critical",
+                "בדיקה",
+                "אזהרה",
+                "קריטי",
+                "تحقق",
+                "تحذير",
+                "حرج",
+            )
         )
 
     @staticmethod
     def _mentions_documents(normalized: str) -> bool:
-        return any(token in normalized for token in ("document", "upload", "file", "payslip pdf"))
+        return any(
+            token in normalized
+            for token in (
+                "document",
+                "documents",
+                "upload",
+                "file",
+                "needed",
+                "require",
+                "required",
+                "מסמך",
+                "מסמכים",
+                "העלה",
+                "נדרש",
+                "مستند",
+                "مستندات",
+                "رفع",
+            )
+        )
+
+    @staticmethod
+    def _classify_in_domain_intent(normalized: str) -> str | None:
+        docs = any(
+            token in normalized
+            for token in ("document", "documents", "מסמך", "מסמכים", "مستند", "مستندات", "needed", "נדרש")
+        )
+        validate = any(
+            token in normalized for token in ("validate", "validation", "בדיקה", "تحقق", "payslip", "תלוש", "كشف")
+        )
+        if docs and validate:
+            return "documents_needed"
+
+        if any(token in normalized for token in ("overtime", "שעות נוספות", "ساعات إضافية")) and any(
+            token in normalized for token in ("payslip", "pay stub", "paystub", "תלוש", "كشف", "reflect", "appear")
+        ):
+            return "overtime_payslip"
+
+        if any(token in normalized for token in ("warning", "אזהרה", "تحذير")) and any(
+            token in normalized for token in ("critical", "קריטי", "حرج")
+        ):
+            return "warning_vs_critical"
+
+        return None

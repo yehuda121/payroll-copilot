@@ -6,7 +6,14 @@ export type AssistantSourceType =
   | 'attendance'
   | 'system';
 
-export type AssistantGuardrailStatus = 'passed' | 'blocked' | 'limited';
+export type AssistantGuardrailStatus =
+  | 'passed'
+  | 'answered_from_source'
+  | 'limited_in_domain'
+  | 'blocked_off_topic'
+  | 'blocked_safety'
+  | 'blocked'
+  | 'limited';
 
 export type AssistantSource = {
   title: string;
@@ -37,6 +44,8 @@ export type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  createdAt: string;
+  prompt?: string;
   sources?: AssistantSource[];
   guardrailStatus?: AssistantGuardrailStatus;
 };

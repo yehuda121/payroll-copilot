@@ -21,8 +21,9 @@ from payroll_copilot.application.services.validation_evidence_report import (
     ValidationEvidenceReportBuilder,
 )
 from payroll_copilot.application.use_cases.validation import RunValidationUseCase
-from payroll_copilot.application.validation.demo_validation_context_builder import (
-    DemoValidationContextBuilder,
+from payroll_copilot.application.validation.guest_extraction_context_builder import (
+    ExtractionRequiredError,
+    GuestExtractionValidationContextBuilder,
 )
 from payroll_copilot.infrastructure.config.settings import get_settings
 
@@ -38,12 +39,12 @@ class RunPersistedValidationCommand:
 
 
 class RunPersistedValidationUseCase:
-    """Run deterministic validation and persist the run and findings to PostgreSQL."""
+    """Run deterministic validation from guest extraction and persist results."""
 
     def __init__(
         self,
         run_validation: RunValidationUseCase,
-        demo_context_builder: DemoValidationContextBuilder,
+        guest_context_builder: GuestExtractionValidationContextBuilder,
         document_repository: DocumentRepository,
         validation_run_repository: ValidationRunRepository,
         validation_finding_repository: ValidationFindingRepository,
@@ -51,7 +52,7 @@ class RunPersistedValidationUseCase:
         evidence_report_builder: ValidationEvidenceReportBuilder | None = None,
     ) -> None:
         self._run_validation = run_validation
-        self._demo_context_builder = demo_context_builder
+        self._guest_context_builder = guest_context_builder
         self._document_repository = document_repository
         self._validation_run_repository = validation_run_repository
         self._validation_finding_repository = validation_finding_repository
@@ -67,7 +68,11 @@ class RunPersistedValidationUseCase:
 
         supporting_documents = await self._load_supporting_documents(command.supporting_document_ids)
 
-        bundle = self._demo_context_builder.build(command.document_id, command.employee_id)
+        bundle = await self._guest_context_builder.build(
+            document_id=command.document_id,
+            organization_id=document.organization_id,
+            employee_id=command.employee_id,
+        )
         report = self._run_validation.execute(bundle.command)
 
         organization_id = document.organization_id or bundle.organization_id
@@ -78,6 +83,8 @@ class RunPersistedValidationUseCase:
             supporting_documents=supporting_documents,
             report=report,
             locale=command.locale,
+            extraction_connected=bundle.extraction_connected,
+            core_fields_usable=bundle.core_fields_usable,
         )
 
         run_record = report_to_run_record(
@@ -100,7 +107,9 @@ class RunPersistedValidationUseCase:
         saved_run.enrichment = enrichment
         return saved_run
 
-    async def _load_supporting_documents(self, document_ids: tuple[UUID, ...]) -> list[Document]:
+    async def _load_supporting_documents(self, document_ids: tuple[UUID, ...]):
+        from payroll_copilot.domain.entities import Document
+
         documents: list[Document] = []
         for document_id in document_ids:
             document = await self._document_repository.get_by_id(document_id)
@@ -127,3 +136,11 @@ class GetValidationRunUseCase:
 
         run.findings = await self._validation_finding_repository.list_by_run_id(validation_run_id)
         return run
+
+
+__all__ = [
+    "ExtractionRequiredError",
+    "GetValidationRunUseCase",
+    "RunPersistedValidationCommand",
+    "RunPersistedValidationUseCase",
+]

@@ -116,22 +116,34 @@ Fallback: Fixed pages-per-slip config for known formats (deterministic, no LLM).
 
 ## OCR Architecture
 
+OCR is a **generic document text extraction layer**. It must not contain payroll
+field logic. Downstream consumers (future AI Parser → Structured Payroll Data →
+Validation Engine) are separate.
+
+```
+Document → OCR → AI Parser (future) → Structured Payroll Data → Validation Engine → AI Explanation
+```
+
 ```
 ┌──────────────────┐
-│  OCRProvider     │  ← Port interface
-│  extract(image)  │
+│  OCRProvider     │  ← Port (application/ports/ocr.py)
+│  extract(...)    │     returns pages[{page, language, text, confidence, lines}]
 └────────┬─────────┘
          │
     ┌────┴────┐
     ▼         ▼
- Tesseract  PaddleOCR
- Provider   Provider
+ PaddleOCR  Tesseract
+ (default)  (Hebrew H1 fallback + optional full provider)
 ```
 
-- PDF → images via PyMuPDF
-- Hebrew + English + Arabic language packs
-- Per-field confidence from engine or heuristic (character confidence aggregation)
-- LLM used only for post-OCR cleanup when field confidence < threshold
+- PDF → images via shared PyMuPDF rasterizer (`infrastructure/ocr/pdf_rasterizer.py`)
+- Languages: Hebrew, English, Arabic (API: `he` / `en` / `ar` / `auto`)
+- **PaddleOCR** is primary for English/Arabic
+- **Hebrew** uses **Tesseract fallback** (intentional): PaddleOCR has no official
+  production-ready Hebrew recognizer. Responses include the real `engine` and a warning.
+- Confidence comes only from the OCR engine — never invented
+- Sync API: `POST /api/v1/ocr/extract` (Phase 1). Async Celery worker remains for future wiring.
+- Phase 1 does **not** extract payslip fields or feed the Validation Engine.
 
 ---
 

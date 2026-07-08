@@ -1,0 +1,15 @@
+# Ignore Python build artifacts and local env when building the API image
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+.git
+.env
+.env.*
+tests
+*.md
+!README.md

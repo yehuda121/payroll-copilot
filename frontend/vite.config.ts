@@ -4,6 +4,13 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: '0.0.0.0',
     port: 3000,
+    strictPort: true,
+    // Reliable HMR when the app runs inside Docker (especially on Windows/macOS).
+    watch: {
+      usePolling: true,
+      interval: 300,
+    },
   },
 });

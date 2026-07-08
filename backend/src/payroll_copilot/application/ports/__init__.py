@@ -9,6 +9,23 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from payroll_copilot.application.ports.ocr import OCRProvider, OCRResult, OcrLine, OcrPage
+
+__all__ = [
+    "CompletionResult",
+    "LegalRulesLoader",
+    "Message",
+    "ModelProvider",
+    "ObjectStorage",
+    "OCRProvider",
+    "OCRResult",
+    "OcrLine",
+    "OcrPage",
+    "RAGChunk",
+    "RAGRetriever",
+    "StructuredResult",
+]
+
 
 @dataclass
 class Message:
@@ -53,30 +70,6 @@ class ModelProvider(Protocol):
     ) -> StructuredResult: ...
 
     async def embed(self, texts: list[str]) -> list[list[float]]: ...
-
-
-@runtime_checkable
-class OCRProvider(Protocol):
-    """Abstraction for OCR engines."""
-
-    async def extract_text(self, image_bytes: bytes, *, languages: str = "heb+eng") -> OCRResult: ...
-
-    async def extract_from_pdf(self, pdf_bytes: bytes, *, languages: str = "heb+eng") -> OCRResult: ...
-
-
-@dataclass
-class OCRField:
-    name: str
-    value: str
-    confidence: float
-
-
-@dataclass
-class OCRResult:
-    raw_text: str
-    fields: list[OCRField]
-    overall_confidence: float
-    engine: str
 
 
 @runtime_checkable

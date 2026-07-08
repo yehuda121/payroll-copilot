@@ -81,6 +81,38 @@ export type DocumentResponse = {
   ocr_language_status?: string;
 };
 
+export type ExtractedPayslipField = {
+  key: string;
+  value: unknown;
+  confidence: number | null;
+  source_text: string | null;
+  status: string;
+  edited_by_user?: boolean;
+  original_value?: unknown;
+};
+
+export type GuestPayslipExtractionResponse = {
+  document_id: string;
+  extraction_id: string;
+  extraction_version?: number | null;
+  ocr_status: string;
+  parser_status: string;
+  language: string;
+  ocr_engine: string | null;
+  parser_model: string | null;
+  warnings: string[];
+  fields: ExtractedPayslipField[];
+  error_message?: string | null;
+};
+
+export type GuestExtractionCorrectionRequest = {
+  corrections: Array<{
+    key: string;
+    value?: unknown;
+    clear?: boolean;
+  }>;
+};
+
 export type BatchJobResponse = {
   job_id: string;
   status: string;

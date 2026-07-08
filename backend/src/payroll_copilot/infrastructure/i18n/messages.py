@@ -129,6 +129,16 @@ SCOPE_REASONS: dict[str, dict[str, str]] = {
         "en": "Document extraction is not yet connected. Rules ran on the validation engine context only.",
         "ar": "استخراج المستندات غير متصل بعد. عملت القواعد على سياق محرك التحقق فقط.",
     },
+    "payroll_extraction_connected": {
+        "he": "כללי שכר רצו על נתונים שחולצו ונבדקו מהתלוש שהעליתם.",
+        "en": "Payroll rules ran on fields extracted and reviewed from your uploaded payslip.",
+        "ar": "عملت قواعد الرواتب على الحقول المستخرجة والمراجعة من كشف الراتب المرفوع.",
+    },
+    "payroll_core_fields_incomplete": {
+        "he": "חלק משדות הליבה חסרים או לא ניתנים לשימוש. היכן שחסר מידע התוצאה היא 'לא ניתן לאמת'.",
+        "en": "Some core fields are missing or unusable. Where data is unavailable the result is Unable to verify.",
+        "ar": "بعض الحقول الأساسية ناقصة أو غير قابلة للاستخدام. حيثما تكون البيانات غير متوفرة تكون النتيجة تعذر التحقق.",
+    },
     "attendance_not_uploaded": {
         "he": "דוח נוכחות לא הועלה.",
         "en": "Attendance report not uploaded.",
@@ -219,20 +229,83 @@ ASSISTANT_STRINGS: dict[str, dict[str, str]] = {
     },
     "limited_full": {
         "he": (
-            "לא מצאתי זאת בבסיס הידע המאושר של Payroll Copilot. "
-            "אני יכול לענות רק על שאלות דיני עבודה וזכויות שכר ממקורות מאושרים מקומיים. "
-            "בדיקת עמידה דטרמיניסטית מתבצעת בנפרד במנוע הכללים — לא על ידי עוזר זה."
+            "לא מצאתי מקור מאושר מדויק לשאלה זו. אוכל לתת הכוונה כללית בלבד: "
+            "Payroll Copilot בודק תלושי שכר ומסמכים תומכים באופן דטרמיניסטי, "
+            "והעוזר מסביר ומנווט בלי לקבוע עמידה בחוק. "
+            "העלו תלוש והריצו בדיקה כדי לקבל תוצאה סופית. "
+            "לא אמציא סכומים, תעריפים, תאריכים או נוסחאות חוקיות."
         ),
         "en": (
-            "I could not find this in the approved Payroll Copilot knowledge base. "
-            "I can only answer labor-law and payroll-rights questions using approved "
-            "local rule sources. Deterministic pass/fail validation is performed "
-            "separately by the backend rule engine — not by this assistant."
+            "I could not find an exact approved source for this question. "
+            "I can only give general guidance: Payroll Copilot validates payslips and "
+            "supporting documents with a deterministic rule engine, while this assistant "
+            "explains and guides without deciding legal compliance. "
+            "Upload a payslip and run validation for a final outcome. "
+            "I will not invent exact legal amounts, rates, dates, or formulas."
         ),
         "ar": (
-            "لم أجد ذلك في قاعدة معرفة Payroll Copilot المعتمدة. "
-            "يمكنني الإجابة فقط عن أسئلة قانون العمل وحقوق الرواتب باستخدام مصادر القواعد المحلية المعتمدة. "
-            "يتم التحقق الحتمي بشكل منفصل بواسطة محرك القواعد — وليس بواسطة هذا المساعد."
+            "لم أجد مصدرًا معتمدًا دقيقًا لهذا السؤال. يمكنني تقديم إرشاد عام فقط: "
+            "يتحقق Payroll Copilot من كشوف الرواتب والمستندات الداعمة عبر محرك قواعد حتمي، "
+            "وهذا المساعد يشرح ويوجّه دون تحديد الامتثال القانوني. "
+            "ارفع كشف راتب وشغّل التحقق للحصول على نتيجة نهائية. "
+            "لن أخترع مبالغ أو نسبًا أو تواريخ أو صيغًا قانونية دقيقة."
+        ),
+    },
+    "limited_documents_needed": {
+        "he": (
+            "לבדיקת תלוש ב-Payroll Copilot נדרש תלוש שכר. "
+            "אפשר להוסיף אופציונלית דוח נוכחות, הסכם העסקה ותעודת זהות. "
+            "הבדיקה הסופית מתבצעת במנוע הכללים הדטרמיניסטי לאחר ההעלאה — "
+            "לא על ידי עוזר זה. חילוץ OCR רב־לשוני עדיין לא מחובר."
+        ),
+        "en": (
+            "To validate a payslip in Payroll Copilot you need a payslip upload. "
+            "Optionally add an attendance report, employment agreement, and Israeli ID. "
+            "Final validation is performed by the deterministic rule engine after upload — "
+            "not by this assistant. Multilingual OCR extraction is not connected yet."
+        ),
+        "ar": (
+            "للتحقق من كشف راتب في Payroll Copilot يلزم رفع كشف الراتب. "
+            "يمكن اختياريًا إضافة تقرير حضور وعقد عمل وبطاقة هوية إسرائيلية. "
+            "يتم التحقق النهائي بواسطة محرك القواعد الحتمي بعد الرفع — "
+            "وليس بواسطة هذا المساعد. استخراج OCR متعدد اللغات غير متصل بعد."
+        ),
+    },
+    "limited_overtime_payslip": {
+        "he": (
+            "באופן כללי, שעות נוספות אמורות להופיע בתלוש כפריט נפרד (שעות/סכום) לפי מדיניות השכר. "
+            "לא אציין כאן תעריפים או מגבלות חוקיות מדויקות בלי מקור מאושר. "
+            "להכרעה סופית העלו תלוש והריצו את הבדיקה הדטרמיניסטית."
+        ),
+        "en": (
+            "In general, overtime should appear on a payslip as a distinct line item "
+            "(hours and/or amount) according to payroll policy. "
+            "I will not state exact legal rates or limits without an approved source. "
+            "For a final decision, upload a payslip and run deterministic validation."
+        ),
+        "ar": (
+            "عمومًا، يجب أن تظهر ساعات العمل الإضافية في كشف الراتب كبند مستقل "
+            "(ساعات و/أو مبلغ) وفق سياسة الرواتب. "
+            "لن أذكر نسبًا أو حدودًا قانونية دقيقة دون مصدر معتمد. "
+            "للحسم النهائي، ارفع كشف راتب وشغّل التحقق الحتمي."
+        ),
+    },
+    "limited_warning_vs_critical": {
+        "he": (
+            "ב-Payroll Copilot, אזהרה (warning) מסמנת סטטוס שדורש בדיקה אך אינו חוסם בהכרח. "
+            "ממצא קריטי (critical) מסמן סיכון גבוה יותר הדורש טיפול לפני אישור תשלום. "
+            "הסיווג נקבע במנוע הבדיקה הדטרמיניסטי על סמך הכללים — לא על ידי עוזר זה."
+        ),
+        "en": (
+            "In Payroll Copilot, a warning means an item needs review but is not necessarily blocking. "
+            "A critical finding marks higher risk that should be addressed before approving payment. "
+            "Severity is assigned by the deterministic validation engine from rule results — "
+            "not by this assistant."
+        ),
+        "ar": (
+            "في Payroll Copilot، التحذير يعني أن البند يحتاج مراجعة لكنه ليس بالضرورة حاجبًا. "
+            "النتيجة الحرجة تشير إلى خطر أعلى يجب معالجته قبل الموافقة على الدفع. "
+            "تُحدد الخطورة بواسطة محرك التحقق الحتمي من نتائج القواعد — وليس بواسطة هذا المساعد."
         ),
     },
     "blocked_prompt_injection": {

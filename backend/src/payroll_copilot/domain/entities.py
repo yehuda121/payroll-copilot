@@ -105,15 +105,29 @@ class Document:
 
 @dataclass
 class DocumentExtraction:
+    """Persisted OCR + AI parser output for a document.
+
+    Never feeds the Rule Engine directly. Structured fields are consumed by
+    future validation context mapping / guest review UI.
+    """
+
     id: UUID
     document_id: UUID
     engine: str
     raw_text: str
     structured_data: dict[str, Any]
-    overall_confidence: float
+    overall_confidence: float | None = None
     field_confidences: dict[str, float] = field(default_factory=dict)
     extraction_version: int = 1
     created_at: datetime = field(default_factory=datetime.utcnow)
+    ocr_result: dict[str, Any] = field(default_factory=dict)
+    parser_model: str | None = None
+    language: str = "auto"
+    ocr_status: str = "completed"
+    parser_status: str = "completed"
+    warnings: list[str] = field(default_factory=list)
+    error_message: str | None = None
+    updated_at: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass

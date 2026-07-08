@@ -1,80 +1,153 @@
-"""Tesseract OCR provider implementation."""
+"""Tesseract OCR provider — generic document text extraction only."""
 
 from __future__ import annotations
 
+import asyncio
 import io
+import logging
 
-import fitz
 from PIL import Image
 import pytesseract
 
-from payroll_copilot.application.ports import OCRField, OCRResult
+from payroll_copilot.application.exceptions import (
+    OcrEmptyDocumentError,
+    OcrProviderError,
+)
+from payroll_copilot.application.ports.ocr import OCRResult, OcrLine, OcrPage
+from payroll_copilot.infrastructure.ocr.confidence import average_confidence
+from payroll_copilot.infrastructure.ocr.language import (
+    normalize_document_language,
+    to_tesseract_lang,
+)
+from payroll_copilot.infrastructure.ocr.media_types import is_pdf, resolve_media_type
+from payroll_copilot.infrastructure.ocr.pdf_rasterizer import rasterize_pdf_to_png_pages
+
+logger = logging.getLogger(__name__)
 
 
 class TesseractOCRProvider:
-    """OCR extraction using Tesseract."""
+    """OCR extraction using Tesseract (pluggable OCRProvider implementation)."""
 
-    def __init__(self, default_languages: str = "heb+eng+ara") -> None:
-        self._default_languages = default_languages
+    def __init__(self, *, default_multi_lang: str = "heb+eng+ara") -> None:
+        self._default_multi_lang = default_multi_lang
 
-    async def extract_text(
-        self, image_bytes: bytes, *, languages: str | None = None
+    @property
+    def engine_name(self) -> str:
+        return "tesseract"
+
+    async def extract(
+        self,
+        *,
+        content: bytes,
+        media_type: str,
+        filename: str | None = None,
+        language: str = "auto",
     ) -> OCRResult:
-        lang = languages or self._default_languages
-        image = Image.open(io.BytesIO(image_bytes))
-        data = pytesseract.image_to_data(image, lang=lang, output_type=pytesseract.Output.DICT)
+        if not content:
+            raise OcrEmptyDocumentError()
 
-        text_parts: list[str] = []
+        resolved_media = resolve_media_type(filename=filename, content_type=media_type)
+        requested = normalize_document_language(language)
+        tess_lang = to_tesseract_lang(requested, default_multi=self._default_multi_lang)
+
+        try:
+            if is_pdf(resolved_media):
+                page_images = await asyncio.to_thread(rasterize_pdf_to_png_pages, content)
+            else:
+                page_images = [content]
+
+            pages: list[OcrPage] = []
+            page_confidences: list[float] = []
+
+            for index, image_bytes in enumerate(page_images, start=1):
+                page = await asyncio.to_thread(
+                    self._extract_image_sync,
+                    image_bytes,
+                    page_number=index,
+                    language_label=requested,
+                    tess_lang=tess_lang,
+                )
+                pages.append(page)
+                if page.confidence is not None:
+                    page_confidences.append(page.confidence)
+
+            if not pages:
+                raise OcrEmptyDocumentError()
+
+            raw_text = "\n\n".join(page.text for page in pages if page.text).strip()
+            return OCRResult(
+                pages=tuple(pages),
+                engine=self.engine_name,
+                language_requested=requested,
+                language_effective=requested,
+                raw_text=raw_text,
+                overall_confidence=average_confidence(page_confidences),
+                fields=(),
+                warnings=(),
+            )
+        except (OcrEmptyDocumentError, OcrProviderError):
+            raise
+        except Exception as exc:  # noqa: BLE001 — surface engine failures uniformly
+            logger.exception("Tesseract OCR failed")
+            raise OcrProviderError(f"Tesseract OCR failed: {exc}") from exc
+
+    def _extract_image_sync(
+        self,
+        image_bytes: bytes,
+        *,
+        page_number: int,
+        language_label: str,
+        tess_lang: str,
+    ) -> OcrPage:
+        try:
+            image = Image.open(io.BytesIO(image_bytes))
+            image.load()
+        except Exception as exc:  # noqa: BLE001
+            raise OcrProviderError(f"Image could not be opened for OCR: {exc}") from exc
+
+        try:
+            data = pytesseract.image_to_data(
+                image,
+                lang=tess_lang,
+                output_type=pytesseract.Output.DICT,
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise OcrProviderError(f"Tesseract engine error: {exc}") from exc
+
+        lines_map: dict[tuple[int, int], list[tuple[str, float]]] = {}
         confidences: list[float] = []
-        fields: list[OCRField] = []
 
-        for i, word in enumerate(data["text"]):
-            if not word.strip():
+        n = len(data.get("text", []))
+        for i in range(n):
+            word = (data["text"][i] or "").strip()
+            if not word:
                 continue
-            conf = float(data["conf"][i])
-            if conf >= 0:
-                text_parts.append(word)
-                confidences.append(conf / 100.0)
+            try:
+                conf = float(data["conf"][i])
+            except (TypeError, ValueError, KeyError):
+                continue
+            if conf < 0:
+                continue
+            conf_norm = conf / 100.0
+            confidences.append(conf_norm)
+            key = (int(data.get("block_num", [0])[i]), int(data.get("line_num", [0])[i]))
+            lines_map.setdefault(key, []).append((word, conf_norm))
 
-        raw_text = " ".join(text_parts)
-        overall = sum(confidences) / len(confidences) if confidences else 0.0
+        ocr_lines: list[OcrLine] = []
+        text_parts: list[str] = []
+        for _key, words in lines_map.items():
+            line_text = " ".join(w for w, _ in words).strip()
+            if not line_text:
+                continue
+            line_conf = average_confidence([c for _, c in words])
+            ocr_lines.append(OcrLine(text=line_text, confidence=line_conf, bbox=None))
+            text_parts.append(line_text)
 
-        return OCRResult(
-            raw_text=raw_text,
-            fields=fields,
-            overall_confidence=overall,
-            engine="tesseract",
+        page_text = "\n".join(text_parts).strip()
+        return OcrPage(
+            page=page_number,
+            language=language_label,
+            text=page_text,
+            confidence=average_confidence(confidences),
+            lines=tuple(ocr_lines),
         )
-
-    async def extract_from_pdf(
-        self, pdf_bytes: bytes, *, languages: str | None = None
-    ) -> OCRResult:
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        all_text: list[str] = []
-        all_confidences: list[float] = []
-
-        for page in doc:
-            pix = page.get_pixmap(dpi=300)
-            image_bytes = pix.tobytes("png")
-            page_result = await self.extract_text(image_bytes, languages=languages)
-            all_text.append(page_result.raw_text)
-            if page_result.overall_confidence > 0:
-                all_confidences.append(page_result.overall_confidence)
-
-        doc.close()
-        overall = sum(all_confidences) / len(all_confidences) if all_confidences else 0.0
-        return OCRResult(
-            raw_text="\n\n".join(all_text),
-            fields=[],
-            overall_confidence=overall,
-            engine="tesseract",
-        )
-
-
-def create_ocr_provider(provider_name: str, settings: object) -> TesseractOCRProvider:
-    if provider_name == "tesseract":
-        return TesseractOCRProvider(
-            default_languages=getattr(settings, "tesseract_lang", "heb+eng+ara")
-        )
-    msg = f"Unsupported OCR provider: {provider_name}"
-    raise ValueError(msg)

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from payroll_copilot.application.ports.assistant import ApprovedLaborLawSearchPort, LaborLawSearchHit
 from payroll_copilot.infrastructure.rules.yaml_loader import YamlLegalRulesLoader
 
@@ -17,7 +19,27 @@ class YamlApprovedLaborLawSearch(ApprovedLaborLawSearchPort):
         if not normalized_query:
             return []
 
-        tokens = [token for token in normalized_query.split() if len(token) > 2]
+        # Expand a few domain synonyms so overtime/payslip phrasing can still hit YAML.
+        synonym_boost = []
+        if "overtime" in normalized_query or "שעות נוספות" in normalized_query:
+            synonym_boost.extend(["overtime", "hours", "rate"])
+        if "minimum wage" in normalized_query or "שכר מינימום" in normalized_query:
+            synonym_boost.extend(["minimum", "wage"])
+        if "pension" in normalized_query or "פנסיה" in normalized_query:
+            synonym_boost.append("pension")
+        if "vacation" in normalized_query or "חופשה" in normalized_query:
+            synonym_boost.append("vacation")
+
+        stop = {
+            "the", "and", "for", "with", "what", "how", "should", "does", "from",
+            "this", "that", "a", "an", "to", "of", "on", "in", "is", "are", "be",
+        }
+        tokens = [
+            token
+            for token in re.findall(r"[a-z0-9_\u0590-\u05ff\u0600-\u06ff]+", normalized_query)
+            if len(token) > 2 and token not in stop
+        ]
+        tokens = list(dict.fromkeys([*tokens, *synonym_boost]))
         hits: list[tuple[int, LaborLawSearchHit]] = []
 
         for filename, bundle in self._loader.load_all().items():

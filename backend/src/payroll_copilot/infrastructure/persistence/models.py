@@ -144,6 +144,34 @@ class DocumentModel(Base):
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class DocumentExtractionModel(Base):
+    """Persisted OCR + AI parser output (Phase 2B)."""
+
+    __tablename__ = "document_extractions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False, index=True
+    )
+    extraction_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    engine: Mapped[str] = mapped_column(String(50), nullable=False)
+    parser_model: Mapped[str | None] = mapped_column(String(100))
+    language: Mapped[str] = mapped_column(String(16), nullable=False, default="auto")
+    ocr_status: Mapped[str] = mapped_column(String(32), nullable=False, default="completed")
+    parser_status: Mapped[str] = mapped_column(String(32), nullable=False, default="completed")
+    raw_text: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    ocr_result: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    structured_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    field_confidences: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    overall_confidence: Mapped[Decimal | None] = mapped_column(Numeric(4, 3))
+    warnings: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    error_message: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+
 class ValidationRunModel(Base):
     __tablename__ = "validation_runs"
 

@@ -1,4 +1,17 @@
-"""Application settings from environment variables."""
+"""Application settings from environment variables.
+
+Configuration precedence (explicit, no host-name magic for Postgres):
+
+1. Process environment variables (always win) — used by Docker Compose ``env_file: .env``
+2. Optional dotenv files, first match wins among the list below — for host-local uvicorn only:
+   ``../.env.local`` → ``../.env`` → ``.env.local`` → ``.env``
+
+Docker development: copy ``.env.docker.example`` → ``.env`` (Compose injects it).
+Host development: copy ``.env.local.example`` → ``.env.local`` (backend loads it from repo root).
+Future production: inject secrets via the orchestrator; do not rely on committed dotenv files.
+
+``DATABASE_URL`` is the single source of truth for FastAPI and Alembic.
+"""
 
 from functools import lru_cache
 
@@ -71,8 +84,17 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"
 
-    ocr_provider: str = "tesseract"
+    # Phase 2A AI payslip parser (Ollama). Does not change other Ollama consumers.
+    payslip_parser_model: str = ""
+    payslip_parser_timeout_seconds: float = 180.0
+    payslip_parser_temperature: float = 0.0
+    payslip_parser_use_json_format: bool = True
+
+    # OCR: paddleocr is primary (en/ar). Hebrew uses transparent Tesseract fallback (H1).
+    ocr_provider: str = "paddleocr"
     tesseract_lang: str = "heb+eng+ara"
+    ocr_timeout_seconds: float = 120.0
+    ocr_use_gpu: bool = False
 
     celery_broker_url: str = "redis://localhost:6379/1"
     celery_broker_local_url: str = "redis://localhost:6379/1"

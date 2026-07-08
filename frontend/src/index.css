@@ -1,23 +1,37 @@
 :root {
-  --color-bg: #f4f6f8;
+  --color-bg: #f7f8fb;
   --color-surface: #ffffff;
-  --color-surface-hover: #eef1f5;
+  --color-surface-hover: #f1f4f9;
   --color-sidebar: #ffffff;
   --color-text: #0f172a;
-  --color-text-muted: #64748b;
-  --color-text-subtle: #94a3b8;
-  --color-border: #e2e8f0;
-  --color-accent: #1d4ed8;
-  --color-accent-hover: #1e40af;
+  --color-text-muted: #5b6475;
+  --color-text-subtle: #8b95a7;
+  --color-border: #e6eaf0;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
   --color-accent-soft: #eff6ff;
-  --radius-sm: 6px;
-  --radius-md: 10px;
+  --color-success: #15803d;
+  --color-success-soft: #ecfdf3;
+  --color-warning: #c2410c;
+  --color-warning-soft: #fff7ed;
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fef2f2;
+  --color-neutral: #64748b;
+  --color-neutral-soft: #f1f5f9;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 10px 30px rgba(15, 23, 42, 0.06);
   --space-section: 1.5rem;
-  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Segoe UI', 'Helvetica Neue', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   color: var(--color-text);
-  background-color: var(--color-bg);
+  background:
+    radial-gradient(circle at top left, #e8eefc 0%, transparent 36%),
+    radial-gradient(circle at top right, #f3e9ff 0%, transparent 28%),
+    var(--color-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -40,10 +54,72 @@ body {
   min-height: 100vh;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 code {
   font-family: ui-monospace, 'Cascadia Code', monospace;
   font-size: 0.85em;
   padding: 0.1em 0.35em;
   background: var(--color-bg);
   border-radius: 4px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.btn--secondary {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.btn--large {
+  min-height: 3rem;
+  padding-inline: 1.35rem;
+  font-size: 1rem;
 }

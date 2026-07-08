@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID, uuid4
 
 import pytest
@@ -10,10 +11,40 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from payroll_copilot.infrastructure.persistence.models import (
+    DocumentExtractionModel,
     DocumentModel,
     ValidationFindingModel,
     ValidationRunModel,
 )
+
+
+def _sample_structured_data() -> dict:
+    def field(value, *, status="FOUND", confidence=0.9):
+        return {
+            "value": value,
+            "confidence": confidence,
+            "source_text": str(value),
+            "status": status,
+            "edited_by_user": False,
+            "original_value": None,
+        }
+
+    return {
+        "employee_name": field("Dana Levi"),
+        "employee_number": field("12345"),
+        "pay_period": field("2026-06"),
+        "hourly_rate": field(35),
+        "base_salary": field(10000),
+        "gross_salary": field(15000),
+        "net_salary": field(11000),
+        "regular_hours": field(160),
+        "overtime_hours": field(3),
+        "income_tax": field(1500),
+        "pension_employee": field(900),
+        "travel_expenses": field(220),
+        "vacation_balance": field(12),
+        "sick_leave_balance": field(5),
+    }
 
 
 async def _upload_document(client: AsyncClient) -> str:
@@ -26,12 +57,56 @@ async def _upload_document(client: AsyncClient) -> str:
     return response.json()["document_id"]
 
 
+async def _seed_extraction(db_session: AsyncSession, document_id: str) -> UUID:
+    extraction_id = uuid4()
+    db_session.add(
+        DocumentExtractionModel(
+            id=extraction_id,
+            document_id=UUID(document_id),
+            extraction_version=1,
+            engine="paddleocr",
+            parser_model="test-model",
+            language="en",
+            ocr_status="completed",
+            parser_status="completed",
+            raw_text="Employee Dana Levi gross 15000",
+            ocr_result={"pages": []},
+            structured_data=_sample_structured_data(),
+            field_confidences={"gross_salary": 0.9},
+            overall_confidence=0.9,
+            warnings=[],
+            error_message=None,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+        )
+    )
+    await db_session.commit()
+    return extraction_id
+
+
 @pytest.mark.asyncio
-async def test_post_validation_localizes_findings_for_english(
+async def test_post_validation_without_extraction_returns_422(
     client_with_storage: AsyncClient,
     mock_document_processing: None,
 ) -> None:
     document_id = await _upload_document(client_with_storage)
+    response = await client_with_storage.post(
+        "/api/v1/validation/run",
+        json={"document_id": document_id, "locale": "en"},
+    )
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["code"] == "extraction_required"
+
+
+@pytest.mark.asyncio
+async def test_post_validation_localizes_findings_for_english(
+    client_with_storage: AsyncClient,
+    db_session: AsyncSession,
+    mock_document_processing: None,
+) -> None:
+    document_id = await _upload_document(client_with_storage)
+    await _seed_extraction(db_session, document_id)
     response = await client_with_storage.post(
         "/api/v1/validation/run",
         json={"document_id": document_id, "locale": "en"},
@@ -41,6 +116,7 @@ async def test_post_validation_localizes_findings_for_english(
     data = response.json()
     assert data["locale"] == "en"
     assert data["validation_scope"][0]["label"] == "Payroll Rules"
+    assert data["extraction_connected"] is True
 
 
 @pytest.mark.asyncio
@@ -50,6 +126,7 @@ async def test_post_validation_with_existing_document_succeeds(
     mock_document_processing: None,
 ) -> None:
     document_id = await _upload_document(client_with_storage)
+    await _seed_extraction(db_session, document_id)
 
     response = await client_with_storage.post(
         "/api/v1/validation/run",
@@ -65,8 +142,9 @@ async def test_post_validation_with_existing_document_succeeds(
     assert len(data["validation_scope"]) > 0
     assert data["validation_confidence"] is not None
     assert data["confidence_explanation"]
-    assert data["extraction_connected"] is False
+    assert data["extraction_connected"] is True
     assert data["checks_passed_count"] >= 0
+    assert data["validation_scope"][0]["status"] in {"completed", "partial"}
     for finding in data["findings"]:
         assert "id" in finding
         assert finding["id"]
@@ -136,9 +214,11 @@ async def test_post_validation_does_not_create_stub_document(
 @pytest.mark.asyncio
 async def test_get_validation_returns_persisted_result(
     client_with_storage: AsyncClient,
+    db_session: AsyncSession,
     mock_document_processing: None,
 ) -> None:
     document_id = await _upload_document(client_with_storage)
+    await _seed_extraction(db_session, document_id)
 
     post_response = await client_with_storage.post(
         "/api/v1/validation/run",

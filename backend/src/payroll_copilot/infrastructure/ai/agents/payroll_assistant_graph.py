@@ -47,6 +47,7 @@ class AssistantGraphState(TypedDict):
     requires_human_review: bool
     made_legal_claim: bool
     is_greeting: bool
+    in_domain_intent: str | None
 
 
 class PayrollAssistantGraph:
@@ -87,6 +88,7 @@ class PayrollAssistantGraph:
             "requires_human_review": False,
             "made_legal_claim": False,
             "is_greeting": False,
+            "in_domain_intent": None,
         }
         final_state = await self._graph.ainvoke(initial_state)
         return {
@@ -124,7 +126,9 @@ class PayrollAssistantGraph:
 
     def _node_input_guardrail(self, state: AssistantGraphState) -> AssistantGraphState:
         result = self._guardrails.evaluate_input(state["message"])
-        if result.status != AssistantGuardrailStatus.PASSED:
+        if result.status not in {
+            AssistantGuardrailStatus.PASSED,
+        }:
             blocked = self._guardrails.build_blocked_response(
                 result.reason or "blocked",
                 locale=state["locale"],
@@ -135,11 +139,22 @@ class PayrollAssistantGraph:
                 "answer": blocked.answer,
                 "confidence": 0.0,
                 "requires_human_review": blocked.requires_human_review,
+                "in_domain_intent": result.in_domain_intent,
             }
-        return {**state, "guardrail_status": AssistantGuardrailStatus.PASSED.value}
+        return {
+            **state,
+            "guardrail_status": AssistantGuardrailStatus.PASSED.value,
+            "in_domain_intent": result.in_domain_intent,
+            "is_greeting": result.is_greeting,
+        }
 
     def _route_after_input(self, state: AssistantGraphState) -> str:
-        if state["guardrail_status"] == AssistantGuardrailStatus.BLOCKED.value:
+        blocked = {
+            AssistantGuardrailStatus.BLOCKED.value,
+            AssistantGuardrailStatus.BLOCKED_OFF_TOPIC.value,
+            AssistantGuardrailStatus.BLOCKED_SAFETY.value,
+        }
+        if state["guardrail_status"] in blocked:
             return "blocked"
         return "continue"
 
@@ -194,6 +209,7 @@ class PayrollAssistantGraph:
             "tool_context": "\n\n".join(chunk for chunk in tool_chunks if chunk),
             "made_legal_claim": input_result.is_legal_rights_question,
             "is_greeting": input_result.is_greeting,
+            "in_domain_intent": input_result.in_domain_intent or state.get("in_domain_intent"),
         }
 
     async def _node_generate_answer(self, state: AssistantGraphState) -> AssistantGraphState:
@@ -208,24 +224,17 @@ class PayrollAssistantGraph:
                 "requires_human_review": False,
             }
 
-        if state["made_legal_claim"] and not state["sources"]:
-            limited = self._guardrails.build_limited_legal_response(locale=state["locale"])
+        # In-domain with no exact approved source: helpful localized guidance (not unsafe).
+        if not state["sources"] or not state["tool_context"]:
+            limited = self._guardrails.build_limited_legal_response(
+                locale=state["locale"],
+                intent=state.get("in_domain_intent"),
+            )
             return {
                 **state,
                 "guardrail_status": limited.status.value,
                 "answer": limited.answer,
-                "confidence": 0.2,
-                "requires_human_review": True,
-                "used_tools": [*state["used_tools"], "fallback_safe_response"],
-            }
-
-        if not state["tool_context"]:
-            limited = self._guardrails.build_limited_legal_response(locale=state["locale"])
-            return {
-                **state,
-                "guardrail_status": limited.status.value,
-                "answer": limited.answer,
-                "confidence": 0.2,
+                "confidence": 0.35,
                 "requires_human_review": True,
                 "used_tools": [*state["used_tools"], "fallback_safe_response"],
             }
@@ -234,6 +243,7 @@ class PayrollAssistantGraph:
             answer = self._template_answer_from_context(state)
             return {
                 **state,
+                "guardrail_status": AssistantGuardrailStatus.ANSWERED_FROM_SOURCE.value,
                 "answer": answer,
                 "confidence": 0.6,
                 "requires_human_review": bool(state["made_legal_claim"]),
@@ -263,6 +273,7 @@ class PayrollAssistantGraph:
             )
             return {
                 **state,
+                "guardrail_status": AssistantGuardrailStatus.ANSWERED_FROM_SOURCE.value,
                 "answer": self._template_answer_from_context(state),
                 "confidence": 0.6,
                 "requires_human_review": bool(state["made_legal_claim"]),
@@ -270,16 +281,21 @@ class PayrollAssistantGraph:
 
         return {
             **state,
+            "guardrail_status": AssistantGuardrailStatus.ANSWERED_FROM_SOURCE.value,
             "answer": result.content.strip() or self._template_answer_from_context(state),
             "confidence": result.confidence,
             "requires_human_review": bool(state["made_legal_claim"]),
         }
 
     def _node_finalize(self, state: AssistantGraphState) -> AssistantGraphState:
-        if state["is_greeting"] or state["guardrail_status"] in {
+        terminal = {
             AssistantGuardrailStatus.BLOCKED.value,
+            AssistantGuardrailStatus.BLOCKED_OFF_TOPIC.value,
+            AssistantGuardrailStatus.BLOCKED_SAFETY.value,
             AssistantGuardrailStatus.LIMITED.value,
-        }:
+            AssistantGuardrailStatus.LIMITED_IN_DOMAIN.value,
+        }
+        if state["is_greeting"] or state["guardrail_status"] in terminal:
             return state
 
         output = self._guardrails.evaluate_output(
@@ -287,6 +303,7 @@ class PayrollAssistantGraph:
             sources=state["sources"],
             made_legal_claim=state["made_legal_claim"],
             locale=state["locale"],
+            intent=state.get("in_domain_intent"),
         )
         return {
             **state,
@@ -315,5 +332,8 @@ class PayrollAssistantGraph:
 
     @staticmethod
     def _extract_finding_rule_id(message: str) -> str | None:
-        match = re.search(r"legal\.[a-z0-9_.]+", message)
-        return match.group(0) if match else None
+        match = re.search(r"(?:legal|dept|historical|org)\.[a-z0-9_.]+", message, re.IGNORECASE)
+        if match:
+            return match.group(0)
+        match = re.search(r"rule_id\s+([a-z0-9_.]+)", message, re.IGNORECASE)
+        return match.group(1) if match else None

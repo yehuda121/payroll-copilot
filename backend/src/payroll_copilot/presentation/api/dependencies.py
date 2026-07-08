@@ -7,23 +7,37 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from payroll_copilot.application.ports.organization_bootstrap import OrganizationBootstrapPort
 from payroll_copilot.application.ports.repositories import (
+    DocumentExtractionRepository,
     DocumentRepository,
     ValidationFindingRepository,
     ValidationRunRepository,
 )
+from payroll_copilot.application.ports.ocr import OCRProvider
+from payroll_copilot.application.ports.payslip_parser import PayslipParser
 from payroll_copilot.application.use_cases.documents import GetDocumentUseCase, UploadDocumentUseCase
+from payroll_copilot.application.use_cases.extract_guest_payslip import ExtractGuestPayslipUseCase
+from payroll_copilot.application.use_cases.ocr_extract import ExtractDocumentTextUseCase
+from payroll_copilot.application.use_cases.parse_payslip import ParsePayslipFromOcrUseCase
+from payroll_copilot.application.use_cases.correct_guest_extraction import (
+    CorrectGuestExtractionUseCase,
+)
 from payroll_copilot.application.use_cases.persisted_validation import (
     GetValidationRunUseCase,
     RunPersistedValidationUseCase,
 )
 from payroll_copilot.application.use_cases.validation import RunValidationUseCase
-from payroll_copilot.application.validation.demo_validation_context_builder import (
-    DemoValidationContextBuilder,
+from payroll_copilot.application.validation.guest_extraction_context_builder import (
+    GuestExtractionValidationContextBuilder,
 )
+from payroll_copilot.infrastructure.ai.payslip_parser_factory import create_payslip_parser
 from payroll_copilot.infrastructure.config.service_resolver import get_resolved_s3_endpoint
 from payroll_copilot.infrastructure.config.settings import get_settings
+from payroll_copilot.infrastructure.ocr.factory import create_ocr_provider
 from payroll_copilot.infrastructure.persistence.database import get_db_session
 from payroll_copilot.infrastructure.storage.s3_storage import S3ObjectStorage
+from payroll_copilot.infrastructure.persistence.repositories.document_extraction_repository import (
+    SqlAlchemyDocumentExtractionRepository,
+)
 from payroll_copilot.infrastructure.persistence.repositories.document_repository import (
     SqlAlchemyDocumentRepository,
 )
@@ -43,6 +57,12 @@ def get_document_repository(
     session: AsyncSession = Depends(get_db_session),
 ) -> DocumentRepository:
     return SqlAlchemyDocumentRepository(session)
+
+
+def get_document_extraction_repository(
+    session: AsyncSession = Depends(get_db_session),
+) -> DocumentExtractionRepository:
+    return SqlAlchemyDocumentExtractionRepository(session)
 
 
 def get_validation_run_repository(
@@ -75,6 +95,56 @@ def get_object_storage() -> S3ObjectStorage:
     )
 
 
+def get_ocr_provider() -> OCRProvider:
+    settings = get_settings()
+    return create_ocr_provider(settings.ocr_provider, settings)
+
+
+def get_extract_document_text_use_case(
+    ocr_provider: OCRProvider = Depends(get_ocr_provider),
+) -> ExtractDocumentTextUseCase:
+    settings = get_settings()
+    return ExtractDocumentTextUseCase(
+        ocr_provider,
+        timeout_seconds=settings.ocr_timeout_seconds,
+    )
+
+
+def get_payslip_parser() -> PayslipParser:
+    settings = get_settings()
+    return create_payslip_parser(settings)
+
+
+def get_parse_payslip_use_case(
+    parser: PayslipParser = Depends(get_payslip_parser),
+) -> ParsePayslipFromOcrUseCase:
+    settings = get_settings()
+    return ParsePayslipFromOcrUseCase(
+        parser,
+        timeout_seconds=settings.payslip_parser_timeout_seconds,
+    )
+
+
+def get_extract_guest_payslip_use_case(
+    document_repository: DocumentRepository = Depends(get_document_repository),
+    extraction_repository: DocumentExtractionRepository = Depends(
+        get_document_extraction_repository
+    ),
+    object_storage: S3ObjectStorage = Depends(get_object_storage),
+    organization_bootstrap: OrganizationBootstrapPort = Depends(get_organization_bootstrap),
+    ocr_use_case: ExtractDocumentTextUseCase = Depends(get_extract_document_text_use_case),
+    parse_use_case: ParsePayslipFromOcrUseCase = Depends(get_parse_payslip_use_case),
+) -> ExtractGuestPayslipUseCase:
+    return ExtractGuestPayslipUseCase(
+        document_repository=document_repository,
+        extraction_repository=extraction_repository,
+        object_storage=object_storage,
+        organization_bootstrap=organization_bootstrap,
+        ocr_use_case=ocr_use_case,
+        parse_use_case=parse_use_case,
+    )
+
+
 def get_upload_document_use_case(
     document_repository: DocumentRepository = Depends(get_document_repository),
     object_storage: S3ObjectStorage = Depends(get_object_storage),
@@ -99,13 +169,31 @@ def get_run_validation_use_case() -> RunValidationUseCase:
     return RunValidationUseCase(loader)
 
 
-def get_demo_validation_context_builder() -> DemoValidationContextBuilder:
-    return DemoValidationContextBuilder()
+def get_guest_extraction_validation_context_builder(
+    extraction_repository: DocumentExtractionRepository = Depends(
+        get_document_extraction_repository
+    ),
+) -> GuestExtractionValidationContextBuilder:
+    return GuestExtractionValidationContextBuilder(extraction_repository)
+
+
+def get_correct_guest_extraction_use_case(
+    document_repository: DocumentRepository = Depends(get_document_repository),
+    extraction_repository: DocumentExtractionRepository = Depends(
+        get_document_extraction_repository
+    ),
+) -> CorrectGuestExtractionUseCase:
+    return CorrectGuestExtractionUseCase(
+        document_repository=document_repository,
+        extraction_repository=extraction_repository,
+    )
 
 
 def get_run_persisted_validation_use_case(
     run_validation: RunValidationUseCase = Depends(get_run_validation_use_case),
-    demo_context_builder: DemoValidationContextBuilder = Depends(get_demo_validation_context_builder),
+    guest_context_builder: GuestExtractionValidationContextBuilder = Depends(
+        get_guest_extraction_validation_context_builder
+    ),
     document_repository: DocumentRepository = Depends(get_document_repository),
     validation_run_repository: ValidationRunRepository = Depends(get_validation_run_repository),
     validation_finding_repository: ValidationFindingRepository = Depends(
@@ -115,7 +203,7 @@ def get_run_persisted_validation_use_case(
 ) -> RunPersistedValidationUseCase:
     return RunPersistedValidationUseCase(
         run_validation=run_validation,
-        demo_context_builder=demo_context_builder,
+        guest_context_builder=guest_context_builder,
         document_repository=document_repository,
         validation_run_repository=validation_run_repository,
         validation_finding_repository=validation_finding_repository,

@@ -1,4 +1,77 @@
+# Named development network (Compose also creates a default; we pin services explicitly).
+networks:
+  payroll_net:
+    driver: bridge
+
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: payroll
+      POSTGRES_PASSWORD: payroll
+      POSTGRES_DB: payroll_copilot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - payroll_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payroll -d payroll_copilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - payroll_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    networks:
+      - payroll_net
+    command: server /data --console-address ":9001"
+    # MinIO server image has no curl/wget; rely on process start + DependsOn service_started.
+    restart: unless-stopped
+
+  # One-shot: alembic upgrade head. Idempotent. Never drops data or recreates volumes.
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - payroll_net
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+
   api:
     build:
       context: ./backend
@@ -17,14 +90,20 @@ services:
         condition: service_healthy
       minio:
         condition: service_started
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - ./backend/config:/app/config:ro
-    command: uvicorn payroll_copilot.presentation.main:app --host 0.0.0.0 --port 8000
+    networks:
+      - payroll_net
+    command: ["uvicorn", "payroll_copilot.presentation.main:app", "--host", "0.0.0.0", "--port", "8000"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
+      interval: 15s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
 
   worker:
     build:
@@ -42,9 +121,14 @@ services:
         condition: service_healthy
       minio:
         condition: service_started
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - ./backend/config:/app/config:ro
-    command: celery -A payroll_copilot.infrastructure.tasks.celery_app worker -l info -c 4
+    networks:
+      - payroll_net
+    command: ["celery", "-A", "payroll_copilot.infrastructure.tasks.celery_app", "worker", "-l", "info", "-c", "4"]
+    restart: unless-stopped
 
   beat:
     build:
@@ -56,49 +140,37 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - ./backend/config:/app/config:ro
-    command: celery -A payroll_copilot.infrastructure.tasks.celery_app beat -l info
+    networks:
+      - payroll_net
+    command: ["celery", "-A", "payroll_copilot.infrastructure.tasks.celery_app", "beat", "-l", "info"]
+    restart: unless-stopped
 
-  postgres:
-    image: pgvector/pgvector:pg16
+  # Vite development server (hot reload). Not a production nginx image.
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "3000:3000"
     environment:
-      POSTGRES_USER: payroll
-      POSTGRES_PASSWORD: payroll
-      POSTGRES_DB: payroll_copilot
-    ports:
-      - "5432:5432"
+      # Browser calls the host-mapped API port, not the Compose DNS name "api".
+      VITE_API_BASE_URL: http://localhost:8000/api/v1
+      VITE_DEV_AUTH_ENABLED: "true"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U payroll -d payroll_copilot"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  minio:
-    image: minio/minio:latest
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    volumes:
-      - minio_data:/data
-    command: server /data --console-address ":9001"
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - payroll_net
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+    restart: unless-stopped
 
   # Optional fallback when host Ollama is not available.
   # Start with: docker compose --profile docker-ollama up -d
@@ -110,6 +182,9 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
+    networks:
+      - payroll_net
+    restart: unless-stopped
 
   n8n:
     profiles:
@@ -124,10 +199,14 @@ services:
       WEBHOOK_URL: http://localhost:5678
     volumes:
       - n8n_data:/home/node/.n8n
+    networks:
+      - payroll_net
+    restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
   minio_data:
+  frontend_node_modules:
   ollama_data:
   n8n_data:

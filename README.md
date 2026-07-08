@@ -4,7 +4,7 @@
 
 Payroll Copilot lets a guest upload a payslip and receive a structured validation report from a deterministic rule engine, and provides a source-bound payroll assistant that answers payroll/labor-law questions using approved local content only. Compliance pass/fail decisions are always made by the backend rule engine — never by AI.
 
-> **Status: work in progress.** The architecture, deterministic validation engine, document upload/persistence, and the public guest experience (assistant + validate-my-payslip) are implemented. Several capabilities are intentionally **not connected yet** (real OCR extraction, vector RAG, contract/attendance/ID analysis, production auth). This README calls out exactly what is and is not built — see **[Current Status](#current-status)** and **[Current Limitations](#current-limitations)**. Nothing here fabricates validation results, OCR output, or legal answers.
+> **Status: work in progress.** The architecture, deterministic validation engine, document upload/persistence, Phase 1 OCR text extraction (`POST /ocr/extract`), and the public guest experience (assistant + validate-my-payslip) are implemented. Several capabilities are intentionally **not connected yet** (OCR→AI Parser→validation wiring, vector RAG, contract/attendance/ID analysis, production auth). This README calls out exactly what is and is not built — see **[Current Status](#current-status)** and **[Current Limitations](#current-limitations)**. Nothing here fabricates validation results, OCR fields, or legal answers.
 
 ---
 
@@ -16,20 +16,22 @@ Honest snapshot of what exists today. "Partial" means real code runs but a downs
 - **Deterministic validation engine** — rule evaluation, findings, confidence aggregation.
 - **Validation persistence** — `POST /validation/run` and `GET /validation/runs/{id}` persist to PostgreSQL.
 - **Document upload & persistence** — `POST /documents/upload`, `GET /documents/{id}` with server-side upload guardrails.
-- **Public Guest Experience (frontend)** — landing page, Payroll Assistant chat, Validate-My-Payslip upload flow, enterprise validation report with honest scope.
+- **OCR text extraction (Phase 1)** — `POST /ocr/extract` returns page-level text + real OCR confidence via pluggable providers (PaddleOCR primary; Hebrew→Tesseract fallback). No payroll field parsing.
+- **AI Payslip Parser (Phase 2A)** — `POST /parser/payslip` turns OCR JSON into per-field structured payslip data via local Ollama (layout-independent).
+- **Guest extraction + validation (Phases 2B–7)** — extract → review/edit → validate on Continue → results; mapper builds a synthetic guest employee from parser fields (`rule_profile=payroll`); demo builder is not used on the guest path.
+- **Public Guest Experience (frontend)** — landing page, Payroll Assistant chat, Validate-My-Payslip upload/review/results flow, enterprise validation report with honest scope.
 - **LangGraph Payroll Assistant (backend)** — `POST /assistant/chat` with input/output guardrails, greeting handling, and keyword search over approved YAML legal rules.
 - **Ollama integration** — host-first URL resolution with optional Docker fallback and graceful degradation when unavailable.
 - **i18n foundation** — Hebrew / English / Arabic UI + RTL, locale-aware API responses and assistant answers (OCR language extraction not connected).
 - **Database schema & Alembic migrations**, **Docker Compose orchestration**, **guest JWT tokens** (`POST /auth/guest/session`).
 
 ### Partially implemented
-- **Payslip validation input** — the engine runs against a `DemoValidationContextBuilder` (fixed sample payslip context), **not** fields extracted from the uploaded document. Validation scope is reported as `partial` for payroll rules.
+- **Supporting document analysis** — attendance / contract / national ID can be uploaded, but extraction/cross-check is not connected yet (scope stays unable for those areas).
 - **Assistant legal search** — keyword search over local YAML rules only; **no vector RAG** yet.
 - **Role-based portals (employee/accountant/admin)** — UI foundation exists; most portal pages are not wired to the backend.
 - **Guest sessions** — guest JWT is issued and sent, but there is **no `guest_sessions` DB table** and routes do not yet enforce the token.
 
 ### Planned but not built
-- Real OCR/payslip field extraction feeding the validation engine.
 - Vector RAG over legal rules and employment contracts.
 - Contract / attendance / national-ID analysis.
 - Historical payroll comparison.
@@ -165,7 +167,7 @@ See [docs/database.md](docs/database.md).
 |-----------|------------|------|
 | Local LLM | Ollama | Default inference |
 | Model Provider | Abstract port | Swappable: OpenAI, Claude, Gemini, Azure |
-| OCR | Pluggable port | Tesseract (default), PaddleOCR |
+| OCR | Pluggable port | **PaddleOCR (default)** for en/ar; **Tesseract** for Hebrew fallback (H1, intentional) + optional full provider |
 | Embeddings | pgvector | Contract/policy RAG |
 | Agents | Specialized orchestrators | Splitter, extractor, explainer, email parser |
 | Payroll Assistant | LangGraph + Ollama | Public guest chat orchestration (tools + guardrails) |
@@ -341,7 +343,7 @@ Supported UI languages: **Hebrew (`he`, RTL)**, **English (`en`, LTR)**, **Arabi
 
 ### Current limitations (honest)
 
-- **Multilingual OCR extraction is not connected.** `document_language` is stored as metadata; the API returns `ocr_language_status: "not_connected"`. Payslip fields are not parsed by language.
+- **Multilingual OCR text extraction is available via `POST /api/v1/ocr/extract`.** Hebrew uses Tesseract fallback (PaddleOCR has no official Hebrew model — intentional). Payslip **field** parsing / AI Parser is not implemented; document upload still returns `ocr_language_status: "not_connected"` for the guest upload path until async wiring lands.
 - Auth portal pages (login/signup) are not fully translated yet.
 - Some approved legal rule YAML text is bilingual (`he`/`en`); Arabic assistant answers may translate/summarize approved sources without inventing new legal claims.
 
@@ -351,174 +353,101 @@ Supported UI languages: **Hebrew (`he`, RTL)**, **English (`en`, LTR)**, **Arabi
 
 ### Prerequisites
 
-- Docker & Docker Compose
-- Python 3.12+ (for local development)
+- Docker & Docker Compose v2.20+ (supports `service_completed_successfully`)
+- Python 3.12+ (only for optional host-local backend development)
+- Node.js 20+ (only for optional host-local frontend development)
 - 16GB+ RAM recommended (Ollama)
 
-### Quick Start
+### Primary startup (full stack)
 
-```bash
-# Choose one startup mode:
-# - Option A: Local development (infra in Docker, backend/frontend on host)
-# - Option B: Docker development (backend stack in Docker)
-```
-
-Ensure Ollama is running on your host with the required models, or start the Docker Ollama fallback only when host Ollama is unavailable (see **Ollama** below).
-
-### Local Development
-
-#### Windows (PowerShell)
-
-##### Option A — Local development (no manual env vars)
-
-Docker runs infrastructure only (`postgres`, `redis`, `minio`), while FastAPI, Celery worker, frontend, and Ollama run on host.
+Everything — Postgres, Redis, MinIO, migrations, API, worker, beat, and the Vite frontend — starts with one command.
 
 ```powershell
-# One-time setup
-cd .
-copy .env.local.example .env.local
-copy frontend\.env.example frontend\.env.local
-
-cd backend
-py -3.13 -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -e ".[dev]"
-cd ..\frontend
-npm install
-```
-
-```powershell
-# Start infrastructure only (repo root)
-docker compose --env-file .env.local up -d postgres redis minio
-```
-
-```powershell
-# Run API (backend/)
-cd backend
-py -3.13 -m uvicorn payroll_copilot.presentation.main:app --reload
-```
-
-```powershell
-# Run worker (backend/, second terminal)
-cd backend
-celery -A payroll_copilot.infrastructure.tasks.celery_app worker -l info
-```
-
-```powershell
-# Run frontend (frontend/, third terminal)
-cd frontend
-npm run dev
-```
-
-`Settings` now loads `.env.local` before `.env`, so no manual `$env:` exports are required for local startup.
-
-##### Option B — Docker development
-
-Run backend + worker + beat + infrastructure in Docker:
-
-```powershell
+# One-time: create Docker env file (if .env does not exist)
 copy .env.docker.example .env
-docker compose --env-file .env up --build -d
-```
 
-Optional Docker Ollama fallback only when host Ollama is unavailable:
-
-```powershell
-docker compose --env-file .env --profile docker-ollama up -d
-```
-
-Stop services (both options):
-
-```powershell
-docker compose down
-# optional full reset:
-# docker compose down -v
-```
-
-> **Runtime note:** the earlier `ModuleNotFoundError: No module named 'langgraph'` was an environment issue — `langgraph` is already declared in `backend/pyproject.toml`. Running `pip install -e ".[dev]"` into the interpreter you launch `uvicorn` with resolves it. Do not `pip install` it manually.
-
-#### macOS / Linux
-
-```bash
-# One-time setup
-cp .env.local.example .env.local
-cp frontend/.env.example frontend/.env.local
-
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-cd ../frontend
-npm install
-```
-
-```bash
-# Start infrastructure only (repo root)
-docker compose --env-file .env.local up -d postgres redis minio
-```
-
-```bash
-# Run API (backend/)
-cd backend
-uvicorn payroll_copilot.presentation.main:app --reload
-```
-
-```bash
-# Run worker (backend/, second terminal)
-cd backend
-celery -A payroll_copilot.infrastructure.tasks.celery_app worker -l info
-```
-
-```bash
-# Run frontend (frontend/, third terminal)
-cd frontend
-npm run dev
-```
-```
-
-Required local services: **PostgreSQL**, **Redis**, **MinIO** (all via `docker compose up -d postgres redis minio`) and a **host Ollama** (`ollama serve`) with the model from `OLLAMA_DEFAULT_MODEL` pulled.
-
-#### Local-vs-Docker service URLs (Redis / Celery / S3)
-
-Docker Compose exposes services by hostname (`redis`, `minio`, `postgres`); those names only resolve **inside** the Compose network. When the backend runs on the host, the service resolver (`infrastructure/config/service_resolver.py`, mirroring the Ollama resolver) uses the configured URL when its host is reachable and otherwise falls back to the matching `*_LOCAL_URL` (localhost):
-
-| Configured (Docker) | Local fallback |
-|---------------------|----------------|
-| `REDIS_URL` | `REDIS_LOCAL_URL` |
-| `CELERY_BROKER_URL` | `CELERY_BROKER_LOCAL_URL` |
-| `CELERY_RESULT_BACKEND` | `CELERY_RESULT_BACKEND_LOCAL_URL` |
-| `S3_ENDPOINT` | `S3_LOCAL_ENDPOINT` |
-
-- **Docker mode:** `redis`/`minio` are reachable, so the configured Docker hostnames are used and Compose behavior is unchanged.
-- **Local mode:** the Docker hostnames are unreachable, so the resolver falls back to `localhost`.
-- Set `SERVICE_AUTO_FALLBACK=false` to disable probing and always use the configured URL.
-- `.env.local.example` already sets local `DATABASE_URL=...@localhost...`, so no shell override is needed.
-
-### Frontend Development
-
-```bash
-cd frontend
-cp .env.example .env.local   # Enable dev auth and set API URL
-npm install
-npm run dev
+# Start the full development stack
+docker compose up --build
 ```
 
 | URL | Purpose |
 |-----|---------|
-| http://localhost:3000 | Frontend (Vite dev server) |
+| http://localhost:3000 | Frontend (Vite hot reload in Docker) |
 | http://localhost:8000/docs | Backend Swagger UI |
 | http://localhost:8000/health | API health check |
+| http://localhost:9001 | MinIO console |
 
-### Frontend Environment Variables
+Stop:
 
-Create `frontend/.env.local` (see `frontend/.env.example`):
+```powershell
+docker compose down
+# Never use `down -v` unless you intentionally want to wipe DB/volumes.
+```
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `VITE_API_BASE_URL` | Backend API base URL | `http://localhost:8000/api/v1` |
-| `VITE_DEV_AUTH_ENABLED` | Enable dev role selector login (no password) | `false` — set `true` for local UI development |
+Ensure Ollama is running on your host with the required models, or start the optional Docker Ollama profile (see **Ollama** below).
 
-When `VITE_DEV_AUTH_ENABLED=true`, the login page shows a dev-only role selector for:
+### Startup flow
+
+```
+postgres (healthy)
+  → redis (healthy)
+  → minio (started)
+  → migrate  (alembic upgrade head → exit 0)
+  → api / worker / beat
+  → frontend (waits for api healthy)
+```
+
+The `migrate` service:
+
+- runs `alembic upgrade head`
+- is **idempotent**
+- never drops tables or recreates volumes
+- must succeed before `api`, `worker`, and `beat` start
+
+`DATABASE_URL` from `.env` is the **single source of truth** for FastAPI and Alembic (no hardcoded localhost inside containers).
+
+### Environment files
+
+| File | Role |
+|------|------|
+| `.env.docker.example` → `.env` | **Docker development** (primary). Compose `env_file`. Hosts: `postgres` / `redis` / `minio`. |
+| `.env.example` | Same Docker defaults (alias of docker example). |
+| `.env.local.example` → `.env.local` | **Host development** only (`@localhost`). Used when API runs on the host. |
+| `frontend/.env.example` | Host-only Vite; Compose frontend sets `VITE_*` via service `environment`. |
+
+Future production: inject the same keys via the orchestrator; do not commit secrets.
+
+### Optional: host development (infra in Docker only)
+
+Use this when you prefer host Python/Node tooling. Not required for day-to-day work.
+
+```powershell
+copy .env.local.example .env.local
+copy frontend\.env.example frontend\.env.local
+
+docker compose up -d postgres redis minio
+docker compose run --rm migrate
+
+# API (backend/)
+cd backend
+py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -e ".[dev]"
+uvicorn payroll_copilot.presentation.main:app --reload
+
+# Worker / frontend in other terminals as needed
+```
+
+Host Redis/Celery/S3 resolution: when Docker hostnames are unreachable, `*_LOCAL_URL` fallbacks apply (see `service_resolver.py`). **`DATABASE_URL` is never auto-resolved** — use `@localhost` in `.env.local`.
+
+### Frontend notes
+
+Under `docker compose up --build`, the `frontend` service runs Vite with hot reload on port 3000 and sets:
+
+- `VITE_API_BASE_URL=http://localhost:8000/api/v1` (browser → host-mapped API)
+- `VITE_DEV_AUTH_ENABLED=true`
+
+When `VITE_DEV_AUTH_ENABLED=true`, the login page shows a dev-only role selector:
 
 | Role | Portal path | Dev identity |
 |------|-------------|--------------|
@@ -526,11 +455,11 @@ When `VITE_DEV_AUTH_ENABLED=true`, the login page shows a dev-only role selector
 | `payroll_accountant` | `/accountant` | David Levy |
 | `developer_admin` | `/admin` | Yael Administrator |
 
-Dev sessions are stored in `localStorage` only. Production auth will use AWS Cognito via `frontend/src/auth/authProvider.ts` — dev auth is isolated in `frontend/src/auth/devAuth.ts`.
+Dev sessions are stored in `localStorage` only. Production auth will use AWS Cognito via `frontend/src/auth/authProvider.ts`.
 
 ### Role-Based UI
 
-The frontend provides three distinct portals after login:
+The frontend provides three portals after login:
 
 **Employee Portal** — Dashboard, document upload, payslips, attendance, contract, AI chat (explanations only), validation history.
 
@@ -538,10 +467,7 @@ The frontend provides three distinct portals after login:
 
 **Developer/Admin Portal** — Rule packs, department rules, MCP legal sync, AI models, RAG management, system configuration.
 
-Public landing page (`/`) includes guest document upload and payroll chat UI — not yet connected to the backend.
-
-API service stubs live in `frontend/src/services/` with `@integration-point` markers for safe future wiring.
-
+Public landing page (`/`) includes guest validate + payroll chat.
 ---
 
 ## Ollama
@@ -608,16 +534,35 @@ docker compose exec ollama ollama pull nomic-embed-text
 
 ## Docker
 
-```bash
-docker compose up -d                         # Core services + host Ollama
-docker compose --profile docker-ollama up -d # Include Docker Ollama fallback
-docker compose --profile automation up -d    # Include n8n
-docker compose logs -f api                   # Follow API logs
-docker compose exec api pytest               # Run tests
+### Architecture
+
+```
+payroll_net
+├── postgres          # pgvector/pg16 — durable volume postgres_data
+├── redis             # durable volume redis_data
+├── minio             # durable volume minio_data
+├── migrate           # one-shot alembic upgrade head (restart: "no")
+├── api               # FastAPI :8000 (after migrate)
+├── worker            # Celery worker (after migrate)
+├── beat              # Celery beat (after migrate)
+├── frontend          # Vite :3000 (after api healthy)
+├── ollama            # profile: docker-ollama
+└── n8n               # profile: automation
 ```
 
-Services: `api`, `worker`, `beat`, `postgres`, `redis`, `minio`, (`ollama` via profile `docker-ollama`), (`n8n` via profile `automation`).
+### Commands
 
+```bash
+docker compose up --build              # Full stack (primary)
+docker compose up --build -d           # Detached
+docker compose --profile docker-ollama up -d   # Optional Ollama container
+docker compose --profile automation up -d      # Optional n8n
+docker compose logs -f api migrate frontend
+docker compose run --rm migrate        # Re-run migrations only
+docker compose exec api alembic current
+```
+
+Migrations always use the same `DATABASE_URL` as the API (from `.env`). Do not rely on `alembic.ini` localhost inside containers.
 ---
 
 ## Configuration
@@ -626,7 +571,7 @@ Services: `api`, `worker`, `beat`, `postgres`, `redis`, `minio`, (`ollama` via p
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection (use `localhost` for local runs) | `postgresql+asyncpg://...` |
+| `DATABASE_URL` | PostgreSQL DSN — **single source of truth for API + Alembic**. Docker: `@postgres`. Host: `@localhost`. | `postgresql+asyncpg://...` |
 | `REDIS_URL` | Redis connection (Docker hostname) | `redis://redis:6379/0` |
 | `REDIS_LOCAL_URL` | Local fallback when `REDIS_URL` host is unreachable | `redis://localhost:6379/0` |
 | `CELERY_BROKER_URL` / `CELERY_RESULT_BACKEND` | Celery broker / result store (Docker hostname) | `redis://redis:6379/1`, `/2` |
@@ -738,15 +683,19 @@ The validation response includes `validation_scope`, `uploaded_documents`, `vali
 
 These are intentional and surfaced honestly in the UI/API — nothing is faked:
 
-- **OCR worker is a stub/foundation.** The `process_document_ocr` task returns a placeholder result; no fields are extracted yet. If Celery/Redis is unavailable, upload returns `background_status="not_queued"` and no processing is claimed.
-- **No real OCR extraction yet.** Uploaded files are stored and validated, but payslip fields are **not** parsed from the document. `document_language` is metadata only; `ocr_language_status` is `not_connected`.
-- **Validation still uses `DemoValidationContextBuilder`.** The engine evaluates a fixed sample payslip context, so results reflect the demo context, not your uploaded file. Payroll-rule scope is reported as `partial`.
+- **OCR text extraction (Phase 1) is implemented** via `POST /api/v1/ocr/extract` (PDF/PNG/JPG/JPEG → pages + text + confidence). Install Paddle with `pip install -e ".[ocr-paddle]"`.
+- **AI Payslip Parser (Phase 2A) is implemented** via `POST /api/v1/parser/payslip` (OCR JSON → per-field `{value, confidence, source_text, status}`). Uses local Ollama; one retry on invalid JSON; confidence never invented.
+- **Guest extraction persistence (Phase 2B/2C)** — `POST /api/v1/extraction/guest/payslip-extract` orchestrates upload → OCR → parser → `document_extractions` row; guest Review shows real fields (Missing / unable to read / confidence unavailable — never invented).
+- **Guest validation connected (Phases 3–7)** — Review/edit → `POST /extraction/guest/{id}/corrections` (new extraction version) → `POST /validation/run` maps structured fields to a synthetic guest context (`rule_profile=payroll`). Missing data → Unable to verify. AI explains existing findings only.
+- **OCR worker on document upload is still a stub.** The Celery `process_document_ocr` task remains a placeholder; the guest validate flow uses the sync extraction endpoint instead.
+- **DemoValidationContextBuilder remains in codebase for non-guest/dev use only** — it is not used on the guest validation path.
 - **No real vector RAG yet.** The assistant uses keyword search over local YAML legal rules only.
 - **No production auth / Cognito yet.** A dev role selector and guest JWT exist; routes do not enforce auth.
 - **Guest session DB persistence not completed.** Guest JWT is issued and sent, but there is no `guest_sessions` table and routes don't require the token.
 - **Contract / attendance / national-ID analysis not connected.** Uploading these documents is supported, but they are reported as `not_available` in the validation scope because analysis is not wired.
 - **Historical comparison not available.** Always reported as `not_available`.
-- **Batch bulk-PDF, MCP legal sync, RTL/i18n** are design targets, not shipped.
+- **Batch bulk-PDF, MCP legal sync** are design targets, not shipped.
+- **Hebrew OCR:** when `OCR_PROVIDER=paddleocr` (default), `language=he` transparently uses **Tesseract** and returns `engine=tesseract` plus a warning. This is intentional production-honest behavior — not a bug.
 
 ---
 

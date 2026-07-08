@@ -14,6 +14,9 @@ from payroll_copilot.application.use_cases.persisted_validation import (
     RunPersistedValidationCommand,
     RunPersistedValidationUseCase,
 )
+from payroll_copilot.application.validation.guest_extraction_context_builder import (
+    ExtractionRequiredError,
+)
 from payroll_copilot.infrastructure.ai.agents.validation_report_store import cache_validation_report
 from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.infrastructure.i18n import finding_explanation, finding_message, resolve_locale
@@ -203,6 +206,11 @@ async def run_validation(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Document {exc.document_id} not found",
+        ) from exc
+    except ExtractionRequiredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "extraction_required", "message": exc.message},
         ) from exc
     return _to_response(record, locale=locale)
 

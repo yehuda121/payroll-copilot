@@ -15,6 +15,7 @@ type GuestWorkspaceProps = {
   onFollowUp?: (context: AssistantFollowUpContext) => void;
 };
 
+/** Dedicated workspace shell for validate flow (and optional isolated chat). */
 export function GuestWorkspace({ mode, assistantContext, onFollowUp }: GuestWorkspaceProps) {
   return (
     <div className="guest-workspace">

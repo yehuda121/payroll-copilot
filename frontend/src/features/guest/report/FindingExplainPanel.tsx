@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppLocale } from '../../../hooks/useAppLocale';
 import { assistantService } from '../../../services/assistant';
@@ -8,6 +8,7 @@ type FindingExplainPanelProps = {
   ruleId: string;
   validationRunId: string;
   documentIds: string[];
+  autoLoad?: boolean;
 };
 
 export function FindingExplainPanel({
@@ -15,16 +16,15 @@ export function FindingExplainPanel({
   ruleId,
   validationRunId,
   documentIds,
+  autoLoad = false,
 }: FindingExplainPanelProps) {
   const { t } = useTranslation();
   const { locale } = useAppLocale();
-  const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [explanation, setExplanation] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleExplain = async () => {
-    setIsOpen(true);
+  const loadExplanation = async () => {
     if (explanation || isLoading) {
       return;
     }
@@ -47,22 +47,26 @@ export function FindingExplainPanel({
     }
   };
 
+  useEffect(() => {
+    if (autoLoad) {
+      void loadExplanation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoLoad, findingId]);
+
   return (
     <div className="finding-explain">
-      <button type="button" className="btn btn--ghost" onClick={handleExplain}>
-        {t('report.explain')}
-      </button>
-      {isOpen && (
-        <div className="finding-explain__panel" aria-live="polite">
-          <p className="finding-explain__note">{t('report.explainNote')}</p>
-          {isLoading && <p>{t('report.explainPreparing')}</p>}
-          {error && <p className="finding-explain__error">{error}</p>}
-          {explanation && <p>{explanation}</p>}
-          <p className="finding-explain__meta">
-            {t('report.findingId')}: {findingId}
-          </p>
-        </div>
+      {!autoLoad && (
+        <button type="button" className="btn btn--ghost" onClick={() => void loadExplanation()}>
+          {t('report.explain')}
+        </button>
       )}
+      <div className="finding-explain__panel" aria-live="polite">
+        <p className="finding-explain__note">{t('report.explainNote')}</p>
+        {isLoading && <p>{t('report.explainPreparing')}</p>}
+        {error && <p className="finding-explain__error">{error}</p>}
+        {explanation && <p>{explanation}</p>}
+      </div>
     </div>
   );
 }
