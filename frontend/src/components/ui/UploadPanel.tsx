@@ -1,4 +1,5 @@
 import { useRef, type ChangeEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import './ui.css';
 
 type UploadSlot = {
@@ -23,6 +24,7 @@ export function UploadPanel({
   onFilesSelected,
   onRemove,
 }: UploadPanelProps) {
+  const { t } = useTranslation();
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleChange = (slotId: string) => (event: ChangeEvent<HTMLInputElement>) => {
@@ -38,19 +40,21 @@ export function UploadPanel({
         <div key={slot.id} className="upload-panel__slot">
           <div className="upload-panel__slot-header">
             <strong>{slot.label}</strong>
-            {slot.optional && <span className="upload-panel__optional">Optional</span>}
+            {slot.optional && (
+              <span className="upload-panel__optional">{t('common.optional')}</span>
+            )}
           </div>
           <button
             type="button"
             className="upload-panel__dropzone"
             onClick={() => inputRefs.current[slot.id]?.click()}
           >
-            <span>{selectedFileName ? selectedFileName : 'Click to select file'}</span>
+            <span>{selectedFileName ? selectedFileName : t('common.selectFile')}</span>
             <span className="upload-panel__hint">{slot.accept}</span>
           </button>
           {selectedFileName && onRemove && (
             <button type="button" className="btn btn--ghost" onClick={() => onRemove(slot.id)}>
-              Remove file
+              {t('common.removeFile')}
             </button>
           )}
           {errorMessage && <p className="document-slot__error">{errorMessage}</p>}

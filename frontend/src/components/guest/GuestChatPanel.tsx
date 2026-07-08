@@ -1,15 +1,11 @@
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useAppLocale } from '../../hooks/useAppLocale';
 import { assistantService } from '../../services/assistant';
 import type { AssistantGuardrailStatus, ChatMessage } from '../../types/assistant';
 import { Card } from '../ui/Card';
 import '../ui/ui.css';
 import '../../features/guest/guest.css';
-
-const SUGGESTED_QUESTIONS = [
-  'What documents are needed to validate a payslip?',
-  'How should overtime be reflected on a payslip?',
-  'What is the difference between a validation warning and a critical issue?',
-];
 
 type GuestChatPanelProps = {
   title?: string;
@@ -18,28 +14,38 @@ type GuestChatPanelProps = {
   documentIds?: string[];
 };
 
-function guardrailLabel(status: AssistantGuardrailStatus): string {
-  switch (status) {
-    case 'blocked':
-      return 'This request could not be processed.';
-    case 'limited':
-      return 'No approved source was found for this question.';
-    default:
-      return '';
-  }
-}
-
 export function GuestChatPanel({
-  title = 'Payroll Assistant',
-  intro = 'Ask payroll-related questions using approved internal sources. This assistant explains and guides — it does not determine legal compliance.',
+  title,
+  intro,
   validationRunId,
   documentIds = [],
 }: GuestChatPanelProps) {
+  const { t } = useTranslation();
+  const { locale } = useAppLocale();
   const [message, setMessage] = useState('');
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const resolvedTitle = title ?? t('assistant.title');
+  const resolvedIntro = intro ?? t('assistant.intro');
+  const suggestedQuestions = [
+    t('assistant.suggested1'),
+    t('assistant.suggested2'),
+    t('assistant.suggested3'),
+  ];
+
+  const guardrailLabel = (status: AssistantGuardrailStatus): string => {
+    switch (status) {
+      case 'blocked':
+        return t('assistant.guardrailBlocked');
+      case 'limited':
+        return t('assistant.guardrailLimited');
+      default:
+        return '';
+    }
+  };
 
   const submitMessage = async (text: string) => {
     const trimmed = text.trim();
@@ -61,7 +67,7 @@ export function GuestChatPanel({
         session_id: sessionId,
         document_ids: documentIds,
         validation_run_id: validationRunId,
-        locale: 'en',
+        locale,
       });
       setSessionId(response.session_id);
       setMessages((prev) => [
@@ -75,7 +81,7 @@ export function GuestChatPanel({
         },
       ]);
     } catch {
-      setError('The Payroll Assistant is temporarily unavailable. Please try again later.');
+      setError(t('assistant.unavailable'));
     } finally {
       setIsLoading(false);
     }
@@ -87,15 +93,15 @@ export function GuestChatPanel({
   };
 
   return (
-    <Card title={title}>
-      <p className="guest-section__intro">{intro}</p>
+    <Card title={resolvedTitle}>
+      <p className="guest-section__intro">{resolvedIntro}</p>
       <div className="chat-panel">
         <div className="chat-panel__messages" aria-live="polite">
           {messages.length === 0 ? (
             <div className="chat-panel__empty">
-              <p>Ask a payroll or employee-rights question.</p>
+              <p>{t('assistant.empty')}</p>
               <div className="chat-panel__suggestions">
-                {SUGGESTED_QUESTIONS.map((question) => (
+                {suggestedQuestions.map((question) => (
                   <button
                     key={question}
                     type="button"
@@ -132,9 +138,7 @@ export function GuestChatPanel({
                 ) : (
                   msg.role === 'assistant' &&
                   msg.guardrailStatus === 'limited' && (
-                    <p className="chat-message__guardrail">
-                      No approved source was found in the Payroll Assistant knowledge base.
-                    </p>
+                    <p className="chat-message__guardrail">{t('assistant.noSource')}</p>
                   )
                 )}
               </div>
@@ -147,12 +151,12 @@ export function GuestChatPanel({
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Ask a payroll question..."
-            aria-label="Chat message"
+            placeholder={t('assistant.placeholder')}
+            aria-label={t('assistant.ariaMessage')}
             disabled={isLoading}
           />
           <button type="submit" className="btn btn--primary" disabled={isLoading || !message.trim()}>
-            {isLoading ? 'Sending...' : 'Send'}
+            {isLoading ? t('common.sending') : t('common.send')}
           </button>
         </form>
       </div>

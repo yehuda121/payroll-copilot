@@ -37,11 +37,16 @@ _upload_guardrail = DocumentUploadGuardrailService(get_settings())
 _ENQUEUE_CONNECTION_ERRORS = (KombuOperationalError, RedisError, OSError)
 
 
+_ALLOWED_DOCUMENT_LANGUAGES = frozenset({"he", "en", "ar", "auto"})
+
+
 class DocumentUploadResponse(BaseModel):
     document_id: str
     status: str
     processing_job_id: str | None = None
     background_status: str = "queued"
+    document_language: str = "auto"
+    ocr_language_status: str = "not_connected"
 
 
 class DocumentResponse(BaseModel):
@@ -50,6 +55,8 @@ class DocumentResponse(BaseModel):
     status: str
     original_filename: str
     file_size_bytes: int
+    document_language: str = "auto"
+    ocr_language_status: str = "not_connected"
 
 
 def _parse_uuid(value: str, field_name: str) -> UUID:
@@ -62,6 +69,11 @@ def _parse_uuid(value: str, field_name: str) -> UUID:
         ) from exc
 
 
+def _document_language(document: Document) -> str:
+    value = document.metadata.get("document_language", "auto")
+    return value if isinstance(value, str) else "auto"
+
+
 def _to_response(document: Document) -> DocumentResponse:
     return DocumentResponse(
         document_id=str(document.id),
@@ -69,6 +81,8 @@ def _to_response(document: Document) -> DocumentResponse:
         status=document.status.value,
         original_filename=document.original_filename,
         file_size_bytes=document.file_size_bytes,
+        document_language=_document_language(document),
+        ocr_language_status="not_connected",
     )
 
 
@@ -79,12 +93,20 @@ async def upload_document(
     employee_id: str | None = Form(None),
     period_year: int | None = Form(None),
     period_month: int | None = Form(None),
+    document_language: str = Form("auto"),
     upload_use_case: UploadDocumentUseCase = Depends(get_upload_document_use_case),
 ) -> DocumentUploadResponse:
     settings = get_settings()
     max_size = settings.max_upload_size_mb * 1024 * 1024
     if document_type == DocumentType.BULK_PAYSLIP_PDF:
         max_size = settings.max_bulk_pdf_size_mb * 1024 * 1024
+
+    normalized_language = document_language.strip().lower()
+    if normalized_language not in _ALLOWED_DOCUMENT_LANGUAGES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid document_language: must be one of he, en, ar, auto",
+        )
 
     content = await file.read()
     if len(content) > max_size:
@@ -109,6 +131,7 @@ async def upload_document(
         period_year=period_year,
         period_month=period_month,
         uploaded_by_user_id=None,
+        document_language=normalized_language,
     )
 
     try:
@@ -151,6 +174,8 @@ async def upload_document(
         status=document.status.value,
         processing_job_id=job_id,
         background_status=background_status,
+        document_language=normalized_language,
+        ocr_language_status="not_connected",
     )
 
 

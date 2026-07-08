@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { GuestValidationReport } from '../../../types/validation-report';
 import { findingRecommendation, findingTitle } from '../../../lib/guest/validation-report-adapter';
 import { FindingExplainPanel } from './FindingExplainPanel';
@@ -9,18 +10,8 @@ type ValidationReportProps = {
   onAskFollowUp?: () => void;
 };
 
-function scopeStatusLabel(status: string): string {
-  switch (status) {
-    case 'completed':
-      return 'Completed';
-    case 'partial':
-      return 'Partial';
-    default:
-      return 'Not available';
-  }
-}
-
 export function ValidationReportView({ report, documentIds, onAskFollowUp }: ValidationReportProps) {
+  const { t } = useTranslation();
   const grouped = {
     critical: report.findings.filter((f) => f.severity === 'critical'),
     warning: report.findings.filter((f) => f.severity === 'warning'),
@@ -29,17 +20,41 @@ export function ValidationReportView({ report, documentIds, onAskFollowUp }: Val
 
   const unableItems = report.scope.filter((item) => item.status === 'not_available');
 
+  const scopeStatusLabel = (status: string): string => {
+    switch (status) {
+      case 'completed':
+        return t('report.scopeCompleted');
+      case 'partial':
+        return t('report.scopePartial');
+      default:
+        return t('report.scopeNotAvailable');
+    }
+  };
+
+  const severityLabel = (severity: 'critical' | 'warning' | 'info'): string => {
+    switch (severity) {
+      case 'critical':
+        return t('report.severityCritical');
+      case 'warning':
+        return t('report.severityWarning');
+      default:
+        return t('report.severityInfo');
+    }
+  };
+
   return (
     <div className="validation-report">
       <section className="validation-report__section">
-        <h3>Overall Status</h3>
-        <div className={`validation-report__status validation-report__status--${report.overallStatus.replaceAll(' ', '-').toLowerCase()}`}>
+        <h3>{t('report.overallStatus')}</h3>
+        <div
+          className={`validation-report__status validation-report__status--${report.overallStatus.replaceAll(' ', '-').toLowerCase()}`}
+        >
           {report.overallStatus}
         </div>
       </section>
 
       <section className="validation-report__section">
-        <h3>Validation Scope</h3>
+        <h3>{t('report.scope')}</h3>
         <ul className="validation-report__scope-list">
           {report.scope.map((item) => (
             <li key={item.key}>
@@ -54,7 +69,7 @@ export function ValidationReportView({ report, documentIds, onAskFollowUp }: Val
       </section>
 
       <section className="validation-report__section">
-        <h3>Uploaded Documents</h3>
+        <h3>{t('report.uploadedDocuments')}</h3>
         <ul className="validation-report__docs-list">
           {report.uploadedDocuments.map((doc) => (
             <li key={doc.document_type}>
@@ -66,13 +81,13 @@ export function ValidationReportView({ report, documentIds, onAskFollowUp }: Val
       </section>
 
       <section className="validation-report__section">
-        <h3>Validation Summary</h3>
+        <h3>{t('report.summary')}</h3>
         <p>{report.summary}</p>
       </section>
 
       {report.validationConfidence !== null && (
         <section className="validation-report__section">
-          <h3>Validation Confidence</h3>
+          <h3>{t('report.confidence')}</h3>
           <p className="validation-report__confidence">
             {Math.round(report.validationConfidence * 100)}%
           </p>
@@ -81,36 +96,33 @@ export function ValidationReportView({ report, documentIds, onAskFollowUp }: Val
       )}
 
       <section className="validation-report__section">
-        <h3>Successfully Validated</h3>
-        <p>
-          {report.checksPassedCount} payroll rule check
-          {report.checksPassedCount === 1 ? '' : 's'} completed with no potential issue
-          {report.checksPassedCount === 1 ? '' : 's'}.
-        </p>
+        <h3>{t('report.successfullyValidated')}</h3>
+        <p>{t('report.checksPassed', { count: report.checksPassedCount })}</p>
       </section>
 
       <section className="validation-report__section">
-        <h3>Potential Issues</h3>
+        <h3>{t('report.potentialIssues')}</h3>
         {report.findings.length === 0 ? (
-          <p>No potential issues were identified in the completed rule checks.</p>
+          <p>{t('report.noIssues')}</p>
         ) : (
           <>
             {(['critical', 'warning', 'info'] as const).map((severity) =>
               grouped[severity].length > 0 ? (
                 <div key={severity} className="validation-report__finding-group">
-                  <h4>{severity.toUpperCase()}</h4>
+                  <h4>{severityLabel(severity)}</h4>
                   {grouped[severity].map((finding) => (
                     <article key={finding.id} className="validation-report__finding">
                       <header>
-                        <strong>{findingTitle(finding.message_key, finding.rule_id)}</strong>
+                        <strong>{findingTitle(finding)}</strong>
                       </header>
-                      <p>{finding.message_key.replaceAll('.', ' ')}</p>
+                      <p>{finding.explanation || finding.message}</p>
                       <p>
-                        <strong>Recommendation:</strong> {findingRecommendation(finding)}
+                        <strong>{t('common.recommendation')}:</strong>{' '}
+                        {findingRecommendation(finding, t)}
                       </p>
                       {finding.legal_reference && (
                         <p>
-                          <strong>Legal reference:</strong> {finding.legal_reference}
+                          <strong>{t('common.legalReference')}:</strong> {finding.legal_reference}
                         </p>
                       )}
                       <FindingExplainPanel
@@ -129,9 +141,9 @@ export function ValidationReportView({ report, documentIds, onAskFollowUp }: Val
       </section>
 
       <section className="validation-report__section">
-        <h3>Unable to Validate</h3>
+        <h3>{t('report.unableToValidate')}</h3>
         {unableItems.length === 0 ? (
-          <p>All currently supported validation areas were evaluated.</p>
+          <p>{t('report.allAreasEvaluated')}</p>
         ) : (
           <ul className="validation-report__unable-list">
             {unableItems.map((item) => (
@@ -147,7 +159,7 @@ export function ValidationReportView({ report, documentIds, onAskFollowUp }: Val
       {onAskFollowUp && (
         <div className="validation-report__actions">
           <button type="button" className="btn btn--secondary" onClick={onAskFollowUp}>
-            Ask a follow-up question
+            {t('report.askFollowUp')}
           </button>
         </div>
       )}

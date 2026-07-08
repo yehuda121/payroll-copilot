@@ -20,8 +20,6 @@ export function GuestWorkspace({ mode, assistantContext, onFollowUp }: GuestWork
     <div className="guest-workspace">
       {mode === 'assistant' ? (
         <GuestChatPanel
-          title="Payroll Assistant"
-          intro="Ask payroll and employee-rights questions using approved internal sources only."
           validationRunId={assistantContext?.validationRunId}
           documentIds={assistantContext?.documentIds ?? []}
         />

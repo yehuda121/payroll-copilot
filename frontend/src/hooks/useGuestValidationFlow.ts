@@ -1,10 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { GUEST_DOCUMENT_SLOTS, type GuestDocumentSlotId } from '../lib/guest/document-slots';
 import { validateUploadFile } from '../lib/guest/upload-guardrails';
 import { adaptValidationReport } from '../lib/guest/validation-report-adapter';
+import { useAppLocale } from './useAppLocale';
 import { authService } from '../services/auth';
 import { documentsService } from '../services/documents';
 import { validationService } from '../services/validation';
+import type { DocumentLanguage } from '../types/api';
 import type { GuestValidationReport } from '../types/validation-report';
 
 export type UploadSlotState = {
@@ -16,10 +19,13 @@ export type UploadSlotState = {
 export type ValidationFlowStep = 'upload' | 'validating' | 'report';
 
 export function useGuestValidationFlow() {
+  const { t } = useTranslation();
+  const { locale } = useAppLocale();
   const [step, setStep] = useState<ValidationFlowStep>('upload');
   const [slots, setSlots] = useState<Partial<Record<GuestDocumentSlotId, UploadSlotState>>>({});
   const [flowError, setFlowError] = useState<string | null>(null);
   const [report, setReport] = useState<GuestValidationReport | null>(null);
+  const [documentLanguage, setDocumentLanguage] = useState<DocumentLanguage>('auto');
 
   const selectedNames = useMemo(
     () => Object.values(slots).map((slot) => slot?.file.name).filter(Boolean) as string[],
@@ -28,7 +34,7 @@ export function useGuestValidationFlow() {
 
   const selectFile = useCallback(
     async (slotId: GuestDocumentSlotId, file: File) => {
-      const result = await validateUploadFile(slotId, file, selectedNames);
+      const result = await validateUploadFile(slotId, file, selectedNames, t);
       if (!result.ok) {
         setSlots((prev) => ({
           ...prev,
@@ -39,7 +45,7 @@ export function useGuestValidationFlow() {
       setSlots((prev) => ({ ...prev, [slotId]: { file } }));
       setFlowError(null);
     },
-    [selectedNames],
+    [selectedNames, t],
   );
 
   const removeFile = useCallback((slotId: GuestDocumentSlotId) => {
@@ -53,7 +59,7 @@ export function useGuestValidationFlow() {
   const runValidation = useCallback(async () => {
     const payslip = slots.payslip?.file;
     if (!payslip) {
-      setFlowError('A payslip is required before validation can run.');
+      setFlowError(t('validate.payslipRequired'));
       return;
     }
 
@@ -69,7 +75,11 @@ export function useGuestValidationFlow() {
         if (!selected?.file || selected.error) {
           continue;
         }
-        const response = await documentsService.upload(selected.file, slot.backendType);
+        const response = await documentsService.upload(
+          selected.file,
+          slot.backendType,
+          documentLanguage,
+        );
         uploadedIds[slot.id] = response.document_id;
         setSlots((prev) => ({
           ...prev,
@@ -79,7 +89,7 @@ export function useGuestValidationFlow() {
 
       const payslipId = uploadedIds.payslip;
       if (!payslipId) {
-        throw new Error('Payslip upload did not complete.');
+        throw new Error(t('validate.payslipUploadFailed'));
       }
 
       const supportingIds = GUEST_DOCUMENT_SLOTS.filter(
@@ -89,21 +99,23 @@ export function useGuestValidationFlow() {
       const validation = await validationService.runValidation({
         document_id: payslipId,
         supporting_document_ids: supportingIds,
+        locale,
       });
 
-      setReport(adaptValidationReport(validation));
+      setReport(adaptValidationReport(validation, t));
       setStep('report');
     } catch (err) {
-      setFlowError(err instanceof Error ? err.message : 'Validation could not be completed.');
+      setFlowError(err instanceof Error ? err.message : t('validate.validationFailed'));
       setStep('upload');
     }
-  }, [slots]);
+  }, [slots, documentLanguage, locale, t]);
 
   const reset = useCallback(() => {
     setSlots({});
     setReport(null);
     setFlowError(null);
     setStep('upload');
+    setDocumentLanguage('auto');
   }, []);
 
   return {
@@ -111,6 +123,8 @@ export function useGuestValidationFlow() {
     slots,
     flowError,
     report,
+    documentLanguage,
+    setDocumentLanguage,
     selectFile,
     removeFile,
     runValidation,

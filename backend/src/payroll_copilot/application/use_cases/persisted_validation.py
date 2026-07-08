@@ -34,6 +34,7 @@ class RunPersistedValidationCommand:
     include_historical: bool = True
     include_contract_rag: bool = True
     supporting_document_ids: tuple[UUID, ...] = field(default_factory=tuple)
+    locale: str | None = None
 
 
 class RunPersistedValidationUseCase:
@@ -76,6 +77,7 @@ class RunPersistedValidationUseCase:
             payslip_document=document,
             supporting_documents=supporting_documents,
             report=report,
+            locale=command.locale,
         )
 
         run_record = report_to_run_record(

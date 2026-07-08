@@ -4,6 +4,7 @@ export type { NavItem, PortalConfig } from './navigation';
 export type {
   ApiError,
   BatchJobResponse,
+  DocumentLanguage,
   DocumentResponse,
   DocumentUploadResponse,
   GuestSessionResponse,

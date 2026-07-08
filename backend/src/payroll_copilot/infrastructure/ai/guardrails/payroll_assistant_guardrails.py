@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 
 from payroll_copilot.domain.assistant.types import AssistantGuardrailStatus
+from payroll_copilot.infrastructure.i18n import assistant_text
 
 _INJECTION_PATTERNS = (
     r"ignore\s+(all\s+)?(previous|prior)\s+instructions",
@@ -74,12 +75,14 @@ _GREETING_EXACT = {
     "hi", "hii", "hiya", "hello", "helo", "hey", "heya",
     "thanks", "thankyou", "thank you", "thank u", "thx", "ty",
     "shalom", "שלום", "היי", "הי", "תודה", "תודה רבה",
+    "مرحبا", "أهلا", "اهلا", "السلام عليكم", "شكرا", "شكراً",
 }
 
 _GREETING_LEADING = (
     "hello", "hiya", "heya", "hey", "hi",
     "thank you", "thank u", "thanks", "thx", "ty",
     "shalom", "שלום", "היי", "הי", "תודה",
+    "مرحبا", "أهلا", "اهلا", "السلام عليكم",
 )
 
 
@@ -150,33 +153,23 @@ class PayrollAssistantGuardrails:
                 return AssistantGuardrailStatus.BLOCKED
         return AssistantGuardrailStatus.PASSED
 
-    def build_limited_legal_response(self) -> OutputGuardrailResult:
+    def build_limited_legal_response(self, *, locale: str = "en") -> OutputGuardrailResult:
         return OutputGuardrailResult(
             status=AssistantGuardrailStatus.LIMITED,
-            answer=(
-                "I could not find this in the approved Payroll Copilot knowledge base. "
-                "I can only answer labor-law and payroll-rights questions using approved "
-                "local rule sources. Deterministic pass/fail validation is performed "
-                "separately by the backend rule engine — not by this assistant."
-            ),
+            answer=assistant_text("limited_full", locale),
             requires_human_review=True,
         )
 
-    def build_blocked_response(self, reason: str) -> OutputGuardrailResult:
-        messages = {
-            "prompt_injection": (
-                "I cannot process that request. I am limited to payroll, payslip, and "
-                "labor-law assistance using approved sources."
-            ),
-            "off_topic": (
-                "I can only help with payroll, payslips, attendance, contracts, labor law, "
-                "and Payroll Copilot usage."
-            ),
-            "empty_message": "Please enter a payroll-related question.",
+    def build_blocked_response(self, reason: str, *, locale: str = "en") -> OutputGuardrailResult:
+        key_by_reason = {
+            "prompt_injection": "blocked_prompt_injection",
+            "off_topic": "blocked_off_topic",
+            "empty_message": "blocked_empty",
         }
+        answer = assistant_text(key_by_reason.get(reason, "blocked_generic"), locale)
         return OutputGuardrailResult(
             status=AssistantGuardrailStatus.BLOCKED,
-            answer=messages.get(reason, "I cannot process that request."),
+            answer=answer,
             requires_human_review=False,
         )
 
@@ -186,16 +179,13 @@ class PayrollAssistantGuardrails:
         *,
         sources: list[dict[str, str | None]],
         made_legal_claim: bool,
+        locale: str = "en",
     ) -> OutputGuardrailResult:
         if made_legal_claim and not sources:
-            return self.build_limited_legal_response()
+            return self.build_limited_legal_response(locale=locale)
 
-        disclaimer = (
-            "\n\nThis assistant provides informational explanations only and does not "
-            "determine legal compliance. Final validation is performed by the "
-            "deterministic Payroll Copilot rule engine."
-        )
-        final_answer = answer if disclaimer in answer else f"{answer}{disclaimer}"
+        disclaimer = assistant_text("disclaimer", locale)
+        final_answer = answer if disclaimer.strip() in answer else f"{answer}{disclaimer}"
         return OutputGuardrailResult(
             status=AssistantGuardrailStatus.PASSED,
             answer=final_answer,

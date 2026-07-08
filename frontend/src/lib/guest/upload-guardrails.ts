@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 export type UploadGuardrailResult =
   | { ok: true }
   | { ok: false; message: string };
@@ -26,36 +28,37 @@ export async function validateUploadFile(
   slotId: string,
   file: File,
   existingNames: string[],
+  t: TFunction,
 ): Promise<UploadGuardrailResult> {
   if (!file || file.size === 0) {
-    return { ok: false, message: 'The selected file is empty.' };
+    return { ok: false, message: t('uploadErrors.empty') };
   }
 
   if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
-    return { ok: false, message: `File exceeds the ${MAX_UPLOAD_MB}MB upload limit.` };
+    return { ok: false, message: t('uploadErrors.tooLarge', { max: MAX_UPLOAD_MB }) };
   }
 
   if (existingNames.includes(file.name)) {
-    return { ok: false, message: 'This file has already been selected for upload.' };
+    return { ok: false, message: t('uploadErrors.duplicate') };
   }
 
   const allowed = SLOT_ACCEPT[slotId];
   if (allowed && file.type && !allowed.includes(file.type)) {
     return {
       ok: false,
-      message: `Unsupported file type for this document slot (${file.type || 'unknown'}).`,
+      message: t('uploadErrors.unsupportedType', { type: file.type || 'unknown' }),
     };
   }
 
   if (file.type === 'application/pdf') {
     const header = await file.slice(0, 4).text();
     if (!header.startsWith('%PDF')) {
-      return { ok: false, message: 'The PDF file appears to be corrupted or invalid.' };
+      return { ok: false, message: t('uploadErrors.invalidPdf') };
     }
     const preview = await file.slice(0, 4096).arrayBuffer();
     const text = new TextDecoder().decode(preview);
     if (text.includes('/Encrypt')) {
-      return { ok: false, message: 'Password-protected PDF files are not supported.' };
+      return { ok: false, message: t('uploadErrors.encryptedPdf') };
     }
   }
 
@@ -65,7 +68,7 @@ export async function validateUploadFile(
     if (INJECTION_PATTERNS.some((pattern) => lowered.includes(pattern))) {
       return {
         ok: false,
-        message: 'The uploaded file contains unsupported instruction-like content.',
+        message: t('uploadErrors.injection'),
       };
     }
   }

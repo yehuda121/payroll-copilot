@@ -13,6 +13,7 @@ from payroll_copilot.domain.entities import Document
 from payroll_copilot.domain.enums import DocumentType
 from payroll_copilot.domain.value_objects import ValidationReport
 from payroll_copilot.infrastructure.config.settings import Settings
+from payroll_copilot.infrastructure.i18n import normalize_locale, scope_label, scope_reason
 
 
 class ValidationEvidenceReportBuilder:
@@ -27,7 +28,9 @@ class ValidationEvidenceReportBuilder:
         payslip_document: Document,
         supporting_documents: list[Document],
         report: ValidationReport,
+        locale: str | None = None,
     ) -> ValidationReportEnrichment:
+        lang = normalize_locale(locale or self._settings.default_locale)
         documents_by_type: dict[DocumentType, Document] = {payslip_document.document_type: payslip_document}
         for document in supporting_documents:
             documents_by_type[document.document_type] = document
@@ -36,8 +39,8 @@ class ValidationEvidenceReportBuilder:
             payslip_document=payslip_document,
             documents_by_type=documents_by_type,
         )
-        scope = self._build_scope(documents_by_type=documents_by_type)
-        confidence, explanation = self._compute_confidence(scope=scope)
+        scope = self._build_scope(documents_by_type=documents_by_type, locale=lang)
+        confidence, explanation = self._compute_confidence(scope=scope, locale=lang)
 
         checks_passed = max(report.rules_evaluated - report.rules_failed, 0)
 
@@ -88,71 +91,63 @@ class ValidationEvidenceReportBuilder:
         self,
         *,
         documents_by_type: dict[DocumentType, Document],
+        locale: str,
     ) -> tuple[ValidationScopeItem, ...]:
-        extraction_note = (
-            "Document extraction is not yet connected. Rules ran on the validation engine context only."
-        )
-
         payroll_status = "partial"
-        payroll_reason = extraction_note
+        payroll_reason = scope_reason("extraction_not_connected", locale)
 
         attendance_doc = documents_by_type.get(DocumentType.ATTENDANCE)
         if attendance_doc is None:
             attendance = ValidationScopeItem(
                 key="attendance",
-                label="Attendance Validation",
+                label=scope_label("attendance", locale),
                 status="not_available",
-                reason="Attendance report not uploaded.",
+                reason=scope_reason("attendance_not_uploaded", locale),
             )
         else:
             attendance = ValidationScopeItem(
                 key="attendance",
-                label="Attendance Validation",
+                label=scope_label("attendance", locale),
                 status="not_available",
-                reason=(
-                    "Attendance report uploaded, but attendance extraction and cross-check "
-                    "are not yet connected."
-                ),
+                reason=scope_reason("attendance_uploaded_not_connected", locale),
             )
 
         contract_doc = documents_by_type.get(DocumentType.CONTRACT)
         if contract_doc is None:
             contract = ValidationScopeItem(
                 key="employment_agreement",
-                label="Employment Agreement Validation",
+                label=scope_label("employment_agreement", locale),
                 status="not_available",
-                reason="Employment agreement not uploaded.",
+                reason=scope_reason("contract_not_uploaded", locale),
             )
         else:
             contract = ValidationScopeItem(
                 key="employment_agreement",
-                label="Employment Agreement Validation",
+                label=scope_label("employment_agreement", locale),
                 status="not_available",
-                reason=(
-                    "Employment agreement uploaded, but contract analysis is not yet connected."
-                ),
+                reason=scope_reason("contract_uploaded_not_connected", locale),
             )
 
         id_doc = documents_by_type.get(DocumentType.NATIONAL_ID)
         if id_doc is None:
             tax_benefits = ValidationScopeItem(
                 key="tax_benefits",
-                label="Tax Benefits",
+                label=scope_label("tax_benefits", locale),
                 status="not_available",
-                reason="Israeli ID was not uploaded.",
+                reason=scope_reason("id_not_uploaded", locale),
             )
         else:
             tax_benefits = ValidationScopeItem(
                 key="tax_benefits",
-                label="Tax Benefits",
+                label=scope_label("tax_benefits", locale),
                 status="not_available",
-                reason="Israeli ID uploaded, but identity-dependent tax checks are not yet connected.",
+                reason=scope_reason("id_uploaded_not_connected", locale),
             )
 
         return (
             ValidationScopeItem(
                 key="payroll_rules",
-                label="Payroll Rules",
+                label=scope_label("payroll_rules", locale),
                 status=payroll_status,
                 reason=payroll_reason,
             ),
@@ -161,9 +156,9 @@ class ValidationEvidenceReportBuilder:
             tax_benefits,
             ValidationScopeItem(
                 key="historical_comparison",
-                label="Historical Comparison",
+                label=scope_label("historical_comparison", locale),
                 status="not_available",
-                reason="Historical payroll data is not available.",
+                reason=scope_reason("historical_not_available", locale),
             ),
         )
 
@@ -171,6 +166,7 @@ class ValidationEvidenceReportBuilder:
         self,
         *,
         scope: tuple[ValidationScopeItem, ...],
+        locale: str,
     ) -> tuple[Decimal, str]:
         confidence = Decimal("1.0")
         reasons: list[str] = []
@@ -204,7 +200,7 @@ class ValidationEvidenceReportBuilder:
         confidence = confidence.quantize(Decimal("0.01"))
 
         if not reasons:
-            explanation = "All required evidence for the currently supported validation scope is available."
+            explanation = scope_reason("all_evidence_available", locale)
         else:
             explanation = " ".join(reasons)
 

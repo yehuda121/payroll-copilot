@@ -40,7 +40,31 @@
 
 .public-layout__nav {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.language-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-inline-end: 0.25rem;
+}
+
+.language-selector__label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.language-selector__select {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 0.35rem 0.5rem;
+  font: inherit;
 }
 
 .public-layout__main {

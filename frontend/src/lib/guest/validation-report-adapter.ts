@@ -1,45 +1,45 @@
-import type { ValidationRunResponse } from '../../types/api';
-import type { GuestValidationReport, OverallStatusLabel } from '../../types/validation-report';
+import type { OverallStatusLabel } from '../../types/validation-report';
+import type { ValidationFinding, ValidationRunResponse } from '../../types/api';
+import type { TFunction } from 'i18next';
 
-const MESSAGE_LABELS: Record<string, string> = {
-  'overtime.exceeds_limit': 'Overtime exceeds allowed limit',
-  'overtime.rate_mismatch': 'Overtime rate mismatch',
-  'minimum_wage.below_threshold': 'Below minimum wage threshold',
-  'pension.contribution_low': 'Pension contribution below expected level',
-};
-
-export function findingTitle(messageKey: string, _ruleId: string): string {
-  return MESSAGE_LABELS[messageKey] ?? messageKey.replaceAll('.', ' ').replaceAll('_', ' ');
+export function findingTitle(finding: ValidationFinding): string {
+  return finding.message || finding.message_key.replaceAll('.', ' ').replaceAll('_', ' ');
 }
 
-export function mapOverallStatus(result: ValidationRunResponse['overall_result']): OverallStatusLabel {
+export function mapOverallStatus(
+  result: ValidationRunResponse['overall_result'],
+  t: TFunction,
+): OverallStatusLabel {
   switch (result) {
     case 'pass':
-      return 'Passed';
+      return t('report.statusPassed');
     case 'warnings':
-      return 'Passed with Warnings';
+      return t('report.statusWarnings');
     case 'critical':
-      return 'Action Required';
+      return t('report.statusCritical');
     default:
-      return 'Pending';
+      return t('report.statusPending');
   }
 }
 
-export function buildValidationSummary(report: ValidationRunResponse): string {
+export function buildValidationSummary(report: ValidationRunResponse, t: TFunction): string {
   const passed = report.checks_passed_count;
   const issues = report.findings.length;
   if (issues === 0) {
-    return `${passed} payroll rule checks completed with no potential issues identified.`;
+    return t('report.summaryClean', { count: passed });
   }
-  return `${passed} payroll rule checks completed. ${issues} potential issue${issues === 1 ? '' : 's'} require review.`;
+  return t('report.summaryIssues', { passed, issues, count: issues });
 }
 
-export function adaptValidationReport(response: ValidationRunResponse): GuestValidationReport {
+export function adaptValidationReport(
+  response: ValidationRunResponse,
+  t: TFunction,
+): import('../../types/validation-report').GuestValidationReport {
   return {
     runId: response.id,
     documentId: response.document_id,
-    overallStatus: mapOverallStatus(response.overall_result),
-    summary: buildValidationSummary(response),
+    overallStatus: mapOverallStatus(response.overall_result, t),
+    summary: buildValidationSummary(response, t),
     validationConfidence: response.validation_confidence,
     confidenceExplanation: response.confidence_explanation,
     scope: response.validation_scope,
@@ -50,12 +50,12 @@ export function adaptValidationReport(response: ValidationRunResponse): GuestVal
   };
 }
 
-export function findingRecommendation(finding: ValidationRunResponse['findings'][number]): string {
+export function findingRecommendation(finding: ValidationFinding, t: TFunction): string {
   if (finding.severity === 'critical') {
-    return 'Review this item with your payroll administrator before approving payment.';
+    return t('report.recCritical');
   }
   if (finding.severity === 'warning') {
-    return 'Verify the payslip detail and supporting records for this line item.';
+    return t('report.recWarning');
   }
-  return 'Review for completeness and keep supporting records on file.';
+  return t('report.recInfo');
 }

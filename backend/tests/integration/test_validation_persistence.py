@@ -27,6 +27,23 @@ async def _upload_document(client: AsyncClient) -> str:
 
 
 @pytest.mark.asyncio
+async def test_post_validation_localizes_findings_for_english(
+    client_with_storage: AsyncClient,
+    mock_document_processing: None,
+) -> None:
+    document_id = await _upload_document(client_with_storage)
+    response = await client_with_storage.post(
+        "/api/v1/validation/run",
+        json={"document_id": document_id, "locale": "en"},
+        headers={"Accept-Language": "he"},
+    )
+    assert response.status_code == 202
+    data = response.json()
+    assert data["locale"] == "en"
+    assert data["validation_scope"][0]["label"] == "Payroll Rules"
+
+
+@pytest.mark.asyncio
 async def test_post_validation_with_existing_document_succeeds(
     client_with_storage: AsyncClient,
     db_session: AsyncSession,
@@ -43,6 +60,7 @@ async def test_post_validation_with_existing_document_succeeds(
     assert data["status"] == "completed"
     assert "id" in data
     assert data["document_id"] == document_id
+    assert data["locale"] in {"he", "en", "ar"}
     assert "validation_scope" in data
     assert len(data["validation_scope"]) > 0
     assert data["validation_confidence"] is not None
@@ -52,6 +70,10 @@ async def test_post_validation_with_existing_document_succeeds(
     for finding in data["findings"]:
         assert "id" in finding
         assert finding["id"]
+        assert finding["code"]
+        assert finding["message_key"]
+        assert finding["message"]
+        assert finding["explanation"]
 
     run_count = await db_session.scalar(
         select(func.count())

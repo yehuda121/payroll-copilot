@@ -27,6 +27,7 @@ class UploadDocumentCommand:
     period_year: int | None = None
     period_month: int | None = None
     uploaded_by_user_id: UUID | None = None
+    document_language: str = "auto"
 
 
 class UploadDocumentUseCase:
@@ -67,7 +68,7 @@ class UploadDocumentUseCase:
             uploaded_by=command.uploaded_by_user_id,
             employee_id=command.employee_id,
             period=period,
-            metadata={},
+            metadata={"document_language": command.document_language},
         )
         return await self._document_repository.save(document)
 

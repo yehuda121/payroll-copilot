@@ -1,7 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import { GUEST_DOCUMENT_SLOTS } from '../../../lib/guest/document-slots';
 import { useGuestValidationFlow } from '../../../hooks/useGuestValidationFlow';
 import { UploadPanel } from '../../../components/ui/UploadPanel';
 import { ValidationReportView } from '../report/ValidationReportView';
+import type { DocumentLanguage } from '../../../types/api';
 import '../guest.css';
 
 type ValidationWizardProps = {
@@ -9,8 +11,19 @@ type ValidationWizardProps = {
 };
 
 export function ValidationWizard({ onAskFollowUp }: ValidationWizardProps) {
-  const { step, slots, flowError, report, selectFile, removeFile, runValidation, reset } =
-    useGuestValidationFlow();
+  const { t } = useTranslation();
+  const {
+    step,
+    slots,
+    flowError,
+    report,
+    documentLanguage,
+    setDocumentLanguage,
+    selectFile,
+    removeFile,
+    runValidation,
+    reset,
+  } = useGuestValidationFlow();
 
   const documentIds = Object.values(slots)
     .map((slot) => slot?.documentId)
@@ -20,28 +33,25 @@ export function ValidationWizard({ onAskFollowUp }: ValidationWizardProps) {
     <div className="validation-wizard">
       <div className="validation-wizard__header">
         <div>
-          <h2>Validate My Payslip</h2>
-          <p className="guest-section__intro">
-            Upload your payslip and optional supporting documents. Validation results are produced
-            by the deterministic payroll rule engine.
-          </p>
+          <h2>{t('validate.title')}</h2>
+          <p className="guest-section__intro">{t('validate.intro')}</p>
         </div>
         {step === 'report' && (
           <button type="button" className="btn btn--secondary" onClick={reset}>
-            Start new validation
+            {t('validate.startNew')}
           </button>
         )}
       </div>
 
-      <div className="validation-wizard__steps" aria-label="Validation progress">
+      <div className="validation-wizard__steps" aria-label={t('validate.progressLabel')}>
         <span className={`validation-wizard__step ${step === 'upload' ? 'is-active' : ''}`}>
-          1. Upload
+          {t('validate.stepUpload')}
         </span>
         <span className={`validation-wizard__step ${step === 'validating' ? 'is-active' : ''}`}>
-          2. Validation
+          {t('validate.stepValidation')}
         </span>
         <span className={`validation-wizard__step ${step === 'report' ? 'is-active' : ''}`}>
-          3. Results
+          {t('validate.stepResults')}
         </span>
       </div>
 
@@ -49,21 +59,39 @@ export function ValidationWizard({ onAskFollowUp }: ValidationWizardProps) {
 
       {step === 'upload' && (
         <>
+          <div className="document-language">
+            <label>
+              <span>{t('validate.documentLanguage')}</span>
+              <select
+                value={documentLanguage}
+                onChange={(event) => setDocumentLanguage(event.target.value as DocumentLanguage)}
+              >
+                <option value="auto">{t('validate.langAuto')}</option>
+                <option value="he">{t('validate.langHe')}</option>
+                <option value="en">{t('validate.langEn')}</option>
+                <option value="ar">{t('validate.langAr')}</option>
+              </select>
+            </label>
+            <p className="document-language__hint">{t('validate.documentLanguageHint')}</p>
+            <p className="document-language__hint">{t('validate.ocrNotConnected')}</p>
+          </div>
           <div className="guest-workspace">
             {GUEST_DOCUMENT_SLOTS.map((slot) => (
               <div key={slot.id} className="document-slot">
                 <div className="document-slot__header">
                   <strong>
-                    {slot.label}
-                    {!slot.optional ? ' (required)' : ' (optional)'}
+                    {t(slot.labelKey)}
+                    {!slot.optional
+                      ? ` (${t('common.required')})`
+                      : ` (${t('common.optional')})`}
                   </strong>
                 </div>
-                <p className="document-slot__why">{slot.why}</p>
+                <p className="document-slot__why">{t(slot.whyKey)}</p>
                 <UploadPanel
                   slots={[
                     {
                       id: slot.id,
-                      label: slot.label,
+                      label: t(slot.labelKey),
                       accept: slot.accept,
                       optional: slot.optional,
                     },
@@ -86,14 +114,14 @@ export function ValidationWizard({ onAskFollowUp }: ValidationWizardProps) {
             }}
             disabled={!slots.payslip?.file || Boolean(slots.payslip?.error)}
           >
-            Run validation
+            {t('validate.run')}
           </button>
         </>
       )}
 
       {step === 'validating' && (
         <p className="guest-section__intro" aria-live="polite">
-          Uploading documents and running validation. This may take a moment.
+          {t('validate.validating')}
         </p>
       )}
 

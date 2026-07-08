@@ -19,6 +19,7 @@ Honest snapshot of what exists today. "Partial" means real code runs but a downs
 - **Public Guest Experience (frontend)** — landing page, Payroll Assistant chat, Validate-My-Payslip upload flow, enterprise validation report with honest scope.
 - **LangGraph Payroll Assistant (backend)** — `POST /assistant/chat` with input/output guardrails, greeting handling, and keyword search over approved YAML legal rules.
 - **Ollama integration** — host-first URL resolution with optional Docker fallback and graceful degradation when unavailable.
+- **i18n foundation** — Hebrew / English / Arabic UI + RTL, locale-aware API responses and assistant answers (OCR language extraction not connected).
 - **Database schema & Alembic migrations**, **Docker Compose orchestration**, **guest JWT tokens** (`POST /auth/guest/session`).
 
 ### Partially implemented
@@ -325,9 +326,24 @@ See [docs/security-and-deployment.md](docs/security-and-deployment.md).
 
 ## Internationalization
 
-Hebrew · English · Arabic with RTL support.
+Supported UI languages: **Hebrew (`he`, RTL)**, **English (`en`, LTR)**, **Arabic (`ar`, RTL)**. Default locale: `he`.
 
-API uses `Accept-Language` header. Validation messages stored as i18n keys.
+### What is implemented
+
+- Frontend language selector in the public header; selection persists in `localStorage`.
+- Document `dir` / `lang` update automatically (`he`/`ar` → RTL, `en` → LTR).
+- Public guest UI strings live in `frontend/src/i18n/locales/{he,en,ar}.json` (i18next + react-i18next).
+- Frontend sends `Accept-Language` on API calls and includes `locale` on assistant and validation requests.
+- Backend resolves locale from explicit `locale` field, then `Accept-Language`, then `DEFAULT_LOCALE`.
+- Validation findings return stable machine codes (`code` / `message_key`) plus localized `message` and `explanation`.
+- Assistant system prompt requires answers in the selected language; guardrails remain language-agnostic for safety.
+- Document upload accepts `document_language` (`he` | `en` | `ar` | `auto`) metadata.
+
+### Current limitations (honest)
+
+- **Multilingual OCR extraction is not connected.** `document_language` is stored as metadata; the API returns `ocr_language_status: "not_connected"`. Payslip fields are not parsed by language.
+- Auth portal pages (login/signup) are not fully translated yet.
+- Some approved legal rule YAML text is bilingual (`he`/`en`); Arabic assistant answers may translate/summarize approved sources without inventing new legal claims.
 
 ---
 
@@ -342,84 +358,122 @@ API uses `Accept-Language` header. Validation messages stored as i18n keys.
 ### Quick Start
 
 ```bash
-# Clone and configure
-cp .env.example .env
-
-# Start core services (uses host Ollama if already running — see Ollama section below)
-docker compose up -d
-
-# Run migrations
-docker compose exec api alembic upgrade head
-
-# API available at http://localhost:8000
-# Swagger UI at http://localhost:8000/docs
+# Choose one startup mode:
+# - Option A: Local development (infra in Docker, backend/frontend on host)
+# - Option B: Docker development (backend stack in Docker)
 ```
 
-Ensure Ollama is running on your host with the required models, or start the Docker Ollama fallback (see **Ollama** below).
+Ensure Ollama is running on your host with the required models, or start the Docker Ollama fallback only when host Ollama is unavailable (see **Ollama** below).
 
 ### Local Development
 
 #### Windows (PowerShell)
 
-**Local Windows run mode** = Docker runs **only** PostgreSQL, Redis, and MinIO; FastAPI, the Celery worker, the frontend, and Ollama all run **on the host**. Because the root `.env` uses Docker hostnames (`postgres`, `redis`, `minio`) so containers can reach each other, a host process must point at `localhost` instead. Set the local service URLs in your shell before launching (these override the `.env` values):
+##### Option A — Local development (no manual env vars)
+
+Docker runs infrastructure only (`postgres`, `redis`, `minio`), while FastAPI, Celery worker, frontend, and Ollama run on host.
 
 ```powershell
+# One-time setup
+cd .
+copy .env.local.example .env.local
+copy frontend\.env.example frontend\.env.local
+
 cd backend
 py -3.13 -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
+cd ..\frontend
+npm install
+```
 
-# From the repository root, start the required services only
-# (host Ollama is used directly; the Docker Ollama profile is NOT required):
-docker compose up -d postgres redis minio
+```powershell
+# Start infrastructure only (repo root)
+docker compose --env-file .env.local up -d postgres redis minio
+```
 
-# Required local service URLs (localhost, not Docker hostnames):
-$env:DATABASE_URL="postgresql+asyncpg://payroll:payroll@localhost:5432/payroll_copilot"
-$env:REDIS_URL="redis://localhost:6379/0"
-$env:CELERY_BROKER_URL="redis://localhost:6379/1"
-$env:CELERY_RESULT_BACKEND="redis://localhost:6379/2"
-$env:S3_ENDPOINT="http://localhost:9000"
-$env:OLLAMA_LOCAL_URL="http://127.0.0.1:11434"
-$env:OLLAMA_DEFAULT_MODEL="mistral-nemo:12b"
-
-# Run the API locally (from backend/). PYTHONPATH=src is required.
-$env:PYTHONPATH="src"
+```powershell
+# Run API (backend/)
+cd backend
 py -3.13 -m uvicorn payroll_copilot.presentation.main:app --reload
+```
 
-# Run the worker (from backend/, in a second terminal with the same env vars)
-$env:PYTHONPATH="src"
+```powershell
+# Run worker (backend/, second terminal)
+cd backend
 celery -A payroll_copilot.infrastructure.tasks.celery_app worker -l info
 ```
 
-> **Automatic fallback:** even without the explicit `REDIS_URL`/`CELERY_*`/`S3_ENDPOINT` overrides above, the service resolver (`infrastructure/config/service_resolver.py`) probes the configured Docker host and, if unreachable from the host, falls back to the matching `*_LOCAL_URL` (localhost). Setting the URLs explicitly is still recommended for clarity and because **`DATABASE_URL` is not auto-resolved** — the API needs `localhost` for Postgres when run on the host.
+```powershell
+# Run frontend (frontend/, third terminal)
+cd frontend
+npm run dev
+```
+
+`Settings` now loads `.env.local` before `.env`, so no manual `$env:` exports are required for local startup.
+
+##### Option B — Docker development
+
+Run backend + worker + beat + infrastructure in Docker:
+
+```powershell
+copy .env.docker.example .env
+docker compose --env-file .env up --build -d
+```
+
+Optional Docker Ollama fallback only when host Ollama is unavailable:
+
+```powershell
+docker compose --env-file .env --profile docker-ollama up -d
+```
+
+Stop services (both options):
+
+```powershell
+docker compose down
+# optional full reset:
+# docker compose down -v
+```
 
 > **Runtime note:** the earlier `ModuleNotFoundError: No module named 'langgraph'` was an environment issue — `langgraph` is already declared in `backend/pyproject.toml`. Running `pip install -e ".[dev]"` into the interpreter you launch `uvicorn` with resolves it. Do not `pip install` it manually.
 
 #### macOS / Linux
 
 ```bash
+# One-time setup
+cp .env.local.example .env.local
+cp frontend/.env.example frontend/.env.local
+
 cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
+cd ../frontend
+npm install
+```
 
-# From the repository root — dependencies only (host Ollama used directly):
-docker compose up -d postgres redis minio
+```bash
+# Start infrastructure only (repo root)
+docker compose --env-file .env.local up -d postgres redis minio
+```
 
-# Required local service URLs (localhost, not Docker hostnames):
-export DATABASE_URL="postgresql+asyncpg://payroll:payroll@localhost:5432/payroll_copilot"
-export REDIS_URL="redis://localhost:6379/0"
-export CELERY_BROKER_URL="redis://localhost:6379/1"
-export CELERY_RESULT_BACKEND="redis://localhost:6379/2"
-export S3_ENDPOINT="http://localhost:9000"
-export OLLAMA_LOCAL_URL="http://127.0.0.1:11434"
-export OLLAMA_DEFAULT_MODEL="mistral-nemo:12b"
+```bash
+# Run API (backend/)
+cd backend
+uvicorn payroll_copilot.presentation.main:app --reload
+```
 
-# Run API locally (from backend/)
-PYTHONPATH=src uvicorn payroll_copilot.presentation.main:app --reload
+```bash
+# Run worker (backend/, second terminal)
+cd backend
+celery -A payroll_copilot.infrastructure.tasks.celery_app worker -l info
+```
 
-# Run worker (from backend/, second terminal with the same env vars)
-PYTHONPATH=src celery -A payroll_copilot.infrastructure.tasks.celery_app worker -l info
+```bash
+# Run frontend (frontend/, third terminal)
+cd frontend
+npm run dev
+```
 ```
 
 Required local services: **PostgreSQL**, **Redis**, **MinIO** (all via `docker compose up -d postgres redis minio`) and a **host Ollama** (`ollama serve`) with the model from `OLLAMA_DEFAULT_MODEL` pulled.
@@ -438,7 +492,7 @@ Docker Compose exposes services by hostname (`redis`, `minio`, `postgres`); thos
 - **Docker mode:** `redis`/`minio` are reachable, so the configured Docker hostnames are used and Compose behavior is unchanged.
 - **Local mode:** the Docker hostnames are unreachable, so the resolver falls back to `localhost`.
 - Set `SERVICE_AUTO_FALLBACK=false` to disable probing and always use the configured URL.
-- `DATABASE_URL` is **not** auto-resolved — set it to `localhost` explicitly for local runs (shown above).
+- `.env.local.example` already sets local `DATABASE_URL=...@localhost...`, so no shell override is needed.
 
 ### Frontend Development
 
@@ -685,7 +739,7 @@ The validation response includes `validation_scope`, `uploaded_documents`, `vali
 These are intentional and surfaced honestly in the UI/API — nothing is faked:
 
 - **OCR worker is a stub/foundation.** The `process_document_ocr` task returns a placeholder result; no fields are extracted yet. If Celery/Redis is unavailable, upload returns `background_status="not_queued"` and no processing is claimed.
-- **No real OCR extraction yet.** Uploaded files are stored and validated, but payslip fields are **not** parsed from the document.
+- **No real OCR extraction yet.** Uploaded files are stored and validated, but payslip fields are **not** parsed from the document. `document_language` is metadata only; `ocr_language_status` is `not_connected`.
 - **Validation still uses `DemoValidationContextBuilder`.** The engine evaluates a fixed sample payslip context, so results reflect the demo context, not your uploaded file. Payroll-rule scope is reported as `partial`.
 - **No real vector RAG yet.** The assistant uses keyword search over local YAML legal rules only.
 - **No production auth / Cognito yet.** A dev role selector and guest JWT exist; routes do not enforce auth.

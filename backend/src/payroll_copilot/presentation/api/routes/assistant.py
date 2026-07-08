@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header
 from pydantic import BaseModel, Field
 
 from payroll_copilot.application.use_cases.payroll_assistant import (
@@ -20,6 +20,7 @@ from payroll_copilot.infrastructure.ai.agents.payroll_assistant_tools import (
 from payroll_copilot.infrastructure.ai.agents.validation_report_store import InMemoryValidationReportStore
 from payroll_copilot.infrastructure.ai.ollama_provider import create_model_provider
 from payroll_copilot.infrastructure.config.settings import get_settings
+from payroll_copilot.infrastructure.i18n import resolve_locale
 
 router = APIRouter()
 
@@ -38,7 +39,7 @@ class AssistantChatRequest(BaseModel):
     session_id: str | None = None
     document_ids: list[str] = Field(default_factory=list)
     validation_run_id: str | None = None
-    locale: str = Field(default="en", pattern="^(he|en|ar)$")
+    locale: str | None = Field(default=None, pattern="^(he|en|ar)$")
 
 
 class AssistantChatResponse(BaseModel):
@@ -49,6 +50,7 @@ class AssistantChatResponse(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     requires_human_review: bool
     guardrail_status: str
+    locale: str
 
 
 @lru_cache
@@ -71,8 +73,17 @@ def _get_assistant_use_case() -> PayrollAssistantChatUseCase:
 
 
 @router.post("/chat", response_model=AssistantChatResponse)
-async def assistant_chat(request: AssistantChatRequest) -> AssistantChatResponse:
+async def assistant_chat(
+    request: AssistantChatRequest,
+    accept_language: str | None = Header(default=None, alias="Accept-Language"),
+) -> AssistantChatResponse:
     """Public guest payroll assistant chat orchestrated by LangGraph."""
+    settings = get_settings()
+    locale = resolve_locale(
+        explicit=request.locale,
+        accept_language=accept_language,
+        default=settings.default_locale,
+    )
     use_case = _get_assistant_use_case()
     result = await use_case.execute(
         AssistantChatCommand(
@@ -80,7 +91,7 @@ async def assistant_chat(request: AssistantChatRequest) -> AssistantChatResponse
             session_id=request.session_id,
             document_ids=request.document_ids,
             validation_run_id=request.validation_run_id,
-            locale=request.locale,
+            locale=locale,
         )
     )
     return AssistantChatResponse(
@@ -98,4 +109,5 @@ async def assistant_chat(request: AssistantChatRequest) -> AssistantChatResponse
         confidence=result.confidence,
         requires_human_review=result.requires_human_review,
         guardrail_status=result.guardrail_status,
+        locale=locale,
     )

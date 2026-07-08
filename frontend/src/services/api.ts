@@ -1,5 +1,6 @@
 import { env } from '../config/env';
 import { getAuthHeaders } from '../lib/guest/guest-session';
+import { readStoredLocale } from '../i18n';
 
 export type RequestOptions = RequestInit & {
   rawBody?: boolean;
@@ -17,13 +18,19 @@ export class ApiClientError extends Error {
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { rawBody, auth = false, headers, ...init } = options;
+  const locale = readStoredLocale();
 
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
     ...init,
     headers: rawBody
-      ? { ...(auth ? getAuthHeaders() : {}), ...headers }
+      ? {
+          'Accept-Language': locale,
+          ...(auth ? getAuthHeaders() : {}),
+          ...headers,
+        }
       : {
           'Content-Type': 'application/json',
+          'Accept-Language': locale,
           ...(auth ? getAuthHeaders() : {}),
           ...headers,
         },

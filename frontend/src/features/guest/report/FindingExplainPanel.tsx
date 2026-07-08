@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useAppLocale } from '../../../hooks/useAppLocale';
 import { assistantService } from '../../../services/assistant';
 
 type FindingExplainPanelProps = {
@@ -14,6 +16,8 @@ export function FindingExplainPanel({
   validationRunId,
   documentIds,
 }: FindingExplainPanelProps) {
+  const { t } = useTranslation();
+  const { locale } = useAppLocale();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [explanation, setExplanation] = useState<string | null>(null);
@@ -33,11 +37,11 @@ export function FindingExplainPanel({
         message: `Explain the existing validation finding with rule_id ${ruleId}. Do not create new findings.`,
         validation_run_id: validationRunId,
         document_ids: documentIds,
-        locale: 'en',
+        locale,
       });
       setExplanation(response.answer);
     } catch {
-      setError('An explanation could not be generated for this finding.');
+      setError(t('report.explainFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -46,17 +50,17 @@ export function FindingExplainPanel({
   return (
     <div className="finding-explain">
       <button type="button" className="btn btn--ghost" onClick={handleExplain}>
-        Explain
+        {t('report.explain')}
       </button>
       {isOpen && (
         <div className="finding-explain__panel" aria-live="polite">
-          <p className="finding-explain__note">
-            Explanation based on existing deterministic findings only.
-          </p>
-          {isLoading && <p>Preparing explanation…</p>}
+          <p className="finding-explain__note">{t('report.explainNote')}</p>
+          {isLoading && <p>{t('report.explainPreparing')}</p>}
           {error && <p className="finding-explain__error">{error}</p>}
           {explanation && <p>{explanation}</p>}
-          <p className="finding-explain__meta">Finding ID: {findingId}</p>
+          <p className="finding-explain__meta">
+            {t('report.findingId')}: {findingId}
+          </p>
         </div>
       )}
     </div>

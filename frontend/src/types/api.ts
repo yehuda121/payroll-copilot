@@ -24,9 +24,12 @@ export type UploadedDocumentItem = {
 
 export type ValidationFinding = {
   id: string;
+  code: string;
   rule_id: string;
   severity: 'info' | 'warning' | 'critical';
   message_key: string;
+  message: string;
+  explanation: string;
   expected_value: string | null;
   actual_value: string | null;
   confidence: number;
@@ -36,12 +39,14 @@ export type ValidationFinding = {
 export type ValidationRunRequest = {
   document_id: string;
   supporting_document_ids?: string[];
+  locale?: 'he' | 'en' | 'ar';
 };
 
 export type ValidationRunResponse = {
   id: string;
   document_id: string;
   status: string;
+  locale: string;
   overall_result: 'pass' | 'warnings' | 'critical' | null;
   overall_confidence: number | null;
   rules_evaluated: number;
@@ -55,10 +60,15 @@ export type ValidationRunResponse = {
   findings: ValidationFinding[];
 };
 
+export type DocumentLanguage = 'he' | 'en' | 'ar' | 'auto';
+
 export type DocumentUploadResponse = {
   document_id: string;
   status: string;
   processing_job_id?: string | null;
+  background_status?: string;
+  document_language?: DocumentLanguage;
+  ocr_language_status?: string;
 };
 
 export type DocumentResponse = {
@@ -67,6 +77,8 @@ export type DocumentResponse = {
   status: string;
   original_filename: string;
   file_size_bytes: number;
+  document_language?: DocumentLanguage;
+  ocr_language_status?: string;
 };
 
 export type BatchJobResponse = {

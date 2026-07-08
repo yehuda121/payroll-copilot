@@ -24,7 +24,7 @@ def test_input_guardrail_blocks_off_topic_question() -> None:
 
 def test_legal_question_without_source_returns_limited_response() -> None:
     guardrails = PayrollAssistantGuardrails()
-    limited = guardrails.build_limited_legal_response()
+    limited = guardrails.build_limited_legal_response(locale="en")
     assert limited.status == AssistantGuardrailStatus.LIMITED
     assert "approved Payroll Copilot knowledge base" in limited.answer
     assert limited.requires_human_review is True

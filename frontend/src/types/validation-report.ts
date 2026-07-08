@@ -1,6 +1,6 @@
 import type { ValidationRunResponse } from './api';
 
-export type OverallStatusLabel = 'Passed' | 'Passed with Warnings' | 'Action Required' | 'Pending';
+export type OverallStatusLabel = string;
 
 export type GuestValidationReport = {
   runId: string;

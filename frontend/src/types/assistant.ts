@@ -30,6 +30,7 @@ export type AssistantChatResponse = {
   confidence: number;
   requires_human_review: boolean;
   guardrail_status: AssistantGuardrailStatus;
+  locale?: 'he' | 'en' | 'ar';
 };
 
 export type ChatMessage = {
