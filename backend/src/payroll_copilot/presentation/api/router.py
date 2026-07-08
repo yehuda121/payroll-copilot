@@ -7,6 +7,7 @@ from payroll_copilot.presentation.api.routes import (
     auth,
     batch,
     compliance,
+    document_lab,
     documents,
     extraction,
     health,
@@ -25,6 +26,7 @@ api_router.include_router(ocr.router, prefix="/ocr", tags=["OCR"])
 api_router.include_router(parser.router, prefix="/parser", tags=["AI Parser"])
 api_router.include_router(extraction.router, prefix="/extraction", tags=["Extraction"])
 api_router.include_router(validation.router, prefix="/validation", tags=["Validation"])
+api_router.include_router(document_lab.router, prefix="/dev/document-lab", tags=["Developer Document Lab"])
 api_router.include_router(batch.router, prefix="/batch", tags=["Batch Processing"])
 api_router.include_router(compliance.router, prefix="/compliance", tags=["Compliance"])
 api_router.include_router(assistant.router, prefix="/assistant", tags=["Assistant"])

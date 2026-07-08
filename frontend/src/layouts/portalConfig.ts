@@ -45,5 +45,6 @@ export const ADMIN_PORTAL: PortalConfig = {
     { label: 'RAG Management', path: '/admin/rag' },
     { label: 'System Configuration', path: '/admin/configuration' },
     { label: 'Audit Logs', path: '/admin/audit-logs' },
+    { label: 'Document Lab', path: '/admin/document-lab' },
   ],
 };

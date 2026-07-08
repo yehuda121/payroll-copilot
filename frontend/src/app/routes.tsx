@@ -19,6 +19,7 @@ import { ValidationFindingsPage } from '../pages/accountant/ValidationFindings';
 import { AdminAuditLogsPage } from '../pages/admin/AdminAuditLogs';
 import { AiModelsPage } from '../pages/admin/AiModels';
 import { DepartmentRulesPage } from '../pages/admin/DepartmentRules';
+import { DocumentLabPage } from '../pages/admin/DocumentLab';
 import { McpLegalSyncPage } from '../pages/admin/McpLegalSync';
 import { RagManagementPage } from '../pages/admin/RagManagement';
 import { RulePacksPage } from '../pages/admin/RulePacks';
@@ -91,6 +92,7 @@ export function AppRoutes() {
             <Route path="/admin/rag" element={<RagManagementPage />} />
             <Route path="/admin/configuration" element={<SystemConfigurationPage />} />
             <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
+            <Route path="/admin/document-lab" element={<DocumentLabPage />} />
           </Route>
         </Route>
 

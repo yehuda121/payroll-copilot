@@ -465,9 +465,38 @@ The frontend provides three portals after login:
 
 **Payroll Accountant Portal** — Employee management table, bulk payroll upload, batch monitor, validation findings, approval queue, audit logs.
 
-**Developer/Admin Portal** — Rule packs, department rules, MCP legal sync, AI models, RAG management, system configuration.
+**Developer/Admin Portal** — Rule packs, department rules, MCP legal sync, AI models, RAG management, system configuration, **Document Lab** (developer debugging).
 
 Public landing page (`/`) includes guest validate + payroll chat.
+
+### Developer Document Lab
+
+Manual step-by-step debugger for OCR, parser, and validation. **Not for end users** — available only in the Developer/Admin portal (`/admin/document-lab`) and only when the API runs in a dev environment (`APP_ENV` is `development`, `dev`, or `local`, or `DEBUG=true`). In other environments the `/api/v1/dev/document-lab/*` routes return 404.
+
+**Fixture location** (read-only, mounted into the API container in Docker):
+
+```
+backend/tests/fixtures/documents/payslips/valid/
+backend/tests/fixtures/documents/payslips/invalid/
+```
+
+Expected sample files (add your own payslips for manual runs):
+
+- `valid/payslips_valid_2026_06_multi.pdf`
+- `valid/payslip_valid_2026_06_employee_001.png`
+- `invalid/payslips_invalid_2026_07_multi.pdf`
+
+**Add a new fixture:** place a PDF or image under `valid/` or `invalid/` (no subfolders). Restart is not required on host dev; in Docker the `./backend/tests/fixtures` volume is mounted read-only.
+
+**Run manually:**
+
+1. Start the stack (`docker compose up --build` or host API + `npm run dev`).
+2. Log in as **Developer / Admin** (dev auth) and open **Document Lab** in the admin sidebar.
+3. Select a fixture or upload a temporary file.
+4. Use **Run OCR**, **Run Parser** (after OCR), **Run OCR → Parser**, or **Run OCR → Parser → Validation**.
+5. Copy raw JSON/text from the output panels. Pipeline runs persist via the existing guest extraction + validation use cases (same as production wiring).
+
+Fixture access is restricted to the known `valid/` and `invalid/` groups; path traversal (`..`) is rejected.
 ---
 
 ## Ollama

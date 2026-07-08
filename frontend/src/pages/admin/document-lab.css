@@ -1,0 +1,118 @@
+.document-lab {
+  display: grid;
+  gap: 1rem;
+}
+
+.document-lab__notice,
+.document-lab__muted {
+  color: var(--color-text-muted);
+}
+
+.document-lab__error {
+  color: var(--color-danger, #b42318);
+}
+
+.document-lab__layout {
+  display: grid;
+  grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.document-lab__sidebar,
+.document-lab__outputs {
+  display: grid;
+  gap: 1rem;
+}
+
+.document-lab__fixture-group,
+.document-lab__upload,
+.document-lab__controls,
+.document-lab__panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  padding: 0.85rem;
+}
+
+.document-lab__fixture-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.document-lab__fixture {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 0.35rem);
+  background: var(--color-bg, #fff);
+  cursor: pointer;
+}
+
+.document-lab__fixture.is-selected {
+  border-color: var(--color-accent, #2563eb);
+}
+
+.document-lab__fixture span {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.document-lab__controls {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.document-lab__controls label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.document-lab__actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.document-lab__panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.document-lab__panel-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.document-lab__pre {
+  margin: 0;
+  max-height: 18rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  background: var(--color-bg, #fafafa);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 0.35rem);
+  padding: 0.65rem;
+}
+
+.document-lab__pre--text {
+  max-height: 12rem;
+}
+
+@media (max-width: 960px) {
+  .document-lab__layout {
+    grid-template-columns: 1fr;
+  }
+}

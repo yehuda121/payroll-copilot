@@ -121,6 +121,10 @@ In Docker, the one-shot `migrate` Compose service runs `alembic upgrade head` be
 - `language=auto` OCR uses English Paddle model unless `language=he` is set
 - Age / family / department-specific employee data stay missing for guests (no demo employee profile)
 
+### Developer Document Lab
+
+Developer-only API under `/api/v1/dev/document-lab/*` (404 outside dev/local or when `DEBUG` is false). Lists payslip fixtures from `tests/fixtures/documents/payslips/{valid,invalid}/` and runs existing OCR/parser/validation use cases step by step. See the root `README.md` → **Developer Document Lab**.
+
 ## Layout
 
 Source lives under `src/payroll_copilot/` (domain, application, infrastructure, presentation). See the repository root `README.md` for run modes, configuration, and product-level documentation.

@@ -94,6 +94,7 @@ services:
         condition: service_completed_successfully
     volumes:
       - ./backend/config:/app/config:ro
+      - ./backend/tests/fixtures:/app/tests/fixtures:ro
     networks:
       - payroll_net
     command: ["uvicorn", "payroll_copilot.presentation.main:app", "--host", "0.0.0.0", "--port", "8000"]
