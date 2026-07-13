@@ -79,6 +79,20 @@ Upload payslip
 | **PaddleOCR** (default) | Primary for English and Arabic |
 | **Tesseract** | Pluggable alternative; **automatic fallback for Hebrew (`he`)** |
 
+Tesseract runs a conservative image preprocess before OCR (EXIF orientation, alpha flatten onto white, grayscale, long-edge upscale, mild contrast/sharpen). Tunables: `OCR_PREPROCESSING_*`. This does not change language mapping, provider selection, or Tesseract PSM/OEM.
+
+OCR document language is independent of UI/assistant locale (`he|en|ar`). Mapping: `auto`/`he` → `heb+eng`, `en` → `eng`, `ar` → `ara+eng`. Arabic remains available for chat/UI and for OCR when `language=ar` is requested. Default `TESSERACT_LANG=heb+eng` (no Arabic in the auto pack).
+
+Tesseract layout extraction (when used):
+1. Preprocess image once (see above).
+2. Run configurable PSM candidates (`OCR_TESSERACT_PSM_CANDIDATES`, default `3,4,6,11`) with explicit `--oem` / `--psm`.
+3. Normalize words with real `(x, y, width, height)` boxes in **processed-image** coordinates.
+4. Group words into lines (Tesseract block/par/line); line bbox is the union of word boxes.
+5. Score candidates deterministically (confidence, word/line density, script fit, noise penalties — **not** payroll-field heuristics).
+6. Select best candidate; expose line/word boxes; strategy summary is appended to `warnings`.
+
+Confidence remains engine confidence (0–1). Quality score is selection-only and is not substituted for confidence. OCR output still requires the AI parser and user review — it is not a compliance decision.
+
 ### AI Payslip Parser (Phase 2A)
 
 | Piece | Detail |
@@ -88,11 +102,34 @@ Upload payslip
 | Prompt | `config/prompts/payslip_extractor/system.md` |
 | Confidence | Per field, from model only; never invent; never hardcode 0.9 |
 
+The Ollama prompt uses a **compact JSON instance template** (all required field names with `MISSING` stubs). It does **not** embed Pydantic `model_json_schema()` / `$ref` / `$defs` (models were copying schema stubs into the response).
+
 Every field is:
 
 ```json
-{ "value": ..., "confidence": 0.0-1.0 | null, "source_text": "...", "status": "FOUND|MISSING|UNCERTAIN", "edited_by_user": false, "original_value": null }
+{
+  "value": ...,
+  "confidence": 0.0-1.0 | null,
+  "source_text": "...",
+  "status": "FOUND|MISSING|UNCERTAIN",
+  "evidence_ids": ["p1_l7_w1"],
+  "source_bbox": [x, y, w, h] | null,
+  "source_page": 1 | null,
+  "parser_method": "layout_llm",
+  "warnings": [],
+  "normalized_value": null
+}
 ```
+
+**Semantic validation** (after JSON parse, before coercion) rejects schema-copy output, missing required keys, numeric/`additional_fields` OCR keys, and all-MISSING responses when OCR evidence exists. One controlled retry runs for JSON/schema/semantic failures (`retry_used=true`, warning codes such as `parser_semantic_retry_used`).
+
+**`additional_fields` keys** must be semantic labels (`meal_allowance`, `bonus`, …) — never amounts, IDs, or OCR fragments.
+
+Document Lab OCR→Parser preserves line/page word geometry so layout evidence IDs (`p1_lN_wN`) reach the parser.
+
+Layout-aware parsing is evidence-bound: non-null fields must cite OCR evidence IDs; deterministic post-validation rejects invented digits/names/bboxes. Confidence is capped by supporting OCR confidence. The parser does **not** repair OCR hallucinations and does **not** decide compliance — guest review remains required for uncertain fields.
+
+**Remaining limitations:** quality still depends on the local Ollama model and OCR text; Hebrew payslips may need UNCERTAIN for ambiguous lines; Document Lab is a developer tool, not a production SLA.
 
 ### Install PaddleOCR (optional extra)
 
@@ -105,6 +142,8 @@ pip install -e ".[ocr-paddle]"
 - `PAYSLIP_PARSER_MODEL` — defaults to `OLLAMA_DEFAULT_MODEL` when empty
 - `PAYSLIP_PARSER_TIMEOUT_SECONDS` (default 180)
 - `PAYSLIP_PARSER_USE_JSON_FORMAT` (default true; local to this parser path)
+- `PAYSLIP_PARSER_LAYOUT_ENABLED` (default true) — send OCR lines/words/bboxes to the LLM
+- `PAYSLIP_PARSER_INCLUDE_WORDS` / `PAYSLIP_PARSER_MAX_LINES` / `PAYSLIP_PARSER_MAX_WORDS` / `PAYSLIP_PARSER_MAX_CONTEXT_CHARS`
 
 ### Database migrations
 

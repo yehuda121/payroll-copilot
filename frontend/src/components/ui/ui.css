@@ -484,6 +484,132 @@
   border-end-start-radius: 0.35rem;
 }
 
+.chat-bubble__plain {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.assistant-markdown {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.assistant-markdown > :first-child {
+  margin-top: 0;
+}
+
+.assistant-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.assistant-markdown p {
+  margin: 0 0 0.75rem;
+}
+
+.assistant-markdown h1,
+.assistant-markdown h2,
+.assistant-markdown h3,
+.assistant-markdown h4,
+.assistant-markdown h5,
+.assistant-markdown h6 {
+  margin: 1rem 0 0.45rem;
+  line-height: 1.35;
+  font-weight: 650;
+  color: var(--color-text);
+}
+
+.assistant-markdown h1 {
+  font-size: 1.2rem;
+}
+
+.assistant-markdown h2 {
+  font-size: 1.1rem;
+}
+
+.assistant-markdown h3 {
+  font-size: 1.02rem;
+}
+
+.assistant-markdown h4,
+.assistant-markdown h5,
+.assistant-markdown h6 {
+  font-size: 0.98rem;
+}
+
+.assistant-markdown ul,
+.assistant-markdown ol {
+  margin: 0 0 0.75rem;
+  padding-inline-start: 1.35rem;
+}
+
+.assistant-markdown li {
+  margin: 0.25rem 0;
+}
+
+.assistant-markdown li > ul,
+.assistant-markdown li > ol {
+  margin: 0.2rem 0 0.35rem;
+}
+
+.assistant-markdown strong {
+  font-weight: 650;
+}
+
+.assistant-markdown em {
+  font-style: italic;
+}
+
+.assistant-markdown blockquote {
+  margin: 0 0 0.75rem;
+  padding: 0.35rem 0.75rem;
+  border-inline-start: 3px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.assistant-markdown a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  overflow-wrap: anywhere;
+}
+
+.assistant-markdown code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  padding: 0.1em 0.35em;
+  border-radius: 0.3rem;
+  background: var(--color-neutral-soft);
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.assistant-markdown pre {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-sm);
+  background: #0f172a;
+  color: #e2e8f0;
+  overflow-x: auto;
+  max-width: 100%;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.assistant-markdown pre code {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 0.84rem;
+  white-space: pre;
+}
+
 .chat-bubble__meta {
   display: flex;
   flex-wrap: wrap;

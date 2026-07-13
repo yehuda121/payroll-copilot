@@ -87,10 +87,18 @@ def create_ocr_provider(provider_name: str, settings: Any) -> OCRProvider:
     """
     name = (provider_name or "paddleocr").strip().lower()
 
+    from payroll_copilot.infrastructure.ocr.preprocessing import (
+        DocumentImagePreprocessor,
+        preprocessing_config_from_settings,
+    )
+    from payroll_copilot.infrastructure.ocr.tesseract_config import tesseract_strategy_from_settings
     from payroll_copilot.infrastructure.ocr.tesseract_provider import TesseractOCRProvider
 
+    preprocessor = DocumentImagePreprocessor(preprocessing_config_from_settings(settings))
     tesseract = TesseractOCRProvider(
-        default_multi_lang=getattr(settings, "tesseract_lang", "heb+eng+ara")
+        default_multi_lang=getattr(settings, "tesseract_lang", "heb+eng"),
+        preprocessor=preprocessor,
+        strategy=tesseract_strategy_from_settings(settings),
     )
     use_gpu = bool(getattr(settings, "ocr_use_gpu", False))
 

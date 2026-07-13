@@ -119,9 +119,14 @@ def get_parse_payslip_use_case(
     parser: PayslipParser = Depends(get_payslip_parser),
 ) -> ParsePayslipFromOcrUseCase:
     settings = get_settings()
+    from payroll_copilot.application.services.parser_layout_context import (
+        parser_layout_config_from_settings,
+    )
+
     return ParsePayslipFromOcrUseCase(
         parser,
         timeout_seconds=settings.payslip_parser_timeout_seconds,
+        layout_config=parser_layout_config_from_settings(settings),
     )
 
 

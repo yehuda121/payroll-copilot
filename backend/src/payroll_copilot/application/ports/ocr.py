@@ -13,12 +13,30 @@ from typing import Protocol, runtime_checkable
 
 
 @dataclass(frozen=True, slots=True)
+class OcrWord:
+    """A single OCR word with geometry in processed-image coordinates.
+
+    ``bbox`` is ``(x, y, width, height)`` with origin at the top-left of the
+    preprocessed image passed to Tesseract.
+    """
+
+    text: str
+    confidence: float | None
+    bbox: tuple[float, float, float, float]
+    block_number: int = 0
+    paragraph_number: int = 0
+    line_number: int = 0
+    word_number: int = 0
+
+
+@dataclass(frozen=True, slots=True)
 class OcrLine:
     """A single line (or text unit) returned by the OCR engine."""
 
     text: str
     confidence: float | None
     bbox: tuple[float, float, float, float] | None = None
+    words: tuple[OcrWord, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,6 +48,7 @@ class OcrPage:
     text: str
     confidence: float | None
     lines: tuple[OcrLine, ...] = ()
+    words: tuple[OcrWord, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

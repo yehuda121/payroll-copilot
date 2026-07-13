@@ -98,12 +98,18 @@ class _OkParser:
                 confidence=0.91,
                 source_text="Employee: Dana Levi",
                 status=FieldExtractionStatus.FOUND,
+                evidence_ids=["p1_l1"],
+                source_page=1,
+                parser_method="layout_llm",
             ),
             base_salary=ExtractedField(
                 value=12000,
                 confidence=None,
                 source_text="Base salary 12000",
                 status=FieldExtractionStatus.FOUND,
+                evidence_ids=["p1_l1"],
+                source_page=1,
+                parser_method="layout_llm",
             ),
         )
         return PayslipParseResult(

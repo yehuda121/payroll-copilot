@@ -56,6 +56,14 @@ def sanitize_field(field: ExtractedField, *, ocr_text: str) -> ExtractedField:
             confidence=None,
             source_text=None,
             status=FieldExtractionStatus.MISSING,
+            edited_by_user=field.edited_by_user,
+            original_value=field.original_value,
+            evidence_ids=[],
+            source_bbox=None,
+            source_page=None,
+            parser_method=field.parser_method,
+            warnings=list(field.warnings or []),
+            normalized_value=None,
         )
 
     if status == FieldExtractionStatus.FOUND and (value is None or value == ""):
@@ -74,6 +82,14 @@ def sanitize_field(field: ExtractedField, *, ocr_text: str) -> ExtractedField:
         confidence=confidence,
         source_text=source_text,
         status=status,
+        edited_by_user=field.edited_by_user,
+        original_value=field.original_value,
+        evidence_ids=list(field.evidence_ids or []),
+        source_bbox=field.source_bbox,
+        source_page=field.source_page,
+        parser_method=field.parser_method,
+        warnings=list(field.warnings or []),
+        normalized_value=field.normalized_value,
     )
 
 

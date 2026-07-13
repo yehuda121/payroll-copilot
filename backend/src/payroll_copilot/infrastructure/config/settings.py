@@ -89,12 +89,31 @@ class Settings(BaseSettings):
     payslip_parser_timeout_seconds: float = 180.0
     payslip_parser_temperature: float = 0.0
     payslip_parser_use_json_format: bool = True
+    payslip_parser_layout_enabled: bool = True
+    payslip_parser_include_words: bool = True
+    payslip_parser_max_lines: int = 300
+    payslip_parser_max_words: int = 2000
+    payslip_parser_min_word_confidence: float = 0.0
+    payslip_parser_max_context_chars: int = 50_000
 
     # OCR: paddleocr is primary (en/ar). Hebrew uses transparent Tesseract fallback (H1).
     ocr_provider: str = "paddleocr"
-    tesseract_lang: str = "heb+eng+ara"
+    tesseract_lang: str = "heb+eng"
     ocr_timeout_seconds: float = 120.0
     ocr_use_gpu: bool = False
+    # Tesseract-only image preprocessing (does not change language/provider/PSM).
+    ocr_preprocessing_enabled: bool = True
+    ocr_preprocessing_target_long_edge: int = 2000
+    ocr_preprocessing_max_scale_factor: float = 3.0
+    ocr_preprocessing_max_pixels: int = 20_000_000
+    ocr_preprocessing_contrast_factor: float = 1.4
+    ocr_preprocessing_sharpness_factor: float = 1.3
+    # Tesseract multi-PSM layout strategy (does not change language mapping).
+    ocr_tesseract_multi_psm_enabled: bool = True
+    ocr_tesseract_psm_candidates: str = "3,4,6,11"
+    ocr_tesseract_default_oem: int = 3
+    ocr_tesseract_max_candidates: int = 4
+    ocr_tesseract_min_valid_word_confidence: float = 0.0
 
     celery_broker_url: str = "redis://localhost:6379/1"
     celery_broker_local_url: str = "redis://localhost:6379/1"

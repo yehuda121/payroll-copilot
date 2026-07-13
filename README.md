@@ -16,10 +16,10 @@ Honest snapshot of what exists today. "Partial" means real code runs but a downs
 - **Deterministic validation engine** — rule evaluation, findings, confidence aggregation.
 - **Validation persistence** — `POST /validation/run` and `GET /validation/runs/{id}` persist to PostgreSQL.
 - **Document upload & persistence** — `POST /documents/upload`, `GET /documents/{id}` with server-side upload guardrails.
-- **OCR text extraction (Phase 1)** — `POST /ocr/extract` returns page-level text + real OCR confidence via pluggable providers (PaddleOCR primary; Hebrew→Tesseract fallback). No payroll field parsing.
-- **AI Payslip Parser (Phase 2A)** — `POST /parser/payslip` turns OCR JSON into per-field structured payslip data via local Ollama (layout-independent).
+- **OCR text extraction (Phase 1)** — `POST /ocr/extract` returns page-level text + real OCR confidence via pluggable providers (PaddleOCR primary; Hebrew→Tesseract fallback). Includes preprocessing, language mapping, layout words/bboxes, and multi-PSM selection for Tesseract.
+- **AI Payslip Parser (Phase 2A)** — `POST /parser/payslip` turns OCR JSON into per-field structured payslip data via local Ollama. Layout-aware / evidence-bound extraction with semantic validation and one controlled retry (no silent schema-copy → all-MISSING).
 - **Guest extraction + validation (Phases 2B–7)** — extract → review/edit → validate on Continue → results; mapper builds a synthetic guest employee from parser fields (`rule_profile=payroll`); demo builder is not used on the guest path.
-- **Public Guest Experience (frontend)** — landing page, Payroll Assistant chat, Validate-My-Payslip upload/review/results flow, enterprise validation report with honest scope.
+- **Public Guest Experience (frontend)** — landing page, Payroll Assistant chat (**safe Markdown rendering** for assistant answers), Validate-My-Payslip upload/review/results flow, enterprise validation report with honest scope.
 - **LangGraph Payroll Assistant (backend)** — `POST /assistant/chat` with input/output guardrails, greeting handling, and keyword search over approved YAML legal rules.
 - **Ollama integration** — host-first URL resolution with optional Docker fallback and graceful degradation when unavailable.
 - **i18n foundation** — Hebrew / English / Arabic UI + RTL, locale-aware API responses and assistant answers (OCR language extraction not connected).
@@ -178,7 +178,21 @@ See [docs/ai-architecture.md](docs/ai-architecture.md).
 
 ## LangGraph Payroll Assistant
 
-**Status: Frontend foundation + backend API implemented.** Guest chat on the public landing page calls `POST /api/v1/assistant/chat`.
+**Status: Frontend foundation + backend API implemented.** Guest chat on the public landing page calls `POST /api/v1/assistant/chat`. Assistant answers are shown with **safe Markdown rendering** in the UI (headings, lists, bold/italic, code, links) — the API response text is unchanged.
+
+### OCR pipeline (Phase 1 highlights)
+
+- **Preprocessing (Tesseract path)** — EXIF orientation, alpha flatten, grayscale, long-edge upscale, contrast/sharpen when enabled via settings.
+- **Language mapping** — `auto`/`he` → `heb+eng`; `en` → `eng`; `ar` → `ara+eng` (actual pack reported in `language_effective`).
+- **Layout-aware OCR** — word/line geometry with bounding boxes in processed-image coordinates; optional word payloads on API pages/lines.
+- **Multi-PSM strategy** — Tesseract candidates (e.g. PSM 3/4/6/11) scored deterministically; best layout selected without payroll-field heuristics.
+
+### AI Payslip Parser (Phase 2A highlights)
+
+- **Evidence-based / layout-aware parsing** — OCR layout context with evidence IDs (`p1_lN`, `p1_lN_wN`); non-null fields must cite real evidence.
+- **Compact instance-template prompting** — does **not** embed Pydantic `$ref`/`$defs` JSON Schema in the model prompt.
+- **Semantic validation** — rejects schema-copy output, numeric OCR keys under `additional_fields`, fake evidence IDs, and all-MISSING responses when OCR evidence exists.
+- **Controlled retry** — one retry on invalid JSON/schema/semantic failure; explicit warnings; no invented values.
 
 ### Principles
 
@@ -343,9 +357,11 @@ Supported UI languages: **Hebrew (`he`, RTL)**, **English (`en`, LTR)**, **Arabi
 
 ### Current limitations (honest)
 
-- **Multilingual OCR text extraction is available via `POST /api/v1/ocr/extract`.** Hebrew uses Tesseract fallback (PaddleOCR has no official Hebrew model — intentional). Payslip **field** parsing / AI Parser is not implemented; document upload still returns `ocr_language_status: "not_connected"` for the guest upload path until async wiring lands.
+- **OCR / parser quality depends on image quality and the local Ollama model.** Evidence validation rejects invented digits/names; fields may remain MISSING or UNCERTAIN when OCR or the model is weak.
+- **Multilingual OCR text extraction is available via `POST /api/v1/ocr/extract`.** Hebrew uses Tesseract fallback (PaddleOCR has no official Hebrew model — intentional). Guest upload may still report `ocr_language_status: "not_connected"` on some async paths until fully wired.
 - Auth portal pages (login/signup) are not fully translated yet.
 - Some approved legal rule YAML text is bilingual (`he`/`en`); Arabic assistant answers may translate/summarize approved sources without inventing new legal claims.
+- Public chat Markdown is presentation-only; the assistant may still return limited answers when no approved source matches.
 
 ---
 
@@ -712,10 +728,11 @@ The validation response includes `validation_scope`, `uploaded_documents`, `vali
 
 These are intentional and surfaced honestly in the UI/API — nothing is faked:
 
-- **OCR text extraction (Phase 1) is implemented** via `POST /api/v1/ocr/extract` (PDF/PNG/JPG/JPEG → pages + text + confidence). Install Paddle with `pip install -e ".[ocr-paddle]"`.
-- **AI Payslip Parser (Phase 2A) is implemented** via `POST /api/v1/parser/payslip` (OCR JSON → per-field `{value, confidence, source_text, status}`). Uses local Ollama; one retry on invalid JSON; confidence never invented.
+- **OCR text extraction (Phase 1) is implemented** via `POST /api/v1/ocr/extract` (PDF/PNG/JPG/JPEG → pages + text + confidence + layout/bboxes). Preprocessing, language mapping, and multi-PSM Tesseract selection apply on the Tesseract path. Install Paddle with `pip install -e ".[ocr-paddle]"`.
+- **AI Payslip Parser (Phase 2A) is implemented** via `POST /api/v1/parser/payslip` (OCR JSON → per-field `{value, confidence, source_text, status, evidence_ids, …}`). Layout-aware evidence validation, semantic rejection of schema-copy / invalid keys, one controlled retry; confidence never invented.
 - **Guest extraction persistence (Phase 2B/2C)** — `POST /api/v1/extraction/guest/payslip-extract` orchestrates upload → OCR → parser → `document_extractions` row; guest Review shows real fields (Missing / unable to read / confidence unavailable — never invented).
 - **Guest validation connected (Phases 3–7)** — Review/edit → `POST /extraction/guest/{id}/corrections` (new extraction version) → `POST /validation/run` maps structured fields to a synthetic guest context (`rule_profile=payroll`). Missing data → Unable to verify. AI explains existing findings only.
+- **Public chat Markdown rendering** — assistant answers are rendered as sanitized Markdown in the guest chat UI; response text from the API is unchanged.
 - **OCR worker on document upload is still a stub.** The Celery `process_document_ocr` task remains a placeholder; the guest validate flow uses the sync extraction endpoint instead.
 - **DemoValidationContextBuilder remains in codebase for non-guest/dev use only** — it is not used on the guest validation path.
 - **No real vector RAG yet.** The assistant uses keyword search over local YAML legal rules only.
@@ -725,6 +742,7 @@ These are intentional and surfaced honestly in the UI/API — nothing is faked:
 - **Historical comparison not available.** Always reported as `not_available`.
 - **Batch bulk-PDF, MCP legal sync** are design targets, not shipped.
 - **Hebrew OCR:** when `OCR_PROVIDER=paddleocr` (default), `language=he` transparently uses **Tesseract** and returns `engine=tesseract` plus a warning. This is intentional production-honest behavior — not a bug.
+- **Parser model quality** — local Ollama (e.g. `mistral-nemo:12b`) may still leave fields MISSING after semantic retry; the pipeline prefers honest MISSING over invented values.
 
 ---
 

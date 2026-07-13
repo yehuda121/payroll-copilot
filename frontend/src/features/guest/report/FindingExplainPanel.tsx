@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppLocale } from '../../../hooks/useAppLocale';
 import { assistantService } from '../../../services/assistant';
+import { AssistantMarkdown } from '../../../components/guest/AssistantMarkdown';
 
 type FindingExplainPanelProps = {
   findingId: string;
@@ -65,7 +66,7 @@ export function FindingExplainPanel({
         <p className="finding-explain__note">{t('report.explainNote')}</p>
         {isLoading && <p>{t('report.explainPreparing')}</p>}
         {error && <p className="finding-explain__error">{error}</p>}
-        {explanation && <p>{explanation}</p>}
+        {explanation && <AssistantMarkdown content={explanation} />}
       </div>
     </div>
   );

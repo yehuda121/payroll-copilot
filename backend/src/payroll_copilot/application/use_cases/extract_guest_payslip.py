@@ -142,8 +142,32 @@ class ExtractGuestPayslipUseCase:
                                 "text": line.text,
                                 "confidence": line.confidence,
                                 "bbox": list(line.bbox) if line.bbox else None,
+                                "words": [
+                                    {
+                                        "text": word.text,
+                                        "confidence": word.confidence,
+                                        "bbox": list(word.bbox),
+                                        "block_number": word.block_number,
+                                        "paragraph_number": word.paragraph_number,
+                                        "line_number": word.line_number,
+                                        "word_number": word.word_number,
+                                    }
+                                    for word in line.words
+                                ],
                             }
                             for line in page.lines
+                        ],
+                        "words": [
+                            {
+                                "text": word.text,
+                                "confidence": word.confidence,
+                                "bbox": list(word.bbox),
+                                "block_number": word.block_number,
+                                "paragraph_number": word.paragraph_number,
+                                "line_number": word.line_number,
+                                "word_number": word.word_number,
+                            }
+                            for word in page.words
                         ],
                     }
                     for page in ocr_result.pages

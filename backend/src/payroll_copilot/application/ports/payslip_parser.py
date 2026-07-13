@@ -32,6 +32,13 @@ class ExtractedField(BaseModel):
     status: FieldExtractionStatus = FieldExtractionStatus.MISSING
     edited_by_user: bool = False
     original_value: str | float | int | bool | dict[str, Any] | list[Any] | None = None
+    # Additive layout-aware provenance (optional; backward compatible).
+    evidence_ids: list[str] = Field(default_factory=list)
+    source_bbox: list[float] | None = None
+    source_page: int | None = None
+    parser_method: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+    normalized_value: float | None = None
 
     @field_validator("confidence", mode="before")
     @classmethod
@@ -45,6 +52,35 @@ class ExtractedField(BaseModel):
         if number < 0.0 or number > 1.0:
             return None
         return number
+
+    @field_validator("source_bbox", mode="before")
+    @classmethod
+    def coerce_bbox(cls, value: object) -> list[float] | None:
+        if value is None or value == "":
+            return None
+        if not isinstance(value, (list, tuple)) or len(value) != 4:
+            return None
+        try:
+            box = [float(v) for v in value]
+        except (TypeError, ValueError):
+            return None
+        if box[2] <= 0 or box[3] <= 0:
+            return None
+        return box
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def coerce_status(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
+        normalized = value.strip().upper()
+        aliases = {
+            "EXTRACTED": FieldExtractionStatus.FOUND.value,
+            "LOW_CONFIDENCE": FieldExtractionStatus.UNCERTAIN.value,
+            "UNABLE_TO_READ": FieldExtractionStatus.UNCERTAIN.value,
+            "CONFLICTING_EVIDENCE": FieldExtractionStatus.UNCERTAIN.value,
+        }
+        return aliases.get(normalized, normalized)
 
 
 # Canonical field keys for Phase 2A (extendable via additional_fields).
@@ -140,7 +176,7 @@ class PayslipParseResult(BaseModel):
 
 @runtime_checkable
 class PayslipParser(Protocol):
-    """Pluggable AI payslip parser (layout-independent)."""
+    """Pluggable AI payslip parser (layout-aware when context provided)."""
 
     async def parse(
         self,
@@ -148,9 +184,10 @@ class PayslipParser(Protocol):
         ocr_text: str,
         language: str = "auto",
         pages_text: list[str] | None = None,
+        layout_context: dict[str, object] | None = None,
         retry_hint: str | None = None,
     ) -> PayslipParseResult:
-        """Parse OCR text into structured payslip fields.
+        """Parse OCR text / layout context into structured payslip fields.
 
         ``retry_hint`` is set by the use case on a second attempt after JSON failure.
         """

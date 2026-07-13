@@ -30,10 +30,21 @@ from payroll_copilot.presentation.api.dependencies import get_extract_document_t
 router = APIRouter()
 
 
+class OcrWordResponse(BaseModel):
+    text: str
+    confidence: float | None = None
+    bbox: list[float]
+    block_number: int = 0
+    paragraph_number: int = 0
+    line_number: int = 0
+    word_number: int = 0
+
+
 class OcrLineResponse(BaseModel):
     text: str
     confidence: float | None = None
     bbox: list[float] | None = None
+    words: list[OcrWordResponse] = Field(default_factory=list)
 
 
 class OcrPageResponse(BaseModel):
@@ -42,6 +53,7 @@ class OcrPageResponse(BaseModel):
     text: str
     confidence: float | None = None
     lines: list[OcrLineResponse] = Field(default_factory=list)
+    words: list[OcrWordResponse] = Field(default_factory=list)
 
 
 class OcrExtractResponse(BaseModel):
@@ -93,8 +105,32 @@ def _to_response(result: OCRResult) -> OcrExtractResponse:
                         text=line.text,
                         confidence=line.confidence,
                         bbox=list(line.bbox) if line.bbox else None,
+                        words=[
+                            OcrWordResponse(
+                                text=word.text,
+                                confidence=word.confidence,
+                                bbox=list(word.bbox),
+                                block_number=word.block_number,
+                                paragraph_number=word.paragraph_number,
+                                line_number=word.line_number,
+                                word_number=word.word_number,
+                            )
+                            for word in line.words
+                        ],
                     )
                     for line in page.lines
+                ],
+                words=[
+                    OcrWordResponse(
+                        text=word.text,
+                        confidence=word.confidence,
+                        bbox=list(word.bbox),
+                        block_number=word.block_number,
+                        paragraph_number=word.paragraph_number,
+                        line_number=word.line_number,
+                        word_number=word.word_number,
+                    )
+                    for word in page.words
                 ],
             )
             for page in result.pages

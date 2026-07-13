@@ -23,4 +23,5 @@ def create_payslip_parser(settings: Any) -> PayslipParser:
         timeout_seconds=float(getattr(settings, "payslip_parser_timeout_seconds", 180.0)),
         temperature=float(getattr(settings, "payslip_parser_temperature", 0.0)),
         use_json_format=bool(getattr(settings, "payslip_parser_use_json_format", True)),
+        layout_enabled=bool(getattr(settings, "payslip_parser_layout_enabled", True)),
     )

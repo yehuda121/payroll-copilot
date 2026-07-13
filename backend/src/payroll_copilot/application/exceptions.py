@@ -90,6 +90,21 @@ class PayslipParserSchemaError(PayslipParserError):
         super().__init__(message, code="schema_validation_failed")
 
 
+class PayslipParserSemanticError(PayslipParserSchemaError):
+    """Valid JSON that is structurally/semantically unusable for payslip fields."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        category: str = "semantic_invalid",
+        warning_code: str | None = None,
+    ) -> None:
+        PayslipParserError.__init__(self, message, code="semantic_validation_failed")
+        self.category = category
+        self.warning_code = warning_code or "parser_semantic_invalid"
+
+
 class PayslipParserTimeoutError(PayslipParserError):
     def __init__(self, message: str = "Payslip parser timed out.") -> None:
         super().__init__(message, code="parser_timeout")

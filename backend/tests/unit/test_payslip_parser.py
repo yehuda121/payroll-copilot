@@ -83,17 +83,25 @@ def test_sanitize_missing_forces_null_confidence() -> None:
     assert cleaned.value is None or cleaned.value == "x"
 
 
-def test_coerce_structured_payslip_fills_defaults() -> None:
-    parsed = coerce_structured_payslip(
-        {
-            "employee_name": {
-                "value": "Dana Levi",
-                "confidence": 0.9,
-                "source_text": "Employee: Dana Levi",
-                "status": "FOUND",
-            }
-        }
+def test_coerce_structured_payslip_requires_complete_instances() -> None:
+    from payroll_copilot.infrastructure.ai.payslip_parser_ollama import (
+        build_payslip_instance_template,
     )
+
+    payload = build_payslip_instance_template(language="he")
+    payload["employee_name"] = {
+        "value": "Dana Levi",
+        "confidence": 0.9,
+        "source_text": "Employee: Dana Levi",
+        "status": "FOUND",
+        "evidence_ids": [],
+        "source_bbox": None,
+        "source_page": None,
+        "parser_method": "layout_llm",
+        "warnings": [],
+        "normalized_value": None,
+    }
+    parsed = coerce_structured_payslip(payload)
     assert parsed.employee_name.status == FieldExtractionStatus.FOUND
     assert parsed.net_salary.status == FieldExtractionStatus.MISSING
 

@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 from uuid import uuid4
 
-from payroll_copilot.application.ports.ocr import OCRResult, OcrLine, OcrPage
+from payroll_copilot.application.ports.ocr import OCRResult, OcrLine, OcrPage, OcrWord
 from payroll_copilot.application.ports.payslip_parser import StructuredPayslipParse
 from payroll_copilot.application.use_cases.extract_guest_payslip import (
     ExtractGuestPayslipUseCase,
@@ -35,6 +35,38 @@ from payroll_copilot.application.validation.structured_payslip_mapper import (
 from payroll_copilot.domain.value_objects import Money
 
 
+def _words_from_payload(raw_words: object) -> tuple[OcrWord, ...]:
+    """Rebuild OCR words from Document Lab OCR JSON without inventing geometry."""
+    if not isinstance(raw_words, list):
+        return ()
+    words: list[OcrWord] = []
+    for item in raw_words:
+        if not isinstance(item, dict):
+            continue
+        text = str(item.get("text") or "").strip()
+        bbox = item.get("bbox")
+        if not text or not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
+            continue
+        try:
+            box = (float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3]))
+        except (TypeError, ValueError):
+            continue
+        if box[2] <= 0 or box[3] <= 0:
+            continue
+        words.append(
+            OcrWord(
+                text=text,
+                confidence=item.get("confidence"),
+                bbox=box,
+                block_number=int(item.get("block_number") or 0),
+                paragraph_number=int(item.get("paragraph_number") or 0),
+                line_number=int(item.get("line_number") or 0),
+                word_number=int(item.get("word_number") or 0),
+            )
+        )
+    return tuple(words)
+
+
 def ocr_result_to_dict(result: OCRResult) -> dict[str, Any]:
     return {
         "engine": result.engine,
@@ -54,8 +86,32 @@ def ocr_result_to_dict(result: OCRResult) -> dict[str, Any]:
                         "text": line.text,
                         "confidence": line.confidence,
                         "bbox": list(line.bbox) if line.bbox else None,
+                        "words": [
+                            {
+                                "text": word.text,
+                                "confidence": word.confidence,
+                                "bbox": list(word.bbox),
+                                "block_number": word.block_number,
+                                "paragraph_number": word.paragraph_number,
+                                "line_number": word.line_number,
+                                "word_number": word.word_number,
+                            }
+                            for word in line.words
+                        ],
                     }
                     for line in page.lines
+                ],
+                "words": [
+                    {
+                        "text": word.text,
+                        "confidence": word.confidence,
+                        "bbox": list(word.bbox),
+                        "block_number": word.block_number,
+                        "paragraph_number": word.paragraph_number,
+                        "line_number": word.line_number,
+                        "word_number": word.word_number,
+                    }
+                    for word in page.words
                 ],
             }
             for page in result.pages
@@ -223,6 +279,7 @@ class DocumentLabService:
                     text=str(line.get("text") or ""),
                     confidence=line.get("confidence"),
                     bbox=tuple(line["bbox"]) if line.get("bbox") else None,
+                    words=_words_from_payload(line.get("words")),
                 )
                 for line in page.get("lines") or []
             )
@@ -233,6 +290,7 @@ class DocumentLabService:
                     text=str(page.get("text") or ""),
                     confidence=page.get("confidence"),
                     lines=lines,
+                    words=_words_from_payload(page.get("words")),
                 )
             )
         ocr_result = OCRResult(

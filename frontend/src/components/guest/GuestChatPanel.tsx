@@ -1,3 +1,4 @@
+import { AssistantMarkdown } from './AssistantMarkdown';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppLocale } from '../../hooks/useAppLocale';
@@ -193,7 +194,11 @@ export function GuestChatPanel({
 
         {messages.map((msg) => (
           <div key={msg.id} className={`chat-bubble chat-bubble--${msg.role}`}>
-            <p>{msg.content}</p>
+            {msg.role === 'assistant' ? (
+              <AssistantMarkdown content={msg.content} />
+            ) : (
+              <p className="chat-bubble__plain">{msg.content}</p>
+            )}
             {msg.guardrailStatus &&
               msg.guardrailStatus !== 'passed' &&
               msg.guardrailStatus !== 'answered_from_source' && (
