@@ -1,66 +1,67 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
 import { Card } from '../../components/ui/Card';
+import { useConfirmDialog } from '../../components/ui/Dialog';
+import { EmployeeForm, toWritePayload } from '../../features/accountant/EmployeeForm';
+import { getAccountantErrorMessage } from '../../i18n/accountantLabels';
+import { employeesService } from '../../services/employees';
 
 export function AddEmployeePage() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { confirm } = useConfirmDialog();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   return (
     <PortalPage
-      title="Add Employee"
-      description="Create a new employee record in the master data."
-      integrationNote="@integration-point EMPLOYEES_CREATE"
+      title={t('accountant.employees.add')}
+      description={t('accountant.employees.addDescription')}
     >
       <Card>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
+        <EmployeeForm
+          mode="create"
+          submitting={submitting}
+          error={error}
+          onSubmit={async (values) => {
+            const ok = await confirm({
+              title: t('accountant.employees.createTitle'),
+              message: t('accountant.employees.createMessage', {
+                number: values.employeeNumber,
+                name: `${values.firstName} ${values.lastName}`.trim(),
+              }),
+              confirmLabel: t('accountant.employees.createConfirm'),
+              cancelLabel: t('common.cancel'),
+              variant: 'default',
+            });
+            if (!ok) return;
+            setSubmitting(true);
+            setError(null);
+            try {
+              const payload = toWritePayload(values, 'create');
+              if (!payload.employee_number) {
+                setError(t('accountant.employees.employeeNumberRequired'));
+                return;
+              }
+              const created = await employeesService.create({
+                ...payload,
+                employee_number: payload.employee_number,
+              });
+              navigate(`/accountant/employees/${created.employeeNumber}`);
+            } catch {
+              setError(getAccountantErrorMessage('saveFailed', t));
+            } finally {
+              setSubmitting(false);
+            }
           }}
-        >
-          <div className="form-field">
-            <label htmlFor="fullName">Full name</label>
-            <input id="fullName" type="text" />
-          </div>
-          <div className="form-field">
-            <label htmlFor="email">Email</label>
-            <input id="email" type="email" />
-          </div>
-          <div className="form-field">
-            <label htmlFor="department">Department</label>
-            <select id="department">
-              <option value="">Select department</option>
-              <option value="legal">Legal</option>
-              <option value="engineering">Engineering</option>
-              <option value="accounting">Accounting</option>
-            </select>
-          </div>
-          <div className="form-field">
-            <label htmlFor="employmentType">Employment type</label>
-            <select id="employmentType">
-              <option value="full_time">Full time</option>
-              <option value="part_time">Part time</option>
-              <option value="contractor">Contractor</option>
-              <option value="intern">Intern</option>
-            </select>
-          </div>
-          <div className="form-field">
-            <label htmlFor="salaryType">Salary type</label>
-            <select id="salaryType">
-              <option value="monthly">Monthly</option>
-              <option value="hourly">Hourly</option>
-            </select>
-          </div>
-          <div className="form-field">
-            <label htmlFor="baseSalary">Base salary / hourly rate</label>
-            <input id="baseSalary" type="number" min="0" step="0.01" />
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button type="submit" className="btn btn--primary" disabled>
-              Save employee (API pending)
-            </button>
+          footer={
             <Link to="/accountant/employees" className="btn btn--secondary">
-              Cancel
+              {t('common.cancel')}
             </Link>
-          </div>
-        </form>
+          }
+        />
       </Card>
     </PortalPage>
   );

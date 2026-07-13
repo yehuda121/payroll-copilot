@@ -1,11 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
 
 export function ValidationFindingsPage() {
+  const { t } = useTranslation();
   return (
     <PortalPage
-      title="Validation Findings"
-      description="Review aggregated deterministic findings across employees, departments, and batch runs."
-      integrationNote="@integration-point VALIDATION_FINDINGS"
+      title={t('accountant.validations.findingsTitle')}
+      description={t('accountant.validations.findingsDescription')}
     />
   );
 }

@@ -1,5 +1,9 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
+import { LanguageSelector } from '../components/ui/LanguageSelector';
+import { useConfirmDialog } from '../components/ui/Dialog';
+import { useOptionalBatchNavigationGuard } from '../features/accountant/BatchNavigationGuard';
 import type { PortalConfig } from '../types/navigation';
 import './PortalShell.css';
 
@@ -8,8 +12,37 @@ type PortalShellProps = {
 };
 
 export function PortalShell({ config }: PortalShellProps) {
+  const { t } = useTranslation();
   const { session, logout } = useAuth();
   const user = session?.user;
+  const navigate = useNavigate();
+  const { confirm } = useConfirmDialog();
+  const { isBatchActive, batchLabel } = useOptionalBatchNavigationGuard();
+
+  const portalName = config.portalNameKey
+    ? t(config.portalNameKey)
+    : (config.portalName ?? '');
+  const portalSubtitle = config.portalSubtitleKey
+    ? t(config.portalSubtitleKey)
+    : (config.portalSubtitle ?? '');
+
+  const handleNavClick = async (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    path: string,
+  ) => {
+    if (!isBatchActive) return;
+    event.preventDefault();
+    const ok = await confirm({
+      title: t('portal.shell.leaveBatchTitle'),
+      message: t('portal.shell.leaveBatchMessage', {
+        label: batchLabel || t('portal.shell.batchActiveDefault'),
+      }),
+      confirmLabel: t('portal.shell.leaveBatchConfirm'),
+      cancelLabel: t('portal.shell.leaveBatchStay'),
+      variant: 'warning',
+    });
+    if (ok) navigate(path);
+  };
 
   return (
     <div className="portal-shell">
@@ -19,11 +52,16 @@ export function PortalShell({ config }: PortalShellProps) {
             PC
           </span>
           <div>
-            <strong>{config.portalName}</strong>
-            <span>{config.portalSubtitle}</span>
+            <strong>{portalName}</strong>
+            <span>{portalSubtitle}</span>
           </div>
         </div>
-        <nav className="portal-shell__nav" aria-label={`${config.portalName} navigation`}>
+        {isBatchActive && (
+          <div className="portal-shell__batch-banner" role="status">
+            {t('portal.shell.batchActiveBanner')}
+          </div>
+        )}
+        <nav className="portal-shell__nav" aria-label={portalName}>
           {config.navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -32,14 +70,15 @@ export function PortalShell({ config }: PortalShellProps) {
               className={({ isActive }) =>
                 `portal-shell__nav-link${isActive ? ' portal-shell__nav-link--active' : ''}`
               }
+              onClick={(event) => void handleNavClick(event, item.path)}
             >
-              {item.label}
+              {item.labelKey ? t(item.labelKey) : (item.label ?? item.path)}
             </NavLink>
           ))}
         </nav>
         <div className="portal-shell__sidebar-footer">
           <Link to="/" className="portal-shell__footer-link">
-            Public site
+            {t('common.publicSite')}
           </Link>
         </div>
       </aside>
@@ -47,11 +86,16 @@ export function PortalShell({ config }: PortalShellProps) {
         <header className="portal-shell__topbar">
           <div className="portal-shell__user">
             <span className="portal-shell__user-name">{user?.fullName}</span>
-            <span className="portal-shell__user-role">{user?.role.replace(/_/g, ' ')}</span>
+            <span className="portal-shell__user-role">
+              {user?.role ? t(`common.roles.${user.role}`) : ''}
+            </span>
           </div>
-          <button type="button" className="btn btn--ghost" onClick={logout}>
-            Log out
-          </button>
+          <div className="portal-shell__topbar-actions">
+            <LanguageSelector />
+            <button type="button" className="btn btn--ghost" onClick={logout}>
+              {t('common.logout')}
+            </button>
+          </div>
         </header>
         <main className="portal-shell__main">
           <Outlet />

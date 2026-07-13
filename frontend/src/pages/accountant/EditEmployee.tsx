@@ -1,48 +1,121 @@
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
 import { Card } from '../../components/ui/Card';
+import { EmptyState, LoadingOverlay, useConfirmDialog } from '../../components/ui/Dialog';
+import {
+  EmployeeForm,
+  toWritePayload,
+  type EmployeeFormValues,
+} from '../../features/accountant/EmployeeForm';
+import { getAccountantErrorMessage } from '../../i18n/accountantLabels';
+import { employeesService } from '../../services/employees';
 
 export function EditEmployeePage() {
+  const { t } = useTranslation();
   const { employeeNumber } = useParams<{ employeeNumber: string }>();
+  const navigate = useNavigate();
+  const { confirm } = useConfirmDialog();
+  const [initial, setInitial] = useState<Partial<EmployeeFormValues> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!employeeNumber) return;
+    void (async () => {
+      setLoading(true);
+      try {
+        const row = await employeesService.getByNumber(employeeNumber);
+        if (!row) {
+          setInitial(null);
+          return;
+        }
+        setInitial({
+          employeeNumber: row.employeeNumber,
+          firstName: row.firstName ?? row.fullName.split(' ')[0] ?? '',
+          lastName: row.lastName ?? row.fullName.split(' ').slice(1).join(' ') ?? '',
+          email: row.email,
+          nationalId: '',
+          employmentType: row.employmentType,
+          salaryType: row.salaryType,
+          baseSalaryOrRate: String(row.baseSalaryOrRate || ''),
+          contractStartDate: row.contractStartDate?.slice(0, 10) ?? '',
+          profileIncomplete: Boolean(row.profileIncomplete),
+        });
+      } catch {
+        setError(getAccountantErrorMessage('loadFailed', t));
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [employeeNumber, t]);
 
   return (
     <PortalPage
-      title={`Edit Employee ${employeeNumber ?? ''}`}
-      description="Update employee master data fields."
-      integrationNote="@integration-point EMPLOYEES_UPDATE"
+      title={t('accountant.employees.editTitle', { number: employeeNumber ?? '' })}
+      description={t('accountant.employees.editDescription')}
     >
-      <Card>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-          }}
-        >
-          <div className="form-field">
-            <label htmlFor="employeeNumber">Employee number</label>
-            <input id="employeeNumber" type="text" defaultValue={employeeNumber} readOnly />
-          </div>
-          <div className="form-field">
-            <label htmlFor="fullName">Full name</label>
-            <input id="fullName" type="text" />
-          </div>
-          <div className="form-field">
-            <label htmlFor="status">Status</label>
-            <select id="status" defaultValue="active">
-              <option value="active">Active</option>
-              <option value="on_leave">On leave</option>
-              <option value="terminated">Terminated</option>
-            </select>
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button type="submit" className="btn btn--primary" disabled>
-              Update employee (API pending)
-            </button>
-            <Link to="/accountant/employees" className="btn btn--secondary">
-              Back to list
-            </Link>
-          </div>
-        </form>
-      </Card>
+      <div className="panel-relative">
+        {loading && <LoadingOverlay label={t('accountant.employees.loadingOne')} />}
+        {!loading && !initial ? (
+          <EmptyState
+            title={t('accountant.employees.notFoundTitle')}
+            description={t('accountant.employees.notFoundDescription')}
+            action={
+              <Link to="/accountant/employees" className="btn btn--secondary">
+                {t('accountant.employees.backToList')}
+              </Link>
+            }
+          />
+        ) : (
+          !loading &&
+          initial && (
+            <Card>
+              <EmployeeForm
+                mode="edit"
+                initial={initial}
+                submitting={submitting}
+                error={error}
+                onSubmit={async (values) => {
+                  if (!employeeNumber) return;
+                  const ok = await confirm({
+                    title: t('accountant.employees.saveTitle'),
+                    message: t('accountant.employees.saveMessage'),
+                    confirmLabel: t('accountant.employees.saveConfirm'),
+                    cancelLabel: t('common.cancel'),
+                    variant: 'warning',
+                  });
+                  if (!ok) return;
+                  setSubmitting(true);
+                  setError(null);
+                  try {
+                    const payload = toWritePayload(values, 'edit');
+                    if (!payload.national_id) {
+                      delete payload.national_id;
+                    }
+                    await employeesService.update(employeeNumber, payload);
+                    navigate(`/accountant/employees/${employeeNumber}`);
+                  } catch {
+                    setError(getAccountantErrorMessage('saveFailed', t));
+                  } finally {
+                    setSubmitting(false);
+                  }
+                }}
+                footer={
+                  <Link
+                    to={`/accountant/employees/${employeeNumber}`}
+                    className="btn btn--secondary"
+                  >
+                    {t('common.cancel')}
+                  </Link>
+                }
+              />
+            </Card>
+          )
+        )}
+      </div>
     </PortalPage>
   );
 }

@@ -28,6 +28,7 @@ class EmployeeStatus(StrEnum):
     ACTIVE = "active"
     ON_LEAVE = "on_leave"
     TERMINATED = "terminated"
+    DISABLED = "disabled"
 
 
 class DocumentType(StrEnum):

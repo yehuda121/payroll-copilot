@@ -1,9 +1,24 @@
 """Compliance and MCP legal rule sync routes."""
 
-from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel
+from __future__ import annotations
 
+from dataclasses import asdict
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from payroll_copilot.application.ports.employee_audit import AuditLogEntry
+from payroll_copilot.application.services.rule_version_store import RuleVersionStore
+from payroll_copilot.application.validation.demo_validation_context_builder import (
+    DEMO_ORGANIZATION_ID,
+)
 from payroll_copilot.infrastructure.config.settings import get_settings
+from payroll_copilot.infrastructure.persistence.database import get_db_session
+from payroll_copilot.infrastructure.persistence.repositories.audit_log_repository import (
+    SqlAlchemyAuditLogRepository,
+)
 from payroll_copilot.infrastructure.rules.yaml_loader import YamlLegalRulesLoader
 
 router = APIRouter()
@@ -24,6 +39,22 @@ class DiffProposalResponse(BaseModel):
     diff_summary: str
 
 
+class RuleContentResponse(BaseModel):
+    filename: str
+    content: str
+    versions: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class RuleUpdateRequest(BaseModel):
+    content: str = Field(min_length=1)
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class RuleRollbackRequest(BaseModel):
+    version_id: str
+    reason: str = Field(min_length=3, max_length=500)
+
+
 @router.get("/legal-rules", response_model=list[LegalRuleFileInfo])
 async def list_legal_rules() -> list[LegalRuleFileInfo]:
     settings = get_settings()
@@ -39,6 +70,93 @@ async def list_legal_rules() -> list[LegalRuleFileInfo]:
         )
         for name, bundle in bundles.items()
     ]
+
+
+@router.get("/legal-rules/{filename}", response_model=RuleContentResponse)
+async def get_legal_rule_file(filename: str) -> RuleContentResponse:
+    settings = get_settings()
+    store = RuleVersionStore(settings.legal_rules_path)
+    try:
+        content = store.read_current(filename)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rule file not found") from exc
+    versions = [asdict(item) for item in store.list_versions(filename)]
+    return RuleContentResponse(filename=filename, content=content, versions=versions)
+
+
+@router.put("/legal-rules/{filename}", response_model=RuleContentResponse)
+async def update_legal_rule_file(
+    filename: str,
+    body: RuleUpdateRequest,
+    session: AsyncSession = Depends(get_db_session),
+) -> RuleContentResponse:
+    settings = get_settings()
+    store = RuleVersionStore(settings.legal_rules_path)
+    audit = SqlAlchemyAuditLogRepository(session)
+    try:
+        record = store.write_with_version(
+            filename=filename,
+            content=body.content,
+            reason=body.reason,
+            actor_user_id=None,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rule file not found") from exc
+
+    await audit.append(
+        AuditLogEntry(
+            action="rule.edited",
+            resource_type="legal_rule_file",
+            organization_id=DEMO_ORGANIZATION_ID,
+            details={
+                "filename": filename,
+                "version_id": record.version_id,
+                "reason": body.reason,
+                "previous_version_id": record.previous_version_id,
+            },
+        )
+    )
+    await session.commit()
+    versions = [asdict(item) for item in store.list_versions(filename)]
+    return RuleContentResponse(filename=filename, content=body.content, versions=versions)
+
+
+@router.post("/legal-rules/{filename}/rollback", response_model=RuleContentResponse)
+async def rollback_legal_rule_file(
+    filename: str,
+    body: RuleRollbackRequest,
+    session: AsyncSession = Depends(get_db_session),
+) -> RuleContentResponse:
+    settings = get_settings()
+    store = RuleVersionStore(settings.legal_rules_path)
+    audit = SqlAlchemyAuditLogRepository(session)
+    try:
+        record = store.rollback(
+            filename=filename,
+            version_id=body.version_id,
+            reason=body.reason,
+            actor_user_id=None,
+        )
+        content = store.read_current(filename)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    await audit.append(
+        AuditLogEntry(
+            action="rule.rollback",
+            resource_type="legal_rule_file",
+            organization_id=DEMO_ORGANIZATION_ID,
+            details={
+                "filename": filename,
+                "version_id": record.version_id,
+                "reason": body.reason,
+                "rolled_back_to": body.version_id,
+            },
+        )
+    )
+    await session.commit()
+    versions = [asdict(item) for item in store.list_versions(filename)]
+    return RuleContentResponse(filename=filename, content=content, versions=versions)
 
 
 @router.get("/diff-proposals", response_model=list[DiffProposalResponse])

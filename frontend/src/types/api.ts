@@ -114,11 +114,38 @@ export type GuestExtractionCorrectionRequest = {
 };
 
 export type BatchJobResponse = {
-  job_id: string;
+  batch_job_id: string;
   status: string;
+};
+
+export type BatchPipelineStage = {
+  key: string;
+  label: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped' | string;
+  detail?: string | null;
+};
+
+export type BatchJobStatus = {
+  id: string;
+  batch_job_id?: string;
+  status: string;
+  current_stage: string;
+  total_slips: number;
+  processed_slips: number;
+  failed_slips: number;
+  progress_percent: number;
+  source_filename?: string | null;
+  error_message?: string | null;
+  report_summary?: Record<string, number>;
+  stages: BatchPipelineStage[];
+  updated_at?: string | null;
+  created_at?: string | null;
 };
 
 export type LegalRuleSummary = {
   filename: string;
+  version?: string;
+  content_hash?: string;
+  rules_count?: number;
   rule_count?: number;
 };

@@ -1,23 +1,34 @@
-"""Batch payslip PDF processor."""
+"""Batch payslip PDF processor with stage progress reporting."""
 
 from __future__ import annotations
 
-import hashlib
 from uuid import uuid4
 
 import fitz
 
+from payroll_copilot.application.services.batch_progress_store import get_batch_progress_store
+from payroll_copilot.application.services.manual_review_queue import (
+    get_manual_review_queue,
+    should_enqueue_low_confidence,
+)
 from payroll_copilot.infrastructure.config.settings import get_settings
 
 
 class BatchPayslipProcessor:
-    """Processes bulk PDF containing multiple payslips."""
+    """Processes bulk PDF containing multiple payslips.
+
+    Pipeline foundation:
+    Upload → Split → OCR → Parser → Employee Identification → Validation → Report
+
+    Downstream OCR/parser/validation wiring remains incremental; stages are marked
+    honestly (skipped) when not yet connected — never invents validation results.
+    """
 
     def __init__(self) -> None:
         self._settings = get_settings()
+        self._progress = get_batch_progress_store()
 
     def process(self, batch_job_id: str, document_id: str) -> dict:
-        """Split PDF, create child documents, queue validation for each slip."""
         from payroll_copilot.infrastructure.storage.s3_storage import S3ObjectStorage
 
         storage = S3ObjectStorage(
@@ -29,35 +40,125 @@ class BatchPayslipProcessor:
             use_ssl=self._settings.s3_use_ssl,
         )
 
-        storage_key = f"documents/{document_id}"
-        import asyncio
-
-        pdf_bytes = asyncio.get_event_loop().run_until_complete(storage.download(storage_key))
-
-        splits = self._split_pdf(pdf_bytes)
-        child_documents = []
-
-        for i, split_bytes in enumerate(splits):
-            child_id = str(uuid4())
-            child_key = f"documents/{child_id}"
-            asyncio.get_event_loop().run_until_complete(
-                storage.upload(child_key, split_bytes, "application/pdf")
+        try:
+            self._progress.mark_stage(
+                batch_job_id,
+                "split",
+                status="running",
+                job_status="running",
+                detail="Downloading source PDF",
             )
-            child_documents.append({
-                "document_id": child_id,
-                "slip_index": i,
-                "storage_key": child_key,
-            })
 
-        return {
-            "batch_job_id": batch_job_id,
-            "total_slips": len(splits),
-            "child_documents": child_documents,
-            "status": "split_complete",
-        }
+            storage_key = f"documents/{document_id}"
+            import asyncio
+
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            pdf_bytes = loop.run_until_complete(storage.download(storage_key))
+
+            splits = self._split_pdf(pdf_bytes)
+            child_documents = []
+
+            for i, split_bytes in enumerate(splits):
+                child_id = str(uuid4())
+                child_key = f"documents/{child_id}"
+                loop.run_until_complete(storage.upload(child_key, split_bytes, "application/pdf"))
+                child_documents.append(
+                    {
+                        "document_id": child_id,
+                        "slip_index": i,
+                        "storage_key": child_key,
+                    }
+                )
+
+            self._progress.mark_stage(
+                batch_job_id,
+                "split",
+                status="completed",
+                total_slips=len(splits),
+                detail=f"Split into {len(splits)} slip(s)",
+            )
+            self._progress.mark_stage(
+                batch_job_id,
+                "ocr",
+                status="skipped",
+                detail="OCR per-slip wiring pending — documents stored for downstream processing",
+            )
+            self._progress.mark_stage(
+                batch_job_id,
+                "parser",
+                status="skipped",
+                detail="Parser per-slip wiring pending",
+            )
+            self._progress.mark_stage(
+                batch_job_id,
+                "identify",
+                status="skipped",
+                detail="National-ID matching runs when OCR/parser fields are available",
+            )
+            self._progress.mark_stage(
+                batch_job_id,
+                "validation",
+                status="skipped",
+                detail="Validation wiring pending for batch children",
+            )
+            self._progress.mark_stage(
+                batch_job_id,
+                "report",
+                status="completed",
+                job_status="completed",
+                processed_slips=len(splits),
+                report_summary={
+                    "total": len(splits),
+                    "passed": 0,
+                    "warnings": 0,
+                    "critical": 0,
+                    "pending_pipeline": len(splits),
+                },
+                detail="Split complete; downstream validation not yet executed",
+            )
+
+            return {
+                "batch_job_id": batch_job_id,
+                "total_slips": len(splits),
+                "child_documents": child_documents,
+                "status": "split_complete",
+            }
+        except Exception as exc:  # noqa: BLE001 — surface failure into progress store
+            self._progress.mark_stage(
+                batch_job_id,
+                "split",
+                status="failed",
+                job_status="failed",
+                error_message=str(exc),
+                detail=str(exc),
+            )
+            raise
+
+    def enqueue_low_confidence_match(
+        self,
+        *,
+        batch_job_id: str,
+        confidence: float | None,
+        national_id_masked: str | None,
+        extracted_fields: dict | None = None,
+    ) -> str | None:
+        """Called by future identify stage — never auto-creates employees."""
+        if not should_enqueue_low_confidence(confidence):
+            return None
+        item = get_manual_review_queue().enqueue(
+            reason="low_confidence_employee_identification",
+            confidence=confidence,
+            batch_job_id=batch_job_id,
+            national_id_masked=national_id_masked,
+            extracted_fields=extracted_fields or {},
+        )
+        return item.id
 
     def _split_pdf(self, pdf_bytes: bytes) -> list[bytes]:
-        """Split PDF into individual payslips using page boundary detection."""
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         splits: list[bytes] = []
         current_pages: list[int] = []

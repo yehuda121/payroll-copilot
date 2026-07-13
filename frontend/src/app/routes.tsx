@@ -15,6 +15,8 @@ import { BatchProcessingMonitorPage } from '../pages/accountant/BatchProcessingM
 import { BulkPayrollUploadPage } from '../pages/accountant/BulkPayrollUpload';
 import { EditEmployeePage } from '../pages/accountant/EditEmployee';
 import { EmployeeManagementPage } from '../pages/accountant/EmployeeManagement';
+import { EmployeeProfilePage } from '../pages/accountant/EmployeeProfile';
+import { PayrollRulesPage } from '../pages/accountant/PayrollRules';
 import { ValidationFindingsPage } from '../pages/accountant/ValidationFindings';
 import { AdminAuditLogsPage } from '../pages/admin/AdminAuditLogs';
 import { AiModelsPage } from '../pages/admin/AiModels';
@@ -72,9 +74,11 @@ export function AppRoutes() {
             <Route path="/accountant" element={<AccountantDashboardPage />} />
             <Route path="/accountant/employees" element={<EmployeeManagementPage />} />
             <Route path="/accountant/employees/add" element={<AddEmployeePage />} />
+            <Route path="/accountant/employees/:employeeNumber" element={<EmployeeProfilePage />} />
             <Route path="/accountant/employees/:employeeNumber/edit" element={<EditEmployeePage />} />
             <Route path="/accountant/bulk-upload" element={<BulkPayrollUploadPage />} />
             <Route path="/accountant/batch-monitor" element={<BatchProcessingMonitorPage />} />
+            <Route path="/accountant/rules" element={<PayrollRulesPage />} />
             <Route path="/accountant/findings" element={<ValidationFindingsPage />} />
             <Route path="/accountant/approvals" element={<ApprovalQueuePage />} />
             <Route path="/accountant/audit-logs" element={<AccountantAuditLogsPage />} />

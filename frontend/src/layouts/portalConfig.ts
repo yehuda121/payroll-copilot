@@ -16,18 +16,18 @@ export const EMPLOYEE_PORTAL: PortalConfig = {
 };
 
 export const ACCOUNTANT_PORTAL: PortalConfig = {
-  portalName: 'Accountant Portal',
-  portalSubtitle: 'Bulk validation & workforce management',
+  portalNameKey: 'accountant.navigation.portalName',
+  portalSubtitleKey: 'accountant.navigation.portalSubtitle',
   basePath: '/accountant',
   navItems: [
-    { label: 'Dashboard', path: '/accountant' },
-    { label: 'Employee Management', path: '/accountant/employees' },
-    { label: 'Add Employee', path: '/accountant/employees/add' },
-    { label: 'Bulk Payroll Upload', path: '/accountant/bulk-upload' },
-    { label: 'Batch Monitor', path: '/accountant/batch-monitor' },
-    { label: 'Validation Findings', path: '/accountant/findings' },
-    { label: 'Approval Queue', path: '/accountant/approvals' },
-    { label: 'Audit Logs', path: '/accountant/audit-logs' },
+    { labelKey: 'accountant.navigation.dashboard', path: '/accountant' },
+    { labelKey: 'accountant.navigation.employees', path: '/accountant/employees' },
+    { labelKey: 'accountant.navigation.bulkUpload', path: '/accountant/bulk-upload' },
+    { labelKey: 'accountant.navigation.batchMonitor', path: '/accountant/batch-monitor' },
+    { labelKey: 'accountant.navigation.rules', path: '/accountant/rules' },
+    { labelKey: 'accountant.navigation.findings', path: '/accountant/findings' },
+    { labelKey: 'accountant.navigation.manualReview', path: '/accountant/approvals' },
+    { labelKey: 'accountant.navigation.auditLogs', path: '/accountant/audit-logs' },
   ],
 };
 

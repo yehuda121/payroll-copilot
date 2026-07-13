@@ -22,13 +22,14 @@ Honest snapshot of what exists today. "Partial" means real code runs but a downs
 - **Public Guest Experience (frontend)** — landing page, Payroll Assistant chat (**safe Markdown rendering** for assistant answers), Validate-My-Payslip upload/review/results flow, enterprise validation report with honest scope.
 - **LangGraph Payroll Assistant (backend)** — `POST /assistant/chat` with input/output guardrails, greeting handling, and keyword search over approved YAML legal rules.
 - **Ollama integration** — host-first URL resolution with optional Docker fallback and graceful degradation when unavailable.
-- **i18n foundation** — Hebrew / English / Arabic UI + RTL, locale-aware API responses and assistant answers (OCR language extraction not connected).
+- **i18n foundation** — Hebrew / English / Arabic UI + RTL, locale-aware API responses and assistant answers (OCR language extraction not connected). **Payroll Accountant Portal UI** is fully covered under the existing i18next locale files (`accountant.*` + shared `common`/`portal` keys).
 - **Database schema & Alembic migrations**, **Docker Compose orchestration**, **guest JWT tokens** (`POST /auth/guest/session`).
 
 ### Partially implemented
 - **Supporting document analysis** — attendance / contract / national ID can be uploaded, but extraction/cross-check is not connected yet (scope stays unable for those areas).
 - **Assistant legal search** — keyword search over local YAML rules only; **no vector RAG** yet.
-- **Role-based portals (employee/accountant/admin)** — UI foundation exists; most portal pages are not wired to the backend.
+- **Role-based portals (employee/accountant/admin)** — UI foundation exists; accountant portal now has a production-oriented foundation (employees, profile, rules, batch progress, audit, manual review). Employee/admin pages remain largely unwired.
+- **Payroll Accountant Portal foundation** — employee master-data API (separate from auth users), extensible document-type + validation-module catalogs, employee profile with document collections / monthly expectations, rule browse/edit with versioning + audit + rollback, bulk PDF upload with stage progress store, national-ID match helper, low-confidence manual review queue, enterprise dialogs (no browser `alert`/`confirm`), batch navigation/`beforeunload` guards. Downstream OCR→parser→identify→validate wiring for each split slip is still incremental (stages marked skipped honestly).
 - **Guest sessions** — guest JWT is issued and sent, but there is **no `guest_sessions` DB table** and routes do not yet enforce the token.
 
 ### Planned but not built
@@ -36,7 +37,7 @@ Honest snapshot of what exists today. "Partial" means real code runs but a downs
 - Contract / attendance / national-ID analysis.
 - Historical payroll comparison.
 - Production auth (AWS Cognito) and full RBAC enforcement.
-- Batch bulk-PDF splitting/identification pipeline (endpoints are stubs).
+- Batch bulk-PDF OCR/parser/identify/validate wiring (split + progress foundation exists; per-slip pipeline incomplete).
 - MCP Kol Zchut legal sync automation.
 - RTL / i18n UI.
 
@@ -479,7 +480,7 @@ The frontend provides three portals after login:
 
 **Employee Portal** — Dashboard, document upload, payslips, attendance, contract, AI chat (explanations only), validation history.
 
-**Payroll Accountant Portal** — Employee management table, bulk payroll upload, batch monitor, validation findings, approval queue, audit logs.
+**Payroll Accountant Portal** — Dashboard, employee management (CRUD/disable/search), employee profile (document collections + monthly history), bulk payroll upload, batch monitor with pipeline stages, payroll rules (versioned edit/rollback), validation findings, manual review / approvals, audit logs.
 
 **Developer/Admin Portal** — Rule packs, department rules, MCP legal sync, AI models, RAG management, system configuration, **Document Lab** (developer debugging).
 
