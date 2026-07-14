@@ -18,6 +18,21 @@ class DocumentRepository(ABC):
     async def save(self, document: Document) -> Document:
         ...
 
+    async def list_for_employee(
+        self,
+        *,
+        organization_id: UUID,
+        employee_id: UUID,
+    ) -> list[Document]:
+        """Optional listing API — default empty for stubs; SQLAlchemy overrides."""
+        raise NotImplementedError
+
+    async def list_by_dataset_id(self, *, dataset_id: str) -> list[Document]:
+        raise NotImplementedError
+
+    async def delete_by_ids(self, document_ids: list[UUID]) -> int:
+        raise NotImplementedError
+
 
 class DocumentExtractionRepository(ABC):
     @abstractmethod

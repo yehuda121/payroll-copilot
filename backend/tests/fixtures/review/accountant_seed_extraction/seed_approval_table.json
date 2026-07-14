@@ -1,0 +1,3029 @@
+{
+  "marker": "REVIEW ONLY — NOT APPROVED SEED DATA",
+  "generated_at": "2026-07-14T11:44:27.154506+00:00",
+  "source_report": "extraction_report.json",
+  "rules": {
+    "parser_values_used": false,
+    "inference_allowed": false,
+    "silent_ocr_correction": false,
+    "grouping": "exact_high_confidence_national_id_only_pending_human_confirm",
+    "validation_findings_generated": false,
+    "db_records_created": false,
+    "final_seed_created": false
+  },
+  "summary": {
+    "pages_reviewed": 15,
+    "proposed_employees_id_grouped": 7,
+    "proposed_employee_entries_total": 8,
+    "ungrouped_pages": 1,
+    "field_status_counts": {
+      "REVIEW_REQUIRED": 186,
+      "MISSING": 57,
+      "CONFLICTING": 7,
+      "UNREADABLE": 5
+    },
+    "confidently_extracted_fields": 0,
+    "fields_requiring_manual_confirmation": 198,
+    "conflicts": 7,
+    "missing_fields": 57
+  },
+  "proposed_employees": [
+    {
+      "proposed_fixture_employee_key": "emp_nid_d7c0b66f9cea",
+      "national_id_masked": "30****19",
+      "national_id_digits_local_only": "304913619",
+      "payslip_keys": [
+        "valid_payslips_valid_2026_06_multi_p01",
+        "invalid_payslips_invalid_2026_07_multi_p01"
+      ],
+      "names_observed_ocr": [
+        "סבירסקי אורית"
+      ],
+      "grouping_basis": "exact_national_id_digits_pending_human_confirm",
+      "grouping_confidence": "pending_human_id_confirmation"
+    },
+    {
+      "proposed_fixture_employee_key": "emp_nid_21a7b7d1eead",
+      "national_id_masked": "31****98",
+      "national_id_digits_local_only": "310031398",
+      "payslip_keys": [
+        "valid_payslips_valid_2026_06_multi_p02",
+        "invalid_payslips_invalid_2026_07_multi_p02"
+      ],
+      "names_observed_ocr": [
+        "סבירסקי יונה לב"
+      ],
+      "grouping_basis": "exact_national_id_digits_pending_human_confirm",
+      "grouping_confidence": "pending_human_id_confirmation"
+    },
+    {
+      "proposed_fixture_employee_key": "emp_nid_5d945bcea62c",
+      "national_id_masked": "33****46",
+      "national_id_digits_local_only": "337403646",
+      "payslip_keys": [
+        "valid_payslips_valid_2026_06_multi_p03",
+        "invalid_payslips_invalid_2026_07_multi_p03"
+      ],
+      "names_observed_ocr": [
+        "אביגיל תמר סבירסקי"
+      ],
+      "grouping_basis": "exact_national_id_digits_pending_human_confirm",
+      "grouping_confidence": "pending_human_id_confirmation"
+    },
+    {
+      "proposed_fixture_employee_key": "emp_nid_17f2d60c389c",
+      "national_id_masked": "22****96",
+      "national_id_digits_local_only": "223351396",
+      "payslip_keys": [
+        "valid_payslips_valid_2026_06_multi_p04",
+        "invalid_payslips_invalid_2026_07_multi_p04"
+      ],
+      "names_observed_ocr": [
+        "יעקב ישראל סבירסקי"
+      ],
+      "grouping_basis": "exact_national_id_digits_pending_human_confirm",
+      "grouping_confidence": "pending_human_id_confirmation"
+    },
+    {
+      "proposed_fixture_employee_key": "emp_nid_94329fe7354f",
+      "national_id_masked": "31****83",
+      "national_id_digits_local_only": "313366783",
+      "payslip_keys": [
+        "valid_payslips_valid_2026_06_multi_p05",
+        "invalid_payslips_invalid_2026_07_multi_p05"
+      ],
+      "names_observed_ocr": [
+        "שמולבי\\ יהודה"
+      ],
+      "grouping_basis": "exact_national_id_digits_pending_human_confirm",
+      "grouping_confidence": "pending_human_id_confirmation"
+    },
+    {
+      "proposed_fixture_employee_key": "emp_nid_fd0509db7499",
+      "national_id_masked": "15****52",
+      "national_id_digits_local_only": "154263552",
+      "payslip_keys": [
+        "valid_payslips_valid_2026_06_multi_p06",
+        "invalid_payslips_invalid_2026_07_multi_p06"
+      ],
+      "names_observed_ocr": [
+        "יעל ויטלין"
+      ],
+      "grouping_basis": "exact_national_id_digits_pending_human_confirm",
+      "grouping_confidence": "pending_human_id_confirmation"
+    },
+    {
+      "proposed_fixture_employee_key": "emp_nid_9462ed1ce6ec",
+      "national_id_masked": "56****34",
+      "national_id_digits_local_only": "563270834",
+      "payslip_keys": [
+        "valid_payslips_valid_2026_06_multi_p07",
+        "invalid_payslips_invalid_2026_07_multi_p07"
+      ],
+      "names_observed_ocr": [
+        "רחל בנימלני"
+      ],
+      "grouping_basis": "exact_national_id_digits_pending_human_confirm",
+      "grouping_confidence": "pending_human_id_confirmation"
+    },
+    {
+      "proposed_fixture_employee_key": "emp_ungrouped_valid_payslip_valid_2026_06_employee_001_p01",
+      "national_id_masked": null,
+      "national_id_digits_local_only": null,
+      "payslip_keys": [
+        "valid_payslip_valid_2026_06_employee_001_p01"
+      ],
+      "names_observed_ocr": [],
+      "grouping_basis": "ungrouped_pending_review",
+      "grouping_confidence": "none"
+    }
+  ],
+  "pages": [
+    {
+      "payslip_key": "valid_payslips_valid_2026_06_multi_p01",
+      "proposed_fixture_employee_key": "emp_nid_d7c0b66f9cea",
+      "source_file": "valid/payslips_valid_2026_06_multi.pdf",
+      "source_page": 1,
+      "fixture_intent": "valid",
+      "ocr_confidence": 0.8689655172413793,
+      "layout_note": "Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "grouping": {
+        "eligible_for_id_grouping": true,
+        "national_id_digits": "304913619",
+        "national_id_masked": "30****19",
+        "note": "Proposed grouping by exact national ID digits only after human confirms ID."
+      },
+      "fields": {
+        "employee_name": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "סבירסקי אורית",
+          "normalized_candidate": null,
+          "source_text": "סבירסקי אורית",
+          "evidence_ids": [
+            "p1_l17"
+          ],
+          "reviewer_notes": "Hebrew name candidate immediately above ת\"ז. Confirm against source PDF (do not auto-fix OCR)."
+        },
+        "national_id": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "30491361-9",
+          "normalized_candidate": "304913619",
+          "source_text": "30491361-9",
+          "evidence_ids": [
+            "p1_l19"
+          ],
+          "reviewer_notes": "National ID candidate immediately below ת\"ז. Digits-only normalize only when 8–9 digits. Must be human-confirmed before grouping/seed."
+        },
+        "employee_number": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "מס' עובד:",
+          "evidence_ids": [
+            "p1_l13"
+          ],
+          "reviewer_notes": "Employee-number label present; no value clearly OCR'd beside it."
+        },
+        "payroll_month": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6/26",
+          "normalized_candidate": 6,
+          "source_text": "6/26",
+          "evidence_ids": [
+            "p1_l1"
+          ],
+          "reviewer_notes": "Header token interpreted as MM/YY → month=6, year=2026. Confirm vs printed slip (fixture path suggests 6/2026 but is not evidence)."
+        },
+        "payroll_year": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6/26",
+          "normalized_candidate": 2026,
+          "source_text": "6/26",
+          "evidence_ids": [
+            "p1_l1"
+          ],
+          "reviewer_notes": "Header token interpreted as MM/YY → month=6, year=2026. Confirm vs printed slip (fixture path suggests 6/2026 but is not evidence)."
+        },
+        "base_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "8,000.00",
+          "normalized_candidate": 8000.0,
+          "source_text": "8,000.00",
+          "evidence_ids": [
+            "p1_l56",
+            "p1_l58"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שכר יסוד'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "gross_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "8,872.30",
+          "normalized_candidate": 8872.3,
+          "source_text": "8,872.30",
+          "evidence_ids": [
+            "p1_l79",
+            "p1_l78"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'סה\"כ תשלומים'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "net_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p1_l106",
+            "p1_l108"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נטו לתשלום'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "regular_hours": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "182.00",
+          "normalized_candidate": 182.0,
+          "source_text": "182.00",
+          "evidence_ids": [
+            "p1_l21",
+            "p1_l22"
+          ],
+          "reviewer_notes": "Hours candidate near label; verify against PDF (OCR often swaps columns)."
+        },
+        "overtime_hours": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "54.93",
+          "normalized_candidate": 54.93,
+          "source_text": "54.93",
+          "evidence_ids": [
+            "p1_l70",
+            "p1_l71"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שעות נוספות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "travel_reimbursement": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "323.00",
+          "normalized_candidate": 323.0,
+          "source_text": "323.00",
+          "evidence_ids": [
+            "p1_l63",
+            "p1_l64"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נסיעות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "income_tax": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "8,000.00",
+          "normalized_candidate": 8000.0,
+          "source_text": "8,000.00",
+          "evidence_ids": [
+            "p1_l54",
+            "p1_l53"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס הכנסה 14% שולי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "national_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "162.00",
+          "normalized_candidate": 162.0,
+          "source_text": "162.00",
+          "evidence_ids": [
+            "p1_l60",
+            "p1_l59"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ביטוח לאומי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "health_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "309.00",
+          "normalized_candidate": 309.0,
+          "source_text": "309.00",
+          "evidence_ids": [
+            "p1_l65",
+            "p1_l66"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס בריאות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "pension_deductions": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "54.93",
+          "normalized_candidate": 54.93,
+          "source_text": "54.93",
+          "evidence_ids": [
+            "p1_l70",
+            "p1_l72"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ניכוי לגמל'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "other_earnings": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "שעות נוספות; גילום",
+          "normalized_candidate": null,
+          "source_text": "שעות נוספות; גילום",
+          "evidence_ids": [
+            "p1_l71",
+            "p1_l48"
+          ],
+          "reviewer_notes": "Additional earning-related labels present; extract specific amounts from PDF columns (not auto-summed)."
+        },
+        "other_deductions": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No extra deduction labels clearly identified beyond tax/NI/health/pension exploration."
+        }
+      },
+      "page_review_status": "REVIEW_REQUIRED",
+      "page_reviewer_notes": "Parser values intentionally ignored. All monetary/identity fields need human PDF confirmation. Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "ocr_text_preview": "6/26\nתלוש משכורת\nתאריך הדפסה 08/07/26\nPAYROLCOPYLOT\nתיק נ. ב\"ל\n93511111100\n935111111\nתיק ניכויים\nהדגמה בלבד 32 אלעד 4080234\nתיק במ\"ה\nטלפון:\nפקס :\nמס' עובד:\nהתחלת עבודה\n6 ותק-שנים:\n\"(0\nסבירסקי אורית\nת\"ז\n30491361-9\n182.00\n182.00\nועות עבודה\nמתוך:\nמחלקה:\n22.00\n22.00\nוימי עבודה\nמתוך:\n100.00\n43.96\nהיקף משרה %\nתע' שעה:\nדרגה:\nהלל\n2 (דירה 3)\nק/סניף:\nרוג':\nחשבון:\nאלעד\n4080234\n|מינימום לחודש:\nלשעה:\n6,443.85\n"
+    },
+    {
+      "payslip_key": "valid_payslips_valid_2026_06_multi_p02",
+      "proposed_fixture_employee_key": "emp_nid_21a7b7d1eead",
+      "source_file": "valid/payslips_valid_2026_06_multi.pdf",
+      "source_page": 2,
+      "fixture_intent": "valid",
+      "ocr_confidence": 0.8700701754385964,
+      "layout_note": "Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "grouping": {
+        "eligible_for_id_grouping": true,
+        "national_id_digits": "310031398",
+        "national_id_masked": "31****98",
+        "note": "Proposed grouping by exact national ID digits only after human confirms ID."
+      },
+      "fields": {
+        "employee_name": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "סבירסקי יונה לב",
+          "normalized_candidate": null,
+          "source_text": "סבירסקי יונה לב",
+          "evidence_ids": [
+            "p2_l17"
+          ],
+          "reviewer_notes": "Hebrew name candidate immediately above ת\"ז. Confirm against source PDF (do not auto-fix OCR)."
+        },
+        "national_id": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "31003139-8",
+          "normalized_candidate": "310031398",
+          "source_text": "31003139-8",
+          "evidence_ids": [
+            "p2_l19"
+          ],
+          "reviewer_notes": "National ID candidate immediately below ת\"ז. Digits-only normalize only when 8–9 digits. Must be human-confirmed before grouping/seed."
+        },
+        "employee_number": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "מס' עובד:",
+          "evidence_ids": [
+            "p2_l13"
+          ],
+          "reviewer_notes": "Employee-number label present; no value clearly OCR'd beside it."
+        },
+        "payroll_month": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6/26",
+          "normalized_candidate": 6,
+          "source_text": "6/26",
+          "evidence_ids": [
+            "p2_l1"
+          ],
+          "reviewer_notes": "Header token interpreted as MM/YY → month=6, year=2026. Confirm vs printed slip (fixture path suggests 6/2026 but is not evidence)."
+        },
+        "payroll_year": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6/26",
+          "normalized_candidate": 2026,
+          "source_text": "6/26",
+          "evidence_ids": [
+            "p2_l1"
+          ],
+          "reviewer_notes": "Header token interpreted as MM/YY → month=6, year=2026. Confirm vs printed slip (fixture path suggests 6/2026 but is not evidence)."
+        },
+        "base_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "7,500.00",
+          "normalized_candidate": 7500.0,
+          "source_text": "7,500.00",
+          "evidence_ids": [
+            "p2_l53",
+            "p2_l56"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שכר יסוד'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "gross_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "7,839.00",
+          "normalized_candidate": 7839.0,
+          "source_text": "7,839.00",
+          "evidence_ids": [
+            "p2_l73",
+            "p2_l72"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'סה\"כ תשלומים'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "net_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p2_l100",
+            "p2_l102"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נטו לתשלום'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "regular_hours": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "120.00",
+          "normalized_candidate": 120.0,
+          "source_text": "120.00",
+          "evidence_ids": [
+            "p2_l21",
+            "p2_l22"
+          ],
+          "reviewer_notes": "Hours candidate near label; verify against PDF (OCR often swaps columns)."
+        },
+        "overtime_hours": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['שעות נוספות'] not found in OCR."
+        },
+        "travel_reimbursement": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "22.60",
+          "normalized_candidate": 22.6,
+          "source_text": "22.60",
+          "evidence_ids": [
+            "p2_l62",
+            "p2_l63"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נסיעות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "income_tax": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "7,500.00",
+          "normalized_candidate": 7500.0,
+          "source_text": "7,500.00",
+          "evidence_ids": [
+            "p2_l53",
+            "p2_l52"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס הכנסה 14% שולי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "national_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "90.00",
+          "normalized_candidate": 90.0,
+          "source_text": "90.00",
+          "evidence_ids": [
+            "p2_l58",
+            "p2_l57"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ביטוח לאומי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "health_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "256.00",
+          "normalized_candidate": 256.0,
+          "source_text": "256.00",
+          "evidence_ids": [
+            "p2_l64",
+            "p2_l65"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס בריאות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "pension_deductions": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "256.00",
+          "normalized_candidate": 256.0,
+          "source_text": "256.00",
+          "evidence_ids": [
+            "p2_l64",
+            "p2_l66"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ניכוי לגמל'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "other_earnings": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "גילום",
+          "normalized_candidate": null,
+          "source_text": "גילום",
+          "evidence_ids": [
+            "p2_l47"
+          ],
+          "reviewer_notes": "Additional earning-related labels present; extract specific amounts from PDF columns (not auto-summed)."
+        },
+        "other_deductions": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No extra deduction labels clearly identified beyond tax/NI/health/pension exploration."
+        }
+      },
+      "page_review_status": "REVIEW_REQUIRED",
+      "page_reviewer_notes": "Parser values intentionally ignored. All monetary/identity fields need human PDF confirmation. Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "ocr_text_preview": "6/26\nתלוש משכורת\nתאריך הדפסה 08/07/26\nPAYROLCOPYLOT\nתיק נ. ב\"ל\n93511111100\n935111111\nתיק ניכויים\nהדגמה בלבד 32 אלעד 4080234\nתיק במ\"ה\nטלפון:\nפקס :\nמס' עובד:\nNanna}‏ עבודה:\n6 ותק-שנים:\n\"(0\nסבירסקי יונה לב\nת\"ז\n31003139-8\n120.00\n120.00\nועות עבודה:\nמתוך:\nמחלקה:\n15.00\n15.00\nימי עבודה:\nמתוך:\n62.50\nהיקף משרה %\nתע' שעה:\nדרגה:\nהלל\n2 (דירה 3)\nק/סניף:\nרוג':\nחשבון:\nאלעד\n4080234\n|מינימום לחודש:\nלשעה:\nלפי ימים\n6"
+    },
+    {
+      "payslip_key": "valid_payslips_valid_2026_06_multi_p03",
+      "proposed_fixture_employee_key": "emp_nid_5d945bcea62c",
+      "source_file": "valid/payslips_valid_2026_06_multi.pdf",
+      "source_page": 3,
+      "fixture_intent": "valid",
+      "ocr_confidence": 0.8707380073800738,
+      "layout_note": "Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "grouping": {
+        "eligible_for_id_grouping": true,
+        "national_id_digits": "337403646",
+        "national_id_masked": "33****46",
+        "note": "Proposed grouping by exact national ID digits only after human confirms ID."
+      },
+      "fields": {
+        "employee_name": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "אביגיל תמר סבירסקי",
+          "normalized_candidate": null,
+          "source_text": "אביגיל תמר סבירסקי",
+          "evidence_ids": [
+            "p3_l17"
+          ],
+          "reviewer_notes": "Hebrew name candidate immediately above ת\"ז. Confirm against source PDF (do not auto-fix OCR)."
+        },
+        "national_id": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "33740364-6",
+          "normalized_candidate": "337403646",
+          "source_text": "33740364-6",
+          "evidence_ids": [
+            "p3_l19"
+          ],
+          "reviewer_notes": "National ID candidate immediately below ת\"ז. Digits-only normalize only when 8–9 digits. Must be human-confirmed before grouping/seed."
+        },
+        "employee_number": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "מס' עובד:",
+          "evidence_ids": [
+            "p3_l13"
+          ],
+          "reviewer_notes": "Employee-number label present; no value clearly OCR'd beside it."
+        },
+        "payroll_month": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6/26",
+          "normalized_candidate": 6,
+          "source_text": "6/26",
+          "evidence_ids": [
+            "p3_l1"
+          ],
+          "reviewer_notes": "Header token interpreted as MM/YY → month=6, year=2026. Confirm vs printed slip (fixture path suggests 6/2026 but is not evidence)."
+        },
+        "payroll_year": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6/26",
+          "normalized_candidate": 2026,
+          "source_text": "6/26",
+          "evidence_ids": [
+            "p3_l1"
+          ],
+          "reviewer_notes": "Header token interpreted as MM/YY → month=6, year=2026. Confirm vs printed slip (fixture path suggests 6/2026 but is not evidence)."
+        },
+        "base_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6,442.80",
+          "normalized_candidate": 6442.8,
+          "source_text": "6,442.80",
+          "evidence_ids": [
+            "p3_l53",
+            "p3_l56"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שכר יסוד'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "gross_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6,765.80",
+          "normalized_candidate": 6765.8,
+          "source_text": "6,765.80",
+          "evidence_ids": [
+            "p3_l70",
+            "p3_l69"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'סה\"כ תשלומים'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "net_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p3_l97",
+            "p3_l99"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נטו לתשלום'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "regular_hours": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "182.00",
+          "normalized_candidate": 182.0,
+          "source_text": "182.00",
+          "evidence_ids": [
+            "p3_l21",
+            "p3_l22"
+          ],
+          "reviewer_notes": "Hours candidate near label; verify against PDF (OCR often swaps columns)."
+        },
+        "overtime_hours": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['שעות נוספות'] not found in OCR."
+        },
+        "travel_reimbursement": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "323.00",
+          "normalized_candidate": 323.0,
+          "source_text": "323.00",
+          "evidence_ids": [
+            "p3_l60",
+            "p3_l61"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נסיעות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "income_tax": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6,442.80",
+          "normalized_candidate": 6442.8,
+          "source_text": "6,442.80",
+          "evidence_ids": [
+            "p3_l53",
+            "p3_l52"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס הכנסה 10% שולי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "national_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p3_l58",
+            "p3_l57"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ביטוח לאומי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "health_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "323.00",
+          "normalized_candidate": 323.0,
+          "source_text": "323.00",
+          "evidence_ids": [
+            "p3_l60",
+            "p3_l62"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס בריאות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "pension_deductions": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "323.00",
+          "normalized_candidate": 323.0,
+          "source_text": "323.00",
+          "evidence_ids": [
+            "p3_l60",
+            "p3_l63"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ניכוי לגמל'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "other_earnings": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "גילום",
+          "normalized_candidate": null,
+          "source_text": "גילום",
+          "evidence_ids": [
+            "p3_l47"
+          ],
+          "reviewer_notes": "Additional earning-related labels present; extract specific amounts from PDF columns (not auto-summed)."
+        },
+        "other_deductions": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No extra deduction labels clearly identified beyond tax/NI/health/pension exploration."
+        }
+      },
+      "page_review_status": "REVIEW_REQUIRED",
+      "page_reviewer_notes": "Parser values intentionally ignored. All monetary/identity fields need human PDF confirmation. Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "ocr_text_preview": "6/26\nתלוש משכורת\nתאריך הדפסה 08/07/26\nPAYROLCOPYLOT\nתיק נ. ב\"ל\n93511111100\n935111111\nתיק ניכויים\nהדגמה בלבד 32 אלעד 4080234\nתיק במ\"ה\nטלפון:\nפקס :\nמס' עובד:\nNanna}‏ עבודה:\n6 ותק-שנים:\n\"(0\nאביגיל תמר סבירסקי\nת\"ז\n33740364-6\n182.00\n182.00\nועות עבודה:\nמתוך:\nמחלקה:\n22.00\n22.00\nימי עבודה:\nמתוך:\n35.40\nהיקף משרה %\nתע' שעה:\nדרגה:\nהלל\n32\nק/סניף:\nדרוג :\nחשבון:\nאלעד\n408\n|מינימום לחודש:\nלשעה:\nלפי שעות\n4,510.69\n"
+    },
+    {
+      "payslip_key": "valid_payslips_valid_2026_06_multi_p04",
+      "proposed_fixture_employee_key": "emp_nid_17f2d60c389c",
+      "source_file": "valid/payslips_valid_2026_06_multi.pdf",
+      "source_page": 4,
+      "fixture_intent": "valid",
+      "ocr_confidence": 0.8703460207612457,
+      "layout_note": "Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "grouping": {
+        "eligible_for_id_grouping": true,
+        "national_id_digits": "223351396",
+        "national_id_masked": "22****96",
+        "note": "Proposed grouping by exact national ID digits only after human confirms ID."
+      },
+      "fields": {
+        "employee_name": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "יעקב ישראל סבירסקי",
+          "normalized_candidate": null,
+          "source_text": "יעקב ישראל סבירסקי",
+          "evidence_ids": [
+            "p4_l17"
+          ],
+          "reviewer_notes": "Hebrew name candidate immediately above ת\"ז. Confirm against source PDF (do not auto-fix OCR)."
+        },
+        "national_id": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "22335139-6",
+          "normalized_candidate": "223351396",
+          "source_text": "22335139-6",
+          "evidence_ids": [
+            "p4_l19"
+          ],
+          "reviewer_notes": "National ID candidate immediately below ת\"ז. Digits-only normalize only when 8–9 digits. Must be human-confirmed before grouping/seed."
+        },
+        "employee_number": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "מס' עובד:",
+          "evidence_ids": [
+            "p4_l13"
+          ],
+          "reviewer_notes": "Employee-number label present; no value clearly OCR'd beside it."
+        },
+        "payroll_month": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6/26",
+          "normalized_candidate": 6,
+          "source_text": "6/26",
+          "evidence_ids": [
+            "p4_l1"
+          ],
+          "reviewer_notes": "Header token interpreted as MM/YY → month=6, year=2026. Confirm vs printed slip (fixture path suggests 6/2026 but is not evidence)."
+        },
+        "payroll_year": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6/26",
+          "normalized_candidate": 2026,
+          "source_text": "6/26",
+          "evidence_ids": [
+            "p4_l1"
+          ],
+          "reviewer_notes": "Header token interpreted as MM/YY → month=6, year=2026. Confirm vs printed slip (fixture path suggests 6/2026 but is not evidence)."
+        },
+        "base_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "10,000.00",
+          "normalized_candidate": 10000.0,
+          "source_text": "10,000.00",
+          "evidence_ids": [
+            "p4_l51",
+            "p4_l53"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שכר יסוד'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "gross_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "12,246.04",
+          "normalized_candidate": 12246.04,
+          "source_text": "12,246.04",
+          "evidence_ids": [
+            "p4_l76",
+            "p4_l75"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'סה\"כ תשלומים'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "net_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p4_l106",
+            "p4_l108"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נטו לתשלום'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "regular_hours": {
+          "review_status": "CONFLICTING",
+          "ocr_raw": "182.00",
+          "normalized_candidate": 182.0,
+          "source_text": "182.00@p4_l21; 210.00@p4_l20; 22.00@p4_l25; 22.00@p4_l26",
+          "evidence_ids": [
+            "p4_l21",
+            "p4_l20",
+            "p4_l25",
+            "p4_l26",
+            "p4_l22"
+          ],
+          "reviewer_notes": "Multiple hour-like numbers near hours label — confirm which is reported vs base."
+        },
+        "overtime_hours": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "68.68",
+          "normalized_candidate": 68.68,
+          "source_text": "68.68",
+          "evidence_ids": [
+            "p4_l65",
+            "p4_l66"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שעות נוספות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "travel_reimbursement": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "323.00",
+          "normalized_candidate": 323.0,
+          "source_text": "323.00",
+          "evidence_ids": [
+            "p4_l58",
+            "p4_l59"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נסיעות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "income_tax": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "10,000.00",
+          "normalized_candidate": 10000.0,
+          "source_text": "10,000.00",
+          "evidence_ids": [
+            "p4_l50",
+            "p4_l49"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס הכנסה 20% שולי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "national_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "398.00",
+          "normalized_candidate": 398.0,
+          "source_text": "398.00",
+          "evidence_ids": [
+            "p4_l55",
+            "p4_l54"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ביטוח לאומי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "health_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "484.00",
+          "normalized_candidate": 484.0,
+          "source_text": "484.00",
+          "evidence_ids": [
+            "p4_l60",
+            "p4_l61"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס בריאות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "pension_deductions": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "68.68",
+          "normalized_candidate": 68.68,
+          "source_text": "68.68",
+          "evidence_ids": [
+            "p4_l65",
+            "p4_l67"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ניכוי לגמל'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "other_earnings": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "שעות נוספות; גילום",
+          "normalized_candidate": null,
+          "source_text": "שעות נוספות; גילום",
+          "evidence_ids": [
+            "p4_l66",
+            "p4_l44"
+          ],
+          "reviewer_notes": "Additional earning-related labels present; extract specific amounts from PDF columns (not auto-summed)."
+        },
+        "other_deductions": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No extra deduction labels clearly identified beyond tax/NI/health/pension exploration."
+        }
+      },
+      "page_review_status": "REVIEW_REQUIRED",
+      "page_reviewer_notes": "Parser values intentionally ignored. All monetary/identity fields need human PDF confirmation. Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "ocr_text_preview": "6/26\nתלוש משכורת\nתאריך הדפסה 08/07/26\nPAYROLCOPYLOT\nתיק נ. ב\"ל\n93511111100\n935111111\nתיק ניכויים\nהדגמה בלבד 32 אלעד 4080234\nתיק במ\"ה\nטלפון:\nפקס :\nמס' עובד:\nהתחלת עבודה\n6 ותק-שנים:\n\"(0\nיעקב ישראל סבירסקי\nת\"ז\n22335139-6\n210.00\n182.00\nועות עבודה\nמתוך:\nמחלקה:\n22.00\n22.00\nוימי עבודה\nמתוך:\n100.00\n54.95\nהיקף משרה %\nתע' שעה:\nדרגה:\nק/סניף:\nדרוג :\nחשבון:\n|מינימום לחודש:\nלשעה:\n6,443.85\n35.41\nמשרה:\nמשרה חודשי"
+    },
+    {
+      "payslip_key": "valid_payslips_valid_2026_06_multi_p05",
+      "proposed_fixture_employee_key": "emp_nid_94329fe7354f",
+      "source_file": "valid/payslips_valid_2026_06_multi.pdf",
+      "source_page": 5,
+      "fixture_intent": "valid",
+      "ocr_confidence": 0.8650310559006211,
+      "layout_note": "Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "grouping": {
+        "eligible_for_id_grouping": true,
+        "national_id_digits": "313366783",
+        "national_id_masked": "31****83",
+        "note": "Proposed grouping by exact national ID digits only after human confirms ID."
+      },
+      "fields": {
+        "employee_name": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "שמולבי\\ יהודה",
+          "normalized_candidate": null,
+          "source_text": "שמולבי\\ יהודה",
+          "evidence_ids": [
+            "p5_l17"
+          ],
+          "reviewer_notes": "Hebrew name candidate immediately above ת\"ז. Confirm against source PDF (do not auto-fix OCR). OCR contains unusual characters."
+        },
+        "national_id": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "31336678-3",
+          "normalized_candidate": "313366783",
+          "source_text": "31336678-3",
+          "evidence_ids": [
+            "p5_l19"
+          ],
+          "reviewer_notes": "National ID candidate immediately below ת\"ז. Digits-only normalize only when 8–9 digits. Must be human-confirmed before grouping/seed."
+        },
+        "employee_number": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "מס' עובד:",
+          "evidence_ids": [
+            "p5_l13"
+          ],
+          "reviewer_notes": "Employee-number label present; no value clearly OCR'd beside it."
+        },
+        "payroll_month": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6/26",
+          "normalized_candidate": 6,
+          "source_text": "6/26",
+          "evidence_ids": [
+            "p5_l1"
+          ],
+          "reviewer_notes": "Header token interpreted as MM/YY → month=6, year=2026. Confirm vs printed slip (fixture path suggests 6/2026 but is not evidence)."
+        },
+        "payroll_year": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6/26",
+          "normalized_candidate": 2026,
+          "source_text": "6/26",
+          "evidence_ids": [
+            "p5_l1"
+          ],
+          "reviewer_notes": "Header token interpreted as MM/YY → month=6, year=2026. Confirm vs printed slip (fixture path suggests 6/2026 but is not evidence)."
+        },
+        "base_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "100,000.00",
+          "normalized_candidate": 100000.0,
+          "source_text": "100,000.00",
+          "evidence_ids": [
+            "p5_l52",
+            "p5_l54"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שכר יסוד'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "gross_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "100,323.00",
+          "normalized_candidate": 100323.0,
+          "source_text": "100,323.00",
+          "evidence_ids": [
+            "p5_l84",
+            "p5_l83"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'סה\"כ תשלומים'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "net_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p5_l114",
+            "p5_l116"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נטו לתשלום'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "regular_hours": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "182.00",
+          "normalized_candidate": 182.0,
+          "source_text": "182.00",
+          "evidence_ids": [
+            "p5_l21",
+            "p5_l22"
+          ],
+          "reviewer_notes": "Hours candidate near label; verify against PDF (OCR often swaps columns)."
+        },
+        "overtime_hours": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['שעות נוספות'] not found in OCR."
+        },
+        "travel_reimbursement": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "323.00",
+          "normalized_candidate": 323.0,
+          "source_text": "323.00",
+          "evidence_ids": [
+            "p5_l59",
+            "p5_l60"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נסיעות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "income_tax": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "47,125.35",
+          "normalized_candidate": 47125.35,
+          "source_text": "47,125.35",
+          "evidence_ids": [
+            "p5_l49",
+            "p5_l50"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס הכנסה 50% שולי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "national_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "3,175.00",
+          "normalized_candidate": 3175.0,
+          "source_text": "3,175.00",
+          "evidence_ids": [
+            "p5_l56",
+            "p5_l55"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ביטוח לאומי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "health_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "3,490.00",
+          "normalized_candidate": 3490.0,
+          "source_text": "3,490.00",
+          "evidence_ids": [
+            "p5_l62",
+            "p5_l63"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס בריאות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "pension_deductions": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6,321.60",
+          "normalized_candidate": 6321.6,
+          "source_text": "6,321.60",
+          "evidence_ids": [
+            "p5_l71",
+            "p5_l72"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ניכוי לגמל'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "other_earnings": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "גילום",
+          "normalized_candidate": null,
+          "source_text": "גילום",
+          "evidence_ids": [
+            "p5_l44"
+          ],
+          "reviewer_notes": "Additional earning-related labels present; extract specific amounts from PDF columns (not auto-summed)."
+        },
+        "other_deductions": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No extra deduction labels clearly identified beyond tax/NI/health/pension exploration."
+        }
+      },
+      "page_review_status": "REVIEW_REQUIRED",
+      "page_reviewer_notes": "Parser values intentionally ignored. All monetary/identity fields need human PDF confirmation. Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "ocr_text_preview": "6/26\nתלוש משכורת\nתאריך הדפסה 08/07/26\nPAYROLCOPYLOT\nתיק נ. ב\"ל\n93511111100\n935111111\nתיק ניכויים\nהדגמה בלבד 32 אלעד 4080234\nana תיק‎\nטלפון:\nפקס :\nמס' עובד:\n|התחלת עבודה\n6 ותק-שנים:\n\"(0\nשמולבי\\ יהודה\nת\"ז\n31336678-3\n182.00\n182.00\nועות עבודה\nמתוך:\nמחלקה:\n22.00\n22.00\nוימי עבודה\nמתוך:\n100.00\n549.45\nהיקף משרה %\nתע' שעה:\nדרגה:\nק/סניף:\nדרוג :\nחשבון:\n|מינימום לחודש:\nלשעה:\n6,443.85\n35.41\nמשרה:\nמשרה חודשית\nת"
+    },
+    {
+      "payslip_key": "valid_payslips_valid_2026_06_multi_p06",
+      "proposed_fixture_employee_key": "emp_nid_fd0509db7499",
+      "source_file": "valid/payslips_valid_2026_06_multi.pdf",
+      "source_page": 6,
+      "fixture_intent": "valid",
+      "ocr_confidence": 0.8674729241877256,
+      "layout_note": "Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "grouping": {
+        "eligible_for_id_grouping": true,
+        "national_id_digits": "154263552",
+        "national_id_masked": "15****52",
+        "note": "Proposed grouping by exact national ID digits only after human confirms ID."
+      },
+      "fields": {
+        "employee_name": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "יעל ויטלין",
+          "normalized_candidate": null,
+          "source_text": "יעל ויטלין",
+          "evidence_ids": [
+            "p6_l17"
+          ],
+          "reviewer_notes": "Hebrew name candidate immediately above ת\"ז. Confirm against source PDF (do not auto-fix OCR)."
+        },
+        "national_id": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "15426355-2",
+          "normalized_candidate": "154263552",
+          "source_text": "15426355-2",
+          "evidence_ids": [
+            "p6_l19"
+          ],
+          "reviewer_notes": "National ID candidate immediately below ת\"ז. Digits-only normalize only when 8–9 digits. Must be human-confirmed before grouping/seed."
+        },
+        "employee_number": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "מס' עובד:",
+          "evidence_ids": [
+            "p6_l13"
+          ],
+          "reviewer_notes": "Employee-number label present; no value clearly OCR'd beside it."
+        },
+        "payroll_month": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6/26",
+          "normalized_candidate": 6,
+          "source_text": "6/26",
+          "evidence_ids": [
+            "p6_l1"
+          ],
+          "reviewer_notes": "Header token interpreted as MM/YY → month=6, year=2026. Confirm vs printed slip (fixture path suggests 6/2026 but is not evidence)."
+        },
+        "payroll_year": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6/26",
+          "normalized_candidate": 2026,
+          "source_text": "6/26",
+          "evidence_ids": [
+            "p6_l1"
+          ],
+          "reviewer_notes": "Header token interpreted as MM/YY → month=6, year=2026. Confirm vs printed slip (fixture path suggests 6/2026 but is not evidence)."
+        },
+        "base_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "2,200.00",
+          "normalized_candidate": 2200.0,
+          "source_text": "2,200.00",
+          "evidence_ids": [
+            "p6_l52",
+            "p6_l55"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שכר יסוד'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "gross_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "2,200.00",
+          "normalized_candidate": 2200.0,
+          "source_text": "2,200.00",
+          "evidence_ids": [
+            "p6_l67",
+            "p6_l66"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'סה\"כ תשלומים'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "net_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p6_l94",
+            "p6_l96"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נטו לתשלום'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "regular_hours": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "44.00",
+          "normalized_candidate": 44.0,
+          "source_text": "44.00",
+          "evidence_ids": [
+            "p6_l21",
+            "p6_l22"
+          ],
+          "reviewer_notes": "Hours candidate near label; verify against PDF (OCR often swaps columns)."
+        },
+        "overtime_hours": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['שעות נוספות'] not found in OCR."
+        },
+        "travel_reimbursement": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['נסיעות'] not found in OCR."
+        },
+        "income_tax": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "2,200.00",
+          "normalized_candidate": 2200.0,
+          "source_text": "2,200.00",
+          "evidence_ids": [
+            "p6_l52",
+            "p6_l51"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס הכנסה 10% שולי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "national_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "16.00",
+          "normalized_candidate": 16.0,
+          "source_text": "16.00",
+          "evidence_ids": [
+            "p6_l57",
+            "p6_l56"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ביטוח לאומי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "health_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "71.00",
+          "normalized_candidate": 71.0,
+          "source_text": "71.00",
+          "evidence_ids": [
+            "p6_l58",
+            "p6_l59"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס בריאות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "pension_deductions": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "71.00",
+          "normalized_candidate": 71.0,
+          "source_text": "71.00",
+          "evidence_ids": [
+            "p6_l58",
+            "p6_l60"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ניכוי לגמל'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "other_earnings": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "גילום",
+          "normalized_candidate": null,
+          "source_text": "גילום",
+          "evidence_ids": [
+            "p6_l46"
+          ],
+          "reviewer_notes": "Additional earning-related labels present; extract specific amounts from PDF columns (not auto-summed)."
+        },
+        "other_deductions": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No extra deduction labels clearly identified beyond tax/NI/health/pension exploration."
+        }
+      },
+      "page_review_status": "REVIEW_REQUIRED",
+      "page_reviewer_notes": "Parser values intentionally ignored. All monetary/identity fields need human PDF confirmation. Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "ocr_text_preview": "6/26\nתלוש משכורת\nתאריך הדפסה 08/07/26\nPAYROLCOPYLOT\nתיק נ. ב\"ל\n93511111100\n935111111\nתיק ניכויים\nהדגמה בלבד 32 אלעד 4080234\nתיק במ\"ה\nטלפון:\nפקס :\nמס' עובד:\nהתחלת עבודה\n6 ותק-שנים:\n\"(0\nיעל ויטלין\nת\"ז\n15426355-2\n44.00\n44.00\nועות עבודה\nמתוך:\nמחלקה:\n22.00\n22.00\nוימי עבודה\nמתוך:\n100.00\n50.00\nהיקף משרה %\nתע' שעה:\nדרגה:\nירושלים\n100\nק/סניף:\nדרוג :\nחשבון:\nטבריה\nחודשי לפי שעות |מינימום לחודש:\nלשעה:\n6,443.85"
+    },
+    {
+      "payslip_key": "valid_payslips_valid_2026_06_multi_p07",
+      "proposed_fixture_employee_key": "emp_nid_9462ed1ce6ec",
+      "source_file": "valid/payslips_valid_2026_06_multi.pdf",
+      "source_page": 7,
+      "fixture_intent": "valid",
+      "ocr_confidence": 0.8662007168458782,
+      "layout_note": "Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "grouping": {
+        "eligible_for_id_grouping": true,
+        "national_id_digits": "563270834",
+        "national_id_masked": "56****34",
+        "note": "Proposed grouping by exact national ID digits only after human confirms ID."
+      },
+      "fields": {
+        "employee_name": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "רחל בנימלני",
+          "normalized_candidate": null,
+          "source_text": "רחל בנימלני",
+          "evidence_ids": [
+            "p7_l17"
+          ],
+          "reviewer_notes": "Hebrew name candidate immediately above ת\"ז. Confirm against source PDF (do not auto-fix OCR)."
+        },
+        "national_id": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "56327083-4",
+          "normalized_candidate": "563270834",
+          "source_text": "56327083-4",
+          "evidence_ids": [
+            "p7_l19"
+          ],
+          "reviewer_notes": "National ID candidate immediately below ת\"ז. Digits-only normalize only when 8–9 digits. Must be human-confirmed before grouping/seed."
+        },
+        "employee_number": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "מס' עובד:",
+          "evidence_ids": [
+            "p7_l13"
+          ],
+          "reviewer_notes": "Employee-number label present; no value clearly OCR'd beside it."
+        },
+        "payroll_month": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6/26",
+          "normalized_candidate": 6,
+          "source_text": "6/26",
+          "evidence_ids": [
+            "p7_l1"
+          ],
+          "reviewer_notes": "Header token interpreted as MM/YY → month=6, year=2026. Confirm vs printed slip (fixture path suggests 6/2026 but is not evidence)."
+        },
+        "payroll_year": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6/26",
+          "normalized_candidate": 2026,
+          "source_text": "6/26",
+          "evidence_ids": [
+            "p7_l1"
+          ],
+          "reviewer_notes": "Header token interpreted as MM/YY → month=6, year=2026. Confirm vs printed slip (fixture path suggests 6/2026 but is not evidence)."
+        },
+        "base_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "10,000.00",
+          "normalized_candidate": 10000.0,
+          "source_text": "10,000.00",
+          "evidence_ids": [
+            "p7_l51",
+            "p7_l53"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שכר יסוד'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "gross_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "10,000.00",
+          "normalized_candidate": 10000.0,
+          "source_text": "10,000.00",
+          "evidence_ids": [
+            "p7_l70",
+            "p7_l69"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'סה\"כ תשלומים'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "net_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p7_l97",
+            "p7_l99"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נטו לתשלום'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "regular_hours": {
+          "review_status": "CONFLICTING",
+          "ocr_raw": "182.00",
+          "normalized_candidate": 182.0,
+          "source_text": "182.00@p7_l21; 165.00@p7_l20; 20.00@p7_l25; 22.00@p7_l26",
+          "evidence_ids": [
+            "p7_l21",
+            "p7_l20",
+            "p7_l25",
+            "p7_l26",
+            "p7_l22"
+          ],
+          "reviewer_notes": "Multiple hour-like numbers near hours label — confirm which is reported vs base."
+        },
+        "overtime_hours": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['שעות נוספות'] not found in OCR."
+        },
+        "travel_reimbursement": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['נסיעות'] not found in OCR."
+        },
+        "income_tax": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "10,000.00",
+          "normalized_candidate": 10000.0,
+          "source_text": "10,000.00",
+          "evidence_ids": [
+            "p7_l50",
+            "p7_l49"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס הכנסה 14% שולי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "national_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "241.00",
+          "normalized_candidate": 241.0,
+          "source_text": "241.00",
+          "evidence_ids": [
+            "p7_l55",
+            "p7_l54"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ביטוח לאומי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "health_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "368.00",
+          "normalized_candidate": 368.0,
+          "source_text": "368.00",
+          "evidence_ids": [
+            "p7_l61",
+            "p7_l62"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס בריאות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "pension_deductions": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "368.00",
+          "normalized_candidate": 368.0,
+          "source_text": "368.00",
+          "evidence_ids": [
+            "p7_l61",
+            "p7_l63"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ניכוי לגמל'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "other_earnings": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "גילום",
+          "normalized_candidate": null,
+          "source_text": "גילום",
+          "evidence_ids": [
+            "p7_l44"
+          ],
+          "reviewer_notes": "Additional earning-related labels present; extract specific amounts from PDF columns (not auto-summed)."
+        },
+        "other_deductions": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No extra deduction labels clearly identified beyond tax/NI/health/pension exploration."
+        }
+      },
+      "page_review_status": "REVIEW_REQUIRED",
+      "page_reviewer_notes": "Parser values intentionally ignored. All monetary/identity fields need human PDF confirmation. Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "ocr_text_preview": "6/26\nתלוש משכורת\nתאריך הדפסה 08/07/26\nPAYROLCOPYLOT\nתיק נ. ב\"ל\n93511111100\n935111111\nתיק ניכויים\nהדגמה בלבד 32 אלעד 4080234\nתיק במ\"ה\nטלפון:\nפקס :\nמס' עובד:\nהתחלת עבודה\n6 ותק-שנים:\n\"(0\nרחל בנימלני\nת\"ז\n56327083-4\n165.00\n182.00\nועות עבודה\nמתוך:\nמחלקה:\n20.00\n22.00\nוימי עבודה\nמתוך:\n100.00\n54.95\nהיקף משרה %\nתע' שעה:\nדרגה:\nק/סניף:\nדרוג :\nחשבון:\n|מינימום לחודש:\nלשעה:\n6,443.85\n35.41\nמשרה:\nמשרה חודשית\nתיאור"
+    },
+    {
+      "payslip_key": "invalid_payslips_invalid_2026_07_multi_p01",
+      "proposed_fixture_employee_key": "emp_nid_d7c0b66f9cea",
+      "source_file": "invalid/payslips_invalid_2026_07_multi.pdf",
+      "source_page": 1,
+      "fixture_intent": "invalid",
+      "ocr_confidence": 0.8713058419243986,
+      "layout_note": "Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "grouping": {
+        "eligible_for_id_grouping": true,
+        "national_id_digits": "304913619",
+        "national_id_masked": "30****19",
+        "note": "Proposed grouping by exact national ID digits only after human confirms ID."
+      },
+      "fields": {
+        "employee_name": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "סבירסקי אורית",
+          "normalized_candidate": null,
+          "source_text": "סבירסקי אורית",
+          "evidence_ids": [
+            "p1_l17"
+          ],
+          "reviewer_notes": "Hebrew name candidate immediately above ת\"ז. Confirm against source PDF (do not auto-fix OCR)."
+        },
+        "national_id": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "30491361-9",
+          "normalized_candidate": "304913619",
+          "source_text": "30491361-9",
+          "evidence_ids": [
+            "p1_l19"
+          ],
+          "reviewer_notes": "National ID candidate immediately below ת\"ז. Digits-only normalize only when 8–9 digits. Must be human-confirmed before grouping/seed."
+        },
+        "employee_number": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "מס' עובד:",
+          "evidence_ids": [
+            "p1_l13"
+          ],
+          "reviewer_notes": "Employee-number label present; no value clearly OCR'd beside it."
+        },
+        "payroll_month": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6",
+          "normalized_candidate": 6,
+          "source_text": "6",
+          "evidence_ids": [
+            "p1_l1"
+          ],
+          "reviewer_notes": "Only month-like header digit '6' found (no /YY). Year not on this OCR token. Fixture path suggests 2026-07 but is NOT used as value."
+        },
+        "payroll_year": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Year not printed next to month header in OCR. Fixture filename hints 2026 — human must confirm from source PDF, do not auto-fill."
+        },
+        "base_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "8,000.00",
+          "normalized_candidate": 8000.0,
+          "source_text": "8,000.00",
+          "evidence_ids": [
+            "p1_l56",
+            "p1_l58"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שכר יסוד'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "gross_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "8,150.00",
+          "normalized_candidate": 8150.0,
+          "source_text": "8,150.00",
+          "evidence_ids": [
+            "p1_l75",
+            "p1_l74"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'סה\"כ תשלומים'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "net_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p1_l100",
+            "p1_l102"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נטו לתשלום'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "regular_hours": {
+          "review_status": "CONFLICTING",
+          "ocr_raw": "182.00",
+          "normalized_candidate": 182.0,
+          "source_text": "182.00@p1_l21; 250.00@p1_l20; 31.00@p1_l25; 22.00@p1_l26",
+          "evidence_ids": [
+            "p1_l21",
+            "p1_l20",
+            "p1_l25",
+            "p1_l26",
+            "p1_l22"
+          ],
+          "reviewer_notes": "Multiple hour-like numbers near hours label — confirm which is reported vs base."
+        },
+        "overtime_hours": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['שעות נוספות'] not found in OCR."
+        },
+        "travel_reimbursement": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "15.00",
+          "normalized_candidate": 15.0,
+          "source_text": "15.00",
+          "evidence_ids": [
+            "p1_l64",
+            "p1_l65"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נסיעות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "income_tax": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "8,000.00",
+          "normalized_candidate": 8000.0,
+          "source_text": "8,000.00",
+          "evidence_ids": [
+            "p1_l55",
+            "p1_l54"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס הכנסה 14% שולי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "national_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "111.00",
+          "normalized_candidate": 111.0,
+          "source_text": "111.00",
+          "evidence_ids": [
+            "p1_l60",
+            "p1_l59"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ביטוח לאומי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "health_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "272.00",
+          "normalized_candidate": 272.0,
+          "source_text": "272.00",
+          "evidence_ids": [
+            "p1_l66",
+            "p1_l67"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס בריאות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "pension_deductions": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "272.00",
+          "normalized_candidate": 272.0,
+          "source_text": "272.00",
+          "evidence_ids": [
+            "p1_l66",
+            "p1_l68"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ניכוי לגמל'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "other_earnings": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "גילום",
+          "normalized_candidate": null,
+          "source_text": "גילום",
+          "evidence_ids": [
+            "p1_l49"
+          ],
+          "reviewer_notes": "Additional earning-related labels present; extract specific amounts from PDF columns (not auto-summed)."
+        },
+        "other_deductions": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No extra deduction labels clearly identified beyond tax/NI/health/pension exploration."
+        }
+      },
+      "page_review_status": "REVIEW_REQUIRED",
+      "page_reviewer_notes": "Parser values intentionally ignored. All monetary/identity fields need human PDF confirmation. Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "ocr_text_preview": "6\nתלוש משכורת\nתאריך הדפסה 08/07/26\nPAYROLCOPYLOT\nתיק נ. ב\"ל\n93511111100\n935111111\nתיק ניכויים\nהדגמה בלבד 32 אלעד 4080234\nתיק במ\"ה\nטלפון:\nפקס :\nמס' עובד:\nהתחלת עבודה\n6 ותק-שנים:\n\"(78\nסבירסקי אורית\nת\"ז\n30491361-9\n250.00\n182.00\nועות עבודה:\nמתוך:\nמחלקה:\n31.00\n22.00\n4חשבות שכר\nימי עבודה:\nמתוך:\n100.00\n43.96\nהיקף משרה %\nתע' שעה:\nדרגה:\nהלל\n2 (דירה 3)\nק/סניף:\nרוג':\nחשבון:\nאלעד\n4080234\n|מינימום לחודש:\nלשעה:"
+    },
+    {
+      "payslip_key": "invalid_payslips_invalid_2026_07_multi_p02",
+      "proposed_fixture_employee_key": "emp_nid_21a7b7d1eead",
+      "source_file": "invalid/payslips_invalid_2026_07_multi.pdf",
+      "source_page": 2,
+      "fixture_intent": "invalid",
+      "ocr_confidence": 0.8692465753424657,
+      "layout_note": "Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "grouping": {
+        "eligible_for_id_grouping": true,
+        "national_id_digits": "310031398",
+        "national_id_masked": "31****98",
+        "note": "Proposed grouping by exact national ID digits only after human confirms ID."
+      },
+      "fields": {
+        "employee_name": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "סבירסקי יונה לב",
+          "normalized_candidate": null,
+          "source_text": "סבירסקי יונה לב",
+          "evidence_ids": [
+            "p2_l17"
+          ],
+          "reviewer_notes": "Hebrew name candidate immediately above ת\"ז. Confirm against source PDF (do not auto-fix OCR)."
+        },
+        "national_id": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "31003139-8",
+          "normalized_candidate": "310031398",
+          "source_text": "31003139-8",
+          "evidence_ids": [
+            "p2_l19"
+          ],
+          "reviewer_notes": "National ID candidate immediately below ת\"ז. Digits-only normalize only when 8–9 digits. Must be human-confirmed before grouping/seed."
+        },
+        "employee_number": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "מס' עובד:",
+          "evidence_ids": [
+            "p2_l13"
+          ],
+          "reviewer_notes": "Employee-number label present; no value clearly OCR'd beside it."
+        },
+        "payroll_month": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6",
+          "normalized_candidate": 6,
+          "source_text": "6",
+          "evidence_ids": [
+            "p2_l1"
+          ],
+          "reviewer_notes": "Only month-like header digit '6' found (no /YY). Year not on this OCR token. Fixture path suggests 2026-07 but is NOT used as value."
+        },
+        "payroll_year": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Year not printed next to month header in OCR. Fixture filename hints 2026 — human must confirm from source PDF, do not auto-fill."
+        },
+        "base_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "15,000.00",
+          "normalized_candidate": 15000.0,
+          "source_text": "15,000.00",
+          "evidence_ids": [
+            "p2_l57",
+            "p2_l59"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שכר יסוד'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "gross_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "17,886.80",
+          "normalized_candidate": 17886.8,
+          "source_text": "17,886.80",
+          "evidence_ids": [
+            "p2_l76",
+            "p2_l75"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'סה\"כ תשלומים'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "net_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p2_l103",
+            "p2_l105"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נטו לתשלום'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "regular_hours": {
+          "review_status": "CONFLICTING",
+          "ocr_raw": "182.00",
+          "normalized_candidate": 182.0,
+          "source_text": "182.00@p2_l21; 20000@p2_l20; 5.00@p2_l25; 22.00@p2_l26",
+          "evidence_ids": [
+            "p2_l21",
+            "p2_l20",
+            "p2_l25",
+            "p2_l26",
+            "p2_l22"
+          ],
+          "reviewer_notes": "Multiple hour-like numbers near hours label — confirm which is reported vs base."
+        },
+        "overtime_hours": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "103.10",
+          "normalized_candidate": 103.1,
+          "source_text": "103.10",
+          "evidence_ids": [
+            "p2_l65",
+            "p2_l66"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שעות נוספות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "travel_reimbursement": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['נסיעות'] not found in OCR."
+        },
+        "income_tax": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "1,185.21",
+          "normalized_candidate": 1185.21,
+          "source_text": "1,185.21",
+          "evidence_ids": [
+            "p2_l54",
+            "p2_l55"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס הכנסה 20% שולי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "national_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "793.00",
+          "normalized_candidate": 793.0,
+          "source_text": "793.00",
+          "evidence_ids": [
+            "p2_l61",
+            "p2_l60"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ביטוח לאומי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "health_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "775.00",
+          "normalized_candidate": 775.0,
+          "source_text": "775.00",
+          "evidence_ids": [
+            "p2_l67",
+            "p2_l68"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס בריאות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "pension_deductions": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "775.00",
+          "normalized_candidate": 775.0,
+          "source_text": "775.00",
+          "evidence_ids": [
+            "p2_l67",
+            "p2_l69"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ניכוי לגמל'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "other_earnings": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "שעות נוספות; גילום",
+          "normalized_candidate": null,
+          "source_text": "שעות נוספות; גילום",
+          "evidence_ids": [
+            "p2_l66",
+            "p2_l49"
+          ],
+          "reviewer_notes": "Additional earning-related labels present; extract specific amounts from PDF columns (not auto-summed)."
+        },
+        "other_deductions": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No extra deduction labels clearly identified beyond tax/NI/health/pension exploration."
+        }
+      },
+      "page_review_status": "REVIEW_REQUIRED",
+      "page_reviewer_notes": "Parser values intentionally ignored. All monetary/identity fields need human PDF confirmation. Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "ocr_text_preview": "6\nתלוש משכורת\nתאריך הדפסה 08/07/26\nPAYROLCOPYLOT\nתיק נ. ב\"ל\n93511111100\n935111111\nתיק ניכויים\nהדגמה בלבד 32 אלעד 4080234\nתיק במ\"ה\nטלפון:\nפקס :\nמס' עובד:\nהתחלת עבודה\n6 ותק-שנים:\n\"(78\nסבירסקי יונה לב\nת\"ז\n31003139-8\n20000\n182.00\nועות עבודה:\nמתוך:\nמחלקה:\n5.00\n22.00\n1-עורכי דין\nימי עבודה:\nמתוך:\n100.00\n82.42\nהיקף משרה %\nתע' שעה:\nדרגה:\nהלל\n2 (דירה 3)\nק/סניף:\nרוג':\nחשבון:\nאלעד\n4080234\n|מינימום לחודש:\nלשעה"
+    },
+    {
+      "payslip_key": "invalid_payslips_invalid_2026_07_multi_p03",
+      "proposed_fixture_employee_key": "emp_nid_5d945bcea62c",
+      "source_file": "invalid/payslips_invalid_2026_07_multi.pdf",
+      "source_page": 3,
+      "fixture_intent": "invalid",
+      "ocr_confidence": 0.8688686131386861,
+      "layout_note": "Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "grouping": {
+        "eligible_for_id_grouping": true,
+        "national_id_digits": "337403646",
+        "national_id_masked": "33****46",
+        "note": "Proposed grouping by exact national ID digits only after human confirms ID."
+      },
+      "fields": {
+        "employee_name": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "אביגיל תמר סבירסקי",
+          "normalized_candidate": null,
+          "source_text": "אביגיל תמר סבירסקי",
+          "evidence_ids": [
+            "p3_l17"
+          ],
+          "reviewer_notes": "Hebrew name candidate immediately above ת\"ז. Confirm against source PDF (do not auto-fix OCR)."
+        },
+        "national_id": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "33740364-6",
+          "normalized_candidate": "337403646",
+          "source_text": "33740364-6",
+          "evidence_ids": [
+            "p3_l19"
+          ],
+          "reviewer_notes": "National ID candidate immediately below ת\"ז. Digits-only normalize only when 8–9 digits. Must be human-confirmed before grouping/seed."
+        },
+        "employee_number": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "מס' עובד:",
+          "evidence_ids": [
+            "p3_l13"
+          ],
+          "reviewer_notes": "Employee-number label present; no value clearly OCR'd beside it."
+        },
+        "payroll_month": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6",
+          "normalized_candidate": 6,
+          "source_text": "6",
+          "evidence_ids": [
+            "p3_l1"
+          ],
+          "reviewer_notes": "Only month-like header digit '6' found (no /YY). Year not on this OCR token. Fixture path suggests 2026-07 but is NOT used as value."
+        },
+        "payroll_year": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Year not printed next to month header in OCR. Fixture filename hints 2026 — human must confirm from source PDF, do not auto-fill."
+        },
+        "base_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "2,000.00",
+          "normalized_candidate": 2000.0,
+          "source_text": "2,000.00",
+          "evidence_ids": [
+            "p3_l54",
+            "p3_l57"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שכר יסוד'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "gross_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "2,000.00",
+          "normalized_candidate": 2000.0,
+          "source_text": "2,000.00",
+          "evidence_ids": [
+            "p3_l67",
+            "p3_l66"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'סה\"כ תשלומים'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "net_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p3_l94",
+            "p3_l96"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נטו לתשלום'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "regular_hours": {
+          "review_status": "CONFLICTING",
+          "ocr_raw": "182.00",
+          "normalized_candidate": 182.0,
+          "source_text": "182.00@p3_l21; 100.00@p3_l20; 5.00@p3_l25; 22.00@p3_l26",
+          "evidence_ids": [
+            "p3_l21",
+            "p3_l20",
+            "p3_l25",
+            "p3_l26",
+            "p3_l22"
+          ],
+          "reviewer_notes": "Multiple hour-like numbers near hours label — confirm which is reported vs base."
+        },
+        "overtime_hours": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['שעות נוספות'] not found in OCR."
+        },
+        "travel_reimbursement": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['נסיעות'] not found in OCR."
+        },
+        "income_tax": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "2,000.00",
+          "normalized_candidate": 2000.0,
+          "source_text": "2,000.00",
+          "evidence_ids": [
+            "p3_l54",
+            "p3_l53"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס הכנסה 10% שולי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "national_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p3_l56",
+            "p3_l58"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ביטוח לאומי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "health_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p3_l56",
+            "p3_l59"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס בריאות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "pension_deductions": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "120.00",
+          "normalized_candidate": 120.0,
+          "source_text": "120.00",
+          "evidence_ids": [
+            "p3_l63",
+            "p3_l60"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ניכוי לגמל'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "other_earnings": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "גילום",
+          "normalized_candidate": null,
+          "source_text": "גילום",
+          "evidence_ids": [
+            "p3_l48"
+          ],
+          "reviewer_notes": "Additional earning-related labels present; extract specific amounts from PDF columns (not auto-summed)."
+        },
+        "other_deductions": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No extra deduction labels clearly identified beyond tax/NI/health/pension exploration."
+        }
+      },
+      "page_review_status": "REVIEW_REQUIRED",
+      "page_reviewer_notes": "Parser values intentionally ignored. All monetary/identity fields need human PDF confirmation. Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "ocr_text_preview": "6\nתלוש משכורת\nתאריך הדפסה 08/07/26\nPAYROLCOPYLOT\nתיק נ. ב\"ל\n93511111100\n935111111\nתיק ניכויים\nהדגמה בלבד 32 אלעד 4080234\nתיק במ\"ה\nטלפון:\nפקס :\nמס' עובד:\nNanna}‏ עבודה:\n6 ותק-שנים:\n\"(78\nאביגיל תמר סבירסקי\nת\"ז\n33740364-6\n100.00\n182.00\nועות עבודה:\nמתוך:\nמחלקה:\n5.00\n22.00\nanv-3‏ התמחות\nימי עבודה:\nמתוך:\n2000\nהיקף משרה %\nתע' שעה:\nדרגה:\nהלל\n32\nק/סניף:\nדרוג :\nחשבון:\nאלעד\n408\n|מינימום לחודש:\nלשעה:\nלפי שעות"
+    },
+    {
+      "payslip_key": "invalid_payslips_invalid_2026_07_multi_p04",
+      "proposed_fixture_employee_key": "emp_nid_17f2d60c389c",
+      "source_file": "invalid/payslips_invalid_2026_07_multi.pdf",
+      "source_page": 4,
+      "fixture_intent": "invalid",
+      "ocr_confidence": 0.8725874125874126,
+      "layout_note": "Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "grouping": {
+        "eligible_for_id_grouping": true,
+        "national_id_digits": "223351396",
+        "national_id_masked": "22****96",
+        "note": "Proposed grouping by exact national ID digits only after human confirms ID."
+      },
+      "fields": {
+        "employee_name": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "יעקב ישראל סבירסקי",
+          "normalized_candidate": null,
+          "source_text": "יעקב ישראל סבירסקי",
+          "evidence_ids": [
+            "p4_l17"
+          ],
+          "reviewer_notes": "Hebrew name candidate immediately above ת\"ז. Confirm against source PDF (do not auto-fix OCR)."
+        },
+        "national_id": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "22335139-6",
+          "normalized_candidate": "223351396",
+          "source_text": "22335139-6",
+          "evidence_ids": [
+            "p4_l19"
+          ],
+          "reviewer_notes": "National ID candidate immediately below ת\"ז. Digits-only normalize only when 8–9 digits. Must be human-confirmed before grouping/seed."
+        },
+        "employee_number": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "מס' עובד:",
+          "evidence_ids": [
+            "p4_l13"
+          ],
+          "reviewer_notes": "Employee-number label present; no value clearly OCR'd beside it."
+        },
+        "payroll_month": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6",
+          "normalized_candidate": 6,
+          "source_text": "6",
+          "evidence_ids": [
+            "p4_l1"
+          ],
+          "reviewer_notes": "Only month-like header digit '6' found (no /YY). Year not on this OCR token. Fixture path suggests 2026-07 but is NOT used as value."
+        },
+        "payroll_year": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Year not printed next to month header in OCR. Fixture filename hints 2026 — human must confirm from source PDF, do not auto-fill."
+        },
+        "base_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "10,000.00",
+          "normalized_candidate": 10000.0,
+          "source_text": "10,000.00",
+          "evidence_ids": [
+            "p4_l52",
+            "p4_l54"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שכר יסוד'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "gross_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "10,323.00",
+          "normalized_candidate": 10323.0,
+          "source_text": "10,323.00",
+          "evidence_ids": [
+            "p4_l72",
+            "p4_l71"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'סה\"כ תשלומים'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "net_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p4_l102",
+            "p4_l104"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נטו לתשלום'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "regular_hours": {
+          "review_status": "CONFLICTING",
+          "ocr_raw": "182.00",
+          "normalized_candidate": 182.0,
+          "source_text": "182.00@p4_l21; 210.00@p4_l20; 22.00@p4_l25; 22.00@p4_l26",
+          "evidence_ids": [
+            "p4_l21",
+            "p4_l20",
+            "p4_l25",
+            "p4_l26",
+            "p4_l22"
+          ],
+          "reviewer_notes": "Multiple hour-like numbers near hours label — confirm which is reported vs base."
+        },
+        "overtime_hours": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['שעות נוספות'] not found in OCR."
+        },
+        "travel_reimbursement": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "323.00",
+          "normalized_candidate": 323.0,
+          "source_text": "323.00",
+          "evidence_ids": [
+            "p4_l59",
+            "p4_l60"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נסיעות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "income_tax": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "10,000.00",
+          "normalized_candidate": 10000.0,
+          "source_text": "10,000.00",
+          "evidence_ids": [
+            "p4_l51",
+            "p4_l50"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס הכנסה 20% שולי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "national_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "264.00",
+          "normalized_candidate": 264.0,
+          "source_text": "264.00",
+          "evidence_ids": [
+            "p4_l56",
+            "p4_l55"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ביטוח לאומי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "health_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "384.00",
+          "normalized_candidate": 384.0,
+          "source_text": "384.00",
+          "evidence_ids": [
+            "p4_l61",
+            "p4_l62"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס בריאות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "pension_deductions": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "384.00",
+          "normalized_candidate": 384.0,
+          "source_text": "384.00",
+          "evidence_ids": [
+            "p4_l61",
+            "p4_l63"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ניכוי לגמל'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "other_earnings": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "גילום",
+          "normalized_candidate": null,
+          "source_text": "גילום",
+          "evidence_ids": [
+            "p4_l45"
+          ],
+          "reviewer_notes": "Additional earning-related labels present; extract specific amounts from PDF columns (not auto-summed)."
+        },
+        "other_deductions": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No extra deduction labels clearly identified beyond tax/NI/health/pension exploration."
+        }
+      },
+      "page_review_status": "REVIEW_REQUIRED",
+      "page_reviewer_notes": "Parser values intentionally ignored. All monetary/identity fields need human PDF confirmation. Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "ocr_text_preview": "6\nתלוש משכורת\nתאריך הדפסה 08/07/26\nPAYROLCOPYLOT\nתיק נ. ב\"ל\n93511111100\n935111111\nתיק ניכויים\nהדגמה בלבד 32 אלעד 4080234\nתיק במ\"ה\nטלפון:\nפקס :\nמס' עובד:\nהתחלת עבודה\n6 ותק-שנים:\n\"(78\nיעקב ישראל סבירסקי\nת\"ז\n22335139-6\n210.00\n182.00\nועות עבודה:\nמתוך:\nמחלקה:\n22.00\n22.00\nanv-3‏ התמחות\nימי עבודה:\nמתוך:\n100.00\n54.95\nהיקף משרה %\nתע' שעה:\nדרגה:\nק/סניף:\nדרוג :\nחשבון:\n|מינימום לחודש:\nלשעה:\n6,443.85\n35.41\nמשר"
+    },
+    {
+      "payslip_key": "invalid_payslips_invalid_2026_07_multi_p05",
+      "proposed_fixture_employee_key": "emp_nid_94329fe7354f",
+      "source_file": "invalid/payslips_invalid_2026_07_multi.pdf",
+      "source_page": 5,
+      "fixture_intent": "invalid",
+      "ocr_confidence": 0.8623582089552239,
+      "layout_note": "Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "grouping": {
+        "eligible_for_id_grouping": true,
+        "national_id_digits": "313366783",
+        "national_id_masked": "31****83",
+        "note": "Proposed grouping by exact national ID digits only after human confirms ID."
+      },
+      "fields": {
+        "employee_name": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "שמולבי\\ יהודה",
+          "normalized_candidate": null,
+          "source_text": "שמולבי\\ יהודה",
+          "evidence_ids": [
+            "p5_l17"
+          ],
+          "reviewer_notes": "Hebrew name candidate immediately above ת\"ז. Confirm against source PDF (do not auto-fix OCR). OCR contains unusual characters."
+        },
+        "national_id": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "31336678-3",
+          "normalized_candidate": "313366783",
+          "source_text": "31336678-3",
+          "evidence_ids": [
+            "p5_l19"
+          ],
+          "reviewer_notes": "National ID candidate immediately below ת\"ז. Digits-only normalize only when 8–9 digits. Must be human-confirmed before grouping/seed."
+        },
+        "employee_number": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "מס' עובד:",
+          "evidence_ids": [
+            "p5_l13"
+          ],
+          "reviewer_notes": "Employee-number label present; no value clearly OCR'd beside it."
+        },
+        "payroll_month": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6",
+          "normalized_candidate": 6,
+          "source_text": "6",
+          "evidence_ids": [
+            "p5_l1"
+          ],
+          "reviewer_notes": "Only month-like header digit '6' found (no /YY). Year not on this OCR token. Fixture path suggests 2026-07 but is NOT used as value."
+        },
+        "payroll_year": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Year not printed next to month header in OCR. Fixture filename hints 2026 — human must confirm from source PDF, do not auto-fill."
+        },
+        "base_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "100,000.00",
+          "normalized_candidate": 100000.0,
+          "source_text": "100,000.00",
+          "evidence_ids": [
+            "p5_l54",
+            "p5_l55"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שכר יסוד'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "gross_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "101,199.00",
+          "normalized_candidate": 101199.0,
+          "source_text": "101,199.00",
+          "evidence_ids": [
+            "p5_l90",
+            "p5_l89"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'סה\"כ תשלומים'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "net_salary": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['שכר נטו', 'נטו לתשלום', 'לתשלום נטו', 'סה\"כ נטו', 'נטו:', 'נטו '] not found in OCR."
+        },
+        "regular_hours": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "182.00",
+          "normalized_candidate": 182.0,
+          "source_text": "182.00",
+          "evidence_ids": [
+            "p5_l21",
+            "p5_l22"
+          ],
+          "reviewer_notes": "Hours candidate near label; verify against PDF (OCR often swaps columns)."
+        },
+        "overtime_hours": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['שעות נוספות'] not found in OCR."
+        },
+        "travel_reimbursement": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "323.00",
+          "normalized_candidate": 323.0,
+          "source_text": "323.00",
+          "evidence_ids": [
+            "p5_l60",
+            "p5_l61"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נסיעות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "income_tax": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "47,563.35",
+          "normalized_candidate": 47563.35,
+          "source_text": "47,563.35",
+          "evidence_ids": [
+            "p5_l50",
+            "p5_l51"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס הכנסה 50% שולי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "national_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "3,175.00",
+          "normalized_candidate": 3175.0,
+          "source_text": "3,175.00",
+          "evidence_ids": [
+            "p5_l57",
+            "p5_l56"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ביטוח לאומי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "health_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "2,534.00",
+          "normalized_candidate": 2534.0,
+          "source_text": "2,534.00",
+          "evidence_ids": [
+            "p5_l62",
+            "p5_l63"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס בריאות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "pension_deductions": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "3,918.28",
+          "normalized_candidate": 3918.28,
+          "source_text": "3,918.28",
+          "evidence_ids": [
+            "p5_l74",
+            "p5_l75"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ניכוי לגמל'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "other_earnings": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "גילום",
+          "normalized_candidate": null,
+          "source_text": "גילום",
+          "evidence_ids": [
+            "p5_l45"
+          ],
+          "reviewer_notes": "Additional earning-related labels present; extract specific amounts from PDF columns (not auto-summed)."
+        },
+        "other_deductions": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No extra deduction labels clearly identified beyond tax/NI/health/pension exploration."
+        }
+      },
+      "page_review_status": "REVIEW_REQUIRED",
+      "page_reviewer_notes": "Parser values intentionally ignored. All monetary/identity fields need human PDF confirmation. Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "ocr_text_preview": "6\nתלוש משכורת\nתאריך הדפסה 08/07/26\nPAYROLCOPYLOT\nתיק נ. ב\"ל\n93511111100\n935111111\nתיק ניכויים\nהדגמה בלבד 32 אלעד 4080234\nתיק במ\"ה\nטלפון:\nפקס :\nמס' עובד:\nהתחלת עבודה\n6 ותק-שנים:\n\"(78\nשמולבי\\ יהודה\nת\"ז\n31336678-3\n182.00\n182.00\nועות עבודה:\nמתוך:\nמחלקה:\n22.00\n22.00\n1-עורכי דין\nימי עבודה:\nמתוך:\n100.00\n549.45\nהיקף משרה %\nתע' שעה:\nדרגה:\nק/סניף:\nדרוג :\nחשבון:\n|מינימום לחודש:\nלשעה:\n6,443.85\n35.41\nמשרה:\nמשר"
+    },
+    {
+      "payslip_key": "invalid_payslips_invalid_2026_07_multi_p06",
+      "proposed_fixture_employee_key": "emp_nid_fd0509db7499",
+      "source_file": "invalid/payslips_invalid_2026_07_multi.pdf",
+      "source_page": 6,
+      "fixture_intent": "invalid",
+      "ocr_confidence": 0.8776041666666666,
+      "layout_note": "Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "grouping": {
+        "eligible_for_id_grouping": true,
+        "national_id_digits": "154263552",
+        "national_id_masked": "15****52",
+        "note": "Proposed grouping by exact national ID digits only after human confirms ID."
+      },
+      "fields": {
+        "employee_name": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "יעל ויטלין",
+          "normalized_candidate": null,
+          "source_text": "יעל ויטלין",
+          "evidence_ids": [
+            "p6_l16"
+          ],
+          "reviewer_notes": "Name candidate from line before ID token (no ת\"ז line)."
+        },
+        "national_id": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "15426355-2",
+          "normalized_candidate": "154263552",
+          "source_text": "15426355-2",
+          "evidence_ids": [
+            "p6_l17"
+          ],
+          "reviewer_notes": "Hyphenated ID-like token without clear ת\"ז adjacency. Confirm on PDF."
+        },
+        "employee_number": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "מס' עובד:",
+          "evidence_ids": [
+            "p6_l13"
+          ],
+          "reviewer_notes": "Employee-number label present; no value clearly OCR'd beside it."
+        },
+        "payroll_month": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6",
+          "normalized_candidate": 6,
+          "source_text": "6",
+          "evidence_ids": [
+            "p6_l1"
+          ],
+          "reviewer_notes": "Only month-like header digit '6' found (no /YY). Year not on this OCR token. Fixture path suggests 2026-07 but is NOT used as value."
+        },
+        "payroll_year": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Year not printed next to month header in OCR. Fixture filename hints 2026 — human must confirm from source PDF, do not auto-fill."
+        },
+        "base_salary": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['שכר יסוד'] not found in OCR."
+        },
+        "gross_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "2,200.00",
+          "normalized_candidate": 2200.0,
+          "source_text": "2,200.00",
+          "evidence_ids": [
+            "p6_l40",
+            "p6_l39"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'סה\"כ תשלומים'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "net_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "1,893.00",
+          "normalized_candidate": 1893.0,
+          "source_text": "1,893.00",
+          "evidence_ids": [
+            "p6_l52",
+            "p6_l51"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נטו לתשלום'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "regular_hours": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "ועות עבודה:",
+          "normalized_candidate": null,
+          "source_text": "ועות עבודה:",
+          "evidence_ids": [
+            "p6_l18"
+          ],
+          "reviewer_notes": "Hours label present; numeric hours not uniquely identified."
+        },
+        "overtime_hours": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['שעות נוספות'] not found in OCR."
+        },
+        "travel_reimbursement": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['נסיעות'] not found in OCR."
+        },
+        "income_tax": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "2,200.00",
+          "normalized_candidate": 2200.0,
+          "source_text": "2,200.00",
+          "evidence_ids": [
+            "p6_l32",
+            "p6_l31"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס הכנסה 10% שולי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "national_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p6_l33",
+            "p6_l34"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ביטוח לאומי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "health_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p6_l33",
+            "p6_l35"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס בריאות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "pension_deductions": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p6_l33",
+            "p6_l36"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ניכוי לגמל'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "other_earnings": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No additional earning labels clearly identified beyond base/travel/OT exploration."
+        },
+        "other_deductions": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "ניכוי רשות; ניכויי חובה וגמל",
+          "normalized_candidate": null,
+          "source_text": "ניכוי רשות; ניכויי חובה וגמל",
+          "evidence_ids": [
+            "p6_l37",
+            "p6_l42"
+          ],
+          "reviewer_notes": "Additional deduction labels present; confirm amounts from PDF."
+        }
+      },
+      "page_review_status": "REVIEW_REQUIRED",
+      "page_reviewer_notes": "Parser values intentionally ignored. All monetary/identity fields need human PDF confirmation. Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "ocr_text_preview": "6\nתלוש משכורת\nתאריך הדפסה 08/07/26\nPAYROLCOPYLOT\nתיק נ. ב\"ל\n93511111100\n935111111\nתיק ניכויים\nהדגמה בלבד 32 אלעד 4080234\nתיק במ\"ה\nטלפון:\nפקס :\nמס' עובד:\n6 ותק-שנים:\n\"(78\nיעל ויטלין\n15426355-2\nועות עבודה:\n6ניהול משרד\nימי עבודה:\nהיקף משרה %\nירושלים\nק/סניף:\nטבריה\n|מינימום לחודש:\nחודשי לפי שעות\n6,443.85\nניכויים למס\nשווי למס\nסכום לתשלום\nמס הכנסה 10% שולי\n2,200.00\n0.00\nביטוח לאומי\nמס בריאות\nניכוי לגמל\nנ"
+    },
+    {
+      "payslip_key": "invalid_payslips_invalid_2026_07_multi_p07",
+      "proposed_fixture_employee_key": "emp_nid_9462ed1ce6ec",
+      "source_file": "invalid/payslips_invalid_2026_07_multi.pdf",
+      "source_page": 7,
+      "fixture_intent": "invalid",
+      "ocr_confidence": 0.8665591397849463,
+      "layout_note": "Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "grouping": {
+        "eligible_for_id_grouping": true,
+        "national_id_digits": "563270834",
+        "national_id_masked": "56****34",
+        "note": "Proposed grouping by exact national ID digits only after human confirms ID."
+      },
+      "fields": {
+        "employee_name": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "רחל בנימלני",
+          "normalized_candidate": null,
+          "source_text": "רחל בנימלני",
+          "evidence_ids": [
+            "p7_l17"
+          ],
+          "reviewer_notes": "Hebrew name candidate immediately above ת\"ז. Confirm against source PDF (do not auto-fix OCR)."
+        },
+        "national_id": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "56327083-4",
+          "normalized_candidate": "563270834",
+          "source_text": "56327083-4",
+          "evidence_ids": [
+            "p7_l19"
+          ],
+          "reviewer_notes": "National ID candidate immediately below ת\"ז. Digits-only normalize only when 8–9 digits. Must be human-confirmed before grouping/seed."
+        },
+        "employee_number": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "מס' עובד:",
+          "evidence_ids": [
+            "p7_l13"
+          ],
+          "reviewer_notes": "Employee-number label present; no value clearly OCR'd beside it."
+        },
+        "payroll_month": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "6",
+          "normalized_candidate": 6,
+          "source_text": "6",
+          "evidence_ids": [
+            "p7_l1"
+          ],
+          "reviewer_notes": "Only month-like header digit '6' found (no /YY). Year not on this OCR token. Fixture path suggests 2026-07 but is NOT used as value."
+        },
+        "payroll_year": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Year not printed next to month header in OCR. Fixture filename hints 2026 — human must confirm from source PDF, do not auto-fill."
+        },
+        "base_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "10,000.00",
+          "normalized_candidate": 10000.0,
+          "source_text": "10,000.00",
+          "evidence_ids": [
+            "p7_l52",
+            "p7_l54"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'שכר יסוד'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "gross_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "13,000.00",
+          "normalized_candidate": 13000.0,
+          "source_text": "13,000.00",
+          "evidence_ids": [
+            "p7_l70",
+            "p7_l69"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'סה\"כ תשלומים'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "net_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "0.00",
+          "normalized_candidate": 0.0,
+          "source_text": "0.00",
+          "evidence_ids": [
+            "p7_l97",
+            "p7_l99"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'נטו לתשלום'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "regular_hours": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "182.00",
+          "normalized_candidate": 182.0,
+          "source_text": "182.00",
+          "evidence_ids": [
+            "p7_l21",
+            "p7_l22"
+          ],
+          "reviewer_notes": "Hours candidate near label; verify against PDF (OCR often swaps columns)."
+        },
+        "overtime_hours": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['שעות נוספות'] not found in OCR."
+        },
+        "travel_reimbursement": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['נסיעות'] not found in OCR."
+        },
+        "income_tax": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "10,000.00",
+          "normalized_candidate": 10000.0,
+          "source_text": "10,000.00",
+          "evidence_ids": [
+            "p7_l51",
+            "p7_l50"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס הכנסה 20% שולי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "national_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "451.00",
+          "normalized_candidate": 451.0,
+          "source_text": "451.00",
+          "evidence_ids": [
+            "p7_l56",
+            "p7_l55"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ביטוח לאומי'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "health_insurance": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "523.00",
+          "normalized_candidate": 523.0,
+          "source_text": "523.00",
+          "evidence_ids": [
+            "p7_l61",
+            "p7_l62"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'מס בריאות'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "pension_deductions": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "523.00",
+          "normalized_candidate": 523.0,
+          "source_text": "523.00",
+          "evidence_ids": [
+            "p7_l61",
+            "p7_l63"
+          ],
+          "reviewer_notes": "Nearest amount candidate to label 'ניכוי לגמל'. Confirm column mapping (quantity/rate/taxable/payment) on PDF before seed approval."
+        },
+        "other_earnings": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "גילום",
+          "normalized_candidate": null,
+          "source_text": "גילום",
+          "evidence_ids": [
+            "p7_l45"
+          ],
+          "reviewer_notes": "Additional earning-related labels present; extract specific amounts from PDF columns (not auto-summed)."
+        },
+        "other_deductions": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No extra deduction labels clearly identified beyond tax/NI/health/pension exploration."
+        }
+      },
+      "page_review_status": "REVIEW_REQUIRED",
+      "page_reviewer_notes": "Parser values intentionally ignored. All monetary/identity fields need human PDF confirmation. Evidence IDs from OCR layout lines (p{page}_l{n}).",
+      "ocr_text_preview": "6\nתלוש משכורת\nתאריך הדפסה 08/07/26\nPAYROLCOPYLOT\nתיק נ. ב\"ל\n93511111100\n935111111\nתיק ניכויים\nהדגמה בלבד 32 אלעד 4080234\nתיק במ\"ה\nטלפון:\nפקס :\nמס' עובד:\nהתחלת עבודה\n6 ותק-שנים:\n\"(78\nרחל בנימלני\nת\"ז\n56327083-4\n182.00\n182.00\nועות עבודה:\nמתוך:\nמחלקה:\n22.00\n22.00\n2-מתמחים\nימי עבודה:\nמתוך:\n100.00\n54.95\nהיקף משרה %\nתע' שעה:\nדרגה:\nק/סניף:\nדרוג :\nחשבון:\n|מינימום לחודש:\nלשעה:\n6,443.85\n35.41\nמשרה:\nמשרה חודש"
+    },
+    {
+      "payslip_key": "valid_payslip_valid_2026_06_employee_001_p01",
+      "proposed_fixture_employee_key": "emp_ungrouped_valid_payslip_valid_2026_06_employee_001_p01",
+      "source_file": "valid/payslip_valid_2026_06_employee_001.png",
+      "source_page": 1,
+      "fixture_intent": "valid",
+      "ocr_confidence": 0.6542592592592592,
+      "layout_note": "No word/line geometry for this source in stored layout OCR; evidence_ids are synthetic sequential from text lines only and must be re-verified.",
+      "grouping": {
+        "eligible_for_id_grouping": false,
+        "national_id_digits": null,
+        "national_id_masked": null,
+        "note": "Not grouped by ID yet (missing/low-confidence ID or weak OCR). Name similarity must not merge."
+      },
+      "fields": {
+        "employee_name": {
+          "review_status": "UNREADABLE",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "תלוש משכורת 6/26 תאריך הדפסה 08/07/26\nPAYROLCOPYLOT\n4000234 הדגמה בלבד 32 אלעד‎\neT - seta\n32 דירת 3(\n4080234\n8,000.00\n323.00\n54.93\n‘na הפקדות מעסיק לקופות‎\n8,872.30\na a |\nהו |\n=-\n0 00 0.00) ewew\nויוי ",
+          "evidence_ids": [],
+          "reviewer_notes": "PNG OCR too weak for reliable identity/period. Prefer matching PDF page for seed review."
+        },
+        "national_id": {
+          "review_status": "UNREADABLE",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "תלוש משכורת 6/26 תאריך הדפסה 08/07/26\nPAYROLCOPYLOT\n4000234 הדגמה בלבד 32 אלעד‎\neT - seta\n32 דירת 3(\n4080234\n8,000.00\n323.00\n54.93\n‘na הפקדות מעסיק לקופות‎\n8,872.30\na a |\nהו |\n=-\n0 00 0.00) ewew\nויוי ",
+          "evidence_ids": [],
+          "reviewer_notes": "PNG OCR too weak for reliable identity/period. Prefer matching PDF page for seed review."
+        },
+        "employee_number": {
+          "review_status": "UNREADABLE",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "תלוש משכורת 6/26 תאריך הדפסה 08/07/26\nPAYROLCOPYLOT\n4000234 הדגמה בלבד 32 אלעד‎\neT - seta\n32 דירת 3(\n4080234\n8,000.00\n323.00\n54.93\n‘na הפקדות מעסיק לקופות‎\n8,872.30\na a |\nהו |\n=-\n0 00 0.00) ewew\nויוי ",
+          "evidence_ids": [],
+          "reviewer_notes": "PNG OCR too weak for reliable identity/period. Prefer matching PDF page for seed review."
+        },
+        "payroll_month": {
+          "review_status": "UNREADABLE",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "תלוש משכורת 6/26 תאריך הדפסה 08/07/26\nPAYROLCOPYLOT\n4000234 הדגמה בלבד 32 אלעד‎\neT - seta\n32 דירת 3(\n4080234\n8,000.00\n323.00\n54.93\n‘na הפקדות מעסיק לקופות‎\n8,872.30\na a |\nהו |\n=-\n0 00 0.00) ewew\nויוי ",
+          "evidence_ids": [],
+          "reviewer_notes": "PNG OCR too weak for reliable identity/period. Prefer matching PDF page for seed review."
+        },
+        "payroll_year": {
+          "review_status": "UNREADABLE",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": "תלוש משכורת 6/26 תאריך הדפסה 08/07/26\nPAYROLCOPYLOT\n4000234 הדגמה בלבד 32 אלעד‎\neT - seta\n32 דירת 3(\n4080234\n8,000.00\n323.00\n54.93\n‘na הפקדות מעסיק לקופות‎\n8,872.30\na a |\nהו |\n=-\n0 00 0.00) ewew\nויוי ",
+          "evidence_ids": [],
+          "reviewer_notes": "PNG OCR too weak for reliable identity/period. Prefer matching PDF page for seed review."
+        },
+        "base_salary": {
+          "review_status": "REVIEW_REQUIRED",
+          "ocr_raw": "8,000.00",
+          "normalized_candidate": 8000.0,
+          "source_text": "8,000.00, 323.00, 54.93, 8,872.30, 0.00, 450.00",
+          "evidence_ids": [],
+          "reviewer_notes": "PNG shows amounts without reliable labels/name/ID. Cross-check against recommended PDF page; do not seed from PNG alone."
+        },
+        "gross_salary": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['סה\"כ תשלומים', 'סה״כ תשלומים', 'סהכ תשלומים'] not found in OCR."
+        },
+        "net_salary": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['שכר נטו', 'נטו לתשלום', 'לתשלום נטו', 'סה\"כ נטו', 'נטו:', 'נטו '] not found in OCR."
+        },
+        "regular_hours": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Hours label(s) ['שעות עבודה', 'ועות עבודה'] not found."
+        },
+        "overtime_hours": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['שעות נוספות'] not found in OCR."
+        },
+        "travel_reimbursement": {
+          "review_status": "CONFLICTING",
+          "ocr_raw": "323.00",
+          "normalized_candidate": 323.0,
+          "source_text": "8,000.00, 323.00, 54.93, 8,872.30, 0.00, 450.00",
+          "evidence_ids": [],
+          "reviewer_notes": "Unlabeled amount sequence on PNG; column meaning uncertain."
+        },
+        "income_tax": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['מס הכנסה'] not found in OCR."
+        },
+        "national_insurance": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['ביטוח לאומי'] not found in OCR."
+        },
+        "health_insurance": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['מס בריאות'] not found in OCR."
+        },
+        "pension_deductions": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "Label(s) ['ניכוי לגמל', 'אלשולר'] not found in OCR."
+        },
+        "other_earnings": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No additional earning labels clearly identified beyond base/travel/OT exploration."
+        },
+        "other_deductions": {
+          "review_status": "MISSING",
+          "ocr_raw": null,
+          "normalized_candidate": null,
+          "source_text": null,
+          "evidence_ids": [],
+          "reviewer_notes": "No extra deduction labels clearly identified beyond tax/NI/health/pension exploration."
+        }
+      },
+      "page_review_status": "REVIEW_REQUIRED",
+      "page_reviewer_notes": "Parser values intentionally ignored. All monetary/identity fields need human PDF confirmation. No word/line geometry for this source in stored layout OCR; evidence_ids are synthetic sequential from text lines only and must be re-verified.",
+      "ocr_text_preview": "תלוש משכורת 6/26 תאריך הדפסה 08/07/26\nPAYROLCOPYLOT\n4000234 הדגמה בלבד 32 אלעד‎\neT - seta\n32 דירת 3(\n4080234\n8,000.00\n323.00\n54.93\n‘na הפקדות מעסיק לקופות‎\n8,872.30\na a |\nהו |\n=-\n0 00 0.00) ewew\nויוי )450.00\nתלושים להדמיה INIT‏\nהופק ע\"י: לוט\" ושות' rea Ty‏ \"משכרת טר\" טל שקץ משרכת MA‏"
+    }
+  ],
+  "files_requiring_user_review": [
+    "backend/tests/fixtures/review/accountant_seed_extraction/seed_approval_table.md",
+    "backend/tests/fixtures/review/accountant_seed_extraction/seed_approval_table.json",
+    "backend/tests/fixtures/review/accountant_seed_extraction/manual_review_questions.md",
+    "backend/tests/fixtures/documents/payslips/valid/payslips_valid_2026_06_multi.pdf",
+    "backend/tests/fixtures/documents/payslips/invalid/payslips_invalid_2026_07_multi.pdf",
+    "backend/tests/fixtures/documents/payslips/valid/payslip_valid_2026_06_employee_001.png"
+  ]
+}

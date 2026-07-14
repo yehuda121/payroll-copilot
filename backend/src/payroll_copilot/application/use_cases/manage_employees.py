@@ -82,13 +82,14 @@ class UpdateEmployeeCommand:
 def serialize_employee(employee: Employee) -> dict[str, Any]:
     meta = dict(employee.metadata or {})
     rate = employee.monthly_salary if employee.salary_type == SalaryType.MONTHLY else employee.hourly_rate
+    display_name = meta.get("verified_display_name") or employee.full_name
     return {
         "id": str(employee.id),
         "organization_id": str(employee.organization_id),
         "employee_number": employee.employee_number,
         "first_name": employee.first_name,
         "last_name": employee.last_name,
-        "full_name": employee.full_name,
+        "full_name": display_name,
         "email": meta.get("email"),
         "department_id": str(employee.department_id),
         "department": meta.get("department_label") or meta.get("department") or "General",

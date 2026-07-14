@@ -1,0 +1,442 @@
+{
+  "generated_at": "2026-07-13T14:40:12.555719+00:00",
+  "groups": [
+    {
+      "conflicts": [
+        {
+          "note": "National ID missing/low-confidence/not CONFIRMED — manual review.",
+          "type": "not_auto_grouped"
+        }
+      ],
+      "employee_numbers_observed": [],
+      "grouping_basis": "manual_review_required",
+      "grouping_confidence": "none",
+      "missing_profile_fields": [
+        "employee_id",
+        "employee_number",
+        "employee_name"
+      ],
+      "names_observed": [],
+      "national_id_hash": null,
+      "national_id_masked": null,
+      "payslip_keys": [
+        "valid_payslips_valid_2026_06_multi_p01"
+      ],
+      "proposed_fixture_key": "ungrouped_001",
+      "source_refs": [
+        {
+          "fixture_id": "valid/payslips_valid_2026_06_multi.pdf",
+          "page": 1
+        }
+      ]
+    },
+    {
+      "conflicts": [
+        {
+          "note": "National ID missing/low-confidence/not CONFIRMED — manual review.",
+          "type": "not_auto_grouped"
+        }
+      ],
+      "employee_numbers_observed": [],
+      "grouping_basis": "manual_review_required",
+      "grouping_confidence": "none",
+      "missing_profile_fields": [
+        "employee_id",
+        "employee_number",
+        "employee_name"
+      ],
+      "names_observed": [],
+      "national_id_hash": null,
+      "national_id_masked": null,
+      "payslip_keys": [
+        "valid_payslips_valid_2026_06_multi_p02"
+      ],
+      "proposed_fixture_key": "ungrouped_002",
+      "source_refs": [
+        {
+          "fixture_id": "valid/payslips_valid_2026_06_multi.pdf",
+          "page": 2
+        }
+      ]
+    },
+    {
+      "conflicts": [
+        {
+          "note": "National ID missing/low-confidence/not CONFIRMED — manual review.",
+          "type": "not_auto_grouped"
+        }
+      ],
+      "employee_numbers_observed": [],
+      "grouping_basis": "manual_review_required",
+      "grouping_confidence": "none",
+      "missing_profile_fields": [
+        "employee_id",
+        "employee_number",
+        "employee_name"
+      ],
+      "names_observed": [],
+      "national_id_hash": null,
+      "national_id_masked": null,
+      "payslip_keys": [
+        "valid_payslips_valid_2026_06_multi_p03"
+      ],
+      "proposed_fixture_key": "ungrouped_003",
+      "source_refs": [
+        {
+          "fixture_id": "valid/payslips_valid_2026_06_multi.pdf",
+          "page": 3
+        }
+      ]
+    },
+    {
+      "conflicts": [
+        {
+          "note": "National ID missing/low-confidence/not CONFIRMED — manual review.",
+          "type": "not_auto_grouped"
+        }
+      ],
+      "employee_numbers_observed": [],
+      "grouping_basis": "manual_review_required",
+      "grouping_confidence": "none",
+      "missing_profile_fields": [
+        "employee_id",
+        "employee_number",
+        "employee_name"
+      ],
+      "names_observed": [],
+      "national_id_hash": null,
+      "national_id_masked": null,
+      "payslip_keys": [
+        "valid_payslips_valid_2026_06_multi_p04"
+      ],
+      "proposed_fixture_key": "ungrouped_004",
+      "source_refs": [
+        {
+          "fixture_id": "valid/payslips_valid_2026_06_multi.pdf",
+          "page": 4
+        }
+      ]
+    },
+    {
+      "conflicts": [
+        {
+          "note": "National ID missing/low-confidence/not CONFIRMED — manual review.",
+          "type": "not_auto_grouped"
+        }
+      ],
+      "employee_numbers_observed": [],
+      "grouping_basis": "manual_review_required",
+      "grouping_confidence": "none",
+      "missing_profile_fields": [
+        "employee_id",
+        "employee_number",
+        "employee_name"
+      ],
+      "names_observed": [],
+      "national_id_hash": null,
+      "national_id_masked": null,
+      "payslip_keys": [
+        "valid_payslips_valid_2026_06_multi_p05"
+      ],
+      "proposed_fixture_key": "ungrouped_005",
+      "source_refs": [
+        {
+          "fixture_id": "valid/payslips_valid_2026_06_multi.pdf",
+          "page": 5
+        }
+      ]
+    },
+    {
+      "conflicts": [
+        {
+          "note": "National ID missing/low-confidence/not CONFIRMED — manual review.",
+          "type": "not_auto_grouped"
+        }
+      ],
+      "employee_numbers_observed": [],
+      "grouping_basis": "manual_review_required",
+      "grouping_confidence": "none",
+      "missing_profile_fields": [
+        "employee_id",
+        "employee_number",
+        "employee_name"
+      ],
+      "names_observed": [],
+      "national_id_hash": null,
+      "national_id_masked": null,
+      "payslip_keys": [
+        "valid_payslips_valid_2026_06_multi_p06"
+      ],
+      "proposed_fixture_key": "ungrouped_006",
+      "source_refs": [
+        {
+          "fixture_id": "valid/payslips_valid_2026_06_multi.pdf",
+          "page": 6
+        }
+      ]
+    },
+    {
+      "conflicts": [
+        {
+          "note": "National ID missing/low-confidence/not CONFIRMED — manual review.",
+          "type": "not_auto_grouped"
+        }
+      ],
+      "employee_numbers_observed": [],
+      "grouping_basis": "manual_review_required",
+      "grouping_confidence": "none",
+      "missing_profile_fields": [
+        "employee_id",
+        "employee_number",
+        "employee_name"
+      ],
+      "names_observed": [],
+      "national_id_hash": null,
+      "national_id_masked": null,
+      "payslip_keys": [
+        "valid_payslips_valid_2026_06_multi_p07"
+      ],
+      "proposed_fixture_key": "ungrouped_007",
+      "source_refs": [
+        {
+          "fixture_id": "valid/payslips_valid_2026_06_multi.pdf",
+          "page": 7
+        }
+      ]
+    },
+    {
+      "conflicts": [
+        {
+          "note": "National ID missing/low-confidence/not CONFIRMED — manual review.",
+          "type": "not_auto_grouped"
+        }
+      ],
+      "employee_numbers_observed": [],
+      "grouping_basis": "manual_review_required",
+      "grouping_confidence": "none",
+      "missing_profile_fields": [
+        "employee_id",
+        "employee_number",
+        "employee_name"
+      ],
+      "names_observed": [],
+      "national_id_hash": null,
+      "national_id_masked": null,
+      "payslip_keys": [
+        "invalid_payslips_invalid_2026_07_multi_p01"
+      ],
+      "proposed_fixture_key": "ungrouped_008",
+      "source_refs": [
+        {
+          "fixture_id": "invalid/payslips_invalid_2026_07_multi.pdf",
+          "page": 1
+        }
+      ]
+    },
+    {
+      "conflicts": [
+        {
+          "note": "National ID missing/low-confidence/not CONFIRMED — manual review.",
+          "type": "not_auto_grouped"
+        }
+      ],
+      "employee_numbers_observed": [],
+      "grouping_basis": "manual_review_required",
+      "grouping_confidence": "none",
+      "missing_profile_fields": [
+        "employee_id",
+        "employee_number",
+        "employee_name"
+      ],
+      "names_observed": [],
+      "national_id_hash": null,
+      "national_id_masked": null,
+      "payslip_keys": [
+        "invalid_payslips_invalid_2026_07_multi_p02"
+      ],
+      "proposed_fixture_key": "ungrouped_009",
+      "source_refs": [
+        {
+          "fixture_id": "invalid/payslips_invalid_2026_07_multi.pdf",
+          "page": 2
+        }
+      ]
+    },
+    {
+      "conflicts": [
+        {
+          "note": "National ID missing/low-confidence/not CONFIRMED — manual review.",
+          "type": "not_auto_grouped"
+        }
+      ],
+      "employee_numbers_observed": [],
+      "grouping_basis": "manual_review_required",
+      "grouping_confidence": "none",
+      "missing_profile_fields": [
+        "employee_id",
+        "employee_number",
+        "employee_name"
+      ],
+      "names_observed": [],
+      "national_id_hash": null,
+      "national_id_masked": null,
+      "payslip_keys": [
+        "invalid_payslips_invalid_2026_07_multi_p03"
+      ],
+      "proposed_fixture_key": "ungrouped_010",
+      "source_refs": [
+        {
+          "fixture_id": "invalid/payslips_invalid_2026_07_multi.pdf",
+          "page": 3
+        }
+      ]
+    },
+    {
+      "conflicts": [
+        {
+          "note": "National ID missing/low-confidence/not CONFIRMED — manual review.",
+          "type": "not_auto_grouped"
+        }
+      ],
+      "employee_numbers_observed": [],
+      "grouping_basis": "manual_review_required",
+      "grouping_confidence": "none",
+      "missing_profile_fields": [
+        "employee_id",
+        "employee_number",
+        "employee_name"
+      ],
+      "names_observed": [],
+      "national_id_hash": null,
+      "national_id_masked": null,
+      "payslip_keys": [
+        "invalid_payslips_invalid_2026_07_multi_p04"
+      ],
+      "proposed_fixture_key": "ungrouped_011",
+      "source_refs": [
+        {
+          "fixture_id": "invalid/payslips_invalid_2026_07_multi.pdf",
+          "page": 4
+        }
+      ]
+    },
+    {
+      "conflicts": [
+        {
+          "note": "National ID missing/low-confidence/not CONFIRMED — manual review.",
+          "type": "not_auto_grouped"
+        }
+      ],
+      "employee_numbers_observed": [],
+      "grouping_basis": "manual_review_required",
+      "grouping_confidence": "none",
+      "missing_profile_fields": [
+        "employee_id",
+        "employee_number",
+        "employee_name"
+      ],
+      "names_observed": [],
+      "national_id_hash": null,
+      "national_id_masked": null,
+      "payslip_keys": [
+        "invalid_payslips_invalid_2026_07_multi_p05"
+      ],
+      "proposed_fixture_key": "ungrouped_012",
+      "source_refs": [
+        {
+          "fixture_id": "invalid/payslips_invalid_2026_07_multi.pdf",
+          "page": 5
+        }
+      ]
+    },
+    {
+      "conflicts": [
+        {
+          "note": "National ID missing/low-confidence/not CONFIRMED — manual review.",
+          "type": "not_auto_grouped"
+        }
+      ],
+      "employee_numbers_observed": [],
+      "grouping_basis": "manual_review_required",
+      "grouping_confidence": "none",
+      "missing_profile_fields": [
+        "employee_id",
+        "employee_number",
+        "employee_name"
+      ],
+      "names_observed": [],
+      "national_id_hash": null,
+      "national_id_masked": null,
+      "payslip_keys": [
+        "invalid_payslips_invalid_2026_07_multi_p06"
+      ],
+      "proposed_fixture_key": "ungrouped_013",
+      "source_refs": [
+        {
+          "fixture_id": "invalid/payslips_invalid_2026_07_multi.pdf",
+          "page": 6
+        }
+      ]
+    },
+    {
+      "conflicts": [
+        {
+          "note": "National ID missing/low-confidence/not CONFIRMED — manual review.",
+          "type": "not_auto_grouped"
+        }
+      ],
+      "employee_numbers_observed": [],
+      "grouping_basis": "manual_review_required",
+      "grouping_confidence": "none",
+      "missing_profile_fields": [
+        "employee_id",
+        "employee_number",
+        "employee_name"
+      ],
+      "names_observed": [],
+      "national_id_hash": null,
+      "national_id_masked": null,
+      "payslip_keys": [
+        "invalid_payslips_invalid_2026_07_multi_p07"
+      ],
+      "proposed_fixture_key": "ungrouped_014",
+      "source_refs": [
+        {
+          "fixture_id": "invalid/payslips_invalid_2026_07_multi.pdf",
+          "page": 7
+        }
+      ]
+    },
+    {
+      "conflicts": [
+        {
+          "note": "National ID missing/low-confidence/not CONFIRMED — manual review.",
+          "type": "not_auto_grouped"
+        }
+      ],
+      "employee_numbers_observed": [],
+      "grouping_basis": "manual_review_required",
+      "grouping_confidence": "none",
+      "missing_profile_fields": [
+        "employee_id",
+        "employee_number",
+        "employee_name"
+      ],
+      "names_observed": [],
+      "national_id_hash": null,
+      "national_id_masked": null,
+      "payslip_keys": [
+        "valid_payslip_valid_2026_06_employee_001_p01"
+      ],
+      "proposed_fixture_key": "ungrouped_015",
+      "source_refs": [
+        {
+          "fixture_id": "valid/payslip_valid_2026_06_employee_001.png",
+          "page": 1
+        }
+      ]
+    }
+  ],
+  "marker": "REVIEW ARTIFACTS ONLY — NOT APPROVED SEED DATA",
+  "status": "review_only"
+}

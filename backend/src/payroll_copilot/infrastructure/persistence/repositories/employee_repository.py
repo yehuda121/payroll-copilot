@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import or_, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from payroll_copilot.application.ports.employee_audit import EmployeeListFilter, EmployeeRepository
@@ -83,7 +83,6 @@ class SqlAlchemyEmployeeRepository(EmployeeRepository):
         )
         existing = result.scalar_one_or_none()
         national_id_encrypted = existing.national_id_encrypted if existing else None
-        # Preserve encrypted blob when metadata only carries hash.
         if existing is None:
             model = employee_to_model(employee, national_id_encrypted=None)
             self._session.add(model)
@@ -138,3 +137,21 @@ class SqlAlchemyEmployeeRepository(EmployeeRepository):
                 existing.national_id_encrypted = national_id_encrypted
         await self._session.flush()
         return employee
+
+    async def list_by_dataset_id(self, *, dataset_id: str) -> list[Employee]:
+        result = await self._session.execute(select(EmployeeModel))
+        matched: list[Employee] = []
+        for model in result.scalars().all():
+            meta = model.metadata_ or {}
+            if meta.get("dataset_id") == dataset_id:
+                matched.append(employee_to_entity(model))
+        return matched
+
+    async def delete_by_ids(self, employee_ids: list[UUID]) -> int:
+        if not employee_ids:
+            return 0
+        result = await self._session.execute(
+            delete(EmployeeModel).where(EmployeeModel.id.in_(employee_ids))
+        )
+        await self._session.flush()
+        return int(result.rowcount or 0)

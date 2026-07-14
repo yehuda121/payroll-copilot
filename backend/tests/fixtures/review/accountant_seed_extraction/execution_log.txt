@@ -1,0 +1,23 @@
+START 2026-07-13T14:40:12.555719+00:00
+{"command": "py scripts/dev/extract_fixture_review.py", "api_base": "http://127.0.0.1:8000", "generated_at": "2026-07-13T14:40:12.555719+00:00", "git_commit": "ba478e4", "language_requested": "he", "execution_mode": "http_ocr_extract_then_parser_payslip", "db_writes": false}
+HEALTH {"status":"healthy"}
+PROCESS valid/payslips_valid_2026_06_multi.pdf pages=7
+  page 1: status=ok warnings=5
+  page 2: status=ok warnings=5
+  page 3: status=ok warnings=5
+  page 4: status=ok warnings=5
+  page 5: status=ok warnings=5
+  page 6: status=ok warnings=5
+  page 7: status=ok warnings=5
+PROCESS invalid/payslips_invalid_2026_07_multi.pdf pages=7
+  page 1: status=ok warnings=5
+  page 2: status=ok warnings=5
+  page 3: status=ok warnings=5
+  page 4: status=ok warnings=5
+  page 5: status=ok warnings=5
+  page 6: status=ok warnings=5
+  page 7: status=ok warnings=5
+PROCESS valid/payslip_valid_2026_06_employee_001.png pages=1
+  page 1: status=ok warnings=5
+END 2026-07-13T15:36:26.634968+00:00
+{"files_processed": 3, "pages_processed": 15, "payslips_detected": 15, "proposed_employees": 0, "ungrouped_candidates": 15, "confirmed_fields": 0, "uncertain_fields": 0, "missing_fields": 360, "requires_human_review_fields": 0, "conflicting_fields": 0, "failed_pages": 0, "pipeline_warnings": 75}

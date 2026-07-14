@@ -32,6 +32,9 @@ from payroll_copilot.infrastructure.persistence.database import get_db_session
 from payroll_copilot.infrastructure.persistence.repositories.audit_log_repository import (
     SqlAlchemyAuditLogRepository,
 )
+from payroll_copilot.infrastructure.persistence.repositories.document_repository import (
+    SqlAlchemyDocumentRepository,
+)
 from payroll_copilot.infrastructure.persistence.repositories.employee_repository import (
     SqlAlchemyEmployeeRepository,
 )
@@ -143,6 +146,7 @@ async def get_employee_profile(
     use_case = BuildEmployeeProfileUseCase(
         SqlAlchemyEmployeeRepository(session),
         SqlAlchemyAuditLogRepository(session),
+        SqlAlchemyDocumentRepository(session),
     )
     try:
         return await use_case.execute(DEMO_ORGANIZATION_ID, employee_number)

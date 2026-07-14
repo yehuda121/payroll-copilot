@@ -1,0 +1,98 @@
+{
+  "dataset": {
+    "currency_default": "ILS",
+    "extensible": true,
+    "locale_default": "he",
+    "registry_driven_document_types": true,
+    "registry_driven_validation_modules": true,
+    "version": "0.0.0-review"
+  },
+  "entities": {
+    "documents": {
+      "fields": [
+        "document_key",
+        "employee_key",
+        "document_type_key",
+        "period_year",
+        "period_month",
+        "source_document_key",
+        "source_page",
+        "version",
+        "availability"
+      ]
+    },
+    "employees": {
+      "fields": [
+        "employee_key",
+        "national_id_hash",
+        "national_id_masked",
+        "display_name",
+        "employee_number",
+        "aliases",
+        "profile_incomplete",
+        "review_status"
+      ],
+      "note": "Employee is business data, separate from auth User."
+    },
+    "expected_extractions": {
+      "fields": [
+        "document_key",
+        "field_key",
+        "raw_value",
+        "normalized_value",
+        "review_status",
+        "evidence_ids",
+        "confidence"
+      ]
+    },
+    "expected_validation_scenarios": {
+      "fields": [
+        "scenario_key",
+        "document_key",
+        "module_keys",
+        "expected_overall",
+        "notes",
+        "unavailable_checks"
+      ]
+    },
+    "review_metadata": {
+      "fields": [
+        "reviewed_by",
+        "reviewed_at",
+        "approval_status",
+        "blocking_items"
+      ]
+    },
+    "source_documents": {
+      "fields": [
+        "document_key",
+        "fixture_path",
+        "fixture_classification",
+        "media_type",
+        "page_count",
+        "sha256"
+      ]
+    }
+  },
+  "example_shape": {
+    "dataset_version": "1.0.0",
+    "documents": [
+      {
+        "document_key": "doc_payslip_employee_001_2026_06",
+        "document_type_key": "payslip",
+        "employee_key": "employee_001",
+        "period_month": 6,
+        "period_year": 2026,
+        "source_page": 1
+      }
+    ],
+    "employees": [
+      {
+        "employee_key": "employee_001",
+        "review_status": "approved"
+      }
+    ]
+  },
+  "note": "REVIEW ARTIFACTS ONLY — NOT APPROVED SEED DATA",
+  "status": "schema_preview_only"
+}

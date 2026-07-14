@@ -65,6 +65,12 @@ class EmployeeRepository(ABC):
     @abstractmethod
     async def save(self, employee: Employee) -> Employee: ...
 
+    async def list_by_dataset_id(self, *, dataset_id: str) -> list[Employee]:
+        raise NotImplementedError
+
+    async def delete_by_ids(self, employee_ids: list[UUID]) -> int:
+        raise NotImplementedError
+
 
 class AuditLogRepository(ABC):
     @abstractmethod
@@ -78,3 +84,6 @@ class AuditLogRepository(ABC):
         limit: int = 100,
         offset: int = 0,
     ) -> list[AuditLogRecord]: ...
+
+    async def delete_by_dataset_id(self, *, dataset_id: str) -> int:
+        raise NotImplementedError

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from payroll_copilot.application.ports.employee_audit import (
@@ -68,3 +68,18 @@ class SqlAlchemyAuditLogRepository(AuditLogRepository):
             )
             for model in result.scalars().all()
         ]
+
+    async def delete_by_dataset_id(self, *, dataset_id: str) -> int:
+        result = await self._session.execute(select(AuditLogModel))
+        ids: list[int] = []
+        for model in result.scalars().all():
+            details = model.details or {}
+            if details.get("dataset_id") == dataset_id:
+                ids.append(model.id)
+        if not ids:
+            return 0
+        deleted = await self._session.execute(
+            delete(AuditLogModel).where(AuditLogModel.id.in_(ids))
+        )
+        await self._session.flush()
+        return int(deleted.rowcount or 0)

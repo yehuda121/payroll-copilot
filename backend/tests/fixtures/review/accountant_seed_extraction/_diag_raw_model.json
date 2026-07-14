@@ -1,0 +1,427 @@
+{
+  "model": "mistral-nemo:12b",
+  "raw_model_response": "{\n  \"name\": {\n    \"value\": \"John Doe\",\n    \"confidence\": 0.95,\n    \"source_text\": \"John Doe\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid1\"],\n    \"source_bbox\": [20, 30, 400, 60],\n    \"source_page\": 1\n  },\n  \"employee_id\": {\n    \"value\": \"EMP123\",\n    \"confidence\": 0.9,\n    \"source_text\": \"Employee ID: EMP123\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid2\"],\n    \"source_bbox\": [50, 70, 200, 80],\n    \"source_page\": 1\n  },\n  \"employee_number\": {\n    \"value\": \"987654321\",\n    \"confidence\": 0.85,\n    \"source_text\": \"Employee Number: 987654321\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid3\"],\n    \"source_bbox\": [50, 100, 200, 110],\n    \"source_page\": 1\n  },\n  \"pay_period\": {\n    \"value\": \"Monthly\",\n    \"confidence\": 0.9,\n    \"source_text\": \"Pay Period: Monthly\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid4\"],\n    \"source_bbox\": [50, 130, 200, 140],\n    \"source_page\": 1\n  },\n  \"employment_type\": {\n    \"value\": \"Full-time\",\n    \"confidence\": 0.9,\n    \"source_text\": \"Employment Type: Full-time\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid5\"],\n    \"source_bbox\": [50, 160, 200, 170],\n    \"source_page\": 1\n  },\n  \"department\": {\n    \"value\": \"IT\",\n    \"confidence\": 0.9,\n    \"source_text\": \"Department: IT\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid6\"],\n    \"source_bbox\": [50, 190, 200, 200],\n    \"source_page\": 1\n  },\n  \"hourly_rate\": {\n    \"value\": \"$30.00\",\n    \"confidence\": 0.8,\n    \"source_text\": \"Hourly Rate: $30.00\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid7\"],\n    \"source_bbox\": [50, 220, 200, 230],\n    \"source_page\": 1\n  },\n  \"base_salary\": {\n    \"value\": \"$4,000.00\",\n    \"confidence\": 0.9,\n    \"source_text\": \"Base Salary: $4,000.00\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid8\"],\n    \"source_bbox\": [50, 250, 200, 260],\n    \"source_page\": 1\n  },\n  \"travel_expenses\": {\n    \"value\": \"$500.00\",\n    \"confidence\": 0.8,\n    \"source_text\": \"Travel Expenses: $500.00\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid9\"],\n    \"source_bbox\": [50, 280, 200, 290],\n    \"source_page\": 1\n  },\n  \"regular_hours\": {\n    \"value\": \"40\",\n    \"confidence\": 0.9,\n    \"source_text\": \"Regular Hours: 40\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid10\"],\n    \"source_bbox\": [50, 310, 200, 320],\n    \"source_page\": 1\n  },\n  \"overtime_hours\": {\n    \"value\": \"5\",\n    \"confidence\": 0.8,\n    \"source_text\": \"Overtime Hours: 5\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid11\"],\n    \"source_bbox\": [50, 340, 200, 350],\n    \"source_page\": 1\n  },\n  \"gross_salary\": {\n    \"value\": \"$4,500.00\",\n    \"confidence\": 0.9,\n    \"source_text\": \"Gross Salary: $4,500.00\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid12\"],\n    \"source_bbox\": [50, 370, 200, 380],\n    \"source_page\": 1\n  },\n  \"income_tax\": {\n    \"value\": \"$900.00\",\n    \"confidence\": 0.8,\n    \"source_text\": \"Income Tax: $900.00\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid13\"],\n    \"source_bbox\": [50, 400, 200, 410],\n    \"source_page\": 1\n  },\n  \"national_insurance\": {\n    \"value\": \"$150.00\",\n    \"confidence\": 0.8,\n    \"source_text\": \"National Insurance: $150.00\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid14\"],\n    \"source_bbox\": [50, 430, 200, 440],\n    \"source_page\": 1\n  },\n  \"health_tax\": {\n    \"value\": \"$75.00\",\n    \"confidence\": 0.8,\n    \"source_text\": \"Health Tax: $75.00\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid15\"],\n    \"source_bbox\": [50, 460, 200, 470],\n    \"source_page\": 1\n  },\n  \"pension_employee\": {\n    \"value\": \"$100.00\",\n    \"confidence\": 0.8,\n    \"source_text\": \"Pension (Employee): $100.00\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid16\"],\n    \"source_bbox\": [50, 490, 200, 500],\n    \"source_page\": 1\n  },\n  \"pension_employer\": {\n    \"value\": \"$200.00\",\n    \"confidence\": 0.8,\n    \"source_text\": \"Pension (Employer): $200.00\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid17\"],\n    \"source_bbox\": [50, 520, 200, 530],\n    \"source_page\": 1\n  },\n  \"severance\": {\n    \"value\": \"$800.00\",\n    \"confidence\": 0.8,\n    \"source_text\": \"Severance: $800.00\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid18\"],\n    \"source_bbox\": [50, 550, 200, 560],\n    \"source_page\": 1\n  },\n  \"training_fund\": {\n    \"value\": \"$50.00\",\n    \"confidence\": 0.7,\n    \"source_text\": \"Training Fund: $50.00\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid19\"],\n    \"source_bbox\": [50, 580, 200, 590],\n    \"source_page\": 1\n  },\n  \"net_salary\": {\n    \"value\": \"$3,475.00\",\n    \"confidence\": 0.9,\n    \"source_text\": \"Net Salary: $3,475.00\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid20\"],\n    \"source_bbox\": [50, 610, 200, 620],\n    \"source_page\": 1\n  },\n  \"vacation_balance\": {\n    \"value\": \"10 days\",\n    \"confidence\": 0.8,\n    \"source_text\": \"Vacation Balance: 10 days\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid21\"],\n    \"source_bbox\": [50, 640, 200, 650],\n    \"source_page\": 1\n  },\n  \"messages\": {\n    \"value\": \"Please review your payslip and contact HR if you have any questions.\",\n    \"confidence\": 0.9,\n    \"source_text\": \"Messages: Please review your payslip and contact HR if you have any questions.\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid22\"],\n    \"source_bbox\": [50, 670, 400, 690],\n    \"source_page\": 1\n  },\n  \"payment_method\": {\n    \"value\": \"Direct Deposit\",\n    \"confidence\": 0.8,\n    \"source_text\": \"Payment Method: Direct Deposit\",\n    \"status\": \"FOUND\",\n    \"evidence_ids\": [\"evid23\"],\n    \"source_bbox\": [50, 710, 200, 720],\n    \"source_page\": 1\n  }\n}",
+  "raw_len": 5453,
+  "normalize_warnings": [
+    "parser_field_alias_normalized",
+    "parser_missing_required_fields"
+  ],
+  "parsed_top_keys": [
+    "additional_fields",
+    "base_salary",
+    "department",
+    "employee_id",
+    "employee_name",
+    "employee_number",
+    "employment_type",
+    "gross_salary",
+    "health_tax",
+    "hourly_rate",
+    "income_tax",
+    "messages",
+    "national_insurance",
+    "net_salary",
+    "overtime_hours",
+    "pay_period",
+    "payment_method",
+    "pension_employee",
+    "pension_employer",
+    "regular_hours",
+    "severance",
+    "sick_leave_balance",
+    "training_fund",
+    "travel_expenses",
+    "vacation_balance"
+  ],
+  "field_summary": {
+    "employee_name": {
+      "status": "FOUND",
+      "value": "John Doe",
+      "evidence_ids": [
+        "evid1"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "employee_id": {
+      "status": "FOUND",
+      "value": "EMP123",
+      "evidence_ids": [
+        "evid2"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "employee_number": {
+      "status": "FOUND",
+      "value": "987654321",
+      "evidence_ids": [
+        "evid3"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "pay_period": {
+      "status": "FOUND",
+      "value": "Monthly",
+      "evidence_ids": [
+        "evid4"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "employment_type": {
+      "status": "FOUND",
+      "value": "Full-time",
+      "evidence_ids": [
+        "evid5"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "department": {
+      "status": "FOUND",
+      "value": "IT",
+      "evidence_ids": [
+        "evid6"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "hourly_rate": {
+      "status": "FOUND",
+      "value": "$30.00",
+      "evidence_ids": [
+        "evid7"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "base_salary": {
+      "status": "FOUND",
+      "value": "$4,000.00",
+      "evidence_ids": [
+        "evid8"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "travel_expenses": {
+      "status": "FOUND",
+      "value": "$500.00",
+      "evidence_ids": [
+        "evid9"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "regular_hours": {
+      "status": "FOUND",
+      "value": "40",
+      "evidence_ids": [
+        "evid10"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "overtime_hours": {
+      "status": "FOUND",
+      "value": "5",
+      "evidence_ids": [
+        "evid11"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "gross_salary": {
+      "status": "FOUND",
+      "value": "$4,500.00",
+      "evidence_ids": [
+        "evid12"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "income_tax": {
+      "status": "FOUND",
+      "value": "$900.00",
+      "evidence_ids": [
+        "evid13"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "national_insurance": {
+      "status": "FOUND",
+      "value": "$150.00",
+      "evidence_ids": [
+        "evid14"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "health_tax": {
+      "status": "FOUND",
+      "value": "$75.00",
+      "evidence_ids": [
+        "evid15"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "pension_employee": {
+      "status": "FOUND",
+      "value": "$100.00",
+      "evidence_ids": [
+        "evid16"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "pension_employer": {
+      "status": "FOUND",
+      "value": "$200.00",
+      "evidence_ids": [
+        "evid17"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "severance": {
+      "status": "FOUND",
+      "value": "$800.00",
+      "evidence_ids": [
+        "evid18"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "training_fund": {
+      "status": "FOUND",
+      "value": "$50.00",
+      "evidence_ids": [
+        "evid19"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "net_salary": {
+      "status": "FOUND",
+      "value": "$3,475.00",
+      "evidence_ids": [
+        "evid20"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "vacation_balance": {
+      "status": "FOUND",
+      "value": "10 days",
+      "evidence_ids": [
+        "evid21"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "messages": {
+      "status": "FOUND",
+      "value": "Please review your payslip and contact HR if you have any questions.",
+      "evidence_ids": [
+        "evid22"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "payment_method": {
+      "status": "FOUND",
+      "value": "Direct Deposit",
+      "evidence_ids": [
+        "evid23"
+      ],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value"
+      ]
+    },
+    "sick_leave_balance": {
+      "status": "MISSING",
+      "value": null,
+      "evidence_ids": [],
+      "keys": [
+        "confidence",
+        "evidence_ids",
+        "normalized_value",
+        "parser_method",
+        "source_bbox",
+        "source_page",
+        "source_text",
+        "status",
+        "value",
+        "warnings"
+      ]
+    }
+  },
+  "semantic": "rejected",
+  "category": "invalid_evidence_ids",
+  "warning_code": "parser_semantic_invalid",
+  "message": "Parser field cites evidence_ids that are not in the OCR layout context."
+}
