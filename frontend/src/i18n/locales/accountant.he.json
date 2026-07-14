@@ -146,9 +146,12 @@
       "editEmployee": "עריכת עובד",
       "personalInformation": "מידע אישי",
       "documents": "מסמכים",
-      "documentsIntro": "האוספים מונעים מרישום סוגי מסמכים. חסר פירושו שאין מסמך — דבר אינו מומצא.",
+      "documentsIntro": "כל סוג מסמך מנוהל בנפרד. הסטטוס משקף מסמכים מצורפים בלבד — חסר פירושו שלא צורף מסמך.",
       "monthlyHistory": "היסטוריה חודשית",
+      "payrollHistory": "היסטוריית שכר",
       "filterYearAria": "סינון לפי שנה",
+      "selectYear": "בחירת שנת שכר",
+      "selectMonth": "בחירת חודש שכר",
       "allYears": "כל השנים",
       "payslip": "תלוש",
       "attendance": "נוכחות",
@@ -170,7 +173,58 @@
       "department": "מחלקה",
       "nationalId": "תעודת זהות",
       "employment": "העסקה",
-      "compensation": "שכר"
+      "compensation": "שכר",
+      "summaryTitle": "סיכום עובד",
+      "summaryStatus": "סטטוס",
+      "summaryCompleteness": "שלמות פרופיל",
+      "summaryProfileComplete": "מלא",
+      "summaryLatestPayroll": "חודש שכר אחרון",
+      "summaryDocuments": "השלמת מסמכים",
+      "summaryDocumentCount": "{{present}} מתוך {{total}} סוגים",
+      "summaryValidation": "אימות",
+      "summaryValidationClear": "אין חודשים שנכשלו",
+      "summaryValidationIssues": "{{count}} חודשים דורשים טיפול",
+      "summaryOpenIssues": "נושאים פתוחים",
+      "summaryOpenIssuesCount": "{{count}} תקופות",
+      "summaryNoOpenIssues": "אין",
+      "documentCount": "מסמכים",
+      "documentCountLabel": "{{count}} מסמכים",
+      "latestDocument": "אחרון",
+      "latestDocumentAttached": "מצורף",
+      "noDocumentsYet": "אין מסמכים עדיין",
+      "openDocuments": "פתיחת מסמכים",
+      "uploadDocument": "העלאה",
+      "documentDetails": "פרטי מסמך",
+      "documentId": "מזהה מסמך",
+      "documentType": "סוג מסמך",
+      "originalFilename": "שם קובץ מקורי",
+      "grossNet": "ברוטו {{gross}} · נטו {{net}}",
+      "months": {
+        "jan": "ינו",
+        "feb": "פבר",
+        "mar": "מרץ",
+        "apr": "אפר",
+        "may": "מאי",
+        "jun": "יונ",
+        "jul": "יול",
+        "aug": "אוג",
+        "sep": "ספט",
+        "oct": "אוק",
+        "nov": "נוב",
+        "dec": "דצמ"
+      },
+      "monthStatus": {
+        "complete": "כל המסמכים הצפויים קיימים",
+        "missing": "חסרים מסמכים",
+        "failed": "האימות נכשל",
+        "empty": "אין תקופת שכר"
+      }
+    },
+    "unsaved": {
+      "title": "שינויים שלא נשמרו",
+      "message": "יש שינויים שלא נשמרו בעובד. לצאת מהדף ולבטל את השינויים?",
+      "leave": "לבטל ולצאת",
+      "stay": "להישאר בעריכה"
     },
     "documents": {
       "types": {
@@ -395,7 +449,8 @@
       "loadFailed": "טעינת הנתונים נכשלה. נסו שוב.",
       "saveFailed": "השמירה נכשלה. נסו שוב.",
       "uploadFailed": "ההעלאה נכשלה. נסו שוב.",
-      "matchFailed": "התאמת העובד נכשלה. נסו שוב."
+      "matchFailed": "התאמת העובד נכשלה. נסו שוב.",
+      "disableFailed": "לא ניתן להשבית את העובד. נסו שוב או פנו לתמיכה."
     },
     "dialogs": {
       "cancel": "ביטול",

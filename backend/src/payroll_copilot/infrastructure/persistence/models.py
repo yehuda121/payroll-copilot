@@ -74,6 +74,13 @@ class UserModel(Base):
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False)
     preferred_locale: Mapped[str] = mapped_column(String(5), default="he")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Nullable: only employee-role users bind to a business Employee record.
+    employee_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("employees.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
 

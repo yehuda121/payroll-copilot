@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { LanguageSelector } from '../components/ui/LanguageSelector';
 import { useConfirmDialog } from '../components/ui/Dialog';
 import { useOptionalBatchNavigationGuard } from '../features/accountant/BatchNavigationGuard';
+import { useOptionalUnsavedChanges } from '../features/accountant/UnsavedChangesGuard';
 import type { PortalConfig } from '../types/navigation';
 import './PortalShell.css';
 
@@ -18,6 +19,7 @@ export function PortalShell({ config }: PortalShellProps) {
   const navigate = useNavigate();
   const { confirm } = useConfirmDialog();
   const { isBatchActive, batchLabel } = useOptionalBatchNavigationGuard();
+  const unsaved = useOptionalUnsavedChanges();
 
   const portalName = config.portalNameKey
     ? t(config.portalNameKey)
@@ -30,6 +32,14 @@ export function PortalShell({ config }: PortalShellProps) {
     event: React.MouseEvent<HTMLAnchorElement>,
     path: string,
   ) => {
+    if (unsaved?.isDirty) {
+      event.preventDefault();
+      const ok = await unsaved.confirmIfDirty();
+      if (!ok) return;
+      unsaved.setDirty(false);
+      navigate(path);
+      return;
+    }
     if (!isBatchActive) return;
     event.preventDefault();
     const ok = await confirm({

@@ -41,6 +41,7 @@ from payroll_copilot.infrastructure.persistence.repositories.employee_repository
 from payroll_copilot.infrastructure.persistence.repositories.workspace_bootstrap import (
     OrganizationWorkspaceBootstrap,
 )
+from payroll_copilot.presentation.api.security import BoundEmployeeContext, require_bound_employee
 
 router = APIRouter()
 
@@ -125,6 +126,62 @@ async def match_national_id(
         DEMO_ORGANIZATION_ID, body.national_id
     )
     return {"matched": matched is not None, "employee": matched}
+
+
+@router.get("/me")
+async def get_my_employee(
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+) -> dict[str, Any]:
+    """Trusted employee context for the authenticated employee principal."""
+    employee = bound.employee
+    return {
+        "employee_id": str(employee.id),
+        "employee_number": employee.employee_number,
+        "full_name": (employee.metadata or {}).get("verified_display_name")
+        or f"{employee.first_name} {employee.last_name}",
+        "national_id_masked": (employee.metadata or {}).get("national_id_masked"),
+        "organization_id": str(employee.organization_id),
+        "status": employee.status.value
+        if hasattr(employee.status, "value")
+        else str(employee.status),
+        "profile_incomplete": bool((employee.metadata or {}).get("profile_incomplete", False)),
+    }
+
+
+@router.get("/me/payslips")
+async def list_my_payslips(
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+    session: AsyncSession = Depends(get_db_session),
+    year: int | None = Query(default=None),
+) -> list[dict[str, Any]]:
+    """List payslip documents owned by the authenticated employee."""
+    from payroll_copilot.domain.enums import DocumentType
+
+    docs = await SqlAlchemyDocumentRepository(session).list_for_employee(
+        organization_id=bound.employee.organization_id,
+        employee_id=bound.employee.id,
+    )
+    rows: list[dict[str, Any]] = []
+    for doc in docs:
+        if doc.document_type != DocumentType.PAYSLIP:
+            continue
+        if year is not None and doc.period and doc.period.year != year:
+            continue
+        meta = dict(doc.metadata or {})
+        rows.append(
+            {
+                "document_id": str(doc.id),
+                "original_filename": doc.original_filename,
+                "status": doc.status.value if hasattr(doc.status, "value") else str(doc.status),
+                "period_year": doc.period.year if doc.period else meta.get("selected_period_year"),
+                "period_month": doc.period.month if doc.period else meta.get("selected_period_month"),
+                "extracted_period_year": meta.get("extracted_period_year"),
+                "extracted_period_month": meta.get("extracted_period_month"),
+                "uploaded_at": doc.created_at.isoformat() if doc.created_at else None,
+                "manual_corrections": bool(meta.get("has_manual_corrections")),
+            }
+        )
+    return rows
 
 
 @router.get("/{employee_number}")

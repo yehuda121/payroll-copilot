@@ -193,7 +193,13 @@ export function getValidationModuleDescription(moduleKey: string, t: TFunction):
 
 /** Map known API/user-safe error situations to translation keys. */
 export function getAccountantErrorMessage(
-  code: 'loadFailed' | 'saveFailed' | 'uploadFailed' | 'matchFailed' | 'generic',
+  code:
+    | 'loadFailed'
+    | 'saveFailed'
+    | 'uploadFailed'
+    | 'matchFailed'
+    | 'disableFailed'
+    | 'generic',
   t: TFunction,
 ): string {
   return t(`accountant.errors.${code}`);

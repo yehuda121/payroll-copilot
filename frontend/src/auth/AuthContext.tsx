@@ -1,27 +1,55 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { env } from '../config/env';
+import { clearAccessToken, saveAccessToken } from '../lib/auth/access-token';
+import { apiRequest } from '../services/api';
 import type { AuthSession, LoginCredentials, UserRole } from '../types/auth';
 import { cognitoAuthProvider } from './authProvider';
-import { clearDevSession, devLoginAsRole, loadDevSession } from './devAuth';
+import { clearDevSession, devLoginAsRole, loadDevSession, saveDevSession } from './devAuth';
 
 type AuthContextValue = {
   session: AuthSession | null;
   isAuthenticated: boolean;
   devAuthEnabled: boolean;
   loginWithCredentials: (credentials: LoginCredentials) => Promise<void>;
-  loginWithDevRole: (role: UserRole) => void;
+  loginWithDevRole: (role: UserRole) => Promise<void>;
   logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+async function fetchDevEmployeeAccessToken(): Promise<string | null> {
+  try {
+    const result = await apiRequest<{ access_token: string }>('/auth/dev/employee-session', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    return result.access_token;
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(() =>
     env.devAuthEnabled ? loadDevSession() : null,
   );
 
-  const loginWithDevRole = useCallback((role: UserRole) => {
+  const loginWithDevRole = useCallback(async (role: UserRole) => {
     const next = devLoginAsRole(role);
+    if (role === 'employee') {
+      const token = await fetchDevEmployeeAccessToken();
+      if (token) {
+        saveAccessToken(token);
+        next.accessToken = token;
+        saveDevSession(next);
+      } else {
+        clearAccessToken();
+        throw new Error('Employee portal token could not be issued. Is the API running with seed data?');
+      }
+    } else {
+      clearAccessToken();
+      saveDevSession(next);
+    }
     setSession(next);
   }, []);
 
@@ -35,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     clearDevSession();
+    clearAccessToken();
     setSession(null);
     void cognitoAuthProvider.logout();
   }, []);

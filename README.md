@@ -4,7 +4,7 @@
 
 Payroll Copilot lets a guest upload a payslip and receive a structured validation report from a deterministic rule engine, and provides a source-bound payroll assistant that answers payroll/labor-law questions using approved local content only. Compliance pass/fail decisions are always made by the backend rule engine — never by AI.
 
-> **Status: work in progress.** The architecture, deterministic validation engine, document upload/persistence, Phase 1 OCR text extraction (`POST /ocr/extract`), and the public guest experience (assistant + validate-my-payslip) are implemented. Several capabilities are intentionally **not connected yet** (OCR→AI Parser→validation wiring, vector RAG, contract/attendance/ID analysis, production auth). This README calls out exactly what is and is not built — see **[Current Status](#current-status)** and **[Current Limitations](#current-limitations)**. Nothing here fabricates validation results, OCR fields, or legal answers.
+> **Status: work in progress.** Guest validate-my-payslip, assistant chat, OCR/parser pipeline, accountant portal foundation, and **authenticated employee payslip upload with server-side identity/period comparison** are implemented. Several capabilities remain unconnected (vector RAG, contract/attendance/ID analysis, production Cognito for all routes, document viewer). See **[Current Status](#current-status)** and **[Current Limitations](#current-limitations)**. Nothing here fabricates validation results, OCR fields, or legal answers.
 
 ---
 
@@ -19,27 +19,30 @@ Honest snapshot of what exists today. "Partial" means real code runs but a downs
 - **OCR text extraction (Phase 1)** — `POST /ocr/extract` returns page-level text + real OCR confidence via pluggable providers (PaddleOCR primary; Hebrew→Tesseract fallback). Includes preprocessing, language mapping, layout words/bboxes, and multi-PSM selection for Tesseract.
 - **AI Payslip Parser (Phase 2A)** — `POST /parser/payslip` turns OCR JSON into per-field structured payslip data via local Ollama. Layout-aware / evidence-bound extraction with semantic validation and one controlled retry (no silent schema-copy → all-MISSING).
 - **Guest extraction + validation (Phases 2B–7)** — extract → review/edit → validate on Continue → results; mapper builds a synthetic guest employee from parser fields (`rule_profile=payroll`); demo builder is not used on the guest path.
+- **Employee payslip trust boundary (foundation)** — `users.employee_id` binding (Alembic `004`), `GET /employees/me`, authenticated `POST /extraction/employee/payslip-extract` + corrections, server-side identity/period comparison, duplicate-period `409`, owned `POST /validation/employee/run` that blocks National ID / period mismatches, Employee Portal upload/review UI that renders backend comparison only (no client-side National ID compare).
 - **Public Guest Experience (frontend)** — landing page, Payroll Assistant chat (**safe Markdown rendering** for assistant answers), Validate-My-Payslip upload/review/results flow, enterprise validation report with honest scope.
 - **LangGraph Payroll Assistant (backend)** — `POST /assistant/chat` with input/output guardrails, greeting handling, and keyword search over approved YAML legal rules.
 - **Ollama integration** — host-first URL resolution with optional Docker fallback and graceful degradation when unavailable.
-- **i18n foundation** — Hebrew / English / Arabic UI + RTL, locale-aware API responses and assistant answers (OCR language extraction not connected). **Payroll Accountant Portal UI** is fully covered under the existing i18next locale files (`accountant.*` + shared `common`/`portal` keys).
-- **Database schema & Alembic migrations**, **Docker Compose orchestration**, **guest JWT tokens** (`POST /auth/guest/session`).
+- **i18n foundation** — Hebrew / English / Arabic UI + RTL, locale-aware API responses and assistant answers (OCR language extraction not connected). **Payroll Accountant Portal UI** is fully covered under the existing i18next locale files (`accountant.*` + shared `common`/`portal` keys). Employee upload/payslip strings live under `employee.*` in `{en,he,ar}.json`.
+- **Database schema & Alembic migrations**, **Docker Compose orchestration**, **guest JWT tokens** (`POST /auth/guest/session`), **dev employee JWT** (`POST /auth/dev/employee-session`, non-production).
 
 ### Partially implemented
 - **Supporting document analysis** — attendance / contract / national ID can be uploaded, but extraction/cross-check is not connected yet (scope stays unable for those areas).
 - **Assistant legal search** — keyword search over local YAML rules only; **no vector RAG** yet.
-- **Role-based portals (employee/accountant/admin)** — UI foundation exists; accountant portal now has a production-oriented foundation (employees, profile, rules, batch progress, audit, manual review). Employee/admin pages remain largely unwired.
+- **Role-based portals (employee/accountant/admin)** — accountant portal has a production-oriented foundation (employees, profile, rules, batch progress, audit, manual review). Employee payslip upload/review + My Payslips list are wired to the trusted employee APIs; other employee pages (attendance, contract, chat, validation history) remain largely unwired. Admin pages remain largely unwired.
 - **Payroll Accountant Portal foundation** — employee master-data API (separate from auth users), extensible document-type + validation-module catalogs, employee profile with document collections / monthly expectations, rule browse/edit with versioning + audit + rollback, bulk PDF upload with stage progress store, national-ID match helper, low-confidence manual review queue, enterprise dialogs (no browser `alert`/`confirm`), batch navigation/`beforeunload` guards. Downstream OCR→parser→identify→validate wiring for each split slip is still incremental (stages marked skipped honestly).
-- **Guest sessions** — guest JWT is issued and sent, but there is **no `guest_sessions` DB table** and routes do not yet enforce the token.
+- **Guest sessions** — guest JWT is issued and sent, but there is **no `guest_sessions` DB table** and guest routes do not yet enforce the token. **Employee extract/correct/`/me`/employee validation do enforce Bearer auth + binding.**
+- **Production identity providers** — Cognito login path is scaffolded; local development uses the role selector + server-issued employee JWT.
 
 ### Planned but not built
 - Vector RAG over legal rules and employment contracts.
 - Contract / attendance / national-ID analysis.
-- Historical payroll comparison.
-- Production auth (AWS Cognito) and full RBAC enforcement.
+- Historical payroll comparison and full employee trend history.
+- Production auth (AWS Cognito) and full RBAC enforcement across all routes (including guest + accountant mutation routes).
 - Batch bulk-PDF OCR/parser/identify/validate wiring (split + progress foundation exists; per-slip pipeline incomplete).
 - MCP Kol Zchut legal sync automation.
-- RTL / i18n UI.
+- In-app document image/PDF viewer for extraction review.
+- Absolute DB uniqueness constraint on employee+period payslips (current gate is application-level `find_payslip_for_period`).
 
 ---
 
@@ -309,11 +312,27 @@ Progress via `GET /api/v1/batch/jobs/{id}`.
 ## Employee Flow
 
 ```
-Guest/Employee → Upload payslip → OCR extract → Validate (deterministic) →
-AI explanation (non-binding) → Report with confidence breakdown
+Authenticated employee → Select payroll period → Upload payslip →
+Shared OCR + parser (same pipeline as guest) → Server identity/period compare →
+Review / correct → Confirm (blocked on National ID or period mismatch) →
+Deterministic validation → Appears in My Payslips
 ```
 
-Registered employees get persistent history and trend analysis.
+### Working now
+- **User ↔ employee binding** — nullable `users.employee_id` FK; employee-role users resolve to exactly one employee; accountants/admins are not treated as employee owners.
+- **Trusted context** — `GET /api/v1/employees/me` returns safe display fields only (masked National ID, never plaintext).
+- **Extract + correct** — reuses the guest OCR/parser/correction use cases; `employee_id` is taken from the authenticated principal only.
+- **Comparison policy** — National ID mismatch = critical block; name-only mismatch = warning; selected vs extracted period mismatch = block (no silent reassignment); low confidence = uncertain (never mismatch alone).
+- **Duplicates** — same employee + selected year/month → HTTP `409 duplicate_payslip_period`; explicit `confirm_new_version=true` creates a new document and preserves the previous one.
+- **Employee Portal UI** — period picker → upload → review with backend `identity_check` / `period_check` → corrections via employee endpoint → confirm/validate; reuses `ExtractionReviewTable`, validation report view, and unsaved-changes guard.
+
+### Partial / known limitations
+- Other employee portal pages (attendance, contract, chat, validation history) remain stubs.
+- No in-app document viewer yet; review is field-table based.
+- Application-level duplicate gate (not a DB unique index).
+- Dev employee session maps to a stable seeded employee (#5); production Cognito binding is not shipped.
+
+Registered employees get persistent document rows scoped by organization + employee ownership. Guest flow remains available without employee binding.
 
 ---
 
@@ -330,12 +349,13 @@ Email leave requests processed via n8n → Email Agent → Attendance DB (with h
 
 ## Security
 
-- Role-Based Access Control (guest, employee, accountant, admin)
-- JWT authentication + guest tokens
-- Encrypted national ID storage
-- Secure file storage with pre-signed URLs
-- Append-only audit logs (7-year retention)
-- Input validation, rate limiting, tenant isolation
+- Role-Based Access Control roles: guest, employee, accountant, admin
+- JWT authentication + guest tokens; **employee extract/correct/`/me`/employee validation require Bearer auth and a bound `users.employee_id`**
+- Encrypted National ID storage; API responses expose **masked** ID only; decrypted plaintext is used in-process for equality checks and is not logged
+- Secure file storage with pre-signed URLs (design target; local object storage in current stack)
+- Append-only audit logs for employee upload, mismatch, correction, duplicate-version confirm, and validation-blocked events
+- Input validation, upload guardrails, tenant/organization isolation on employee-owned documents
+- **Do not rely on frontend route protection alone** for employee document ownership
 
 See [docs/security-and-deployment.md](docs/security-and-deployment.md).
 
@@ -478,7 +498,7 @@ Dev sessions are stored in `localStorage` only. Production auth will use AWS Cog
 
 The frontend provides three portals after login:
 
-**Employee Portal** — Dashboard, document upload, payslips, attendance, contract, AI chat (explanations only), validation history.
+**Employee Portal** — Payslip upload/review with trusted server comparison + My Payslips list; dashboard, attendance, contract, AI chat, and validation history pages still largely stubs.
 
 **Payroll Accountant Portal** — Dashboard, employee management (CRUD/disable/search), employee profile (document collections + monthly history), bulk payroll upload, batch monitor with pipeline stages, payroll rules (versioned edit/rollback), validation findings, manual review / approvals, audit logs.
 
@@ -650,12 +670,19 @@ See `.env.example` for complete list.
 REST API at `/api/v1`. Full OpenAPI spec at `/docs`.
 
 Key endpoints:
-- `POST /auth/login` — Authentication
+- `POST /auth/login` — Authentication (production path scaffold)
+- `POST /auth/guest/session` — Guest JWT
+- `POST /auth/dev/employee-session` — Dev-only employee JWT bound to seeded employee (blocked in production)
+- `GET /employees/me` — Trusted employee context (masked National ID)
+- `GET /employees/me/payslips` — Employee-owned payslip list
 - `POST /assistant/chat` — Public guest payroll assistant (LangGraph orchestration)
 - `POST /documents/upload` — Document upload
-- `POST /validation/run` — Trigger validation
+- `POST /extraction/guest/payslip-extract` — Guest extract (unchanged)
+- `POST /extraction/employee/payslip-extract` — Authenticated employee extract + `identity_check` / `period_check`
+- `POST /extraction/employee/{document_id}/corrections` — Owned corrections + refreshed comparison
+- `POST /validation/run` — Guest/general validation trigger
+- `POST /validation/employee/run` — Owned validation after identity/period gate
 - `POST /batch/payslips` — Bulk PDF processing
-- `POST /employees/import` — Excel master data import
 - `GET /compliance/diff-proposals` — MCP legal diffs
 
 See [docs/api.md](docs/api.md).
@@ -682,6 +709,22 @@ Assistant + Ollama-resolver focused run (Windows PowerShell):
 cd backend
 $env:PYTHONPATH="src"
 pytest tests/unit/test_ollama_resolver.py tests/unit/test_payroll_assistant_guardrails.py tests/unit/test_payroll_assistant_use_case.py tests/integration/test_assistant_api.py -v
+```
+
+Employee trust-boundary unit tests (Windows PowerShell):
+
+```powershell
+cd backend
+$env:PYTHONPATH="src"
+pytest tests/unit/test_payslip_identity_comparison.py tests/unit/test_employee_payslip_policies.py -v
+```
+
+Frontend:
+
+```powershell
+cd frontend
+npm test
+npm run build
 ```
 
 ### Manual smoke tests
@@ -733,17 +776,20 @@ These are intentional and surfaced honestly in the UI/API — nothing is faked:
 - **AI Payslip Parser (Phase 2A) is implemented** via `POST /api/v1/parser/payslip` (OCR JSON → per-field `{value, confidence, source_text, status, evidence_ids, …}`). Layout-aware evidence validation, semantic rejection of schema-copy / invalid keys, one controlled retry; confidence never invented.
 - **Guest extraction persistence (Phase 2B/2C)** — `POST /api/v1/extraction/guest/payslip-extract` orchestrates upload → OCR → parser → `document_extractions` row; guest Review shows real fields (Missing / unable to read / confidence unavailable — never invented).
 - **Guest validation connected (Phases 3–7)** — Review/edit → `POST /extraction/guest/{id}/corrections` (new extraction version) → `POST /validation/run` maps structured fields to a synthetic guest context (`rule_profile=payroll`). Missing data → Unable to verify. AI explains existing findings only.
+- **Employee trust boundary is connected for payslip upload/review** — binding migration `004`, `/employees/me`, employee extract/correct, server comparison, duplicate `409`, and `/validation/employee/run` gate. Frontend renders backend checks only.
 - **Public chat Markdown rendering** — assistant answers are rendered as sanitized Markdown in the guest chat UI; response text from the API is unchanged.
-- **OCR worker on document upload is still a stub.** The Celery `process_document_ocr` task remains a placeholder; the guest validate flow uses the sync extraction endpoint instead.
+- **OCR worker on document upload is still a stub.** The Celery `process_document_ocr` task remains a placeholder; guest and employee validate flows use the sync extraction endpoints instead.
 - **DemoValidationContextBuilder remains in codebase for non-guest/dev use only** — it is not used on the guest validation path.
 - **No real vector RAG yet.** The assistant uses keyword search over local YAML legal rules only.
-- **No production auth / Cognito yet.** A dev role selector and guest JWT exist; routes do not enforce auth.
-- **Guest session DB persistence not completed.** Guest JWT is issued and sent, but there is no `guest_sessions` table and routes don't require the token.
-- **Contract / attendance / national-ID analysis not connected.** Uploading these documents is supported, but they are reported as `not_available` in the validation scope because analysis is not wired.
+- **Production Cognito / full RBAC not complete.** Dev role selector + guest JWT + **employee JWT for bound routes** exist; many accountant/guest routes still do not enforce auth.
+- **Guest session DB persistence not completed.** Guest JWT is issued and sent, but there is no `guest_sessions` table and guest routes don't require the token.
+- **Contract / attendance / national-ID analysis not connected.** Uploading these documents is supported on guest flows, but they are reported as `not_available` in the validation scope because analysis is not wired.
 - **Historical comparison not available.** Always reported as `not_available`.
 - **Batch bulk-PDF, MCP legal sync** are design targets, not shipped.
 - **Hebrew OCR:** when `OCR_PROVIDER=paddleocr` (default), `language=he` transparently uses **Tesseract** and returns `engine=tesseract` plus a warning. This is intentional production-honest behavior — not a bug.
 - **Parser model quality** — local Ollama (e.g. `mistral-nemo:12b`) may still leave fields MISSING after semantic retry; the pipeline prefers honest MISSING over invented values.
+- **No payslip document viewer UI** — review is field-based; side-by-side page imaging is still planned.
+- **Intended final product goal:** an end-to-end payroll compliance platform where employees and payroll accountants upload documents, the system securely extracts and matches data, deterministic rules validate compliance, and users receive traceable findings — **without AI making legal pass/fail decisions**.
 
 ---
 

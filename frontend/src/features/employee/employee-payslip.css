@@ -1,0 +1,115 @@
+.employee-payslip-wizard__period {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.employee-payslip-wizard__period-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.employee-payslip-wizard__period-row label {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 8rem;
+}
+
+.employee-payslip-wizard__period-row select {
+  min-height: 2.4rem;
+  padding: 0.35rem 0.55rem;
+}
+
+.employee-payslip-wizard__blocked {
+  margin: 0;
+  color: var(--color-danger, #b42318);
+  font-size: 0.9rem;
+}
+
+.identity-period-check {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.identity-period-check__intro {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.identity-period-check__banner {
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md, 8px);
+  font-weight: 600;
+}
+
+.identity-period-check__banner.is-critical {
+  background: #fef3f2;
+  color: #b42318;
+  border: 1px solid #fecdca;
+}
+
+.identity-period-check__banner.is-warning {
+  background: #fffaeb;
+  color: #b54708;
+  border: 1px solid #fedf89;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.identity-period-check__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.identity-period-check__field {
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--color-border);
+}
+
+.identity-period-check__field p {
+  margin: 0.2rem 0 0;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+}
+
+.identity-period-check__field-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.identity-period-check__field.is-critical,
+.identity-period-check__field.is-mismatch.is-critical {
+  border-color: #fecdca;
+  background: #fef3f2;
+}
+
+.identity-period-check__field.is-warning {
+  border-color: #fedf89;
+  background: #fffaeb;
+}
+
+.identity-period-check__field.is-uncertain {
+  border-color: #fedf89;
+  background: #fffbeb;
+}
+
+.identity-period-check__field.is-missing {
+  border-color: #d0d5dd;
+  background: #f9fafb;
+}
+
+.identity-period-check__field.is-match {
+  border-color: #abefc6;
+  background: #ecfdf3;
+}

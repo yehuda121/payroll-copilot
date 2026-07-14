@@ -108,3 +108,51 @@ class PayslipParserSemanticError(PayslipParserSchemaError):
 class PayslipParserTimeoutError(PayslipParserError):
     def __init__(self, message: str = "Payslip parser timed out.") -> None:
         super().__init__(message, code="parser_timeout")
+
+
+class EmployeeAuthError(Exception):
+    """Authenticated employee resolution / authorization failure."""
+
+    def __init__(self, message: str, *, code: str, status_code: int = 403) -> None:
+        self.message = message
+        self.code = code
+        self.status_code = status_code
+        super().__init__(message)
+
+
+class DuplicatePayslipPeriodError(Exception):
+    def __init__(
+        self,
+        *,
+        existing_document_id: UUID,
+        existing_version: int | None,
+        uploaded_at: str | None,
+    ) -> None:
+        self.code = "duplicate_payslip_period"
+        self.existing_document_id = existing_document_id
+        self.existing_version = existing_version
+        self.uploaded_at = uploaded_at
+        super().__init__("A payslip already exists for this employee and payroll period.")
+
+
+class DocumentNotOwnedError(Exception):
+    def __init__(self, document_id: UUID) -> None:
+        self.document_id = document_id
+        self.code = "document_not_owned"
+        super().__init__(f"Document {document_id} is not owned by the authenticated employee")
+
+
+class CorrectionNotAllowedError(Exception):
+    def __init__(self, message: str = "Correction is not allowed for this document.") -> None:
+        self.code = "correction_not_allowed"
+        self.message = message
+        super().__init__(message)
+
+
+class ConfirmationBlockedError(Exception):
+    """Blocks employee confirmation / validation when trusted identity or period fails."""
+
+    def __init__(self, *, code: str, message: str) -> None:
+        self.code = code
+        self.message = message
+        super().__init__(message)

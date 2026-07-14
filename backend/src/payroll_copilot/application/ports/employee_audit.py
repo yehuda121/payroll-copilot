@@ -65,6 +65,10 @@ class EmployeeRepository(ABC):
     @abstractmethod
     async def save(self, employee: Employee) -> Employee: ...
 
+    async def get_national_id_encrypted(self, employee_id: UUID) -> bytes | None:
+        """Return encrypted National ID bytes for server-side comparison only."""
+        raise NotImplementedError
+
     async def list_by_dataset_id(self, *, dataset_id: str) -> list[Employee]:
         raise NotImplementedError
 

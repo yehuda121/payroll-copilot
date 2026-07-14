@@ -138,6 +138,12 @@ class SqlAlchemyEmployeeRepository(EmployeeRepository):
         await self._session.flush()
         return employee
 
+    async def get_national_id_encrypted(self, employee_id: UUID) -> bytes | None:
+        result = await self._session.execute(
+            select(EmployeeModel.national_id_encrypted).where(EmployeeModel.id == employee_id)
+        )
+        return result.scalar_one_or_none()
+
     async def list_by_dataset_id(self, *, dataset_id: str) -> list[Employee]:
         result = await self._session.execute(select(EmployeeModel))
         matched: list[Employee] = []

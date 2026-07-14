@@ -27,12 +27,22 @@ class DocumentRepository(ABC):
         """Optional listing API — default empty for stubs; SQLAlchemy overrides."""
         raise NotImplementedError
 
+    async def find_payslip_for_period(
+        self,
+        *,
+        organization_id: UUID,
+        employee_id: UUID,
+        period_year: int,
+        period_month: int,
+    ) -> Document | None:
+        """Find an existing payslip for employee+selected period if any."""
+        raise NotImplementedError
+
     async def list_by_dataset_id(self, *, dataset_id: str) -> list[Document]:
         raise NotImplementedError
 
     async def delete_by_ids(self, document_ids: list[UUID]) -> int:
         raise NotImplementedError
-
 
 class DocumentExtractionRepository(ABC):
     @abstractmethod

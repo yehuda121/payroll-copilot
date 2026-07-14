@@ -14,6 +14,8 @@ export type AuthSession = {
   /** Dev mode marker — replaced by Cognito tokens in production. */
   provider: 'dev' | 'cognito';
   issuedAt: string;
+  /** API JWT for employee-bound routes (issued by /auth/dev/employee-session). */
+  accessToken?: string;
 };
 
 export type LoginCredentials = {

@@ -73,6 +73,14 @@ class GuestPayslipExtractionCommand:
     original_filename: str
     mime_type: str
     language: str = "auto"
+    # Optional employee binding — used by employee extract path; guest leaves unset.
+    employee_id: UUID | None = None
+    organization_id: UUID | None = None
+    uploaded_by: UUID | None = None
+    period_year: int | None = None
+    period_month: int | None = None
+    confirm_new_version: bool = False
+    metadata_extra: dict[str, Any] | None = None
 
 
 class ExtractGuestPayslipUseCase:
@@ -251,11 +259,25 @@ class ExtractGuestPayslipUseCase:
         )
 
     async def _persist_document(self, command: GuestPayslipExtractionCommand) -> Document:
+        from payroll_copilot.domain.value_objects import PayPeriod
+
         document_id = uuid4()
         checksum = hashlib.sha256(command.content).hexdigest()
         storage_key = f"documents/{document_id}/{command.original_filename or 'payslip'}"
         await self._storage.upload(storage_key, command.content, command.mime_type)
-        await self._org_bootstrap.ensure_demo_organization(DEMO_ORGANIZATION_ID)
+        org_id = command.organization_id or DEMO_ORGANIZATION_ID
+        await self._org_bootstrap.ensure_demo_organization(org_id)
+
+        metadata: dict[str, Any] = {"document_language": command.language}
+        if command.metadata_extra:
+            metadata.update(command.metadata_extra)
+        if command.period_year is not None and command.period_month is not None:
+            metadata["selected_period_year"] = command.period_year
+            metadata["selected_period_month"] = command.period_month
+
+        period = None
+        if command.period_year is not None and command.period_month is not None:
+            period = PayPeriod(year=command.period_year, month=command.period_month)
 
         document = Document(
             id=document_id,
@@ -266,8 +288,11 @@ class ExtractGuestPayslipUseCase:
             file_size_bytes=len(command.content),
             checksum_sha256=checksum,
             status=DocumentStatus.PROCESSING,
-            organization_id=DEMO_ORGANIZATION_ID,
-            metadata={"document_language": command.language},
+            organization_id=org_id,
+            uploaded_by=command.uploaded_by,
+            employee_id=command.employee_id,
+            period=period,
+            metadata=metadata,
             created_at=_utcnow(),
         )
         return await self._documents.save(document)

@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { EmployeeWritePayload, EmploymentType, SalaryType } from '../../types/employee';
 
@@ -21,6 +21,7 @@ type EmployeeFormProps = {
   submitting?: boolean;
   error?: string | null;
   onSubmit: (values: EmployeeFormValues, payload: EmployeeWritePayload) => void | Promise<void>;
+  onDirtyChange?: (dirty: boolean) => void;
   footer: ReactNode;
 };
 
@@ -68,10 +69,24 @@ export function EmployeeForm({
   submitting,
   error,
   onSubmit,
+  onDirtyChange,
   footer,
 }: EmployeeFormProps) {
   const { t } = useTranslation();
+  const baselineRef = useRef<EmployeeFormValues>({ ...DEFAULTS, ...initial });
   const [values, setValues] = useState<EmployeeFormValues>({ ...DEFAULTS, ...initial });
+
+  useEffect(() => {
+    const next = { ...DEFAULTS, ...initial };
+    baselineRef.current = next;
+    setValues(next);
+    onDirtyChange?.(false);
+  }, [initial, onDirtyChange]);
+
+  useEffect(() => {
+    const dirty = JSON.stringify(values) !== JSON.stringify(baselineRef.current);
+    onDirtyChange?.(dirty);
+  }, [values, onDirtyChange]);
 
   const update = <K extends keyof EmployeeFormValues>(key: K, value: EmployeeFormValues[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }));

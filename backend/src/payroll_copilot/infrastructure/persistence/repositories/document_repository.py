@@ -51,6 +51,31 @@ class SqlAlchemyDocumentRepository(DocumentRepository):
         )
         return [document_to_entity(model) for model in result.scalars().all()]
 
+    async def find_payslip_for_period(
+        self,
+        *,
+        organization_id: UUID,
+        employee_id: UUID,
+        period_year: int,
+        period_month: int,
+    ) -> Document | None:
+        from payroll_copilot.domain.enums import DocumentType
+
+        result = await self._session.execute(
+            select(DocumentModel)
+            .where(
+                DocumentModel.organization_id == organization_id,
+                DocumentModel.employee_id == employee_id,
+                DocumentModel.document_type == DocumentType.PAYSLIP,
+                DocumentModel.period_year == period_year,
+                DocumentModel.period_month == period_month,
+            )
+            .order_by(DocumentModel.created_at.desc())
+            .limit(1)
+        )
+        model = result.scalar_one_or_none()
+        return document_to_entity(model) if model else None
+
     async def list_by_dataset_id(self, *, dataset_id: str) -> list[Document]:
         result = await self._session.execute(select(DocumentModel))
         matched: list[Document] = []

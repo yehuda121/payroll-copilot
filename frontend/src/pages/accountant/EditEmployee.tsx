@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
 import { Card } from '../../components/ui/Card';
@@ -9,7 +9,9 @@ import {
   toWritePayload,
   type EmployeeFormValues,
 } from '../../features/accountant/EmployeeForm';
+import { useUnsavedChanges } from '../../features/accountant/UnsavedChangesGuard';
 import { getAccountantErrorMessage } from '../../i18n/accountantLabels';
+import { ApiClientError } from '../../services/api';
 import { employeesService } from '../../services/employees';
 
 export function EditEmployeePage() {
@@ -17,10 +19,37 @@ export function EditEmployeePage() {
   const { employeeNumber } = useParams<{ employeeNumber: string }>();
   const navigate = useNavigate();
   const { confirm } = useConfirmDialog();
+  const { setDirty, isDirty, confirmIfDirty } = useUnsavedChanges();
   const [initial, setInitial] = useState<Partial<EmployeeFormValues> | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => setDirty(false);
+  }, [setDirty]);
+
+  const blocker = useBlocker(isDirty);
+
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return;
+    void (async () => {
+      const ok = await confirmIfDirty();
+      if (ok) {
+        setDirty(false);
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    })();
+  }, [blocker, confirmIfDirty, setDirty]);
+
+  const onDirtyChange = useCallback(
+    (dirty: boolean) => {
+      setDirty(dirty);
+    },
+    [setDirty],
+  );
 
   useEffect(() => {
     if (!employeeNumber) return;
@@ -44,8 +73,12 @@ export function EditEmployeePage() {
           contractStartDate: row.contractStartDate?.slice(0, 10) ?? '',
           profileIncomplete: Boolean(row.profileIncomplete),
         });
-      } catch {
-        setError(getAccountantErrorMessage('loadFailed', t));
+      } catch (err) {
+        const message =
+          err instanceof ApiClientError
+            ? err.message
+            : getAccountantErrorMessage('loadFailed', t);
+        setError(message);
       } finally {
         setLoading(false);
       }
@@ -78,6 +111,7 @@ export function EditEmployeePage() {
                 initial={initial}
                 submitting={submitting}
                 error={error}
+                onDirtyChange={onDirtyChange}
                 onSubmit={async (values) => {
                   if (!employeeNumber) return;
                   const ok = await confirm({
@@ -96,9 +130,14 @@ export function EditEmployeePage() {
                       delete payload.national_id;
                     }
                     await employeesService.update(employeeNumber, payload);
+                    setDirty(false);
                     navigate(`/accountant/employees/${employeeNumber}`);
-                  } catch {
-                    setError(getAccountantErrorMessage('saveFailed', t));
+                  } catch (err) {
+                    const message =
+                      err instanceof ApiClientError
+                        ? err.message
+                        : getAccountantErrorMessage('saveFailed', t);
+                    setError(message);
                   } finally {
                     setSubmitting(false);
                   }
@@ -107,6 +146,16 @@ export function EditEmployeePage() {
                   <Link
                     to={`/accountant/employees/${employeeNumber}`}
                     className="btn btn--secondary"
+                    onClick={(event) => {
+                      if (!isDirty) return;
+                      event.preventDefault();
+                      void (async () => {
+                        const ok = await confirmIfDirty();
+                        if (!ok) return;
+                        setDirty(false);
+                        navigate(`/accountant/employees/${employeeNumber}`);
+                      })();
+                    }}
                   >
                     {t('common.cancel')}
                   </Link>

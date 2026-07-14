@@ -146,9 +146,12 @@
       "editEmployee": "Edit employee",
       "personalInformation": "Personal information",
       "documents": "Documents",
-      "documentsIntro": "Collections are driven by the document-type registry. Missing means no document has been attached — nothing is fabricated.",
+      "documentsIntro": "Each document type is managed separately. Status reflects attached documents only — missing means no document has been attached.",
       "monthlyHistory": "Monthly history",
+      "payrollHistory": "Payroll history",
       "filterYearAria": "Filter by year",
+      "selectYear": "Select payroll year",
+      "selectMonth": "Select payroll month",
       "allYears": "All years",
       "payslip": "Payslip",
       "attendance": "Attendance",
@@ -170,7 +173,58 @@
       "department": "Department",
       "nationalId": "National ID",
       "employment": "Employment",
-      "compensation": "Compensation"
+      "compensation": "Compensation",
+      "summaryTitle": "Employee summary",
+      "summaryStatus": "Status",
+      "summaryCompleteness": "Profile completeness",
+      "summaryProfileComplete": "Complete",
+      "summaryLatestPayroll": "Latest payroll month",
+      "summaryDocuments": "Document completion",
+      "summaryDocumentCount": "{{present}} of {{total}} types",
+      "summaryValidation": "Validation",
+      "summaryValidationClear": "No failed months",
+      "summaryValidationIssues": "{{count}} month(s) need attention",
+      "summaryOpenIssues": "Open issues",
+      "summaryOpenIssuesCount": "{{count}} period(s)",
+      "summaryNoOpenIssues": "None",
+      "documentCount": "Documents",
+      "documentCountLabel": "{{count}} document(s)",
+      "latestDocument": "Latest",
+      "latestDocumentAttached": "Attached",
+      "noDocumentsYet": "No documents yet",
+      "openDocuments": "Open documents",
+      "uploadDocument": "Upload",
+      "documentDetails": "Document details",
+      "documentId": "Document ID",
+      "documentType": "Document type",
+      "originalFilename": "Original filename",
+      "grossNet": "Gross {{gross}} · Net {{net}}",
+      "months": {
+        "jan": "Jan",
+        "feb": "Feb",
+        "mar": "Mar",
+        "apr": "Apr",
+        "may": "May",
+        "jun": "Jun",
+        "jul": "Jul",
+        "aug": "Aug",
+        "sep": "Sep",
+        "oct": "Oct",
+        "nov": "Nov",
+        "dec": "Dec"
+      },
+      "monthStatus": {
+        "complete": "All expected documents exist",
+        "missing": "Missing documents",
+        "failed": "Validation failed",
+        "empty": "No payroll period"
+      }
+    },
+    "unsaved": {
+      "title": "Unsaved changes",
+      "message": "You have unsaved employee edits. Leave this page and discard changes?",
+      "leave": "Discard and leave",
+      "stay": "Keep editing"
     },
     "documents": {
       "types": {
@@ -395,7 +449,8 @@
       "loadFailed": "Failed to load data. Please try again.",
       "saveFailed": "Failed to save. Please try again.",
       "uploadFailed": "Upload failed. Please try again.",
-      "matchFailed": "Employee match failed. Please try again."
+      "matchFailed": "Employee match failed. Please try again.",
+      "disableFailed": "Could not disable the employee. Please try again or contact support."
     },
     "dialogs": {
       "cancel": "Cancel",

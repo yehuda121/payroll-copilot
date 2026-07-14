@@ -38,8 +38,14 @@ export function LoginPage() {
                   type="button"
                   className="dev-role-card"
                   onClick={() => {
-                    loginWithDevRole(role);
-                    navigate(getRoleHomePath(role));
+                    void (async () => {
+                      try {
+                        await loginWithDevRole(role);
+                        navigate(getRoleHomePath(role));
+                      } catch (err) {
+                        window.alert(err instanceof Error ? err.message : 'Login failed');
+                      }
+                    })();
                   }}
                 >
                   <strong>{ROLE_LABELS[role]}</strong>

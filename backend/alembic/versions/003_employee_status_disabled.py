@@ -1,4 +1,7 @@
-"""Add disabled value to employeestatus enum."""
+"""Add DISABLED value to employeestatus enum.
+
+PostgreSQL/SQLAlchemy use enum *names* for this type (ACTIVE, ON_LEAVE, TERMINATED).
+"""
 
 from alembic import op
 
@@ -9,6 +12,9 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Match existing employeestatus labels (UPPER_SNAKE names used by SQLAlchemy Enum).
+    op.execute("ALTER TYPE employeestatus ADD VALUE IF NOT EXISTS 'DISABLED'")
+    # Safety if an earlier revision mistakenly added the StrEnum *value*.
     op.execute("ALTER TYPE employeestatus ADD VALUE IF NOT EXISTS 'disabled'")
 
 

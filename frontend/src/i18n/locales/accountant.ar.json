@@ -146,9 +146,12 @@
       "editEmployee": "تعديل الموظف",
       "personalInformation": "المعلومات الشخصية",
       "documents": "المستندات",
-      "documentsIntro": "المجموعات مدفوعة بسجل أنواع المستندات. ناقص يعني عدم وجود مستند — لا يُختلق شيء.",
+      "documentsIntro": "يُدار كل نوع مستند بشكل منفصل. الحالة تعكس المستندات المرفقة فقط — ناقص يعني أنه لم يُرفق مستند.",
       "monthlyHistory": "السجل الشهري",
+      "payrollHistory": "سجل الرواتب",
       "filterYearAria": "التصفية حسب السنة",
+      "selectYear": "اختر سنة الرواتب",
+      "selectMonth": "اختر شهر الرواتب",
       "allYears": "كل السنوات",
       "payslip": "قسيمة الراتب",
       "attendance": "الحضور",
@@ -170,7 +173,58 @@
       "department": "القسم",
       "nationalId": "رقم الهوية",
       "employment": "التوظيف",
-      "compensation": "التعويض"
+      "compensation": "التعويض",
+      "summaryTitle": "ملخص الموظف",
+      "summaryStatus": "الحالة",
+      "summaryCompleteness": "اكتمال الملف",
+      "summaryProfileComplete": "مكتمل",
+      "summaryLatestPayroll": "آخر شهر رواتب",
+      "summaryDocuments": "اكتمال المستندات",
+      "summaryDocumentCount": "{{present}} من {{total}} أنواع",
+      "summaryValidation": "التحقق",
+      "summaryValidationClear": "لا أشهر فاشلة",
+      "summaryValidationIssues": "{{count}} شهر/أشهر تحتاج انتباهاً",
+      "summaryOpenIssues": "مسائل مفتوحة",
+      "summaryOpenIssuesCount": "{{count}} فترة/فترات",
+      "summaryNoOpenIssues": "لا يوجد",
+      "documentCount": "المستندات",
+      "documentCountLabel": "{{count}} مستند/مستندات",
+      "latestDocument": "الأحدث",
+      "latestDocumentAttached": "مرفق",
+      "noDocumentsYet": "لا مستندات بعد",
+      "openDocuments": "فتح المستندات",
+      "uploadDocument": "رفع",
+      "documentDetails": "تفاصيل المستند",
+      "documentId": "معرّف المستند",
+      "documentType": "نوع المستند",
+      "originalFilename": "اسم الملف الأصلي",
+      "grossNet": "الإجمالي {{gross}} · الصافي {{net}}",
+      "months": {
+        "jan": "ينا",
+        "feb": "فبر",
+        "mar": "مار",
+        "apr": "أبر",
+        "may": "ماي",
+        "jun": "يون",
+        "jul": "يول",
+        "aug": "أغس",
+        "sep": "سبت",
+        "oct": "أكت",
+        "nov": "نوف",
+        "dec": "ديس"
+      },
+      "monthStatus": {
+        "complete": "كل المستندات المتوقعة موجودة",
+        "missing": "مستندات ناقصة",
+        "failed": "فشل التحقق",
+        "empty": "لا فترة رواتب"
+      }
+    },
+    "unsaved": {
+      "title": "تغييرات غير محفوظة",
+      "message": "لديك تعديلات موظف غير محفوظة. هل تريد مغادرة الصفحة وتجاهل التغييرات؟",
+      "leave": "تجاهل والمغادرة",
+      "stay": "متابعة التعديل"
     },
     "documents": {
       "types": {
@@ -395,7 +449,8 @@
       "loadFailed": "فشل تحميل البيانات. يُرجى المحاولة مرة أخرى.",
       "saveFailed": "فشل الحفظ. يُرجى المحاولة مرة أخرى.",
       "uploadFailed": "فشل الرفع. يُرجى المحاولة مرة أخرى.",
-      "matchFailed": "فشلت مطابقة الموظف. يُرجى المحاولة مرة أخرى."
+      "matchFailed": "فشلت مطابقة الموظف. يُرجى المحاولة مرة أخرى.",
+      "disableFailed": "تعذر تعطيل الموظف. يُرجى المحاولة مرة أخرى أو التواصل مع الدعم."
     },
     "dialogs": {
       "cancel": "إلغاء",

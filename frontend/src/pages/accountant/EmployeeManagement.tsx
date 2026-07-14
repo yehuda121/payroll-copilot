@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
 import { DataTable } from '../../components/ui/DataTable';
@@ -11,6 +11,7 @@ import {
 } from '../../i18n/accountantLabels';
 import { useAppLocale } from '../../hooks/useAppLocale';
 import { formatCurrencyILS } from '../../lib/formatLocale';
+import { ApiClientError } from '../../services/api';
 import { employeesService } from '../../services/employees';
 import type { EmployeeRecord, EmployeeStatus } from '../../types';
 
@@ -35,12 +36,14 @@ function StatusPill({
 export function EmployeeManagementPage() {
   const { t } = useTranslation();
   const { locale } = useAppLocale();
+  const navigate = useNavigate();
   const { confirm } = useConfirmDialog();
   const [rows, setRows] = useState<EmployeeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<string>('');
+  const [disablingNumber, setDisablingNumber] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -52,8 +55,10 @@ export function EmployeeManagementPage() {
         includeDisabled: true,
       });
       setRows(data);
-    } catch {
-      setError(getAccountantErrorMessage('loadFailed', t));
+    } catch (err) {
+      const message =
+        err instanceof ApiClientError ? err.message : getAccountantErrorMessage('loadFailed', t);
+      setError(message);
       setRows([]);
     } finally {
       setLoading(false);
@@ -79,11 +84,20 @@ export function EmployeeManagementPage() {
       variant: 'danger',
     });
     if (!ok) return;
+    setDisablingNumber(employeeNumber);
+    setError(null);
     try {
       await employeesService.disable(employeeNumber);
       await load();
-    } catch {
-      setError(getAccountantErrorMessage('saveFailed', t));
+    } catch (err) {
+      const message =
+        err instanceof ApiClientError
+          ? err.message
+          : getAccountantErrorMessage('disableFailed', t);
+      setError(message);
+      console.error('Disable employee failed', err);
+    } finally {
+      setDisablingNumber(null);
     }
   };
 
@@ -121,7 +135,11 @@ export function EmployeeManagementPage() {
         </Link>
       </div>
 
-      {error && <p className="chat-panel__error">{error}</p>}
+      {error && (
+        <p className="chat-panel__error" role="alert">
+          {error}
+        </p>
+      )}
 
       <div className="panel-relative">
         {loading && <LoadingOverlay label={t('accountant.employees.loading')} />}
@@ -137,6 +155,10 @@ export function EmployeeManagementPage() {
           />
         ) : (
           <DataTable<EmployeeRecord & Record<string, unknown>>
+            sortable
+            ariaLabel={t('accountant.employees.title')}
+            getRowKey={(row) => row.employeeNumber}
+            onRowClick={(row) => navigate(`/accountant/employees/${row.employeeNumber}`)}
             columns={[
               { key: 'employeeNumber', header: t('accountant.employees.colNumber') },
               { key: 'fullName', header: t('accountant.employees.colFullName') },
@@ -145,11 +167,13 @@ export function EmployeeManagementPage() {
               {
                 key: 'employmentType',
                 header: t('accountant.employees.colEmployment'),
+                sortValue: (row) => row.employmentType,
                 render: (row) => getEmploymentTypeLabel(row.employmentType, t),
               },
               {
                 key: 'baseSalaryOrRate',
                 header: t('accountant.employees.colBaseRate'),
+                sortValue: (row) => Number(row.baseSalaryOrRate || 0),
                 render: (row) =>
                   row.salaryType === 'monthly'
                     ? formatCurrencyILS(Number(row.baseSalaryOrRate || 0), locale)
@@ -160,6 +184,7 @@ export function EmployeeManagementPage() {
               {
                 key: 'status',
                 header: t('accountant.employees.colStatus'),
+                sortValue: (row) => row.status,
                 render: (row) => (
                   <StatusPill status={row.status} incomplete={row.profileIncomplete} />
                 ),
@@ -167,17 +192,13 @@ export function EmployeeManagementPage() {
               {
                 key: 'actions',
                 header: t('common.actions'),
+                sortable: false,
                 render: (row) => (
                   <div className="table-actions">
                     <Link
-                      to={`/accountant/employees/${row.employeeNumber}`}
-                      className="btn btn--ghost"
-                    >
-                      {t('accountant.employees.profile')}
-                    </Link>
-                    <Link
                       to={`/accountant/employees/${row.employeeNumber}/edit`}
                       className="btn btn--ghost"
+                      onClick={(event) => event.stopPropagation()}
                     >
                       {t('common.edit')}
                     </Link>
@@ -185,9 +206,15 @@ export function EmployeeManagementPage() {
                       <button
                         type="button"
                         className="btn btn--ghost"
-                        onClick={() => void disableEmployee(row.employeeNumber)}
+                        disabled={disablingNumber === row.employeeNumber}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void disableEmployee(row.employeeNumber);
+                        }}
                       >
-                        {t('common.disable')}
+                        {disablingNumber === row.employeeNumber
+                          ? t('common.saving')
+                          : t('common.disable')}
                       </button>
                     )}
                   </div>

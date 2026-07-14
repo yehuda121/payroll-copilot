@@ -8,22 +8,39 @@ from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, Field
 
 from payroll_copilot.application.dto.validation_run import ValidationRunRecord
-from payroll_copilot.application.exceptions import DocumentNotFoundError
+from payroll_copilot.application.exceptions import (
+    ConfirmationBlockedError,
+    DocumentNotFoundError,
+    DocumentNotOwnedError,
+)
 from payroll_copilot.application.use_cases.persisted_validation import (
     GetValidationRunUseCase,
     RunPersistedValidationCommand,
     RunPersistedValidationUseCase,
 )
+from payroll_copilot.application.use_cases.validate_employee_payslip import ValidateEmployeePayslipUseCase
 from payroll_copilot.application.validation.guest_extraction_context_builder import (
     ExtractionRequiredError,
 )
 from payroll_copilot.infrastructure.ai.agents.validation_report_store import cache_validation_report
 from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.infrastructure.i18n import finding_explanation, finding_message, resolve_locale
+from payroll_copilot.infrastructure.persistence.database import get_db_session
+from payroll_copilot.infrastructure.persistence.repositories.audit_log_repository import (
+    SqlAlchemyAuditLogRepository,
+)
+from payroll_copilot.infrastructure.persistence.repositories.document_extraction_repository import (
+    SqlAlchemyDocumentExtractionRepository,
+)
+from payroll_copilot.infrastructure.persistence.repositories.document_repository import (
+    SqlAlchemyDocumentRepository,
+)
 from payroll_copilot.presentation.api.dependencies import (
     get_run_persisted_validation_use_case,
     get_validation_run_use_case,
 )
+from payroll_copilot.presentation.api.security import BoundEmployeeContext, require_bound_employee
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -213,6 +230,62 @@ async def run_validation(
             detail={"code": "extraction_required", "message": exc.message},
         ) from exc
     return _to_response(record, locale=locale)
+
+
+@router.post("/employee/run", response_model=ValidationRunResponse, status_code=202)
+async def run_employee_validation(
+    request: ValidationRunRequest,
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+    validation: RunPersistedValidationUseCase = Depends(get_run_persisted_validation_use_case),
+    session: AsyncSession = Depends(get_db_session),
+    accept_language: str | None = Header(default=None, alias="Accept-Language"),
+) -> ValidationRunResponse:
+    """Validate an employee-owned payslip after trusted identity/period checks pass."""
+    settings = get_settings()
+    locale = resolve_locale(
+        explicit=request.locale,
+        accept_language=accept_language,
+        default=settings.default_locale,
+    )
+    document_id = _parse_uuid(request.document_id, "document_id")
+    supporting_document_ids = tuple(
+        _parse_uuid(value, "supporting_document_id") for value in request.supporting_document_ids
+    )
+    use_case = ValidateEmployeePayslipUseCase(
+        documents=SqlAlchemyDocumentRepository(session),
+        extractions=SqlAlchemyDocumentExtractionRepository(session),
+        validation=validation,
+        audit_logs=SqlAlchemyAuditLogRepository(session),
+    )
+    try:
+        result = await use_case.execute(
+            document_id=document_id,
+            employee=bound.employee,
+            user_id=bound.principal.user_id,
+            national_id_encrypted=bound.national_id_encrypted,
+            supporting_document_ids=supporting_document_ids,
+            locale=locale,
+        )
+        await session.commit()
+    except DocumentNotFoundError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "document_not_found", "message": f"Document {exc.document_id} not found"},
+        ) from exc
+    except DocumentNotOwnedError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "document_not_owned", "message": "Document is not owned by the authenticated employee."},
+        ) from exc
+    except ConfirmationBlockedError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+    return _to_response(result.record, locale=locale)
 
 
 @router.get("/runs/{validation_run_id}", response_model=ValidationRunResponse)

@@ -1,8 +1,10 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Outlet, Route } from 'react-router-dom';
 import { AuthProvider } from '../auth/AuthContext';
 import { ProtectedRoute } from '../auth/ProtectedRoute';
 import { getRoleHomePath } from '../auth/authProvider';
 import { useAuth } from '../auth/AuthContext';
+import { DialogProvider } from '../components/ui/Dialog';
+import { UnsavedChangesProvider } from '../features/accountant/UnsavedChangesGuard';
 import { AccountantLayout } from '../layouts/AccountantLayout';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { EmployeeLayout } from '../layouts/EmployeeLayout';
@@ -47,61 +49,70 @@ function RootRedirect() {
   return <LandingPage />;
 }
 
-export function AppRoutes() {
+function AppProviders() {
   return (
-    <AuthProvider>
-      <Routes>
-        <Route element={<PublicLayout />}>
-          <Route path="/" element={<RootRedirect />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-        </Route>
-
-        <Route element={<ProtectedRoute allowedRoles={['employee']} />}>
-          <Route element={<EmployeeLayout />}>
-            <Route path="/employee" element={<EmployeeDashboardPage />} />
-            <Route path="/employee/upload" element={<UploadDocumentsPage />} />
-            <Route path="/employee/payslips" element={<MyPayslipsPage />} />
-            <Route path="/employee/attendance" element={<AttendancePage />} />
-            <Route path="/employee/contract" element={<EmploymentContractPage />} />
-            <Route path="/employee/chat" element={<PayrollChatPage />} />
-            <Route path="/employee/validation-history" element={<ValidationHistoryPage />} />
-          </Route>
-        </Route>
-
-        <Route element={<ProtectedRoute allowedRoles={['payroll_accountant']} />}>
-          <Route element={<AccountantLayout />}>
-            <Route path="/accountant" element={<AccountantDashboardPage />} />
-            <Route path="/accountant/employees" element={<EmployeeManagementPage />} />
-            <Route path="/accountant/employees/add" element={<AddEmployeePage />} />
-            <Route path="/accountant/employees/:employeeNumber" element={<EmployeeProfilePage />} />
-            <Route path="/accountant/employees/:employeeNumber/edit" element={<EditEmployeePage />} />
-            <Route path="/accountant/bulk-upload" element={<BulkPayrollUploadPage />} />
-            <Route path="/accountant/batch-monitor" element={<BatchProcessingMonitorPage />} />
-            <Route path="/accountant/rules" element={<PayrollRulesPage />} />
-            <Route path="/accountant/findings" element={<ValidationFindingsPage />} />
-            <Route path="/accountant/approvals" element={<ApprovalQueuePage />} />
-            <Route path="/accountant/audit-logs" element={<AccountantAuditLogsPage />} />
-          </Route>
-        </Route>
-
-        <Route element={<ProtectedRoute allowedRoles={['developer_admin']} />}>
-          <Route element={<AdminLayout />}>
-            <Route path="/admin" element={<SystemDashboardPage />} />
-            <Route path="/admin/users" element={<UsersAndRolesPage />} />
-            <Route path="/admin/rule-packs" element={<RulePacksPage />} />
-            <Route path="/admin/department-rules" element={<DepartmentRulesPage />} />
-            <Route path="/admin/mcp-sync" element={<McpLegalSyncPage />} />
-            <Route path="/admin/ai-models" element={<AiModelsPage />} />
-            <Route path="/admin/rag" element={<RagManagementPage />} />
-            <Route path="/admin/configuration" element={<SystemConfigurationPage />} />
-            <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
-            <Route path="/admin/document-lab" element={<DocumentLabPage />} />
-          </Route>
-        </Route>
-
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </AuthProvider>
+    <DialogProvider>
+      <UnsavedChangesProvider>
+        <AuthProvider>
+          <Outlet />
+        </AuthProvider>
+      </UnsavedChangesProvider>
+    </DialogProvider>
   );
 }
+
+/** Route tree for createBrowserRouter / createRoutesFromElements. */
+export const appRouteElements = (
+  <Route element={<AppProviders />}>
+    <Route element={<PublicLayout />}>
+      <Route path="/" element={<RootRedirect />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+    </Route>
+
+    <Route element={<ProtectedRoute allowedRoles={['employee']} />}>
+      <Route element={<EmployeeLayout />}>
+        <Route path="/employee" element={<EmployeeDashboardPage />} />
+        <Route path="/employee/upload" element={<UploadDocumentsPage />} />
+        <Route path="/employee/payslips" element={<MyPayslipsPage />} />
+        <Route path="/employee/attendance" element={<AttendancePage />} />
+        <Route path="/employee/contract" element={<EmploymentContractPage />} />
+        <Route path="/employee/chat" element={<PayrollChatPage />} />
+        <Route path="/employee/validation-history" element={<ValidationHistoryPage />} />
+      </Route>
+    </Route>
+
+    <Route element={<ProtectedRoute allowedRoles={['payroll_accountant']} />}>
+      <Route element={<AccountantLayout />}>
+        <Route path="/accountant" element={<AccountantDashboardPage />} />
+        <Route path="/accountant/employees" element={<EmployeeManagementPage />} />
+        <Route path="/accountant/employees/add" element={<AddEmployeePage />} />
+        <Route path="/accountant/employees/:employeeNumber" element={<EmployeeProfilePage />} />
+        <Route path="/accountant/employees/:employeeNumber/edit" element={<EditEmployeePage />} />
+        <Route path="/accountant/bulk-upload" element={<BulkPayrollUploadPage />} />
+        <Route path="/accountant/batch-monitor" element={<BatchProcessingMonitorPage />} />
+        <Route path="/accountant/rules" element={<PayrollRulesPage />} />
+        <Route path="/accountant/findings" element={<ValidationFindingsPage />} />
+        <Route path="/accountant/approvals" element={<ApprovalQueuePage />} />
+        <Route path="/accountant/audit-logs" element={<AccountantAuditLogsPage />} />
+      </Route>
+    </Route>
+
+    <Route element={<ProtectedRoute allowedRoles={['developer_admin']} />}>
+      <Route element={<AdminLayout />}>
+        <Route path="/admin" element={<SystemDashboardPage />} />
+        <Route path="/admin/users" element={<UsersAndRolesPage />} />
+        <Route path="/admin/rule-packs" element={<RulePacksPage />} />
+        <Route path="/admin/department-rules" element={<DepartmentRulesPage />} />
+        <Route path="/admin/mcp-sync" element={<McpLegalSyncPage />} />
+        <Route path="/admin/ai-models" element={<AiModelsPage />} />
+        <Route path="/admin/rag" element={<RagManagementPage />} />
+        <Route path="/admin/configuration" element={<SystemConfigurationPage />} />
+        <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
+        <Route path="/admin/document-lab" element={<DocumentLabPage />} />
+      </Route>
+    </Route>
+
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Route>
+);

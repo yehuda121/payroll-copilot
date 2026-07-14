@@ -191,5 +191,78 @@
     "severityCritical": "Issue",
     "severityWarning": "Warning",
     "severityInfo": "Note"
+  },
+  "employee": {
+    "upload": {
+      "pageTitle": "Upload Payslip",
+      "pageDescription": "Select the payroll period, upload your payslip, review identity and period checks, then confirm for validation.",
+      "title": "Employee payslip review",
+      "intro": "Your employee record is matched on the server. Confirmation is blocked when National ID or payroll period do not match.",
+      "periodTitle": "Payroll period",
+      "periodHint": "Choose the year and month this payslip belongs to. The system will not silently change it to the extracted period.",
+      "year": "Year",
+      "month": "Month",
+      "months": {
+        "1": "January",
+        "2": "February",
+        "3": "March",
+        "4": "April",
+        "5": "May",
+        "6": "June",
+        "7": "July",
+        "8": "August",
+        "9": "September",
+        "10": "October",
+        "11": "November",
+        "12": "December"
+      },
+      "payslipRequired": "A payslip file is required.",
+      "periodRequired": "Select a payroll year and month before uploading.",
+      "run": "Extract and review",
+      "confirmAndValidate": "Confirm and validate",
+      "confirmBlocked": "Fix critical identity or period mismatches before confirmation.",
+      "duplicatePeriod": "A payslip already exists for this period.",
+      "duplicateDetail": "Uploading again will create a new document version and keep the previous one.",
+      "confirmNewVersion": "Create new version",
+      "errors": {
+        "national_id_mismatch": "National ID mismatch blocks confirmation.",
+        "payroll_period_mismatch": "Payroll period mismatch blocks confirmation."
+      }
+    },
+    "compare": {
+      "title": "Identity and period check",
+      "intro": "These results come from the server. The app does not re-compare National ID in the browser.",
+      "nationalIdMismatch": "National ID does not match your employee record. Replace the file or correct the extracted value.",
+      "periodMismatch": "Selected period {{selected}} does not match extracted period {{extracted}}. Change the period or replace the file.",
+      "nameMismatchWarning": "Employee name differs from your record. Confirmation is still allowed when National ID matches.",
+      "extracted": "Extracted",
+      "expected": "Expected",
+      "selected": "Selected",
+      "fields": {
+        "national_id": "National ID",
+        "employee_number": "Employee number",
+        "employee_name": "Employee name",
+        "pay_period": "Payroll period"
+      },
+      "status": {
+        "match": "Match",
+        "mismatch": "Mismatch",
+        "uncertain": "Uncertain",
+        "missing": "Missing",
+        "extracted": "Extracted"
+      }
+    },
+    "payslips": {
+      "pageTitle": "My Payslips",
+      "pageDescription": "Payslips uploaded for your employee account.",
+      "uploadCta": "Upload payslip",
+      "empty": "No payslips yet.",
+      "columns": {
+        "filename": "File",
+        "period": "Period",
+        "status": "Status",
+        "uploadedAt": "Uploaded"
+      }
+    }
   }
 }
