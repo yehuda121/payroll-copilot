@@ -174,6 +174,7 @@ async def ensure_dev_employee_user(session: AsyncSession) -> UserModel:
         user.organization_id = DEMO_ORGANIZATION_ID
         user.role = UserRole.EMPLOYEE
         user.employee_id = employee_id
+        user.email = DEV_EMPLOYEE_USER_EMAIL
         user.is_active = True
     await session.flush()
     return user

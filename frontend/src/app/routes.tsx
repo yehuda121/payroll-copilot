@@ -31,9 +31,11 @@ import { SystemConfigurationPage } from '../pages/admin/SystemConfiguration';
 import { SystemDashboardPage } from '../pages/admin/SystemDashboard';
 import { UsersAndRolesPage } from '../pages/admin/UsersAndRoles';
 import { AttendancePage } from '../pages/employee/Attendance';
+import { DocumentCenterPage } from '../pages/employee/DocumentCenter';
 import { EmployeeDashboardPage } from '../pages/employee/EmployeeDashboard';
 import { EmploymentContractPage } from '../pages/employee/EmploymentContract';
 import { MyPayslipsPage } from '../pages/employee/MyPayslips';
+import { NationalIdReviewPage } from '../pages/employee/NationalIdReview';
 import { PayrollChatPage } from '../pages/employee/PayrollChat';
 import { UploadDocumentsPage } from '../pages/employee/UploadDocuments';
 import { ValidationHistoryPage } from '../pages/employee/ValidationHistory';
@@ -73,6 +75,8 @@ export const appRouteElements = (
     <Route element={<ProtectedRoute allowedRoles={['employee']} />}>
       <Route element={<EmployeeLayout />}>
         <Route path="/employee" element={<EmployeeDashboardPage />} />
+        <Route path="/employee/documents" element={<DocumentCenterPage />} />
+        <Route path="/employee/documents/national-id" element={<NationalIdReviewPage />} />
         <Route path="/employee/upload" element={<UploadDocumentsPage />} />
         <Route path="/employee/payslips" element={<MyPayslipsPage />} />
         <Route path="/employee/attendance" element={<AttendancePage />} />

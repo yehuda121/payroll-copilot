@@ -385,6 +385,7 @@ async def test_validation_blocked_on_national_id_mismatch(monkeypatch: pytest.Mo
             },
             "pay_period": {"value": "06/2026", "status": "FOUND", "confidence": 0.95},
         },
+        confirmation_status="confirmed",
     )
 
     class _ValidationNever:

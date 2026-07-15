@@ -201,6 +201,12 @@ class ExtractGuestPayslipUseCase:
             error_message = exc.message
             warnings.append(exc.message)
 
+        from payroll_copilot.application.services.employee_document_lifecycle import (
+            LIFECYCLE_EXTRACTION_COMPLETED,
+            LIFECYCLE_EXTRACTION_FAILED,
+            LIFECYCLE_REVIEW_REQUIRED,
+        )
+
         document.status = (
             DocumentStatus.PROCESSED
             if ocr_status == "completed" and parser_status == "completed"
@@ -208,12 +214,20 @@ class ExtractGuestPayslipUseCase:
             if ocr_status == "failed" or parser_status == "failed"
             else DocumentStatus.PROCESSING
         )
+        lifecycle = (
+            LIFECYCLE_REVIEW_REQUIRED
+            if parser_status == "completed"
+            else LIFECYCLE_EXTRACTION_FAILED
+            if parser_status == "failed" or ocr_status == "failed"
+            else LIFECYCLE_EXTRACTION_COMPLETED
+        )
         document.metadata = {
             **document.metadata,
             "document_language": language,
             "ocr_status": ocr_status,
             "parser_status": parser_status,
             "extraction_connected": parser_status == "completed",
+            "lifecycle_status": lifecycle,
         }
         await self._documents.save(document)
 
@@ -238,8 +252,15 @@ class ExtractGuestPayslipUseCase:
             warnings=list(dict.fromkeys(warnings)),
             error_message=error_message,
             updated_at=now,
+            confirmation_status="review_required",
         )
         await self._extractions.save(extraction)
+        document.metadata = {
+            **document.metadata,
+            "current_extraction_id": str(extraction.id),
+            "current_extraction_version": version,
+        }
+        await self._documents.save(document)
 
         if not fields and structured:
             fields, _ = _fields_from_structured(structured)
@@ -263,12 +284,32 @@ class ExtractGuestPayslipUseCase:
 
         document_id = uuid4()
         checksum = hashlib.sha256(command.content).hexdigest()
-        storage_key = f"documents/{document_id}/{command.original_filename or 'payslip'}"
-        await self._storage.upload(storage_key, command.content, command.mime_type)
+        from payroll_copilot.application.services.employee_document_lifecycle import (
+            LIFECYCLE_PROCESSING,
+            build_employee_storage_key,
+        )
+
         org_id = command.organization_id or DEMO_ORGANIZATION_ID
+        if command.employee_id is not None:
+            storage_key = build_employee_storage_key(
+                organization_id=org_id,
+                employee_id=command.employee_id,
+                document_type=DocumentType.PAYSLIP,
+                document_id=document_id,
+                filename=command.original_filename or "payslip",
+                period_year=command.period_year,
+                period_month=command.period_month,
+            )
+        else:
+            storage_key = f"documents/{document_id}/{command.original_filename or 'payslip'}"
+        await self._storage.upload(storage_key, command.content, command.mime_type)
         await self._org_bootstrap.ensure_demo_organization(org_id)
 
-        metadata: dict[str, Any] = {"document_language": command.language}
+        metadata: dict[str, Any] = {
+            "document_language": command.language,
+            "lifecycle_status": LIFECYCLE_PROCESSING,
+            "storage_provider": "s3_compatible",
+        }
         if command.metadata_extra:
             metadata.update(command.metadata_extra)
         if command.period_year is not None and command.period_month is not None:

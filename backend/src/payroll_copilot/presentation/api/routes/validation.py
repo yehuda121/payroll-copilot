@@ -12,6 +12,7 @@ from payroll_copilot.application.exceptions import (
     ConfirmationBlockedError,
     DocumentNotFoundError,
     DocumentNotOwnedError,
+    ExtractionNotConfirmedError,
 )
 from payroll_copilot.application.use_cases.persisted_validation import (
     GetValidationRunUseCase,
@@ -285,6 +286,12 @@ async def run_employee_validation(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": exc.code, "message": exc.message},
         ) from exc
+    except ExtractionNotConfirmedError as tip_exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": tip_exc.code, "message": tip_exc.message},
+        ) from tip_exc
     return _to_response(result.record, locale=locale)
 
 

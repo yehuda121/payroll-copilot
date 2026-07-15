@@ -36,6 +36,7 @@ class RunPersistedValidationCommand:
     include_contract_rag: bool = True
     supporting_document_ids: tuple[UUID, ...] = field(default_factory=tuple)
     locale: str | None = None
+    extraction_id: UUID | None = None
 
 
 class RunPersistedValidationUseCase:
@@ -91,10 +92,11 @@ class RunPersistedValidationUseCase:
             report=report,
             document_id=document.id,
             organization_id=organization_id,
-            employee_id=None,
+            employee_id=command.employee_id,
         )
         run_record.enrichment = enrichment
         run_record.context_snapshot = enrichment.to_context_snapshot()
+        run_record.extraction_id = command.extraction_id or bundle.extraction_id
 
         finding_records = report_to_finding_records(report, run_record.id)
 

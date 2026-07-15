@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import { env } from '../config/env';
 import { clearAccessToken, saveAccessToken } from '../lib/auth/access-token';
 import { apiRequest } from '../services/api';
+import { employeePortalService } from '../services/employeePortal';
 import type { AuthSession, LoginCredentials, UserRole } from '../types/auth';
 import { cognitoAuthProvider } from './authProvider';
 import { clearDevSession, devLoginAsRole, loadDevSession, saveDevSession } from './devAuth';
@@ -38,14 +39,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const next = devLoginAsRole(role);
     if (role === 'employee') {
       const token = await fetchDevEmployeeAccessToken();
-      if (token) {
-        saveAccessToken(token);
-        next.accessToken = token;
-        saveDevSession(next);
-      } else {
+      if (!token) {
         clearAccessToken();
         throw new Error('Employee portal token could not be issued. Is the API running with seed data?');
       }
+      saveAccessToken(token);
+      next.accessToken = token;
+      try {
+        const me = await employeePortalService.me();
+        next.user = {
+          ...next.user,
+          id: me.employee_id,
+          fullName: me.full_name,
+          localizedFullName: me.full_name_localized || me.full_name,
+          organizationId: me.organization_id,
+        };
+      } catch {
+        // Keep seeded Yehuda display name if /me is temporarily unavailable.
+      }
+      saveDevSession(next);
     } else {
       clearAccessToken();
       saveDevSession(next);

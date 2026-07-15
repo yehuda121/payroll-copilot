@@ -8,12 +8,16 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from pydantic import BaseModel, Field
 
 from payroll_copilot.application.exceptions import (
+    ConfirmationBlockedError,
     CorrectionNotAllowedError,
     DocumentNotFoundError,
     DocumentNotOwnedError,
     DocumentUploadRejectedError,
     DuplicatePayslipPeriodError,
     OcrError,
+)
+from payroll_copilot.application.use_cases.confirm_employee_extraction import (
+    ConfirmEmployeeExtractionUseCase,
 )
 from payroll_copilot.application.services.document_upload_guardrail import (
     DocumentUploadGuardrailService,
@@ -522,3 +526,51 @@ async def correct_employee_extraction(
         blocks_confirmation=result.comparison.blocks_confirmation,
         document_version=result.correction.extraction_version,
     )
+
+
+class ConfirmEmployeeExtractionRequest(BaseModel):
+    acknowledgement: bool = False
+
+
+@router.post("/employee/{document_id}/confirm")
+async def confirm_employee_extraction(
+    document_id: str,
+    request: ConfirmEmployeeExtractionRequest,
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    """Persist employee confirmation of the latest extraction version."""
+    parsed_id = _parse_uuid(document_id, "document_id")
+    use_case = ConfirmEmployeeExtractionUseCase(
+        documents=SqlAlchemyDocumentRepository(session),
+        extractions=SqlAlchemyDocumentExtractionRepository(session),
+        audit_logs=SqlAlchemyAuditLogRepository(session),
+    )
+    try:
+        result = await use_case.execute(
+            document_id=parsed_id,
+            employee=bound.employee,
+            user_id=bound.principal.user_id,
+            national_id_encrypted=bound.national_id_encrypted,
+            acknowledgement=request.acknowledgement,
+        )
+        await session.commit()
+        return result
+    except DocumentNotFoundError as tip_exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "document_not_found", "message": f"Document {tip_exc.document_id} not found"},
+        ) from tip_exc
+    except DocumentNotOwnedError as tip_exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "document_not_owned", "message": "Document is not owned by the authenticated employee."},
+        ) from tip_exc
+    except ConfirmationBlockedError as tip_exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": tip_exc.code, "message": tip_exc.message},
+        ) from tip_exc

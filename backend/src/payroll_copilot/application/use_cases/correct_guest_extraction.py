@@ -112,8 +112,18 @@ class CorrectGuestExtractionUseCase:
             warnings=list(previous.warnings) + ["User corrected extracted fields."],
             error_message=previous.error_message,
             updated_at=now,
+            confirmation_status="review_required",
+            confirmed_at=None,
+            confirmed_by=None,
         )
         await self._extractions.save(extraction)
+
+        meta = dict(document.metadata or {})
+        meta["lifecycle_status"] = "review_required"
+        meta["current_extraction_id"] = str(extraction.id)
+        meta["current_extraction_version"] = version
+        document.metadata = meta
+        await self._documents.save(document)
 
         fields_out: list[dict[str, Any]] = []
         for key in PAYSLIP_FIELD_KEYS:

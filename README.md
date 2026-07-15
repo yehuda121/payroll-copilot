@@ -321,14 +321,21 @@ Deterministic validation → Appears in My Payslips
 ### Working now
 - **User ↔ employee binding** — nullable `users.employee_id` FK; employee-role users resolve to exactly one employee; accountants/admins are not treated as employee owners.
 - **Trusted context** — `GET /api/v1/employees/me` returns safe display fields only (masked National ID, never plaintext).
-- **Extract + correct** — reuses the guest OCR/parser/correction use cases; `employee_id` is taken from the authenticated principal only.
+- **Document lifecycle** — Original file → S3-compatible object storage (MinIO locally / Amazon S3 in production) → OCR/extraction (payslip) → employee review & correction → **explicit confirmation** → deterministic validation → immutable validation history → optional on-demand AI explanation (employee-only).
+- **Storage keys** — Employee uploads use logical keys under `organizations/{org}/employees/{emp}/…` (persistent or `payroll/{year}/{month}/…`). File bytes are never stored in PostgreSQL.
+- **Document Center** — `GET /employees/me/documents` + Employee Portal **My Documents** for National ID, ID appendix, and contract (with real file status; field extraction marked not connected where unsupported).
+- **Extract + correct + confirm** — reuses guest OCR/parser/correction architecture; confirmation persists on `document_extractions`; validation is rejected until the latest extraction is confirmed.
 - **Comparison policy** — National ID mismatch = critical block; name-only mismatch = warning; selected vs extracted period mismatch = block (no silent reassignment); low confidence = uncertain (never mismatch alone).
 - **Duplicates** — same employee + selected year/month → HTTP `409 duplicate_payslip_period`; explicit `confirm_new_version=true` creates a new document and preserves the previous one.
-- **Employee Portal UI** — period picker → upload → review with backend `identity_check` / `period_check` → corrections via employee endpoint → confirm/validate; reuses `ExtractionReviewTable`, validation report view, and unsaved-changes guard.
+- **Validation history** — Month detail returns immutable runs with `extraction_id` and an `outdated` flag when a newer extraction exists; reruns create new runs.
+- **Employee AI explanations** — `POST /employees/me/validation-runs/{id}/findings/{id}/explanation` (owned findings only). AI never changes pass/fail; deterministic results remain usable if Ollama is down.
+- **Employee Portal UI** — upload wizard with confirmation checkbox + gated validation; Document Center; My Payslips year/month dialog with review/confirmation/history/AI actions.
 
 ### Partial / known limitations
-- Other employee portal pages (attendance, contract, chat, validation history) remain stubs.
-- No in-app document viewer yet; review is field-table based.
+- **National ID** — review/foundation API and upload are implemented; automatic field OCR/parser is **not connected** (no fabricated fields).
+- **Contract & attendance** — files upload and show status; structured extraction analysis is **not connected**.
+- Other employee portal pages (dedicated attendance/contract viewers, chat) remain stubs beyond document center status.
+- No in-app binary document viewer yet; payslip review is field-table based.
 - Application-level duplicate gate (not a DB unique index).
 - Dev employee session maps to a stable seeded employee (#5); production Cognito binding is not shipped.
 
@@ -488,7 +495,7 @@ When `VITE_DEV_AUTH_ENABLED=true`, the login page shows a dev-only role selector
 
 | Role | Portal path | Dev identity |
 |------|-------------|--------------|
-| `employee` | `/employee` | Sarah Cohen |
+| `employee` | `/employee` | Yehuda Shmulovitz |
 | `payroll_accountant` | `/accountant` | David Levy |
 | `developer_admin` | `/admin` | Yael Administrator |
 
@@ -498,7 +505,7 @@ Dev sessions are stored in `localStorage` only. Production auth will use AWS Cog
 
 The frontend provides three portals after login:
 
-**Employee Portal** — Payslip upload/review with trusted server comparison + My Payslips list; dashboard, attendance, contract, AI chat, and validation history pages still largely stubs.
+**Employee Portal** — Payslip upload/review with trusted server comparison; **My Payslips** year/month history with month dialog (upload payslip/attendance, run validation, real findings). Dashboard, contract, chat, and validation-history pages still largely stubs. Default development employee is **Yehuda Shmulovitz** (יהודה שמולביץ), bound via `/employees/me`.
 
 **Payroll Accountant Portal** — Dashboard, employee management (CRUD/disable/search), employee profile (document collections + monthly history), bulk payroll upload, batch monitor with pipeline stages, payroll rules (versioned edit/rollback), validation findings, manual review / approvals, audit logs.
 
@@ -673,15 +680,22 @@ Key endpoints:
 - `POST /auth/login` — Authentication (production path scaffold)
 - `POST /auth/guest/session` — Guest JWT
 - `POST /auth/dev/employee-session` — Dev-only employee JWT bound to seeded employee (blocked in production)
-- `GET /employees/me` — Trusted employee context (masked National ID)
+- `GET /employees/me` — Trusted employee context (masked National ID; `full_name` + `full_name_localized`)
+- `GET /employees/me/documents` — Employee Document Center (persistent docs + monthly pointer)
+- `GET /employees/me/documents/national-id/review` — National ID review foundation (`extraction_not_connected`)
 - `GET /employees/me/payslips` — Employee-owned payslip list
+- `GET /employees/me/payroll-months?year=` — Year overview (12 months, payslip/attendance/validation summaries)
+- `GET /employees/me/payroll-months/{year}/{month}` — Month detail + extraction confirmation + validation history + findings
+- `POST /employees/me/validation-runs/{validation_run_id}/findings/{finding_id}/explanation` — Employee-owned on-demand finding explanation
+- `POST /documents/employee/upload` — Owned uploads (attendance/contract/national_id/id_appendix) with forced employee binding
 - `POST /assistant/chat` — Public guest payroll assistant (LangGraph orchestration)
 - `POST /documents/upload` — Document upload
 - `POST /extraction/guest/payslip-extract` — Guest extract (unchanged)
 - `POST /extraction/employee/payslip-extract` — Authenticated employee extract + `identity_check` / `period_check`
 - `POST /extraction/employee/{document_id}/corrections` — Owned corrections + refreshed comparison
+- `POST /extraction/employee/{document_id}/confirm` — Persist confirmation acknowledgement before validation
 - `POST /validation/run` — Guest/general validation trigger
-- `POST /validation/employee/run` — Owned validation after identity/period gate
+- `POST /validation/employee/run` — Owned validation (requires confirmed extraction)
 - `POST /batch/payslips` — Bulk PDF processing
 - `GET /compliance/diff-proposals` — MCP legal diffs
 

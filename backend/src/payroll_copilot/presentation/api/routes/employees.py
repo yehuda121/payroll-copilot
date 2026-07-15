@@ -134,18 +134,257 @@ async def get_my_employee(
 ) -> dict[str, Any]:
     """Trusted employee context for the authenticated employee principal."""
     employee = bound.employee
+    meta = employee.metadata or {}
+    display_en = meta.get("display_name_en")
+    display_localized = meta.get("verified_display_name") or f"{employee.first_name} {employee.last_name}"
+    full_name = str(display_en) if display_en else str(display_localized)
     return {
         "employee_id": str(employee.id),
         "employee_number": employee.employee_number,
-        "full_name": (employee.metadata or {}).get("verified_display_name")
-        or f"{employee.first_name} {employee.last_name}",
-        "national_id_masked": (employee.metadata or {}).get("national_id_masked"),
+        "full_name": full_name,
+        "full_name_localized": str(display_localized),
+        "national_id_masked": meta.get("national_id_masked"),
         "organization_id": str(employee.organization_id),
         "status": employee.status.value
         if hasattr(employee.status, "value")
         else str(employee.status),
-        "profile_incomplete": bool((employee.metadata or {}).get("profile_incomplete", False)),
+        "profile_incomplete": bool(meta.get("profile_incomplete", False)),
     }
+
+
+@router.get("/me/documents")
+async def list_my_documents(
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+    session: AsyncSession = Depends(get_db_session),
+) -> dict[str, Any]:
+    """Employee Document Center: persistent documents + monthly access pointer."""
+    from payroll_copilot.application.use_cases.list_employee_documents import (
+        ListEmployeeDocumentsUseCase,
+    )
+    from payroll_copilot.infrastructure.persistence.repositories.document_extraction_repository import (
+        SqlAlchemyDocumentExtractionRepository,
+    )
+
+    use_case = ListEmployeeDocumentsUseCase(
+        documents=SqlAlchemyDocumentRepository(session),
+        extractions=SqlAlchemyDocumentExtractionRepository(session),
+    )
+    return await use_case.execute(
+        organization_id=bound.employee.organization_id,
+        employee_id=bound.employee.id,
+    )
+
+
+@router.get("/me/documents/national-id/review")
+async def get_national_id_review(
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+    session: AsyncSession = Depends(get_db_session),
+) -> dict[str, Any]:
+    """National ID digital review foundation (parser not connected — no fabricated fields)."""
+    from payroll_copilot.domain.enums import DocumentType
+
+    docs = await SqlAlchemyDocumentRepository(session).list_for_employee(
+        organization_id=bound.employee.organization_id,
+        employee_id=bound.employee.id,
+    )
+    identity = [
+        d for d in docs if d.document_type == DocumentType.NATIONAL_ID
+    ]
+    identity.sort(key=lambda d: d.created_at or d.id, reverse=True)
+    latest = identity[0] if identity else None
+    return {
+        "document_type": "national_id",
+        "exists": latest is not None,
+        "document_id": str(latest.id) if latest else None,
+        "original_filename": latest.original_filename if latest else None,
+        "uploaded_at": latest.created_at.isoformat() if latest and latest.created_at else None,
+        "processing_status": (
+            latest.status.value if latest and hasattr(latest.status, "value") else "missing"
+        ),
+        "extraction_status": "extraction_not_connected",
+        "parser_status": "extraction_not_connected",
+        "confirmation_status": "missing",
+        "fields": [],
+        "supported_fields": [],
+        "national_id_masked": (bound.employee.metadata or {}).get("national_id_masked"),
+        "note_code": "national_id_extraction_not_connected",
+    }
+
+
+@router.post(
+    "/me/validation-runs/{validation_run_id}/findings/{finding_id}/explanation"
+)
+async def explain_my_finding(
+    validation_run_id: UUID,
+    finding_id: UUID,
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+    session: AsyncSession = Depends(get_db_session),
+    locale: str = Query(default="en"),
+) -> dict[str, Any]:
+    """On-demand AI/deterministic explanation for an owned validation finding."""
+    from payroll_copilot.application.exceptions import DocumentNotOwnedError
+    from payroll_copilot.application.use_cases.explain_employee_finding import (
+        ExplainEmployeeFindingUseCase,
+        FindingNotFoundError,
+        ValidationRunNotFoundError,
+    )
+    from payroll_copilot.infrastructure.persistence.repositories.validation_finding_repository import (
+        SqlAlchemyValidationFindingRepository,
+    )
+    from payroll_copilot.infrastructure.persistence.repositories.validation_run_repository import (
+        SqlAlchemyValidationRunRepository,
+    )
+
+    runner = None
+    try:
+        from payroll_copilot.presentation.api.routes.assistant import _get_assistant_use_case
+        from payroll_copilot.application.use_cases.payroll_assistant import AssistantChatCommand
+
+        chat_uc = _get_assistant_use_case()
+
+        class _AssistantAdapter:
+            async def run(self, **kwargs):  # noqa: ANN003
+                result = await chat_uc.execute(
+                    AssistantChatCommand(
+                        message=str(kwargs.get("message") or ""),
+                        session_id=str(kwargs.get("session_id") or ""),
+                        document_ids=list(kwargs.get("document_ids") or []),
+                        validation_run_id=kwargs.get("validation_run_id"),
+                        locale=str(kwargs.get("locale") or "en"),
+                    )
+                )
+                return {
+                    "answer": result.answer,
+                    "sources": [
+                        {
+                            "title": s.get("title") if isinstance(s, dict) else getattr(s, "title", None),
+                            "type": s.get("type") if isinstance(s, dict) else getattr(s, "type", None),
+                            "id": s.get("reference") if isinstance(s, dict) else getattr(s, "reference", None),
+                        }
+                        for s in (result.sources or [])
+                    ],
+                }
+
+        runner = _AssistantAdapter()
+    except Exception:  # noqa: BLE001 — AI optional
+        runner = None
+
+    use_case = ExplainEmployeeFindingUseCase(
+        documents=SqlAlchemyDocumentRepository(session),
+        validation_runs=SqlAlchemyValidationRunRepository(session),
+        validation_findings=SqlAlchemyValidationFindingRepository(session),
+        audit_logs=SqlAlchemyAuditLogRepository(session),
+        assistant_runner=runner,
+    )
+    try:
+        result = await use_case.execute(
+            employee=bound.employee,
+            user_id=bound.principal.user_id,
+            validation_run_id=validation_run_id,
+            finding_id=finding_id,
+            locale=locale,
+        )
+        await session.commit()
+        return result
+    except DocumentNotOwnedError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "document_not_owned", "message": "Finding is not owned by this employee."},
+        ) from exc
+    except ValidationRunNotFoundError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": exc.code, "message": str(exc)},
+        ) from exc
+    except FindingNotFoundError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": exc.code, "message": str(exc)},
+        ) from exc
+
+
+@router.get("/me/payroll-months")
+async def list_my_payroll_months(
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+    session: AsyncSession = Depends(get_db_session),
+    year: int | None = Query(default=None),
+) -> dict[str, Any]:
+    """Year overview of payslip/attendance/validation for the authenticated employee."""
+    from datetime import datetime
+
+    from payroll_copilot.application.use_cases.employee_payroll_months import (
+        BuildEmployeePayrollMonthsUseCase,
+    )
+    from payroll_copilot.infrastructure.persistence.repositories.document_extraction_repository import (
+        SqlAlchemyDocumentExtractionRepository,
+    )
+    from payroll_copilot.infrastructure.persistence.repositories.validation_finding_repository import (
+        SqlAlchemyValidationFindingRepository,
+    )
+    from payroll_copilot.infrastructure.persistence.repositories.validation_run_repository import (
+        SqlAlchemyValidationRunRepository,
+    )
+
+    selected_year = year or datetime.utcnow().year
+    if selected_year < 2000 or selected_year > 2100:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "invalid_year", "message": "Invalid year."},
+        )
+    use_case = BuildEmployeePayrollMonthsUseCase(
+        documents=SqlAlchemyDocumentRepository(session),
+        validation_runs=SqlAlchemyValidationRunRepository(session),
+        validation_findings=SqlAlchemyValidationFindingRepository(session),
+        extractions=SqlAlchemyDocumentExtractionRepository(session),
+    )
+    return await use_case.execute(
+        organization_id=bound.employee.organization_id,
+        employee_id=bound.employee.id,
+        year=selected_year,
+    )
+
+
+@router.get("/me/payroll-months/{year}/{month}")
+async def get_my_payroll_month_detail(
+    year: int,
+    month: int,
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+    session: AsyncSession = Depends(get_db_session),
+) -> dict[str, Any]:
+    """Month detail for the authenticated employee only."""
+    from payroll_copilot.application.use_cases.employee_payroll_months import (
+        BuildEmployeePayrollMonthsUseCase,
+    )
+    from payroll_copilot.infrastructure.persistence.repositories.document_extraction_repository import (
+        SqlAlchemyDocumentExtractionRepository,
+    )
+    from payroll_copilot.infrastructure.persistence.repositories.validation_finding_repository import (
+        SqlAlchemyValidationFindingRepository,
+    )
+    from payroll_copilot.infrastructure.persistence.repositories.validation_run_repository import (
+        SqlAlchemyValidationRunRepository,
+    )
+
+    if year < 2000 or year > 2100 or month < 1 or month > 12:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "invalid_period", "message": "Invalid year or month."},
+        )
+    use_case = BuildEmployeePayrollMonthsUseCase(
+        documents=SqlAlchemyDocumentRepository(session),
+        validation_runs=SqlAlchemyValidationRunRepository(session),
+        validation_findings=SqlAlchemyValidationFindingRepository(session),
+        extractions=SqlAlchemyDocumentExtractionRepository(session),
+    )
+    return await use_case.month_detail(
+        organization_id=bound.employee.organization_id,
+        employee_id=bound.employee.id,
+        year=year,
+        month=month,
+    )
 
 
 @router.get("/me/payslips")

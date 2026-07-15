@@ -5,7 +5,22 @@ function canConfirm(blocksConfirmation: boolean): boolean {
   return !blocksConfirmation;
 }
 
-function displayMasksNationalId(payload: { extracted_display?: string | null; expected_display?: string | null }) {
+function canRunValidation(opts: {
+  blocksConfirmation: boolean;
+  acknowledgement: boolean;
+  confirmationStatus: string | null;
+}): boolean {
+  return (
+    !opts.blocksConfirmation &&
+    opts.acknowledgement &&
+    opts.confirmationStatus === 'confirmed'
+  );
+}
+
+function displayMasksNationalId(payload: {
+  extracted_display?: string | null;
+  expected_display?: string | null;
+}) {
   const blob = `${payload.extracted_display ?? ''}${payload.expected_display ?? ''}`;
   return !/\d{9}/.test(blob);
 }
@@ -14,6 +29,23 @@ describe('employee payslip UI policies', () => {
   it('disables confirmation when backend blocks_confirmation is true', () => {
     expect(canConfirm(true)).toBe(false);
     expect(canConfirm(false)).toBe(true);
+  });
+
+  it('requires persisted confirmation before validation can start', () => {
+    expect(
+      canRunValidation({
+        blocksConfirmation: false,
+        acknowledgement: true,
+        confirmationStatus: null,
+      }),
+    ).toBe(false);
+    expect(
+      canRunValidation({
+        blocksConfirmation: false,
+        acknowledgement: true,
+        confirmationStatus: 'confirmed',
+      }),
+    ).toBe(true);
   });
 
   it('allows confirmation for name-only mismatch when blocks_confirmation is false', () => {

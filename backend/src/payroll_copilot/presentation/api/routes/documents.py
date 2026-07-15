@@ -26,6 +26,7 @@ from payroll_copilot.presentation.api.dependencies import (
     get_get_document_use_case,
     get_upload_document_use_case,
 )
+from payroll_copilot.presentation.api.security import BoundEmployeeContext, require_bound_employee
 
 logger = logging.getLogger(__name__)
 
@@ -174,6 +175,96 @@ async def upload_document(
         status=document.status.value,
         processing_job_id=job_id,
         background_status=background_status,
+        document_language=normalized_language,
+        ocr_language_status="not_connected",
+    )
+
+
+@router.post("/employee/upload", response_model=DocumentUploadResponse, status_code=201)
+async def upload_employee_owned_document(
+    file: UploadFile = File(...),
+    document_type: DocumentType = Form(...),
+    period_year: int | None = Form(None),
+    period_month: int | None = Form(None),
+    document_language: str = Form("auto"),
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+    upload_use_case: UploadDocumentUseCase = Depends(get_upload_document_use_case),
+) -> DocumentUploadResponse:
+    """Authenticated employee document upload — ownership forced from principal."""
+    allowed = {
+        DocumentType.ATTENDANCE,
+        DocumentType.CONTRACT,
+        DocumentType.NATIONAL_ID,
+        DocumentType.ID_APPENDIX,
+    }
+    if document_type not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "unsupported_employee_document_type",
+                "message": "Use the employee payslip extract endpoint for payslips.",
+            },
+        )
+    persistent = document_type in {
+        DocumentType.CONTRACT,
+        DocumentType.NATIONAL_ID,
+        DocumentType.ID_APPENDIX,
+    }
+    if not persistent:
+        if (
+            period_year is None
+            or period_month is None
+            or period_month < 1
+            or period_month > 12
+            or period_year < 2000
+            or period_year > 2100
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"code": "invalid_period", "message": "Invalid payroll period."},
+            )
+    settings = get_settings()
+    max_size = settings.max_upload_size_mb * 1024 * 1024
+    normalized_language = document_language.strip().lower()
+    if normalized_language not in _ALLOWED_DOCUMENT_LANGUAGES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid document_language: must be one of he, en, ar, auto",
+        )
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
+    if len(content) > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File exceeds maximum size of {settings.max_upload_size_mb}MB",
+        )
+    upload_command = UploadDocumentCommand(
+        content=content,
+        original_filename=file.filename or "upload",
+        mime_type=file.content_type or "application/octet-stream",
+        document_type=document_type,
+        employee_id=bound.employee.id,
+        organization_id=bound.employee.organization_id,
+        period_year=None if persistent else period_year,
+        period_month=None if persistent else period_month,
+        uploaded_by_user_id=bound.principal.user_id,
+        document_language=normalized_language,
+    )
+    try:
+        _upload_guardrail.validate(upload_command)
+    except DocumentUploadRejectedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "upload_rejected", "message": exc.message},
+        ) from exc
+
+    document = await upload_use_case.execute(upload_command)
+    return DocumentUploadResponse(
+        document_id=str(document.id),
+        status=document.status.value,
+        processing_job_id=None,
+        background_status="not_queued",
         document_language=normalized_language,
         ocr_language_status="not_connected",
     )

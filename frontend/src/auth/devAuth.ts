@@ -10,9 +10,10 @@ const STORAGE_KEY = 'payroll_copilot_dev_session';
 /** Realistic dev identities for role-based UI testing. */
 export const DEV_IDENTITIES: Record<UserRole, AuthUser> = {
   employee: {
-    id: 'dev-emp-001',
-    email: 'sarah.cohen@dev.payroll-copilot.local',
-    fullName: 'Sarah Cohen',
+    id: '00000000-0000-4000-8000-000000000101',
+    email: 'yehuda.shmulovitz@dev.payroll-copilot.local',
+    fullName: 'Yehuda Shmulovitz',
+    localizedFullName: 'יהודה שמולביץ',
     role: 'employee',
     organizationId: 'dev-org-001',
   },

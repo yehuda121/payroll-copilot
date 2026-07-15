@@ -21,8 +21,37 @@
     "back": "חזרה",
     "continue": "המשך",
     "close": "סגור",
+    "cancel": "ביטול",
+    "retry": "נסה שוב",
+    "emDash": "—",
+    "logout": "התנתקות",
+    "publicSite": "אתר ציבורי",
     "recommendation": "מה כדאי לעשות",
-    "legalReference": "הפניה קשורה"
+    "legalReference": "הפניה קשורה",
+    "roles": {
+      "employee": "עובד",
+      "payroll_accountant": "חשב שכר",
+      "developer_admin": "מפתח / מנהל"
+    }
+  },
+  "auth": {
+    "devBadge": "מצב פיתוח",
+    "signInTitle": "התחברות",
+    "devSubtitle": "בחרו תפקיד לפיתוח כדי לעבור בין הפורטלים. אין צורך בסיסמה. בפרודקשן ייעשה שימוש ב-AWS Cognito / RBAC.",
+    "backToLanding": "חזרה לדף הנחיתה",
+    "cognitoPending": "אימות ייצור דרך AWS Cognito עדיין לא מחובר. הפעילו VITE_DEV_AUTH_ENABLED=true לפיתוח מקומי.",
+    "noAccount": "אין חשבון?",
+    "email": "אימייל",
+    "password": "סיסמה",
+    "emailPlaceholder": "you@company.com",
+    "signInCognitoPending": "התחברות (Cognito בהמתנה)",
+    "loginFailedTitle": "ההתחברות נכשלה",
+    "loginFailed": "ההתחברות נכשלה.",
+    "roles": {
+      "employee": "עובד",
+      "payroll_accountant": "חשב שכר",
+      "developer_admin": "מפתח / מנהל"
+    }
   },
   "landing": {
     "eyebrow": "עזרה לתלוש, בפשטות",
@@ -220,13 +249,22 @@
       "periodRequired": "בחרו שנת וחודש שכר לפני ההעלאה.",
       "run": "חלץ ובדוק",
       "confirmAndValidate": "אשר ואמת",
+      "confirmExtraction": "אשר את המידע שחולץ",
+      "confirmed": "החילוץ אושר",
+      "confirmAcknowledgement": "אני מאשר/ת שהמידע שחולץ נכון",
+      "acknowledgementRequired": "יש לאשר שהמידע שחולץ נכון.",
+      "confirmBeforeValidate": "אשרו את המידע שחולץ לפני הרצת האימות.",
+      "runValidation": "הפעל אימות",
+      "unsavedChanges": "יש לכם תיקוני שדות שלא נשמרו.",
       "confirmBlocked": "תקנו אי־התאמות זהות או תקופה קריטיות לפני האישור.",
       "duplicatePeriod": "כבר קיים תלוש לתקופה זו.",
       "duplicateDetail": "העלאה נוספת תיצור גרסת מסמך חדשה ותשמור את הקודמת.",
       "confirmNewVersion": "צור גרסה חדשה",
       "errors": {
         "national_id_mismatch": "אי־התאמת תעודת זהות חוסמת אישור.",
-        "payroll_period_mismatch": "אי־התאמת תקופת שכר חוסמת אישור."
+        "payroll_period_mismatch": "אי־התאמת תקופת שכר חוסמת אישור.",
+        "extraction_not_confirmed": "אשרו את המידע שחולץ לפני האימות.",
+        "confirmation_acknowledgement_required": "יש לסמן את תיבת האישור."
       }
     },
     "compare": {
@@ -254,7 +292,50 @@
     },
     "payslips": {
       "pageTitle": "התלושים שלי",
-      "pageDescription": "תלושים שהועלו לחשבון העובד שלכם.",
+      "pageDescription": "סקירת חודשי שכר לשנה שנבחרה. פתחו חודש להעלאת מסמכים או להרצת אימות.",
+      "yearLabel": "שנת שכר",
+      "legendTitle": "מקרא סטטוסים",
+      "payslip": "תלוש שכר",
+      "attendance": "דוח נוכחות",
+      "validation": "אימות",
+      "docPresent": "קיים",
+      "docMissing": "חסר",
+      "validationPresent": "קיימות תוצאות",
+      "validationMissing": "עדיין לא הורץ",
+      "lastValidated": "אימות אחרון",
+      "uploadedAt": "הועלה",
+      "docStatus": "סטטוס",
+      "payslipMissing": "לא הועלה תלוש לחודש זה.",
+      "attendanceMissing": "לא הועלה דוח נוכחות לחודש זה.",
+      "attendanceNotConnected": "קובץ הנוכחות נשמר, אך השוואת נוכחות עדיין לא מחוברת.",
+      "confidence": "רמת ביטחון",
+      "findingsCount": "ממצאים",
+      "missingTitle": "מסמכים חסרים",
+      "missingNone": "אין מסמכים נדרשים חסרים.",
+      "missing": {
+        "payslip_missing": "חסר תלוש — לא ניתן להריץ בדיקות שכר לפני העלאה.",
+        "attendance_missing": "חסר דוח נוכחות — בדיקות נוכחות יישארו לא זמינות.",
+        "extraction_not_confirmed": "חילוץ התלוש עדיין לא אושר."
+      },
+      "reviewTitle": "סקירה דיגיטלית של התלוש",
+      "reviewMissing": "אין עדיין נתונים מחולצים לתלוש בחודש זה.",
+      "extractionVersion": "גרסת חילוץ",
+      "continueReview": "המשך סקירה / העלאה",
+      "validationHistory": "היסטוריית אימות",
+      "outdated": "לא עדכני",
+      "outdatedResult": "ייתכן שהתוצאה אינה עדכנית כי קיים חילוץ חדש יותר.",
+      "actual": "בפועל",
+      "uploadTitle": "העלאת מסמכים",
+      "uploadPayslip": "העלה תלוש",
+      "uploadAttendance": "העלה נוכחות",
+      "runValidation": "הרץ אימות",
+      "rerunValidation": "הרץ אימות מחדש",
+      "uploadSuccess": "ההעלאה הצליחה",
+      "uploadVersionSuccess": "גרסה חדשה הועלתה",
+      "duplicateTitle": "כבר קיים תלוש",
+      "duplicateMessage": "כבר קיים תלוש לחודש זה. ליצור גרסה חדשה ולשמור את הקודמת?",
+      "confirmNewVersion": "צור גרסה חדשה",
+      "duplicateCancelled": "ההעלאה בוטלה",
       "uploadCta": "העלה תלוש",
       "empty": "אין תלושים עדיין.",
       "columns": {
@@ -263,6 +344,79 @@
         "status": "סטטוס",
         "uploadedAt": "הועלה"
       }
+    },
+    "status": {
+      "passed": "עבר",
+      "error": "דורש תשומת לב",
+      "warning": "דורש בדיקה",
+      "unavailable": "לא ניתן לאמת",
+      "running": "בתהליך"
+    },
+    "lifecycle": {
+      "missing": "חסר",
+      "uploaded": "הועלה",
+      "processing": "מעבד",
+      "extraction_completed": "החילוץ הושלם",
+      "extraction_failed": "החילוץ נכשל",
+      "review_required": "נדרשת סקירה",
+      "confirmed": "מאושר",
+      "superseded": "הוחלף",
+      "extraction_not_connected": "חילוץ שדות אינו מחובר",
+      "foundation": "תשתית סקירה מוכנה"
+    },
+    "documents": {
+      "pageTitle": "המסמכים שלי",
+      "pageDescription": "המסמכים האישיים וקבצי השכר החודשיים שלכם.",
+      "persistentTitle": "מסמכים קבועים",
+      "persistentIntro": "מסמכי זהות והעסקה שנשארים בפרופיל.",
+      "monthlyTitle": "מסמכי שכר חודשיים",
+      "monthlyIntro": "תלושים, נוכחות והיסטוריית אימות מאורגנים לפי שנה וחודש.",
+      "monthlyCount": "{{count}} מסמכים חודשיים בקובץ",
+      "openPayslips": "פתחו את התלושים שלי",
+      "statePresent": "קיים",
+      "stateMissing": "חסר",
+      "missingState": "עדיין לא הועלה מסמך.",
+      "filename": "שם קובץ",
+      "uploadedAt": "הועלה",
+      "processingStatus": "עיבוד",
+      "extractionStatus": "חילוץ",
+      "confirmationStatus": "אישור",
+      "lifecycleStatus": "מחזור חיים",
+      "versionCount": "{{count}} גרסאות",
+      "upload": "העלה",
+      "replace": "החלף (גרסה חדשה)",
+      "uploadSuccess": "המסמך הועלה",
+      "extractionNotConnected": "חילוץ שדות אינו מחובר עדיין לסוג מסמך זה. הקובץ המקורי נשמר באופן מאובטח.",
+      "nationalIdFoundation": "מבנה סקירת תעודת זהות מוכן. חילוץ שדות אוטומטי אינו מחובר — לא מוצגים שדות מפוברקים.",
+      "reviewNationalId": "פתחו סקירת תעודת זהות",
+      "nationalIdReviewTitle": "סקירת תעודת זהות",
+      "nationalIdReviewDescription": "סקירת מסמך תעודת הזהות השמור. חילוץ אוטומטי אינו מחובר עדיין.",
+      "backToCenter": "חזרה למסמכים",
+      "types": {
+        "national_id": "תעודת זהות",
+        "id_appendix": "ספח תעודת זהות",
+        "contract": "חוזה העסקה",
+        "payslip": "תלוש שכר",
+        "attendance": "דוח נוכחות"
+      }
+    },
+    "validation": {
+      "explain": "מה עליי לעשות?",
+      "aiExplanation": "הסבר בינה מלאכותית",
+      "aiExplanationDisclaimer": "ההסבר אינו משנה את תוצאת האימות.",
+      "aiUnavailable": "הסבר בינה מלאכותית אינו זמין כעת. התוצאה הדטרמיניסטית למעלה נשארת תקפה."
+    },
+    "navigation": {
+      "portalName": "פורטל עובד",
+      "portalSubtitle": "שכר ומסמכים אישיים",
+      "dashboard": "לוח בקרה",
+      "documents": "המסמכים שלי",
+      "upload": "העלאת מסמכים",
+      "payslips": "התלושים שלי",
+      "attendance": "נוכחות",
+      "contract": "חוזה העסקה",
+      "chat": "צ׳אט שכר",
+      "validationHistory": "היסטוריית אימות"
     }
   }
 }

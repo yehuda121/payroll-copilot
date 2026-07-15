@@ -1,17 +1,18 @@
 import type { PortalConfig } from '../types/navigation';
 
 export const EMPLOYEE_PORTAL: PortalConfig = {
-  portalName: 'Employee Portal',
-  portalSubtitle: 'Personal payroll & documents',
+  portalNameKey: 'employee.navigation.portalName',
+  portalSubtitleKey: 'employee.navigation.portalSubtitle',
   basePath: '/employee',
   navItems: [
-    { label: 'Dashboard', path: '/employee' },
-    { label: 'Upload Documents', path: '/employee/upload' },
-    { label: 'My Payslips', path: '/employee/payslips' },
-    { label: 'Attendance', path: '/employee/attendance' },
-    { label: 'Employment Contract', path: '/employee/contract' },
-    { label: 'Payroll AI Chat', path: '/employee/chat' },
-    { label: 'Validation History', path: '/employee/validation-history' },
+    { labelKey: 'employee.navigation.dashboard', path: '/employee' },
+    { labelKey: 'employee.navigation.documents', path: '/employee/documents' },
+    { labelKey: 'employee.navigation.upload', path: '/employee/upload' },
+    { labelKey: 'employee.navigation.payslips', path: '/employee/payslips' },
+    { labelKey: 'employee.navigation.attendance', path: '/employee/attendance' },
+    { labelKey: 'employee.navigation.contract', path: '/employee/contract' },
+    { labelKey: 'employee.navigation.chat', path: '/employee/chat' },
+    { labelKey: 'employee.navigation.validationHistory', path: '/employee/validation-history' },
   ],
 };
 

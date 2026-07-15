@@ -5,6 +5,8 @@ export type AuthUser = {
   id: string;
   email: string;
   fullName: string;
+  /** Optional localized display name from `/employees/me` (e.g. Hebrew). */
+  localizedFullName?: string;
   role: UserRole;
   organizationId: string;
 };

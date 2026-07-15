@@ -331,6 +331,7 @@ class SeedAccountantPortalUseCase:
                 "dataset_version": dataset.get("dataset_version"),
                 "fixture_dataset_marker": dataset.get("marker"),
                 "verified_display_name": row.get("verified_display_name"),
+                "display_name_en": row.get("display_name_en"),
                 "national_id_hash": nid_hash,
                 "national_id_masked": mask_national_id(national_id),
                 "profile_incomplete": bool(defaults.get("profile_incomplete", True)),

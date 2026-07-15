@@ -67,6 +67,16 @@ class ValidationRunRepository(ABC):
     async def get_by_id(self, run_id: UUID) -> ValidationRunRecord | None:
         ...
 
+    async def list_latest_by_document_ids(
+        self, document_ids: list[UUID]
+    ) -> dict[UUID, ValidationRunRecord]:
+        """Return the latest validation run per document_id (empty default for stubs)."""
+        return {}
+
+    async def list_for_document(self, document_id: UUID) -> list[ValidationRunRecord]:
+        """Return validation runs for a document, newest first."""
+        return []
+
 
 class ValidationFindingRepository(ABC):
     @abstractmethod

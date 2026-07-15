@@ -21,8 +21,37 @@
     "back": "Back",
     "continue": "Continue",
     "close": "Close",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "emDash": "—",
+    "logout": "Log out",
+    "publicSite": "Public site",
     "recommendation": "What to do next",
-    "legalReference": "Related reference"
+    "legalReference": "Related reference",
+    "roles": {
+      "employee": "Employee",
+      "payroll_accountant": "Payroll accountant",
+      "developer_admin": "Developer admin"
+    }
+  },
+  "auth": {
+    "devBadge": "Dev Auth Mode",
+    "signInTitle": "Sign in",
+    "devSubtitle": "Select a development role to explore role-based portals. No password required. Production will use AWS Cognito / RBAC.",
+    "backToLanding": "Back to landing page",
+    "cognitoPending": "Production authentication via AWS Cognito is not yet connected. Enable VITE_DEV_AUTH_ENABLED=true for local development.",
+    "noAccount": "No account?",
+    "email": "Email",
+    "password": "Password",
+    "emailPlaceholder": "you@company.com",
+    "signInCognitoPending": "Sign in (Cognito pending)",
+    "loginFailedTitle": "Sign-in failed",
+    "loginFailed": "Sign-in failed.",
+    "roles": {
+      "employee": "Employee",
+      "payroll_accountant": "Payroll Accountant",
+      "developer_admin": "Developer / Admin"
+    }
   },
   "landing": {
     "eyebrow": "Payslip help, made simple",
@@ -220,13 +249,22 @@
       "periodRequired": "Select a payroll year and month before uploading.",
       "run": "Extract and review",
       "confirmAndValidate": "Confirm and validate",
+      "confirmExtraction": "Confirm extracted information",
+      "confirmed": "Extraction confirmed",
+      "confirmAcknowledgement": "I confirm that the extracted information is correct",
+      "acknowledgementRequired": "Please confirm that the extracted information is correct.",
+      "confirmBeforeValidate": "Confirm the extracted information before running validation.",
+      "runValidation": "Run validation",
+      "unsavedChanges": "You have unsaved field corrections.",
       "confirmBlocked": "Fix critical identity or period mismatches before confirmation.",
       "duplicatePeriod": "A payslip already exists for this period.",
       "duplicateDetail": "Uploading again will create a new document version and keep the previous one.",
       "confirmNewVersion": "Create new version",
       "errors": {
         "national_id_mismatch": "National ID mismatch blocks confirmation.",
-        "payroll_period_mismatch": "Payroll period mismatch blocks confirmation."
+        "payroll_period_mismatch": "Payroll period mismatch blocks confirmation.",
+        "extraction_not_confirmed": "Confirm the extracted information before validation.",
+        "confirmation_acknowledgement_required": "Please tick the confirmation checkbox."
       }
     },
     "compare": {
@@ -254,7 +292,50 @@
     },
     "payslips": {
       "pageTitle": "My Payslips",
-      "pageDescription": "Payslips uploaded for your employee account.",
+      "pageDescription": "Review payroll months for the selected year. Open a month to upload documents or run validation.",
+      "yearLabel": "Payroll year",
+      "legendTitle": "Status legend",
+      "payslip": "Payslip",
+      "attendance": "Attendance report",
+      "validation": "Validation",
+      "docPresent": "Available",
+      "docMissing": "Missing",
+      "validationPresent": "Results available",
+      "validationMissing": "Not run yet",
+      "lastValidated": "Last validated",
+      "uploadedAt": "Uploaded",
+      "docStatus": "Status",
+      "payslipMissing": "No payslip uploaded for this month.",
+      "attendanceMissing": "No attendance report uploaded for this month.",
+      "attendanceNotConnected": "The attendance file is stored, but attendance comparison is not connected yet.",
+      "confidence": "Confidence",
+      "findingsCount": "Findings",
+      "missingTitle": "Missing documents",
+      "missingNone": "No required documents are missing.",
+      "missing": {
+        "payslip_missing": "Payslip is missing — payroll checks cannot run until one is uploaded.",
+        "attendance_missing": "Attendance report is missing — attendance-related checks stay unavailable.",
+        "extraction_not_confirmed": "Payslip extraction is not confirmed yet."
+      },
+      "reviewTitle": "Digital payslip review",
+      "reviewMissing": "No extracted payslip data for this month yet.",
+      "extractionVersion": "Extraction version",
+      "continueReview": "Continue review / upload",
+      "validationHistory": "Validation history",
+      "outdated": "outdated",
+      "outdatedResult": "This result may be outdated because a newer extraction exists.",
+      "actual": "Actual",
+      "uploadTitle": "Upload documents",
+      "uploadPayslip": "Upload payslip",
+      "uploadAttendance": "Upload attendance",
+      "runValidation": "Run validation",
+      "rerunValidation": "Rerun validation",
+      "uploadSuccess": "Uploaded successfully",
+      "uploadVersionSuccess": "New version uploaded",
+      "duplicateTitle": "Payslip already exists",
+      "duplicateMessage": "A payslip already exists for this month. Create a new version and keep the previous document?",
+      "confirmNewVersion": "Create new version",
+      "duplicateCancelled": "Upload cancelled",
       "uploadCta": "Upload payslip",
       "empty": "No payslips yet.",
       "columns": {
@@ -263,6 +344,79 @@
         "status": "Status",
         "uploadedAt": "Uploaded"
       }
+    },
+    "status": {
+      "passed": "Passed",
+      "error": "Needs attention",
+      "warning": "Needs review",
+      "unavailable": "Unable to verify",
+      "running": "Running"
+    },
+    "lifecycle": {
+      "missing": "Missing",
+      "uploaded": "Uploaded",
+      "processing": "Processing",
+      "extraction_completed": "Extraction completed",
+      "extraction_failed": "Extraction failed",
+      "review_required": "Review required",
+      "confirmed": "Confirmed",
+      "superseded": "Superseded",
+      "extraction_not_connected": "Extraction not connected",
+      "foundation": "Review foundation ready"
+    },
+    "documents": {
+      "pageTitle": "My Documents",
+      "pageDescription": "Your personal documents and monthly payroll files.",
+      "persistentTitle": "Persistent documents",
+      "persistentIntro": "Identity and employment documents that stay with your profile.",
+      "monthlyTitle": "Monthly payroll documents",
+      "monthlyIntro": "Payslips, attendance, and validation history are organized by year and month.",
+      "monthlyCount": "{{count}} monthly document(s) on file",
+      "openPayslips": "Open My Payslips",
+      "statePresent": "On file",
+      "stateMissing": "Missing",
+      "missingState": "No document uploaded yet.",
+      "filename": "File name",
+      "uploadedAt": "Uploaded",
+      "processingStatus": "Processing",
+      "extractionStatus": "Extraction",
+      "confirmationStatus": "Confirmation",
+      "lifecycleStatus": "Lifecycle",
+      "versionCount": "{{count}} versions",
+      "upload": "Upload",
+      "replace": "Replace (new version)",
+      "uploadSuccess": "Document uploaded",
+      "extractionNotConnected": "Field extraction is not connected for this document type yet. The original file is stored securely.",
+      "nationalIdFoundation": "National ID review structure is ready. Automatic field extraction is not connected yet — no fabricated fields are shown.",
+      "reviewNationalId": "Open National ID review",
+      "nationalIdReviewTitle": "National ID review",
+      "nationalIdReviewDescription": "Review your stored National ID document. Automatic extraction is not connected yet.",
+      "backToCenter": "Back to documents",
+      "types": {
+        "national_id": "National ID",
+        "id_appendix": "National ID appendix",
+        "contract": "Employment contract",
+        "payslip": "Payslip",
+        "attendance": "Attendance report"
+      }
+    },
+    "validation": {
+      "explain": "What should I do?",
+      "aiExplanation": "AI explanation",
+      "aiExplanationDisclaimer": "This explanation does not change the validation result.",
+      "aiUnavailable": "An AI explanation is unavailable right now. The deterministic result above remains valid."
+    },
+    "navigation": {
+      "portalName": "Employee Portal",
+      "portalSubtitle": "Personal payroll & documents",
+      "dashboard": "Dashboard",
+      "documents": "My Documents",
+      "upload": "Upload Documents",
+      "payslips": "My Payslips",
+      "attendance": "Attendance",
+      "contract": "Employment Contract",
+      "chat": "Payroll AI Chat",
+      "validationHistory": "Validation History"
     }
   }
 }

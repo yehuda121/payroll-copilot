@@ -19,6 +19,7 @@ def run_record_to_model(record: ValidationRunRecord) -> ValidationRunModel:
         organization_id=record.organization_id,
         document_id=record.document_id,
         employee_id=record.employee_id,
+        extraction_id=record.extraction_id,
         status=record.status,
         overall_result=record.overall_result,
         overall_confidence=record.overall_confidence,
@@ -37,6 +38,7 @@ def run_model_to_record(model: ValidationRunModel) -> ValidationRunRecord:
         document_id=model.document_id,
         organization_id=model.organization_id,
         employee_id=model.employee_id,
+        extraction_id=getattr(model, "extraction_id", None),
         status=model.status,
         overall_result=model.overall_result,
         overall_confidence=model.overall_confidence,
@@ -44,6 +46,7 @@ def run_model_to_record(model: ValidationRunModel) -> ValidationRunRecord:
         rules_failed=model.rules_failed,
         context_snapshot=model.context_snapshot,
         enrichment=enrichment,
+        completed_at=model.completed_at,
     )
 
 

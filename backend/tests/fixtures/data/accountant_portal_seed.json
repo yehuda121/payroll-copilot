@@ -116,7 +116,8 @@
     },
     {
       "employee_number": "5",
-      "verified_display_name": "שמולביץ יהודה",
+      "verified_display_name": "יהודה שמולביץ",
+      "display_name_en": "Yehuda Shmulovitz",
       "first_name": "יהודה",
       "last_name": "שמולביץ",
       "national_id": "313366783",

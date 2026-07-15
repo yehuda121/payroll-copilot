@@ -34,6 +34,9 @@ def extraction_to_entity(model: DocumentExtractionModel) -> DocumentExtraction:
         warnings=list(model.warnings or []),
         error_message=model.error_message,
         updated_at=model.updated_at,
+        confirmation_status=getattr(model, "confirmation_status", None) or "review_required",
+        confirmed_at=getattr(model, "confirmed_at", None),
+        confirmed_by=getattr(model, "confirmed_by", None),
     )
 
 
@@ -57,6 +60,9 @@ def extraction_to_model(entity: DocumentExtraction) -> DocumentExtractionModel:
         overall_confidence=overall,
         warnings=entity.warnings,
         error_message=entity.error_message,
+        confirmation_status=entity.confirmation_status or "review_required",
+        confirmed_at=entity.confirmed_at,
+        confirmed_by=entity.confirmed_by,
         created_at=entity.created_at,
         updated_at=entity.updated_at,
     )

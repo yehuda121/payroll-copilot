@@ -5,6 +5,7 @@ import { LanguageSelector } from '../components/ui/LanguageSelector';
 import { useConfirmDialog } from '../components/ui/Dialog';
 import { useOptionalBatchNavigationGuard } from '../features/accountant/BatchNavigationGuard';
 import { useOptionalUnsavedChanges } from '../features/accountant/UnsavedChangesGuard';
+import { useAppLocale } from '../hooks/useAppLocale';
 import type { PortalConfig } from '../types/navigation';
 import './PortalShell.css';
 
@@ -14,6 +15,7 @@ type PortalShellProps = {
 
 export function PortalShell({ config }: PortalShellProps) {
   const { t } = useTranslation();
+  const { locale } = useAppLocale();
   const { session, logout } = useAuth();
   const user = session?.user;
   const navigate = useNavigate();
@@ -95,7 +97,11 @@ export function PortalShell({ config }: PortalShellProps) {
       <div className="portal-shell__content">
         <header className="portal-shell__topbar">
           <div className="portal-shell__user">
-            <span className="portal-shell__user-name">{user?.fullName}</span>
+            <span className="portal-shell__user-name" lang={locale}>
+              {locale === 'en'
+                ? user?.fullName
+                : (user?.localizedFullName || user?.fullName)}
+            </span>
             <span className="portal-shell__user-role">
               {user?.role ? t(`common.roles.${user.role}`) : ''}
             </span>

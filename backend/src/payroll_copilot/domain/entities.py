@@ -128,6 +128,9 @@ class DocumentExtraction:
     warnings: list[str] = field(default_factory=list)
     error_message: str | None = None
     updated_at: datetime = field(default_factory=datetime.utcnow)
+    confirmation_status: str = "review_required"
+    confirmed_at: datetime | None = None
+    confirmed_by: UUID | None = None
 
 
 @dataclass

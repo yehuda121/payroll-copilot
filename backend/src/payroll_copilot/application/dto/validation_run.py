@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
@@ -41,3 +42,5 @@ class ValidationRunRecord:
     findings: list[ValidationFindingRecord] = field(default_factory=list)
     context_snapshot: dict[str, Any] = field(default_factory=dict)
     enrichment: ValidationReportEnrichment | None = None
+    completed_at: datetime | None = None
+    extraction_id: UUID | None = None

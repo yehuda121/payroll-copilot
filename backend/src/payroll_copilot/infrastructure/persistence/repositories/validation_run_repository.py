@@ -34,3 +34,35 @@ class SqlAlchemyValidationRunRepository(ValidationRunRepository):
         if model is None:
             return None
         return run_model_to_record(model)
+
+    async def list_latest_by_document_ids(
+        self, document_ids: list[UUID]
+    ) -> dict[UUID, ValidationRunRecord]:
+        if not document_ids:
+            return {}
+        result = await self._session.execute(
+            select(ValidationRunModel)
+            .where(ValidationRunModel.document_id.in_(document_ids))
+            .order_by(
+                ValidationRunModel.document_id,
+                ValidationRunModel.completed_at.desc().nullslast(),
+                ValidationRunModel.started_at.desc().nullslast(),
+            )
+        )
+        latest: dict[UUID, ValidationRunRecord] = {}
+        for model in result.scalars().all():
+            if model.document_id in latest:
+                continue
+            latest[model.document_id] = run_model_to_record(model)
+        return latest
+
+    async def list_for_document(self, document_id: UUID) -> list[ValidationRunRecord]:
+        result = await self._session.execute(
+            select(ValidationRunModel)
+            .where(ValidationRunModel.document_id == document_id)
+            .order_by(
+                ValidationRunModel.completed_at.desc().nullslast(),
+                ValidationRunModel.started_at.desc().nullslast(),
+            )
+        )
+        return [run_model_to_record(model) for model in result.scalars().all()]

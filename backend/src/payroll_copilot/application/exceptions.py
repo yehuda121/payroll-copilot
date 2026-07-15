@@ -156,3 +156,10 @@ class ConfirmationBlockedError(Exception):
         self.code = code
         self.message = message
         super().__init__(message)
+
+
+class ExtractionNotConfirmedError(Exception):
+    def __init__(self, message: str = "Extraction must be confirmed before validation.") -> None:
+        self.code = "extraction_not_confirmed"
+        self.message = message
+        super().__init__(message)

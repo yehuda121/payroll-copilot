@@ -82,6 +82,9 @@ export function useEmployeePayslipFlow() {
   const [report, setReport] = useState<GuestValidationReport | null>(null);
   const [duplicateConflict, setDuplicateConflict] = useState<DuplicateConflict | null>(null);
 
+  const [acknowledgement, setAcknowledgement] = useState(false);
+  const [confirmationStatus, setConfirmationStatus] = useState<string | null>(null);
+
   const dirty = useMemo(
     () => Object.values(fieldDrafts).some((draft) => draft.dirty),
     [fieldDrafts],
@@ -95,6 +98,7 @@ export function useEmployeePayslipFlow() {
   const identityCheck: IdentityCheck | null = extraction?.identity_check ?? null;
   const periodCheck: PeriodCheck | null = extraction?.period_check ?? null;
   const blocksConfirmation = Boolean(extraction?.blocks_confirmation);
+  const isConfirmed = confirmationStatus === 'confirmed';
 
   const initDrafts = useCallback((fields: ExtractedPayslipField[]) => {
     const next: Record<string, FieldDraft> = {};
@@ -120,6 +124,8 @@ export function useEmployeePayslipFlow() {
       setFileError(null);
       setFlowError(null);
       setDuplicateConflict(null);
+      setAcknowledgement(false);
+      setConfirmationStatus(null);
     },
     [file, t],
   );
@@ -215,6 +221,73 @@ export function useEmployeePayslipFlow() {
     await runExtract(true);
   }, [runExtract]);
 
+  const persistCorrectionsIfNeeded = useCallback(async (): Promise<EmployeePayslipExtraction | null> => {
+    const documentId = extraction?.document_id;
+    if (!documentId || !extraction) return null;
+
+    const corrections = Object.entries(fieldDrafts)
+      .filter(([, draft]) => draft.dirty)
+      .map(([key, draft]) => ({
+        key,
+        value: draft.clear ? null : parseDraftValue(draft.value),
+        clear: draft.clear || draft.value.trim() === '',
+      }));
+
+    if (corrections.length === 0) {
+      return extraction;
+    }
+
+    const latest = await employeePortalService.correctExtraction(documentId, corrections);
+    setExtraction(latest);
+    initDrafts(latest.fields);
+    setConfirmationStatus(null);
+    setAcknowledgement(false);
+    return latest;
+  }, [extraction, fieldDrafts, initDrafts]);
+
+  const confirmExtractedFields = useCallback(async () => {
+    const documentId = extraction?.document_id;
+    if (!documentId) {
+      setFlowError(t('validate.extractionFailed'));
+      return;
+    }
+    if (blocksConfirmation) {
+      setFlowError(t('employee.upload.confirmBlocked'));
+      return;
+    }
+    if (!acknowledgement) {
+      setFlowError(t('employee.upload.acknowledgementRequired'));
+      return;
+    }
+
+    setFlowError(null);
+    try {
+      const latest = await persistCorrectionsIfNeeded();
+      if (latest?.blocks_confirmation) {
+        setFlowError(t('employee.upload.confirmBlocked'));
+        return;
+      }
+      const confirmed = await employeePortalService.confirmExtraction(documentId, true);
+      setConfirmationStatus(confirmed.confirmation_status);
+      unsaved?.setDirty(false);
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        setFlowError(
+          t(`employee.upload.errors.${err.code}`, { defaultValue: err.message }),
+        );
+        return;
+      }
+      setFlowError(err instanceof Error ? err.message : t('validate.extractionFailed'));
+    }
+  }, [
+    extraction,
+    blocksConfirmation,
+    acknowledgement,
+    persistCorrectionsIfNeeded,
+    unsaved,
+    t,
+  ]);
+
   const continueToValidate = useCallback(async () => {
     const documentId = extraction?.document_id;
     if (!documentId) {
@@ -225,31 +298,15 @@ export function useEmployeePayslipFlow() {
       setFlowError(t('employee.upload.confirmBlocked'));
       return;
     }
+    if (!isConfirmed) {
+      setFlowError(t('employee.upload.confirmBeforeValidate'));
+      return;
+    }
 
     setFlowError(null);
     setStep('validating');
 
     try {
-      const corrections = Object.entries(fieldDrafts)
-        .filter(([, draft]) => draft.dirty)
-        .map(([key, draft]) => ({
-          key,
-          value: draft.clear ? null : parseDraftValue(draft.value),
-          clear: draft.clear || draft.value.trim() === '',
-        }));
-
-      let latest = extraction;
-      if (corrections.length > 0) {
-        latest = await employeePortalService.correctExtraction(documentId, corrections);
-        setExtraction(latest);
-        initDrafts(latest.fields);
-        if (latest.blocks_confirmation) {
-          setFlowError(t('employee.upload.confirmBlocked'));
-          setStep('review');
-          return;
-        }
-      }
-
       const validation = await employeePortalService.validatePayslip({
         documentId,
         locale,
@@ -259,8 +316,12 @@ export function useEmployeePayslipFlow() {
       setStep('report');
     } catch (err) {
       if (err instanceof ApiClientError) {
-        if (err.code === 'national_id_mismatch' || err.code === 'payroll_period_mismatch') {
-          setFlowError(t(`employee.upload.errors.${err.code}`));
+        if (
+          err.code === 'national_id_mismatch' ||
+          err.code === 'payroll_period_mismatch' ||
+          err.code === 'extraction_not_confirmed'
+        ) {
+          setFlowError(t(`employee.upload.errors.${err.code}`, { defaultValue: err.message }));
           setStep('review');
           return;
         }
@@ -268,7 +329,7 @@ export function useEmployeePayslipFlow() {
       setFlowError(err instanceof Error ? err.message : t('validate.validationFailed'));
       setStep('review');
     }
-  }, [extraction, fieldDrafts, blocksConfirmation, locale, initDrafts, unsaved, t]);
+  }, [extraction, blocksConfirmation, isConfirmed, locale, unsaved, t]);
 
   const reset = useCallback(async () => {
     if (unsaved) {
@@ -282,6 +343,8 @@ export function useEmployeePayslipFlow() {
     setFieldDrafts({});
     setReport(null);
     setDuplicateConflict(null);
+    setAcknowledgement(false);
+    setConfirmationStatus(null);
     setStep('upload');
     setDocumentLanguage('auto');
     const next = nowPeriod();
@@ -308,12 +371,18 @@ export function useEmployeePayslipFlow() {
     identityCheck,
     periodCheck,
     blocksConfirmation,
+    acknowledgement,
+    setAcknowledgement,
+    confirmationStatus,
+    isConfirmed,
+    dirty,
     selectFile,
     removeFile,
     updateFieldDraft,
     clearFieldDraft,
     startExtraction: () => runExtract(false),
     confirmDuplicateVersion,
+    confirmExtractedFields,
     continueToValidate,
     reset,
   };

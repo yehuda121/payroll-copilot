@@ -21,8 +21,37 @@
     "back": "رجوع",
     "continue": "متابعة",
     "close": "إغلاق",
+    "cancel": "إلغاء",
+    "retry": "إعادة المحاولة",
+    "emDash": "—",
+    "logout": "تسجيل الخروج",
+    "publicSite": "الموقع العام",
     "recommendation": "ما الذي يُنصح به",
-    "legalReference": "مرجع ذو صلة"
+    "legalReference": "مرجع ذو صلة",
+    "roles": {
+      "employee": "موظف",
+      "payroll_accountant": "محاسب رواتب",
+      "developer_admin": "مطوّر / مسؤول"
+    }
+  },
+  "auth": {
+    "devBadge": "وضع التطوير",
+    "signInTitle": "تسجيل الدخول",
+    "devSubtitle": "اختر دورًا للتطوير لاستكشاف البوابات. لا حاجة لكلمة مرور. في الإنتاج سيُستخدم AWS Cognito / RBAC.",
+    "backToLanding": "العودة إلى الصفحة الرئيسية",
+    "cognitoPending": "مصادقة الإنتاج عبر AWS Cognito غير متصلة بعد. فعّل VITE_DEV_AUTH_ENABLED=true للتطوير المحلي.",
+    "noAccount": "ليس لديك حساب؟",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "emailPlaceholder": "you@company.com",
+    "signInCognitoPending": "تسجيل الدخول (Cognito معلّق)",
+    "loginFailedTitle": "فشل تسجيل الدخول",
+    "loginFailed": "فشل تسجيل الدخول.",
+    "roles": {
+      "employee": "موظف",
+      "payroll_accountant": "محاسب رواتب",
+      "developer_admin": "مطوّر / مسؤول"
+    }
   },
   "landing": {
     "eyebrow": "مساعدة كشف الراتب بسهولة",
@@ -220,13 +249,22 @@
       "periodRequired": "اختر سنة وشهر الرواتب قبل الرفع.",
       "run": "استخرج وراجع",
       "confirmAndValidate": "أكّد وتحقق",
+      "confirmExtraction": "تأكيد المعلومات المستخرجة",
+      "confirmed": "تم تأكيد الاستخراج",
+      "confirmAcknowledgement": "أؤكّد أن المعلومات المستخرجة صحيحة",
+      "acknowledgementRequired": "يرجى تأكيد أن المعلومات المستخرجة صحيحة.",
+      "confirmBeforeValidate": "أكّد المعلومات المستخرجة قبل تشغيل التحقق.",
+      "runValidation": "تشغيل التحقق",
+      "unsavedChanges": "لديك تصحيحات حقول غير محفوظة.",
       "confirmBlocked": "صحّح عدم تطابق الهوية أو الفترة الحرج قبل التأكيد.",
       "duplicatePeriod": "توجد قسيمة بالفعل لهذه الفترة.",
       "duplicateDetail": "الرفع مرة أخرى سينشئ نسخة مستند جديدة ويحتفظ بالسابقة.",
       "confirmNewVersion": "إنشاء نسخة جديدة",
       "errors": {
         "national_id_mismatch": "عدم تطابق رقم الهوية يحظر التأكيد.",
-        "payroll_period_mismatch": "عدم تطابق فترة الرواتب يحظر التأكيد."
+        "payroll_period_mismatch": "عدم تطابق فترة الرواتب يحظر التأكيد.",
+        "extraction_not_confirmed": "أكّد المعلومات المستخرجة قبل التحقق.",
+        "confirmation_acknowledgement_required": "يرجى تحديد مربع التأكيد."
       }
     },
     "compare": {
@@ -254,7 +292,50 @@
     },
     "payslips": {
       "pageTitle": "قسائمي",
-      "pageDescription": "قسائم الراتب المرفوعة لحساب الموظف.",
+      "pageDescription": "راجع أشهر الرواتب للسنة المحددة. افتح شهرًا لرفع المستندات أو تشغيل التحقق.",
+      "yearLabel": "سنة الرواتب",
+      "legendTitle": "مفتاح الحالات",
+      "payslip": "قسيمة الراتب",
+      "attendance": "تقرير الحضور",
+      "validation": "التحقق",
+      "docPresent": "متوفر",
+      "docMissing": "مفقود",
+      "validationPresent": "النتائج متوفرة",
+      "validationMissing": "لم يُشغَّل بعد",
+      "lastValidated": "آخر تحقق",
+      "uploadedAt": "تاريخ الرفع",
+      "docStatus": "الحالة",
+      "payslipMissing": "لا توجد قسيمة مرفوعة لهذا الشهر.",
+      "attendanceMissing": "لا يوجد تقرير حضور مرفوع لهذا الشهر.",
+      "attendanceNotConnected": "تم حفظ ملف الحضور، لكن مقارنة الحضور غير متصلة بعد.",
+      "confidence": "الثقة",
+      "findingsCount": "النتائج",
+      "missingTitle": "المستندات المفقودة",
+      "missingNone": "لا توجد مستندات مطلوبة مفقودة.",
+      "missing": {
+        "payslip_missing": "قسيمة الراتب مفقودة — لا يمكن تشغيل فحوصات الرواتب قبل الرفع.",
+        "attendance_missing": "تقرير الحضور مفقود — ستبقى فحوصات الحضور غير متاحة.",
+        "extraction_not_confirmed": "استخراج قسيمة الراتب لم يُؤكَّد بعد."
+      },
+      "reviewTitle": "مراجعة قسيمة رقمية",
+      "reviewMissing": "لا توجد بيانات مستخرجة لهذه القسيمة بعد.",
+      "extractionVersion": "إصدار الاستخراج",
+      "continueReview": "متابعة المراجعة / الرفع",
+      "validationHistory": "سجل التحقق",
+      "outdated": "قديم",
+      "outdatedResult": "قد تكون هذه النتيجة قديمة لأن هناك استخراجًا أحدث.",
+      "actual": "الفعلي",
+      "uploadTitle": "رفع المستندات",
+      "uploadPayslip": "رفع قسيمة",
+      "uploadAttendance": "رفع الحضور",
+      "runValidation": "تشغيل التحقق",
+      "rerunValidation": "إعادة تشغيل التحقق",
+      "uploadSuccess": "تم الرفع بنجاح",
+      "uploadVersionSuccess": "تم رفع نسخة جديدة",
+      "duplicateTitle": "قسيمة موجودة بالفعل",
+      "duplicateMessage": "توجد قسيمة لهذا الشهر بالفعل. هل تريد إنشاء نسخة جديدة والاحتفاظ بالمستند السابق؟",
+      "confirmNewVersion": "إنشاء نسخة جديدة",
+      "duplicateCancelled": "تم إلغاء الرفع",
       "uploadCta": "رفع قسيمة",
       "empty": "لا توجد قسائم بعد.",
       "columns": {
@@ -263,6 +344,79 @@
         "status": "الحالة",
         "uploadedAt": "تاريخ الرفع"
       }
+    },
+    "status": {
+      "passed": "ناجح",
+      "error": "يحتاج انتباهًا",
+      "warning": "يحتاج مراجعة",
+      "unavailable": "تعذر التحقق",
+      "running": "جارٍ التشغيل"
+    },
+    "lifecycle": {
+      "missing": "مفقود",
+      "uploaded": "تم الرفع",
+      "processing": "جارٍ المعالجة",
+      "extraction_completed": "اكتمل الاستخراج",
+      "extraction_failed": "فشل الاستخراج",
+      "review_required": "مطلوب مراجعة",
+      "confirmed": "مؤكَّد",
+      "superseded": "تم الاستبدال",
+      "extraction_not_connected": "الاستخراج غير متصل",
+      "foundation": "أساس المراجعة جاهز"
+    },
+    "documents": {
+      "pageTitle": "مستنداتي",
+      "pageDescription": "مستنداتك الشخصية وملفات الرواتب الشهرية.",
+      "persistentTitle": "مستندات دائمة",
+      "persistentIntro": "مستندات الهوية والعمل المرتبطة بملفك.",
+      "monthlyTitle": "مستندات الرواتب الشهرية",
+      "monthlyIntro": "القسائم والحضور وسجل التحقق منظمة حسب السنة والشهر.",
+      "monthlyCount": "{{count}} مستند(ات) شهرية",
+      "openPayslips": "افتح قسائمي",
+      "statePresent": "موجود",
+      "stateMissing": "مفقود",
+      "missingState": "لم يُرفع مستند بعد.",
+      "filename": "اسم الملف",
+      "uploadedAt": "تاريخ الرفع",
+      "processingStatus": "المعالجة",
+      "extractionStatus": "الاستخراج",
+      "confirmationStatus": "التأكيد",
+      "lifecycleStatus": "دورة الحياة",
+      "versionCount": "{{count}} إصدارات",
+      "upload": "رفع",
+      "replace": "استبدال (نسخة جديدة)",
+      "uploadSuccess": "تم رفع المستند",
+      "extractionNotConnected": "استخراج الحقول غير متصل لهذا النوع بعد. الملف الأصلي محفوظ بأمان.",
+      "nationalIdFoundation": "هيكل مراجعة الهوية جاهز. الاستخراج التلقائي غير متصل — لا تُعرض حقول مختلقة.",
+      "reviewNationalId": "فتح مراجعة الهوية",
+      "nationalIdReviewTitle": "مراجعة بطاقة الهوية",
+      "nationalIdReviewDescription": "راجع مستند الهوية المخزَّن. الاستخراج التلقائي غير متصل بعد.",
+      "backToCenter": "العودة إلى المستندات",
+      "types": {
+        "national_id": "بطاقة الهوية",
+        "id_appendix": "ملحق الهوية",
+        "contract": "عقد العمل",
+        "payslip": "قسيمة الراتب",
+        "attendance": "تقرير الحضور"
+      }
+    },
+    "validation": {
+      "explain": "ماذا يجب أن أفعل؟",
+      "aiExplanation": "شرح بالذكاء الاصطناعي",
+      "aiExplanationDisclaimer": "هذا الشرح لا يغيّر نتيجة التحقق.",
+      "aiUnavailable": "شرح الذكاء الاصطناعي غير متاح الآن. تظل النتيجة الحتمية أعلاه صالحة."
+    },
+    "navigation": {
+      "portalName": "بوابة الموظف",
+      "portalSubtitle": "الراتب والمستندات الشخصية",
+      "dashboard": "لوحة التحكم",
+      "documents": "مستنداتي",
+      "upload": "رفع المستندات",
+      "payslips": "قسائمي",
+      "attendance": "الحضور",
+      "contract": "عقد العمل",
+      "chat": "محادثة الرواتب",
+      "validationHistory": "سجل التحقق"
     }
   }
 }

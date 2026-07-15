@@ -12,6 +12,7 @@ from payroll_copilot.application.exceptions import (
     ConfirmationBlockedError,
     DocumentNotFoundError,
     DocumentNotOwnedError,
+    ExtractionNotConfirmedError,
 )
 from payroll_copilot.application.ports.employee_audit import AuditLogEntry, AuditLogRepository
 from payroll_copilot.application.ports.repositories import DocumentExtractionRepository, DocumentRepository
@@ -75,6 +76,10 @@ class ValidateEmployeePayslipUseCase:
                 code="correction_not_allowed",
                 message="Document has no extraction to confirm.",
             )
+        if (latest.confirmation_status or "") != "confirmed":
+            raise ExtractionNotConfirmedError(
+                "Confirm the extracted fields before running validation."
+            )
 
         meta = dict(document.metadata or {})
         selected_year = int(meta.get("selected_period_year") or (document.period.year if document.period else 0))
@@ -128,6 +133,7 @@ class ValidateEmployeePayslipUseCase:
                 include_contract_rag=True,
                 supporting_document_ids=supporting_document_ids,
                 locale=locale,
+                extraction_id=latest.id,
             )
         )
         if self._audit is not None:

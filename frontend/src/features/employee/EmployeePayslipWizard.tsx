@@ -37,7 +37,12 @@ export function EmployeePayslipWizard() {
     clearFieldDraft,
     startExtraction,
     confirmDuplicateVersion,
+    confirmExtractedFields,
     continueToValidate,
+    acknowledgement,
+    setAcknowledgement,
+    isConfirmed,
+    dirty,
     reset,
   } = useEmployeePayslipFlow();
 
@@ -228,18 +233,49 @@ export function EmployeePayslipWizard() {
             onChangeField={updateFieldDraft}
             onClearField={clearFieldDraft}
           />
-          <button
-            type="button"
-            className="btn btn--primary btn--large"
-            disabled={blocksConfirmation}
-            onClick={() => {
-              void continueToValidate();
-            }}
-          >
-            {t('employee.upload.confirmAndValidate')}
-          </button>
+          {dirty && (
+            <p className="employee-payslip-wizard__unsaved" role="status">
+              {t('employee.upload.unsavedChanges')}
+            </p>
+          )}
+          <label className="employee-payslip-wizard__ack">
+            <input
+              type="checkbox"
+              checked={acknowledgement}
+              disabled={blocksConfirmation || isConfirmed}
+              onChange={(event) => setAcknowledgement(event.target.checked)}
+            />
+            <span>{t('employee.upload.confirmAcknowledgement')}</span>
+          </label>
+          <div className="employee-payslip-wizard__actions">
+            <button
+              type="button"
+              className="btn btn--secondary btn--large"
+              disabled={blocksConfirmation || isConfirmed || !acknowledgement}
+              onClick={() => {
+                void confirmExtractedFields();
+              }}
+            >
+              {isConfirmed
+                ? t('employee.upload.confirmed')
+                : t('employee.upload.confirmExtraction')}
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary btn--large"
+              disabled={blocksConfirmation || !isConfirmed}
+              onClick={() => {
+                void continueToValidate();
+              }}
+            >
+              {t('employee.upload.runValidation')}
+            </button>
+          </div>
           {blocksConfirmation && (
             <p className="employee-payslip-wizard__blocked">{t('employee.upload.confirmBlocked')}</p>
+          )}
+          {!isConfirmed && !blocksConfirmation && (
+            <p className="employee-payslip-wizard__hint">{t('employee.upload.confirmBeforeValidate')}</p>
           )}
         </div>
       )}

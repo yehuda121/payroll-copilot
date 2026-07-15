@@ -16,11 +16,13 @@ from payroll_copilot.application.validation.demo_validation_context_builder impo
     DEMO_ORGANIZATION_ID,
 )
 
-# Fixed auth user id for local employee portal testing.
+# Fixed auth user id for local employee portal testing (Yehuda Shmulovitz / employee #5).
 DEV_EMPLOYEE_USER_ID = UUID("00000000-0000-4000-8000-000000000101")
-DEV_EMPLOYEE_USER_EMAIL = "sarah.cohen@dev.payroll-copilot.local"
+DEV_EMPLOYEE_USER_EMAIL = "yehuda.shmulovitz@dev.payroll-copilot.local"
+DEV_EMPLOYEE_DISPLAY_NAME_EN = "Yehuda Shmulovitz"
+DEV_EMPLOYEE_DISPLAY_NAME_HE = "יהודה שמולביץ"
 
-# Seed employee #5 — Yehuda Shmulovitz (שמולביץ יהודה), national ID 313366783.
+# Seed employee #5 — Yehuda Shmulovitz (יהודה שמולביץ), national ID 313366783.
 DEV_EMPLOYEE_SEED_NATIONAL_ID = "313366783"
 DEV_EMPLOYEE_NUMBER = "5"
 
@@ -33,6 +35,8 @@ __all__ = [
     "DEMO_ORGANIZATION_ID",
     "DEV_EMPLOYEE_USER_ID",
     "DEV_EMPLOYEE_USER_EMAIL",
+    "DEV_EMPLOYEE_DISPLAY_NAME_EN",
+    "DEV_EMPLOYEE_DISPLAY_NAME_HE",
     "DEV_EMPLOYEE_SEED_NATIONAL_ID",
     "DEV_EMPLOYEE_NUMBER",
     "SEED_NAMESPACE",

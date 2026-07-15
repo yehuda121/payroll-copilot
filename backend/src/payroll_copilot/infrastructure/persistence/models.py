@@ -173,6 +173,11 @@ class DocumentExtractionModel(Base):
     overall_confidence: Mapped[Decimal | None] = mapped_column(Numeric(4, 3))
     warnings: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     error_message: Mapped[str | None] = mapped_column(Text)
+    confirmation_status: Mapped[str] = mapped_column(String(32), nullable=False, default="review_required")
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    confirmed_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
@@ -190,6 +195,9 @@ class ValidationRunModel(Base):
         UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False
     )
     employee_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("employees.id"))
+    extraction_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("document_extractions.id", ondelete="SET NULL"), index=True
+    )
     triggered_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     status: Mapped[ValidationRunStatus] = mapped_column(
         Enum(ValidationRunStatus), default=ValidationRunStatus.PENDING
