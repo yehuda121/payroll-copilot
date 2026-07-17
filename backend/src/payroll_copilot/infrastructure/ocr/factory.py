@@ -1,7 +1,9 @@
 """OCR provider factory and Hebrew-aware routing (H1).
 
-Primary engine: PaddleOCR (en/ar/auto).
-Hebrew (`he`): intentional production fallback to Tesseract — not a bug.
+Primary engine: PaddleOCR (en/ar).
+Hebrew (`he`) and `auto`: Tesseract heb+eng — intentional for Israeli payslips.
+PaddleOCR has no official Hebrew recognizer; routing `auto` to English Paddle
+previously produced empty digital forms for clear Hebrew PDFs.
 OCR remains generic; no payroll-specific logic.
 """
 
@@ -52,14 +54,22 @@ class RoutingOCRProvider:
     ) -> OCRResult:
         requested = normalize_document_language(language)
 
-        if requested == "he":
+        if requested == "he" or requested == "auto":
+            # Israeli payslips: prefer Tesseract heb+eng. PaddleOCR has no Hebrew model;
+            # routing `auto` to English Paddle was a common cause of empty extractions forms.
             result = await self._hebrew_fallback.extract(
                 content=content,
                 media_type=media_type,
                 filename=filename,
                 language=requested,
             )
-            warnings = tuple(dict.fromkeys([*result.warnings, HEBREW_FALLBACK_WARNING]))
+            warnings = list(result.warnings)
+            if requested == "he":
+                warnings.append(HEBREW_FALLBACK_WARNING)
+            else:
+                warnings.append(
+                    "Document language auto uses Tesseract heb+eng for Israeli payslip OCR."
+                )
             return OCRResult(
                 pages=result.pages,
                 engine=result.engine,
@@ -68,7 +78,7 @@ class RoutingOCRProvider:
                 raw_text=result.raw_text,
                 overall_confidence=result.overall_confidence,
                 fields=(),
-                warnings=warnings,
+                warnings=tuple(dict.fromkeys(warnings)),
             )
 
         return await self._primary.extract(

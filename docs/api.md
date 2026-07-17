@@ -17,7 +17,11 @@
 
 ## Authentication
 
+Bearer tokens for authenticated users are **Amazon Cognito** access tokens (verified via JWKS). Guest landing uses a short-lived app-issued JWT from `POST /auth/guest/session` (not Cognito).
+
 ### POST /auth/login
+
+Authenticates against Cognito `USER_PASSWORD_AUTH`. Requires `COGNITO_USER_POOL_ID` and `COGNITO_APP_CLIENT_ID`.
 
 ```json
 // Request
@@ -29,11 +33,16 @@
   "refresh_token": "...",
   "token_type": "bearer",
   "expires_in": 3600,
-  "user": { "id": "...", "role": "accountant", "preferred_locale": "he" }
+  "user": { "id": "...", "email": "...", "role": "payroll_accountant", "preferred_locale": "he" }
 }
 ```
 
 ### POST /auth/refresh
+
+```json
+// Request
+{ "refresh_token": "...", "username": "optional@when-client-has-secret.com" }
+```
 
 ### POST /auth/guest/session
 

@@ -135,6 +135,7 @@ def validate_extracted_field_evidence(
     *,
     evidence_index: dict[str, dict[str, Any]],
     ocr_text: str,
+    require_evidence_ids: bool = True,
 ) -> ExtractedField:
     """Validate evidence-bound fields; never invent replacements."""
     warnings = list(field.warnings or [])
@@ -171,39 +172,85 @@ def validate_extracted_field_evidence(
             normalized_value=None,
         )
 
-    evidence_ids = [eid for eid in (field.evidence_ids or []) if isinstance(eid, str) and eid.strip()]
-    if field.value not in (None, "") and not evidence_ids:
-        # Non-null without evidence → unable to accept.
-        return ExtractedField(
-            value=None,
-            confidence=None,
-            source_text=None,
-            status=FieldExtractionStatus.UNCERTAIN,
-            edited_by_user=field.edited_by_user,
-            original_value=field.original_value,
-            evidence_ids=[],
-            source_bbox=None,
-            source_page=None,
-            parser_method=field.parser_method or "layout_llm",
-            warnings=[*warnings, "missing_evidence_ids"],
-            normalized_value=None,
-        )
+    source_text = field.source_text.strip() if isinstance(field.source_text, str) else None
+    if source_text == "":
+        source_text = None
 
-    for eid in evidence_ids:
-        if not is_valid_evidence_id(eid) or eid not in evidence_index:
+    # Embedded-text path: source_text presence in document text is sufficient.
+    if not require_evidence_ids:
+        if source_text and source_appears_in_ocr(source_text, ocr_text):
+            status = field.status
+            confidence = field.confidence
+            if status == FieldExtractionStatus.FOUND and confidence is not None and confidence < 0.5:
+                status = FieldExtractionStatus.UNCERTAIN
+            if status == FieldExtractionStatus.FOUND and not _values_correspond(field.value, source_text):
+                status = FieldExtractionStatus.UNCERTAIN
+                confidence = min(confidence or 0.4, 0.4) if confidence is not None else None
+                warnings.append("value_source_mismatch_downgraded")
             return ExtractedField(
-                value=None,
+                value=field.value,
+                confidence=confidence,
+                source_text=source_text,
+                status=status,
+                edited_by_user=field.edited_by_user,
+                original_value=field.original_value,
+                evidence_ids=list(field.evidence_ids or []),
+                source_bbox=field.source_bbox,
+                source_page=field.source_page,
+                parser_method=field.parser_method or "semantic_llm",
+                warnings=warnings,
+                normalized_value=field.normalized_value,
+            )
+        if field.value not in (None, ""):
+            return ExtractedField(
+                value=field.value,
                 confidence=None,
-                source_text=None,
+                source_text=source_text,
                 status=FieldExtractionStatus.UNCERTAIN,
                 edited_by_user=field.edited_by_user,
                 original_value=field.original_value,
                 evidence_ids=[],
                 source_bbox=None,
-                source_page=None,
+                source_page=field.source_page,
+                parser_method=field.parser_method or "semantic_llm",
+                warnings=[*warnings, "embedded_text_source_not_verified"],
+                normalized_value=field.normalized_value,
+            )
+        return field
+
+    evidence_ids = [eid for eid in (field.evidence_ids or []) if isinstance(eid, str) and eid.strip()]
+    if field.value not in (None, "") and not evidence_ids:
+        # OCR path: downgrade instead of erasing plausible values.
+        return ExtractedField(
+            value=field.value,
+            confidence=None,
+            source_text=source_text,
+            status=FieldExtractionStatus.UNCERTAIN,
+            edited_by_user=field.edited_by_user,
+            original_value=field.original_value,
+            evidence_ids=[],
+            source_bbox=None,
+            source_page=field.source_page,
+            parser_method=field.parser_method or "layout_llm",
+            warnings=[*warnings, "missing_evidence_ids"],
+            normalized_value=field.normalized_value,
+        )
+
+    for eid in evidence_ids:
+        if not is_valid_evidence_id(eid) or eid not in evidence_index:
+            return ExtractedField(
+                value=field.value,
+                confidence=None,
+                source_text=source_text,
+                status=FieldExtractionStatus.UNCERTAIN,
+                edited_by_user=field.edited_by_user,
+                original_value=field.original_value,
+                evidence_ids=[],
+                source_bbox=None,
+                source_page=field.source_page,
                 parser_method=field.parser_method or "layout_llm",
                 warnings=[*warnings, f"unknown_or_invalid_evidence_id:{eid}"],
-                normalized_value=None,
+                normalized_value=field.normalized_value,
             )
 
     texts, boxes, pages, confidences = _evidence_texts_and_boxes(evidence_ids, evidence_index)
@@ -218,34 +265,34 @@ def validate_extracted_field_evidence(
         or source_appears_in_ocr(source_text, ocr_text)
     ):
         return ExtractedField(
-            value=None,
+            value=field.value,
             confidence=None,
-            source_text=None,
+            source_text=source_text,
             status=FieldExtractionStatus.UNCERTAIN,
             edited_by_user=field.edited_by_user,
             original_value=field.original_value,
-            evidence_ids=[],
-            source_bbox=None,
-            source_page=None,
+            evidence_ids=evidence_ids,
+            source_bbox=field.source_bbox,
+            source_page=field.source_page,
             parser_method=field.parser_method or "layout_llm",
             warnings=[*warnings, "source_text_not_in_evidence"],
-            normalized_value=None,
+            normalized_value=field.normalized_value,
         )
 
     if not _values_correspond(field.value, source_text):
         return ExtractedField(
-            value=None,
+            value=field.value,
             confidence=None,
-            source_text=None,
+            source_text=source_text,
             status=FieldExtractionStatus.UNCERTAIN,
             edited_by_user=field.edited_by_user,
             original_value=field.original_value,
-            evidence_ids=[],
-            source_bbox=None,
-            source_page=None,
+            evidence_ids=evidence_ids,
+            source_bbox=field.source_bbox,
+            source_page=field.source_page,
             parser_method=field.parser_method or "layout_llm",
             warnings=[*warnings, "value_not_supported_by_source_text"],
-            normalized_value=None,
+            normalized_value=field.normalized_value,
         )
 
     # Reject digit invention: numeric value digits must come from source_text.
@@ -397,6 +444,7 @@ def validate_structured_payslip_evidence(
     *,
     evidence_index: dict[str, dict[str, Any]],
     ocr_text: str,
+    require_evidence_ids: bool = True,
 ) -> StructuredPayslipParse:
     data = parsed.model_dump()
     for key, value in list(data.items()):
@@ -406,6 +454,7 @@ def validate_structured_payslip_evidence(
             ExtractedField.model_validate(value),
             evidence_index=evidence_index,
             ocr_text=ocr_text,
+            require_evidence_ids=require_evidence_ids,
         ).model_dump()
 
     additional: dict[str, dict[str, Any]] = {}
@@ -414,6 +463,7 @@ def validate_structured_payslip_evidence(
             field_data if isinstance(field_data, ExtractedField) else ExtractedField.model_validate(field_data),
             evidence_index=evidence_index,
             ocr_text=ocr_text,
+            require_evidence_ids=require_evidence_ids,
         ).model_dump()
     data["additional_fields"] = additional
     validated = StructuredPayslipParse.model_validate(data)

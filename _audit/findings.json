@@ -1,0 +1,195 @@
+{
+  "generated_at": "2026-07-17T14:20:50Z",
+  "api": "http://localhost:8000/api/v1",
+  "frontend": "http://localhost:3000",
+  "finding_count": 14,
+  "findings": [
+    {
+      "severity": "missing_config",
+      "area": "cognito",
+      "summary": "Cognito not configured (COGNITO_USER_POOL_ID / COGNITO_APP_CLIENT_ID empty); /auth/login returns 503",
+      "detail": "",
+      "evidence": {
+        "evidence": {
+          "status": 503,
+          "body": {
+            "detail": {
+              "code": "cognito_not_configured",
+              "message": "Amazon Cognito is not configured for this environment."
+            }
+          }
+        }
+      }
+    },
+    {
+      "severity": "broken_flow",
+      "area": "guest_confirm",
+      "summary": "Guest confirm failed HTTP 404",
+      "detail": "",
+      "evidence": {
+        "evidence": {
+          "body": {
+            "detail": "Not Found"
+          }
+        }
+      }
+    },
+    {
+      "severity": "broken_flow",
+      "area": "guest_validation",
+      "summary": "Guest validation failed HTTP 422",
+      "detail": "",
+      "evidence": {
+        "evidence": {
+          "body": {
+            "detail": {
+              "code": "extraction_required",
+              "message": "Confirm extracted fields before running validation."
+            }
+          }
+        }
+      }
+    },
+    {
+      "severity": "broken_flow",
+      "area": "employee_me",
+      "summary": "GET /employees/me failed HTTP 404",
+      "detail": "",
+      "evidence": {
+        "evidence": {
+          "body": {
+            "detail": {
+              "code": "employee_not_found",
+              "message": "Bound employee record was not found."
+            }
+          }
+        }
+      }
+    },
+    {
+      "severity": "broken_flow",
+      "area": "employee_documents",
+      "summary": "GET /employees/me/documents failed HTTP 404",
+      "detail": "",
+      "evidence": {
+        "evidence": {
+          "body": {
+            "detail": {
+              "code": "employee_not_found",
+              "message": "Bound employee record was not found."
+            }
+          }
+        }
+      }
+    },
+    {
+      "severity": "broken_flow",
+      "area": "employee_national_id",
+      "summary": "GET /employees/me/documents/national-id/review failed HTTP 404",
+      "detail": "",
+      "evidence": {
+        "evidence": {
+          "body": {
+            "detail": {
+              "code": "employee_not_found",
+              "message": "Bound employee record was not found."
+            }
+          }
+        }
+      }
+    },
+    {
+      "severity": "broken_flow",
+      "area": "employee_payslips",
+      "summary": "GET /employees/me/payslips failed HTTP 404",
+      "detail": "",
+      "evidence": {
+        "evidence": {
+          "body": {
+            "detail": {
+              "code": "employee_not_found",
+              "message": "Bound employee record was not found."
+            }
+          }
+        }
+      }
+    },
+    {
+      "severity": "broken_flow",
+      "area": "employee_payroll_months",
+      "summary": "GET /employees/me/payroll-months failed HTTP 404",
+      "detail": "",
+      "evidence": {
+        "evidence": {
+          "body": {
+            "detail": {
+              "code": "employee_not_found",
+              "message": "Bound employee record was not found."
+            }
+          }
+        }
+      }
+    },
+    {
+      "severity": "broken_flow",
+      "area": "employee_upload",
+      "summary": "Employee upload failed HTTP 404",
+      "detail": "",
+      "evidence": {
+        "evidence": {
+          "body": {
+            "detail": {
+              "code": "employee_not_found",
+              "message": "Bound employee record was not found."
+            }
+          }
+        }
+      }
+    },
+    {
+      "severity": "missing_config",
+      "area": "s3",
+      "summary": "Amazon S3 credentials work but bucket 'payroll-copilot' is missing or inaccessible; runtime uses MinIO (S3_ENDPOINT set)",
+      "detail": "An error occurred (404) when calling the HeadBucket operation: Not Found",
+      "evidence": {
+        "code": "404"
+      }
+    },
+    {
+      "severity": "missing_config",
+      "area": "dynamodb",
+      "summary": "Amazon DynamoDB reachable but table PayrollCopilot not found; runtime uses DynamoDB Local (DYNAMODB_ENDPOINT set)",
+      "detail": "",
+      "evidence": {
+        "evidence": {
+          "tables_sample": []
+        }
+      }
+    },
+    {
+      "severity": "missing_config",
+      "area": "ses",
+      "summary": "SES reachable but SES_FROM_EMAIL empty and no verified email identities listed; app uses console email logger",
+      "detail": "",
+      "evidence": {
+        "evidence": {
+          "sending_enabled": true
+        }
+      }
+    },
+    {
+      "severity": "missing_config",
+      "area": "bedrock",
+      "summary": "Bedrock control plane reachable but configured model anthropic.claude-3-5-sonnet-20241022-v2:0 not listed / not accessible; runtime MODEL_PROVIDER=ollama",
+      "detail": "",
+      "evidence": {}
+    },
+    {
+      "severity": "missing_config",
+      "area": "runtime_wiring",
+      "summary": "Active runtime is local substitutes (MinIO + DynamoDB Local + Ollama + Cognito unset + SES console). AWS production adapters are not exercised by the running stack.",
+      "detail": "",
+      "evidence": {}
+    }
+  ]
+}

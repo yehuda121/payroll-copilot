@@ -70,6 +70,11 @@ class ConfirmEmployeeExtractionUseCase:
                 code="extraction_required",
                 message="No extraction is available to confirm.",
             )
+        if (latest.parser_status or "") != "completed":
+            raise ConfirmationBlockedError(
+                code="extraction_required",
+                message="Payslip details are not ready for confirmation yet.",
+            )
 
         meta = dict(document.metadata or {})
         selected_year = int(meta.get("selected_period_year") or (document.period.year if document.period else 0))
@@ -94,6 +99,7 @@ class ConfirmEmployeeExtractionUseCase:
             selected_year=selected_year or 0,
             selected_month=selected_month or 0,
             extraction_fields=fields,
+            period_resolution=str(meta.get("period_resolution") or "") or None,
         )
         if comparison.blocks_confirmation:
             if comparison.identity_check.blocks_confirmation:
@@ -115,7 +121,12 @@ class ConfirmEmployeeExtractionUseCase:
         meta["lifecycle_status"] = LIFECYCLE_CONFIRMED
         meta["confirmed_extraction_id"] = str(latest.id)
         meta["confirmed_extraction_version"] = latest.extraction_version
-        document.metadata = meta
+        from payroll_copilot.application.services.employee_workspace_snapshot import (
+            apply_comparison_snapshot,
+        )
+
+        # Persist cleared block state with the confirmed comparison.
+        document.metadata = apply_comparison_snapshot(meta, comparison)
         await self._documents.save(document)
 
         if self._audit is not None:

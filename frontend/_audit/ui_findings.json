@@ -1,0 +1,41 @@
+{
+  "generated_at": "2026-07-17T14:24:35.058Z",
+  "finding_count": 5,
+  "findings": [
+    {
+      "severity": "broken_flow",
+      "area": "ui_landing",
+      "summary": "Landing chat composer (textarea) not found",
+      "detail": "",
+      "evidence": {}
+    },
+    {
+      "severity": "broken_flow",
+      "area": "ui_employee_documents",
+      "summary": "Employee documents page reflects missing bound employee",
+      "detail": "PC\nפורטל עובד\nשכר ומסמכים אישיים\nלוח בקרה\nהמסמכים שלי\nהעלאת מסמכים\nהתלושים שלי\nנוכחות\nחוזה העסקה\nצ׳אט שכר\nהיסטוריית אימות\nאתר ציבורי\nיהודה שמולביץ\nעובד\nשפה\nעברית\nEnglish\nالعربية\nהתנתקות\nהמסמכים שלי\n\nהמסמכים האישיים וקבצי השכר החודשיים שלכם.\n\nBound employee record was not found.\n\nנסה שוב",
+      "evidence": {}
+    },
+    {
+      "severity": "exception",
+      "area": "ui_console",
+      "summary": "Browser console error",
+      "detail": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "evidence": {}
+    },
+    {
+      "severity": "exception",
+      "area": "ui_console",
+      "summary": "Browser console error",
+      "detail": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "evidence": {}
+    },
+    {
+      "severity": "exception",
+      "area": "ui_console",
+      "summary": "Browser console error",
+      "detail": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "evidence": {}
+    }
+  ]
+}

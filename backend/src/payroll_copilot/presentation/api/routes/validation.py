@@ -6,6 +6,15 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, Field
+from payroll_copilot.infrastructure.persistence.dynamodb.factory import (
+    get_audit_log_repository,
+    get_document_extraction_repository,
+    get_document_repository,
+    get_employee_repository,
+    get_validation_finding_repository,
+    get_validation_run_repository,
+    get_workspace_bootstrap,
+)
 
 from payroll_copilot.application.dto.validation_run import ValidationRunRecord
 from payroll_copilot.application.exceptions import (
@@ -26,25 +35,13 @@ from payroll_copilot.application.validation.guest_extraction_context_builder imp
 from payroll_copilot.infrastructure.ai.agents.validation_report_store import cache_validation_report
 from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.infrastructure.i18n import finding_explanation, finding_message, resolve_locale
-from payroll_copilot.infrastructure.persistence.database import get_db_session
-from payroll_copilot.infrastructure.persistence.repositories.audit_log_repository import (
-    SqlAlchemyAuditLogRepository,
-)
-from payroll_copilot.infrastructure.persistence.repositories.document_extraction_repository import (
-    SqlAlchemyDocumentExtractionRepository,
-)
-from payroll_copilot.infrastructure.persistence.repositories.document_repository import (
-    SqlAlchemyDocumentRepository,
-)
 from payroll_copilot.presentation.api.dependencies import (
     get_run_persisted_validation_use_case,
     get_validation_run_use_case,
 )
 from payroll_copilot.presentation.api.security import BoundEmployeeContext, require_bound_employee
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
-
 
 class ValidationRunRequest(BaseModel):
     document_id: str
@@ -54,20 +51,17 @@ class ValidationRunRequest(BaseModel):
     supporting_document_ids: list[str] = Field(default_factory=list)
     locale: str | None = Field(default=None, pattern="^(he|en|ar)$")
 
-
 class ValidationScopeItemResponse(BaseModel):
     key: str
     label: str
     status: str
     reason: str | None = None
 
-
 class UploadedDocumentResponse(BaseModel):
     document_type: str
     document_id: str
     uploaded: bool
     original_filename: str | None = None
-
 
 class FindingResponse(BaseModel):
     id: str
@@ -81,7 +75,6 @@ class FindingResponse(BaseModel):
     actual_value: str | None
     confidence: float
     legal_reference: str | None = None
-
 
 class ValidationRunResponse(BaseModel):
     id: str
@@ -100,7 +93,6 @@ class ValidationRunResponse(BaseModel):
     extraction_connected: bool = False
     findings: list[FindingResponse] = Field(default_factory=list)
 
-
 def _parse_uuid(value: str, field_name: str) -> UUID:
     try:
         return UUID(value)
@@ -109,7 +101,6 @@ def _parse_uuid(value: str, field_name: str) -> UUID:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Invalid {field_name}: must be a valid UUID",
         ) from exc
-
 
 def _to_response(record: ValidationRunRecord, *, locale: str) -> ValidationRunResponse:
     enrichment = record.enrichment
@@ -187,7 +178,6 @@ def _to_response(record: ValidationRunRecord, *, locale: str) -> ValidationRunRe
     )
     return response
 
-
 @router.post("/run", response_model=ValidationRunResponse, status_code=202)
 async def run_validation(
     request: ValidationRunRequest,
@@ -232,13 +222,11 @@ async def run_validation(
         ) from exc
     return _to_response(record, locale=locale)
 
-
 @router.post("/employee/run", response_model=ValidationRunResponse, status_code=202)
 async def run_employee_validation(
     request: ValidationRunRequest,
     bound: BoundEmployeeContext = Depends(require_bound_employee),
     validation: RunPersistedValidationUseCase = Depends(get_run_persisted_validation_use_case),
-    session: AsyncSession = Depends(get_db_session),
     accept_language: str | None = Header(default=None, alias="Accept-Language"),
 ) -> ValidationRunResponse:
     """Validate an employee-owned payslip after trusted identity/period checks pass."""
@@ -253,10 +241,10 @@ async def run_employee_validation(
         _parse_uuid(value, "supporting_document_id") for value in request.supporting_document_ids
     )
     use_case = ValidateEmployeePayslipUseCase(
-        documents=SqlAlchemyDocumentRepository(session),
-        extractions=SqlAlchemyDocumentExtractionRepository(session),
+        documents=get_document_repository(),
+        extractions=get_document_extraction_repository(),
         validation=validation,
-        audit_logs=SqlAlchemyAuditLogRepository(session),
+        audit_logs=get_audit_log_repository(),
     )
     try:
         result = await use_case.execute(
@@ -267,33 +255,32 @@ async def run_employee_validation(
             supporting_document_ids=supporting_document_ids,
             locale=locale,
         )
-        await session.commit()
     except DocumentNotFoundError as exc:
-        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "document_not_found", "message": f"Document {exc.document_id} not found"},
         ) from exc
     except DocumentNotOwnedError as exc:
-        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "document_not_owned", "message": "Document is not owned by the authenticated employee."},
         ) from exc
     except ConfirmationBlockedError as exc:
-        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": exc.code, "message": exc.message},
         ) from exc
     except ExtractionNotConfirmedError as tip_exc:
-        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": tip_exc.code, "message": tip_exc.message},
         ) from tip_exc
+    except ExtractionRequiredError as tip_exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "extraction_required", "message": tip_exc.message},
+        ) from tip_exc
     return _to_response(result.record, locale=locale)
-
 
 @router.get("/runs/{validation_run_id}", response_model=ValidationRunResponse)
 async def get_validation_run(

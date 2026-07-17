@@ -63,6 +63,12 @@ class RunPersistedValidationUseCase:
         )
 
     async def execute(self, command: RunPersistedValidationCommand) -> ValidationRunRecord:
+        from payroll_copilot.application.services.guest_ephemeral_store import get_guest_ephemeral_store
+
+        ephemeral = get_guest_ephemeral_store().get(command.document_id)
+        if ephemeral is not None:
+            return await self._execute_guest_ephemeral(command, ephemeral)
+
         document = await self._document_repository.get_by_id(command.document_id)
         if document is None:
             raise DocumentNotFoundError(command.document_id)
@@ -109,11 +115,61 @@ class RunPersistedValidationUseCase:
         saved_run.enrichment = enrichment
         return saved_run
 
+    async def _execute_guest_ephemeral(self, command: RunPersistedValidationCommand, ephemeral) -> ValidationRunRecord:
+        """Run validation for guest landing without permanent S3/DB writes."""
+        from payroll_copilot.application.services.guest_ephemeral_store import get_guest_ephemeral_store
+
+        store = get_guest_ephemeral_store()
+        document = store.build_document(ephemeral)
+        supporting_documents = []
+        support_ids = tuple(command.supporting_document_ids) or tuple(ephemeral.supporting_document_ids)
+        for sid in support_ids:
+            support = store.get_supporting(sid)
+            if support is not None:
+                supporting_documents.append(store.build_supporting_document(support))
+
+        bundle = await self._guest_context_builder.build(
+            document_id=command.document_id,
+            organization_id=document.organization_id,
+            employee_id=command.employee_id,
+            require_confirmed=True,
+        )
+        report = self._run_validation.execute(bundle.command)
+
+        enrichment = self._evidence_report_builder.build(
+            payslip_document=document,
+            supporting_documents=supporting_documents,
+            report=report,
+            locale=command.locale,
+            extraction_connected=bundle.extraction_connected,
+            core_fields_usable=bundle.core_fields_usable,
+        )
+
+        run_record = report_to_run_record(
+            report=report,
+            document_id=document.id,
+            organization_id=document.organization_id or bundle.organization_id,
+            employee_id=command.employee_id,
+        )
+        # Guest runs are returned in-memory only — never persisted.
+        run_record.enrichment = enrichment
+        run_record.context_snapshot = enrichment.to_context_snapshot()
+        run_record.extraction_id = command.extraction_id or bundle.extraction_id
+        finding_records = report_to_finding_records(report, run_record.id)
+        run_record.findings = finding_records
+        return run_record
+
     async def _load_supporting_documents(self, document_ids: tuple[UUID, ...]):
+        from payroll_copilot.application.services.guest_ephemeral_store import get_guest_ephemeral_store
         from payroll_copilot.domain.entities import Document
 
+        store = get_guest_ephemeral_store()
         documents: list[Document] = []
         for document_id in document_ids:
+            support = store.get_supporting(document_id)
+            if support is not None:
+                documents.append(store.build_supporting_document(support))
+                continue
             document = await self._document_repository.get_by_id(document_id)
             if document is not None:
                 documents.append(document)

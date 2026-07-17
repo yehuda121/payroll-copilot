@@ -12,7 +12,15 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import AsyncSession
+from payroll_copilot.infrastructure.persistence.dynamodb.factory import (
+    get_audit_log_repository,
+    get_document_extraction_repository,
+    get_document_repository,
+    get_employee_repository,
+    get_validation_finding_repository,
+    get_validation_run_repository,
+    get_workspace_bootstrap,
+)
 
 from payroll_copilot.application.ports.employee_audit import EmployeeListFilter
 from payroll_copilot.application.use_cases.employee_profile import BuildEmployeeProfileUseCase
@@ -28,23 +36,9 @@ from payroll_copilot.application.validation.demo_validation_context_builder impo
 )
 from payroll_copilot.domain.enums import EmployeeStatus, EmploymentType, SalaryType
 from payroll_copilot.infrastructure.config.settings import get_settings
-from payroll_copilot.infrastructure.persistence.database import get_db_session
-from payroll_copilot.infrastructure.persistence.repositories.audit_log_repository import (
-    SqlAlchemyAuditLogRepository,
-)
-from payroll_copilot.infrastructure.persistence.repositories.document_repository import (
-    SqlAlchemyDocumentRepository,
-)
-from payroll_copilot.infrastructure.persistence.repositories.employee_repository import (
-    SqlAlchemyEmployeeRepository,
-)
-from payroll_copilot.infrastructure.persistence.repositories.workspace_bootstrap import (
-    OrganizationWorkspaceBootstrap,
-)
 from payroll_copilot.presentation.api.security import BoundEmployeeContext, require_bound_employee
 
 router = APIRouter()
-
 
 class EmployeeCreateRequest(BaseModel):
     employee_number: str = Field(min_length=1, max_length=50)
@@ -62,7 +56,6 @@ class EmployeeCreateRequest(BaseModel):
     profile_incomplete: bool = False
     metadata: dict[str, Any] = Field(default_factory=dict)
 
-
 class EmployeeUpdateRequest(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
@@ -79,19 +72,16 @@ class EmployeeUpdateRequest(BaseModel):
     profile_incomplete: bool | None = None
     metadata: dict[str, Any] | None = None
 
-
 class NationalIdMatchRequest(BaseModel):
     national_id: str = Field(min_length=5, max_length=32)
 
-
-def _use_case(session: AsyncSession) -> ManageEmployeesUseCase:
+def _use_case() -> ManageEmployeesUseCase:
     settings = get_settings()
     return ManageEmployeesUseCase(
-        SqlAlchemyEmployeeRepository(session),
-        SqlAlchemyAuditLogRepository(session),
+        get_employee_repository(),
+        get_audit_log_repository(),
         encryption_key=settings.encryption_key,
     )
-
 
 @router.get("")
 async def list_employees(
@@ -100,12 +90,10 @@ async def list_employees(
     include_disabled: bool = Query(default=True),
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
-    session: AsyncSession = Depends(get_db_session),
 ) -> list[dict[str, Any]]:
-    bootstrap = OrganizationWorkspaceBootstrap(session)
+    bootstrap = get_workspace_bootstrap()
     await bootstrap.ensure_default_department(DEMO_ORGANIZATION_ID)
-    await session.commit()
-    return await _use_case(session).list_employees(
+    return await _use_case().list_employees(
         EmployeeListFilter(
             organization_id=DEMO_ORGANIZATION_ID,
             query=q,
@@ -116,17 +104,14 @@ async def list_employees(
         )
     )
 
-
 @router.post("/match/national-id")
 async def match_national_id(
     body: NationalIdMatchRequest,
-    session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, Any]:
-    matched = await _use_case(session).match_by_national_id(
+    matched = await _use_case().match_by_national_id(
         DEMO_ORGANIZATION_ID, body.national_id
     )
     return {"matched": matched is not None, "employee": matched}
-
 
 @router.get("/me")
 async def get_my_employee(
@@ -151,39 +136,32 @@ async def get_my_employee(
         "profile_incomplete": bool(meta.get("profile_incomplete", False)),
     }
 
-
 @router.get("/me/documents")
 async def list_my_documents(
     bound: BoundEmployeeContext = Depends(require_bound_employee),
-    session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, Any]:
     """Employee Document Center: persistent documents + monthly access pointer."""
     from payroll_copilot.application.use_cases.list_employee_documents import (
         ListEmployeeDocumentsUseCase,
     )
-    from payroll_copilot.infrastructure.persistence.repositories.document_extraction_repository import (
-        SqlAlchemyDocumentExtractionRepository,
-    )
-
+    
     use_case = ListEmployeeDocumentsUseCase(
-        documents=SqlAlchemyDocumentRepository(session),
-        extractions=SqlAlchemyDocumentExtractionRepository(session),
+        documents=get_document_repository(),
+        extractions=get_document_extraction_repository(),
     )
     return await use_case.execute(
         organization_id=bound.employee.organization_id,
         employee_id=bound.employee.id,
     )
 
-
 @router.get("/me/documents/national-id/review")
 async def get_national_id_review(
     bound: BoundEmployeeContext = Depends(require_bound_employee),
-    session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, Any]:
     """National ID digital review foundation (parser not connected — no fabricated fields)."""
     from payroll_copilot.domain.enums import DocumentType
 
-    docs = await SqlAlchemyDocumentRepository(session).list_for_employee(
+    docs = await get_document_repository().list_for_employee(
         organization_id=bound.employee.organization_id,
         employee_id=bound.employee.id,
     )
@@ -210,7 +188,6 @@ async def get_national_id_review(
         "note_code": "national_id_extraction_not_connected",
     }
 
-
 @router.post(
     "/me/validation-runs/{validation_run_id}/findings/{finding_id}/explanation"
 )
@@ -218,7 +195,6 @@ async def explain_my_finding(
     validation_run_id: UUID,
     finding_id: UUID,
     bound: BoundEmployeeContext = Depends(require_bound_employee),
-    session: AsyncSession = Depends(get_db_session),
     locale: str = Query(default="en"),
 ) -> dict[str, Any]:
     """On-demand AI/deterministic explanation for an owned validation finding."""
@@ -228,13 +204,7 @@ async def explain_my_finding(
         FindingNotFoundError,
         ValidationRunNotFoundError,
     )
-    from payroll_copilot.infrastructure.persistence.repositories.validation_finding_repository import (
-        SqlAlchemyValidationFindingRepository,
-    )
-    from payroll_copilot.infrastructure.persistence.repositories.validation_run_repository import (
-        SqlAlchemyValidationRunRepository,
-    )
-
+    
     runner = None
     try:
         from payroll_copilot.presentation.api.routes.assistant import _get_assistant_use_case
@@ -270,10 +240,10 @@ async def explain_my_finding(
         runner = None
 
     use_case = ExplainEmployeeFindingUseCase(
-        documents=SqlAlchemyDocumentRepository(session),
-        validation_runs=SqlAlchemyValidationRunRepository(session),
-        validation_findings=SqlAlchemyValidationFindingRepository(session),
-        audit_logs=SqlAlchemyAuditLogRepository(session),
+        documents=get_document_repository(),
+        validation_runs=get_validation_run_repository(),
+        validation_findings=get_validation_finding_repository(),
+        audit_logs=get_audit_log_repository(),
         assistant_runner=runner,
     )
     try:
@@ -284,32 +254,26 @@ async def explain_my_finding(
             finding_id=finding_id,
             locale=locale,
         )
-        await session.commit()
         return result
     except DocumentNotOwnedError as exc:
-        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "document_not_owned", "message": "Finding is not owned by this employee."},
         ) from exc
     except ValidationRunNotFoundError as exc:
-        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": exc.code, "message": str(exc)},
         ) from exc
     except FindingNotFoundError as exc:
-        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": exc.code, "message": str(exc)},
         ) from exc
 
-
 @router.get("/me/payroll-months")
 async def list_my_payroll_months(
     bound: BoundEmployeeContext = Depends(require_bound_employee),
-    session: AsyncSession = Depends(get_db_session),
     year: int | None = Query(default=None),
 ) -> dict[str, Any]:
     """Year overview of payslip/attendance/validation for the authenticated employee."""
@@ -318,16 +282,7 @@ async def list_my_payroll_months(
     from payroll_copilot.application.use_cases.employee_payroll_months import (
         BuildEmployeePayrollMonthsUseCase,
     )
-    from payroll_copilot.infrastructure.persistence.repositories.document_extraction_repository import (
-        SqlAlchemyDocumentExtractionRepository,
-    )
-    from payroll_copilot.infrastructure.persistence.repositories.validation_finding_repository import (
-        SqlAlchemyValidationFindingRepository,
-    )
-    from payroll_copilot.infrastructure.persistence.repositories.validation_run_repository import (
-        SqlAlchemyValidationRunRepository,
-    )
-
+    
     selected_year = year or datetime.utcnow().year
     if selected_year < 2000 or selected_year > 2100:
         raise HTTPException(
@@ -335,10 +290,10 @@ async def list_my_payroll_months(
             detail={"code": "invalid_year", "message": "Invalid year."},
         )
     use_case = BuildEmployeePayrollMonthsUseCase(
-        documents=SqlAlchemyDocumentRepository(session),
-        validation_runs=SqlAlchemyValidationRunRepository(session),
-        validation_findings=SqlAlchemyValidationFindingRepository(session),
-        extractions=SqlAlchemyDocumentExtractionRepository(session),
+        documents=get_document_repository(),
+        validation_runs=get_validation_run_repository(),
+        validation_findings=get_validation_finding_repository(),
+        extractions=get_document_extraction_repository(),
     )
     return await use_case.execute(
         organization_id=bound.employee.organization_id,
@@ -346,57 +301,46 @@ async def list_my_payroll_months(
         year=selected_year,
     )
 
-
 @router.get("/me/payroll-months/{year}/{month}")
 async def get_my_payroll_month_detail(
     year: int,
     month: int,
     bound: BoundEmployeeContext = Depends(require_bound_employee),
-    session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, Any]:
     """Month detail for the authenticated employee only."""
     from payroll_copilot.application.use_cases.employee_payroll_months import (
         BuildEmployeePayrollMonthsUseCase,
     )
-    from payroll_copilot.infrastructure.persistence.repositories.document_extraction_repository import (
-        SqlAlchemyDocumentExtractionRepository,
-    )
-    from payroll_copilot.infrastructure.persistence.repositories.validation_finding_repository import (
-        SqlAlchemyValidationFindingRepository,
-    )
-    from payroll_copilot.infrastructure.persistence.repositories.validation_run_repository import (
-        SqlAlchemyValidationRunRepository,
-    )
-
+    
     if year < 2000 or year > 2100 or month < 1 or month > 12:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"code": "invalid_period", "message": "Invalid year or month."},
         )
     use_case = BuildEmployeePayrollMonthsUseCase(
-        documents=SqlAlchemyDocumentRepository(session),
-        validation_runs=SqlAlchemyValidationRunRepository(session),
-        validation_findings=SqlAlchemyValidationFindingRepository(session),
-        extractions=SqlAlchemyDocumentExtractionRepository(session),
+        documents=get_document_repository(),
+        validation_runs=get_validation_run_repository(),
+        validation_findings=get_validation_finding_repository(),
+        extractions=get_document_extraction_repository(),
     )
     return await use_case.month_detail(
         organization_id=bound.employee.organization_id,
         employee_id=bound.employee.id,
         year=year,
         month=month,
+        employee=bound.employee,
+        national_id_encrypted=bound.national_id_encrypted,
     )
-
 
 @router.get("/me/payslips")
 async def list_my_payslips(
     bound: BoundEmployeeContext = Depends(require_bound_employee),
-    session: AsyncSession = Depends(get_db_session),
     year: int | None = Query(default=None),
 ) -> list[dict[str, Any]]:
     """List payslip documents owned by the authenticated employee."""
     from payroll_copilot.domain.enums import DocumentType
 
-    docs = await SqlAlchemyDocumentRepository(session).list_for_employee(
+    docs = await get_document_repository().list_for_employee(
         organization_id=bound.employee.organization_id,
         employee_id=bound.employee.id,
     )
@@ -422,45 +366,39 @@ async def list_my_payslips(
         )
     return rows
 
-
 @router.get("/{employee_number}")
 async def get_employee(
     employee_number: str,
-    session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, Any]:
     try:
-        return await _use_case(session).get_by_number(DEMO_ORGANIZATION_ID, employee_number)
+        return await _use_case().get_by_number(DEMO_ORGANIZATION_ID, employee_number)
     except EmployeeNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message) from exc
-
 
 @router.get("/{employee_number}/profile")
 async def get_employee_profile(
     employee_number: str,
-    session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, Any]:
     use_case = BuildEmployeeProfileUseCase(
-        SqlAlchemyEmployeeRepository(session),
-        SqlAlchemyAuditLogRepository(session),
-        SqlAlchemyDocumentRepository(session),
+        get_employee_repository(),
+        get_audit_log_repository(),
+        get_document_repository(),
     )
     try:
         return await use_case.execute(DEMO_ORGANIZATION_ID, employee_number)
     except EmployeeNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message) from exc
 
-
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_employee(
     body: EmployeeCreateRequest,
-    session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, Any]:
-    bootstrap = OrganizationWorkspaceBootstrap(session)
+    bootstrap = get_workspace_bootstrap()
     department_id = body.department_id or await bootstrap.ensure_default_department(
         DEMO_ORGANIZATION_ID
     )
     try:
-        created = await _use_case(session).create(
+        created = await _use_case().create(
             CreateEmployeeCommand(
                 organization_id=DEMO_ORGANIZATION_ID,
                 employee_number=body.employee_number,
@@ -479,21 +417,17 @@ async def create_employee(
                 metadata=body.metadata,
             )
         )
-        await session.commit()
         return created
     except EmployeeConflictError as exc:
-        await session.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=exc.message) from exc
-
 
 @router.patch("/{employee_number}")
 async def update_employee(
     employee_number: str,
     body: EmployeeUpdateRequest,
-    session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, Any]:
     try:
-        updated = await _use_case(session).update(
+        updated = await _use_case().update(
             UpdateEmployeeCommand(
                 organization_id=DEMO_ORGANIZATION_ID,
                 employee_number=employee_number,
@@ -513,27 +447,20 @@ async def update_employee(
                 metadata=body.metadata,
             )
         )
-        await session.commit()
         return updated
     except EmployeeNotFoundError as exc:
-        await session.rollback()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message) from exc
     except EmployeeConflictError as exc:
-        await session.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=exc.message) from exc
-
 
 @router.post("/{employee_number}/disable")
 async def disable_employee(
     employee_number: str,
-    session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, Any]:
     try:
-        updated = await _use_case(session).disable(
+        updated = await _use_case().disable(
             DEMO_ORGANIZATION_ID, employee_number, actor_user_id=None
         )
-        await session.commit()
         return updated
     except EmployeeNotFoundError as exc:
-        await session.rollback()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message) from exc

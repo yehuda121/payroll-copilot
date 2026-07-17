@@ -60,17 +60,16 @@ def create_app() -> FastAPI:
     async def ready() -> dict[str, str | bool]:
         db_ok = True
         try:
-            from payroll_copilot.infrastructure.persistence.database import engine
-            from sqlalchemy import text
+            from payroll_copilot.infrastructure.persistence.dynamodb.client import get_dynamo_table
 
-            async with engine.connect() as conn:
-                await conn.execute(text("SELECT 1"))
+            await get_dynamo_table().describe()
         except Exception:
             db_ok = False
 
         return {
             "status": "ready" if db_ok else "not_ready",
             "database": db_ok,
+            "persistence": "dynamodb",
         }
 
     return app

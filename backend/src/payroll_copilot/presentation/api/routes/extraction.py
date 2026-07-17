@@ -7,6 +7,16 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
 
+from payroll_copilot.infrastructure.persistence.dynamodb.factory import (
+    get_audit_log_repository,
+    get_document_extraction_repository,
+    get_document_repository,
+    get_employee_repository,
+    get_validation_finding_repository,
+    get_validation_run_repository,
+    get_workspace_bootstrap,
+)
+
 from payroll_copilot.application.exceptions import (
     ConfirmationBlockedError,
     CorrectionNotAllowedError,
@@ -41,31 +51,16 @@ from payroll_copilot.application.use_cases.extract_guest_payslip import (
 )
 from payroll_copilot.domain.enums import DocumentType
 from payroll_copilot.infrastructure.config.settings import get_settings
-from payroll_copilot.infrastructure.persistence.database import get_db_session
-from payroll_copilot.infrastructure.persistence.repositories.audit_log_repository import (
-    SqlAlchemyAuditLogRepository,
-)
-from payroll_copilot.infrastructure.persistence.repositories.document_extraction_repository import (
-    SqlAlchemyDocumentExtractionRepository,
-)
-from payroll_copilot.infrastructure.persistence.repositories.document_repository import (
-    SqlAlchemyDocumentRepository,
-)
-from payroll_copilot.infrastructure.persistence.repositories.employee_repository import (
-    SqlAlchemyEmployeeRepository,
-)
 from payroll_copilot.presentation.api.dependencies import (
     get_correct_guest_extraction_use_case,
     get_extract_guest_payslip_use_case,
 )
 from payroll_copilot.presentation.api.security import BoundEmployeeContext, require_bound_employee
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 _upload_guardrail = DocumentUploadGuardrailService(get_settings())
 
 _ALLOWED_LANGUAGES = frozenset({"he", "en", "ar", "auto"})
-
 
 class ExtractedFieldResponse(BaseModel):
     key: str
@@ -75,7 +70,6 @@ class ExtractedFieldResponse(BaseModel):
     status: str
     edited_by_user: bool = False
     original_value: object | None = None
-
 
 class GuestPayslipExtractionResponse(BaseModel):
     document_id: str
@@ -90,7 +84,6 @@ class GuestPayslipExtractionResponse(BaseModel):
     fields: list[ExtractedFieldResponse] = Field(default_factory=list)
     error_message: str | None = None
 
-
 class ComparisonFieldResponse(BaseModel):
     key: str
     status: str
@@ -100,12 +93,10 @@ class ComparisonFieldResponse(BaseModel):
     blocks_confirmation: bool = False
     explanation_code: str | None = None
 
-
 class IdentityCheckResponse(BaseModel):
     overall: str
     blocks_confirmation: bool
     fields: list[ComparisonFieldResponse] = Field(default_factory=list)
-
 
 class PeriodCheckResponse(BaseModel):
     status: str
@@ -116,23 +107,48 @@ class PeriodCheckResponse(BaseModel):
     extracted_month: int | None = None
     explanation_code: str | None = None
 
-
 class EmployeePayslipExtractionResponse(GuestPayslipExtractionResponse):
     identity_check: IdentityCheckResponse
     period_check: PeriodCheckResponse
     blocks_confirmation: bool = False
     document_version: int | None = None
 
-
 class FieldCorrectionRequest(BaseModel):
     key: str
     value: object | None = None
     clear: bool = False
 
-
 class CorrectGuestExtractionRequest(BaseModel):
     corrections: list[FieldCorrectionRequest] = Field(default_factory=list)
 
+
+class DynamicDocumentEntryRequest(BaseModel):
+    """Document-first review row from the guest landing UI (optional on confirm)."""
+
+    id: str = ""
+    key: str = ""
+    value: object | None = None
+    confidence: float | None = None
+    page: int | None = None
+    source: str = "ocr"
+    source_text: str | None = None
+    section: str | None = None
+    kind: str | None = None
+    table_id: str | None = None
+    row_index: int | None = None
+    column: str | None = None
+
+
+class ConfirmGuestExtractionRequest(BaseModel):
+    """Guest confirm body — matches frontend `confirmGuestExtraction` contract."""
+
+    entries: list[DynamicDocumentEntryRequest] | None = None
+
+
+class ConfirmGuestExtractionResponse(BaseModel):
+    document_id: str
+    extraction_id: str
+    status: str
 
 def _field_response(field: ExtractedFieldView) -> ExtractedFieldResponse:
     return ExtractedFieldResponse(
@@ -144,7 +160,6 @@ def _field_response(field: ExtractedFieldView) -> ExtractedFieldResponse:
         edited_by_user=getattr(field, "edited_by_user", False),
         original_value=getattr(field, "original_value", None),
     )
-
 
 def _field_from_payload(key: str, payload: object) -> ExtractedFieldResponse:
     if not isinstance(payload, dict):
@@ -170,7 +185,6 @@ def _field_from_payload(key: str, payload: object) -> ExtractedFieldResponse:
         original_value=payload.get("original_value"),
     )
 
-
 def _parse_uuid(value: str, field_name: str) -> UUID:
     try:
         return UUID(value)
@@ -179,7 +193,6 @@ def _parse_uuid(value: str, field_name: str) -> UUID:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Invalid {field_name}: must be a valid UUID",
         ) from exc
-
 
 @router.post(
     "/guest/payslip-extract",
@@ -268,6 +281,147 @@ async def extract_guest_payslip(
     )
 
 
+class GuestSupportingUploadResponse(BaseModel):
+    document_id: str
+    document_type: str
+    status: str
+
+
+@router.post(
+    "/guest/supporting-upload",
+    response_model=GuestSupportingUploadResponse,
+    status_code=201,
+)
+async def upload_guest_supporting(
+    file: UploadFile = File(...),
+    document_type: str = Form(...),
+    payslip_document_id: str | None = Form(None),
+) -> GuestSupportingUploadResponse:
+    """Store a guest supporting document (national ID / contract) ephemerally.
+
+    Matches frontend ``uploadGuestSupporting``. Bytes stay in the process-local
+    ephemeral store (same pipeline as payslip guest sessions) — no permanent write.
+    """
+    normalized_type = document_type.strip().lower()
+    allowed = {
+        DocumentType.NATIONAL_ID.value: DocumentType.NATIONAL_ID,
+        DocumentType.CONTRACT.value: DocumentType.CONTRACT,
+    }
+    if normalized_type not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "invalid_document_type",
+                "message": "document_type must be national_id or contract",
+            },
+        )
+
+    settings = get_settings()
+    max_size = settings.max_upload_size_mb * 1024 * 1024
+    content = await file.read()
+    if not content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "empty_document", "message": "Empty file"},
+        )
+    if len(content) > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail={
+                "code": "file_too_large",
+                "message": f"File exceeds maximum size of {settings.max_upload_size_mb}MB",
+            },
+        )
+
+    filename = file.filename or "supporting"
+    mime_type = file.content_type or "application/octet-stream"
+    upload_command = UploadDocumentCommand(
+        content=content,
+        original_filename=filename,
+        mime_type=mime_type,
+        document_type=allowed[normalized_type],
+        document_language="auto",
+    )
+    try:
+        _upload_guardrail.validate(upload_command)
+    except DocumentUploadRejectedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "upload_rejected", "message": exc.message},
+        ) from exc
+
+    payslip_id: UUID | None = None
+    if payslip_document_id:
+        payslip_id = _parse_uuid(payslip_document_id, "payslip_document_id")
+
+    from payroll_copilot.application.services.guest_ephemeral_store import get_guest_ephemeral_store
+
+    store = get_guest_ephemeral_store(ttl_hours=settings.guest_ephemeral_ttl_hours)
+    if payslip_id is not None and store.get(payslip_id) is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "code": "payslip_session_not_found",
+                "message": "Payslip guest session not found for payslip_document_id",
+            },
+        )
+
+    doc = store.save_supporting(
+        document_type=allowed[normalized_type],
+        content=content,
+        original_filename=filename,
+        mime_type=mime_type,
+        payslip_document_id=payslip_id,
+    )
+    return GuestSupportingUploadResponse(
+        document_id=str(doc.document_id),
+        document_type=normalized_type,
+        status="uploaded",
+    )
+
+
+@router.post(
+    "/guest/{document_id}/confirm",
+    response_model=ConfirmGuestExtractionResponse,
+)
+async def confirm_guest_extraction(
+    document_id: str,
+    request: ConfirmGuestExtractionRequest | None = None,
+    use_case: ExtractGuestPayslipUseCase = Depends(get_extract_guest_payslip_use_case),
+) -> ConfirmGuestExtractionResponse:
+    """Confirm reviewed guest extraction fields for ephemeral validation.
+
+    Matches frontend ``confirmGuestExtraction``: optional ``entries`` snapshot freezes
+    the Document Model, maps to canonical structured_data, and sets confirmation_status.
+    Does not write permanent S3/DB (same rules as ``confirm_ephemeral_session``).
+    """
+    parsed_id = _parse_uuid(document_id, "document_id")
+    body = request or ConfirmGuestExtractionRequest()
+    entries_payload: list[dict] | None = None
+    if body.entries is not None:
+        entries_payload = [entry.model_dump() for entry in body.entries]
+
+    try:
+        _document, extraction = use_case.confirm_ephemeral_session(
+            parsed_id,
+            dynamic_entries=entries_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "code": "document_not_found",
+                "message": f"Guest extraction session not found for document {parsed_id}",
+            },
+        ) from exc
+
+    return ConfirmGuestExtractionResponse(
+        document_id=str(parsed_id),
+        extraction_id=str(extraction.id),
+        status=extraction.confirmation_status or "confirmed",
+    )
+
+
 @router.post(
     "/guest/{document_id}/corrections",
     response_model=GuestPayslipExtractionResponse,
@@ -313,7 +467,6 @@ async def correct_guest_extraction(
         error_message=None,
     )
 
-
 def _comparison_response(comparison) -> tuple[IdentityCheckResponse, PeriodCheckResponse]:
     identity = IdentityCheckResponse(
         overall=comparison.identity_check.overall,
@@ -326,23 +479,22 @@ def _comparison_response(comparison) -> tuple[IdentityCheckResponse, PeriodCheck
     period = PeriodCheckResponse(**comparison.period_check.to_dict())
     return identity, period
 
-
 @router.post(
     "/employee/payslip-extract",
     response_model=EmployeePayslipExtractionResponse,
     status_code=201,
 )
 async def extract_employee_payslip(
-    file: UploadFile = File(...),
+    file: UploadFile | None = File(None),
+    document_id: str | None = Form(None),
     language: str = Form("auto"),
     period_year: int = Form(...),
     period_month: int = Form(...),
     confirm_new_version: bool = Form(False),
     bound: BoundEmployeeContext = Depends(require_bound_employee),
     guest_use_case: ExtractGuestPayslipUseCase = Depends(get_extract_guest_payslip_use_case),
-    session: AsyncSession = Depends(get_db_session),
 ) -> EmployeePayslipExtractionResponse:
-    """Authenticated employee payslip extract with server-side identity/period compare."""
+    """Authenticated employee payslip extract. Provide ``file`` or existing ``document_id``."""
     if period_month < 1 or period_month > 12 or period_year < 2000 or period_year > 2100:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -359,43 +511,80 @@ async def extract_employee_payslip(
                 "message": "Invalid language: must be one of he, en, ar, auto",
             },
         )
-    content = await file.read()
-    if not content:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "empty_document", "message": "Empty file"},
+
+    source_document_id: UUID | None = None
+    if document_id:
+        source_document_id = _parse_uuid(document_id, "document_id")
+        existing_doc = await get_document_repository().get_by_id(source_document_id)
+        if (
+            existing_doc is None
+            or existing_doc.employee_id != bound.employee.id
+            or existing_doc.organization_id != bound.employee.organization_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "document_not_found", "message": "Document not found"},
+            )
+        from payroll_copilot.presentation.api.dependencies import get_object_storage
+
+        try:
+            content = await get_object_storage().download(existing_doc.storage_key)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "code": "document_content_missing",
+                    "message": "Stored file is unavailable.",
+                },
+            ) from exc
+        filename = existing_doc.original_filename or "payslip"
+        mime_type = existing_doc.mime_type or "application/octet-stream"
+    else:
+        if file is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "code": "file_or_document_required",
+                    "message": "Provide a file or document_id.",
+                },
+            )
+        content = await file.read()
+        if not content:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "empty_document", "message": "Empty file"},
+            )
+        if len(content) > max_size:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail={
+                    "code": "file_too_large",
+                    "message": f"File exceeds maximum size of {settings.max_upload_size_mb}MB",
+                },
+            )
+        filename = file.filename or "payslip"
+        mime_type = file.content_type or "application/octet-stream"
+        upload_command = UploadDocumentCommand(
+            content=content,
+            original_filename=filename,
+            mime_type=mime_type,
+            document_type=DocumentType.PAYSLIP,
+            document_language=normalized_language,
         )
-    if len(content) > max_size:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail={
-                "code": "file_too_large",
-                "message": f"File exceeds maximum size of {settings.max_upload_size_mb}MB",
-            },
-        )
-    filename = file.filename or "payslip"
-    mime_type = file.content_type or "application/octet-stream"
-    upload_command = UploadDocumentCommand(
-        content=content,
-        original_filename=filename,
-        mime_type=mime_type,
-        document_type=DocumentType.PAYSLIP,
-        document_language=normalized_language,
-    )
-    try:
-        _upload_guardrail.validate(upload_command)
-    except DocumentUploadRejectedError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "upload_rejected", "message": exc.message},
-        ) from exc
+        try:
+            _upload_guardrail.validate(upload_command)
+        except DocumentUploadRejectedError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "upload_rejected", "message": exc.message},
+            ) from exc
 
     use_case = ExtractEmployeePayslipUseCase(
         guest_extract=guest_use_case,
-        documents=SqlAlchemyDocumentRepository(session),
-        extractions=SqlAlchemyDocumentExtractionRepository(session),
-        employees=SqlAlchemyEmployeeRepository(session),
-        audit_logs=SqlAlchemyAuditLogRepository(session),
+        documents=get_document_repository(),
+        extractions=get_document_extraction_repository(),
+        employees=get_employee_repository(),
+        audit_logs=get_audit_log_repository(),
     )
     try:
         result = await use_case.execute(
@@ -410,11 +599,10 @@ async def extract_employee_payslip(
                 user_id=bound.principal.user_id,
                 national_id_encrypted=bound.national_id_encrypted,
                 confirm_new_version=confirm_new_version,
+                source_document_id=source_document_id,
             )
         )
-        await session.commit()
     except DuplicatePayslipPeriodError as tip_exc:
-        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
@@ -426,7 +614,6 @@ async def extract_employee_payslip(
             },
         ) from tip_exc
     except OcrError as tip_exc:
-        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": tip_exc.code, "message": tip_exc.message},
@@ -451,8 +638,6 @@ async def extract_employee_payslip(
         document_version=result.document_version,
     )
 
-
-
 @router.post(
     "/employee/{document_id}/corrections",
     response_model=EmployeePayslipExtractionResponse,
@@ -463,7 +648,6 @@ async def correct_employee_extraction(
     request: CorrectGuestExtractionRequest,
     bound: BoundEmployeeContext = Depends(require_bound_employee),
     guest_use_case: CorrectGuestExtractionUseCase = Depends(get_correct_guest_extraction_use_case),
-    session: AsyncSession = Depends(get_db_session),
 ) -> EmployeePayslipExtractionResponse:
     parsed_id = _parse_uuid(document_id, "document_id")
     if not request.corrections:
@@ -473,9 +657,9 @@ async def correct_employee_extraction(
         )
     use_case = CorrectEmployeeExtractionUseCase(
         guest_correct=guest_use_case,
-        documents=SqlAlchemyDocumentRepository(session),
-        extractions=SqlAlchemyDocumentExtractionRepository(session),
-        audit_logs=SqlAlchemyAuditLogRepository(session),
+        documents=get_document_repository(),
+        extractions=get_document_extraction_repository(),
+        audit_logs=get_audit_log_repository(),
     )
     try:
         result = await use_case.execute(
@@ -488,21 +672,17 @@ async def correct_employee_extraction(
             user_id=bound.principal.user_id,
             national_id_encrypted=bound.national_id_encrypted,
         )
-        await session.commit()
     except DocumentNotFoundError as tip_exc:
-        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "document_not_found", "message": f"Document {tip_exc.document_id} not found"},
         ) from tip_exc
     except DocumentNotOwnedError as tip_exc:
-        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "document_not_owned", "message": "Document is not owned by the authenticated employee."},
         ) from tip_exc
     except CorrectionNotAllowedError as tip_exc:
-        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"code": tip_exc.code, "message": tip_exc.message},
@@ -527,24 +707,21 @@ async def correct_employee_extraction(
         document_version=result.correction.extraction_version,
     )
 
-
 class ConfirmEmployeeExtractionRequest(BaseModel):
     acknowledgement: bool = False
-
 
 @router.post("/employee/{document_id}/confirm")
 async def confirm_employee_extraction(
     document_id: str,
     request: ConfirmEmployeeExtractionRequest,
     bound: BoundEmployeeContext = Depends(require_bound_employee),
-    session: AsyncSession = Depends(get_db_session),
 ) -> dict:
     """Persist employee confirmation of the latest extraction version."""
     parsed_id = _parse_uuid(document_id, "document_id")
     use_case = ConfirmEmployeeExtractionUseCase(
-        documents=SqlAlchemyDocumentRepository(session),
-        extractions=SqlAlchemyDocumentExtractionRepository(session),
-        audit_logs=SqlAlchemyAuditLogRepository(session),
+        documents=get_document_repository(),
+        extractions=get_document_extraction_repository(),
+        audit_logs=get_audit_log_repository(),
     )
     try:
         result = await use_case.execute(
@@ -554,22 +731,18 @@ async def confirm_employee_extraction(
             national_id_encrypted=bound.national_id_encrypted,
             acknowledgement=request.acknowledgement,
         )
-        await session.commit()
         return result
     except DocumentNotFoundError as tip_exc:
-        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "document_not_found", "message": f"Document {tip_exc.document_id} not found"},
         ) from tip_exc
     except DocumentNotOwnedError as tip_exc:
-        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "document_not_owned", "message": "Document is not owned by the authenticated employee."},
         ) from tip_exc
     except ConfirmationBlockedError as tip_exc:
-        await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": tip_exc.code, "message": tip_exc.message},

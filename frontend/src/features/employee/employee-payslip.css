@@ -3,6 +3,340 @@
   gap: 0.55rem;
 }
 
+.employee-timeline {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.employee-timeline__step {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  text-align: center;
+  padding: 0.55rem 0.35rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.employee-timeline__step.is-done {
+  border-color: #abefc6;
+  background: #ecfdf3;
+  color: #067647;
+}
+
+.employee-timeline__step.is-current {
+  border-color: var(--color-accent, #175cd3);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent, #175cd3) 35%, transparent);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.employee-timeline__marker {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-size: 0.75rem;
+}
+
+.employee-timeline__current {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.employee-upload-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.employee-upload-status p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.employee-progress {
+  width: min(100%, 18rem);
+  height: 0.45rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-border) 80%, transparent);
+  margin: 0.85rem auto;
+}
+
+.employee-progress__bar {
+  height: 100%;
+  width: 40%;
+  border-radius: inherit;
+  background: var(--color-accent, #175cd3);
+  animation: employee-progress-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes employee-progress-slide {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(280%);
+  }
+}
+
+.employee-review-heading:focus {
+  outline: none;
+}
+
+.employee-review-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0.85rem 0 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.employee-review-tabs__tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0.65rem 0.9rem;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font: inherit;
+}
+
+.employee-review-tabs__tab.is-active {
+  color: var(--color-text);
+  font-weight: 600;
+  border-bottom-color: var(--color-accent, #175cd3);
+}
+
+.employee-original-preview {
+  min-height: 22rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #111827;
+}
+
+.employee-original-preview img,
+.employee-original-preview__pdf {
+  display: block;
+  width: 100%;
+  min-height: 22rem;
+  border: 0;
+  background: #fff;
+}
+
+.employee-original-preview img {
+  object-fit: contain;
+  max-height: 70vh;
+}
+
+.digital-form__field--failed {
+  border-color: color-mix(in srgb, #b42318 45%, transparent);
+  background: #fef3f2;
+}
+
+.employee-field-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.employee-field-status.is-passed {
+  color: #067647;
+}
+
+.employee-field-status.is-failed {
+  color: #b42318;
+}
+
+.employee-field-status.is-uncertain {
+  color: #b54708;
+}
+
+.employee-field-status.is-unchecked {
+  color: #667085;
+}
+
+.employee-validation-results {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.employee-validation-summary {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.employee-validation-summary__overall {
+  margin: 0.25rem 0;
+  font-weight: 700;
+}
+
+.employee-validation-summary__counts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.55rem;
+}
+
+.employee-validation-summary__counts li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  font-size: 0.86rem;
+}
+
+.employee-validation-summary__counts li strong {
+  margin-inline-start: auto;
+}
+
+.employee-validation-summary__counts .is-passed {
+  background: #ecfdf3;
+  border-color: #abefc6;
+}
+
+.employee-validation-summary__counts .is-failed {
+  background: #fef3f2;
+  border-color: #fecdca;
+}
+
+.employee-validation-summary__counts .is-uncertain {
+  background: #fffaeb;
+  border-color: #fedf89;
+}
+
+.employee-validation-summary__counts .is-unchecked {
+  background: #f9fafb;
+  border-color: #d0d5dd;
+}
+
+.employee-validation-summary__legend {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.employee-validation-rules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.employee-validation-rule {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+
+.employee-validation-rule__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem 0.85rem;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: start;
+  font: inherit;
+}
+
+.employee-validation-rule__status {
+  margin-inline-start: auto;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.employee-validation-rule__body {
+  padding: 0 0.85rem 0.85rem;
+  display: grid;
+  gap: 0.35rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.employee-validation-rule.is-passed .employee-validation-rule__status,
+.employee-validation-rule.is-passed .employee-validation-rule__icon {
+  color: #067647;
+}
+
+.employee-validation-rule.is-failed .employee-validation-rule__status,
+.employee-validation-rule.is-failed .employee-validation-rule__icon {
+  color: #b42318;
+}
+
+.employee-validation-rule.is-uncertain .employee-validation-rule__status,
+.employee-validation-rule.is-uncertain .employee-validation-rule__icon {
+  color: #b54708;
+}
+
+.employee-payslip-wizard__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.employee-payslip-wizard__ack {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  margin-top: 1rem;
+}
+
+.employee-payslip-wizard__unsaved,
+.employee-payslip-wizard__hint {
+  margin: 0.65rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 720px) {
+  .employee-timeline {
+    grid-template-columns: 1fr;
+  }
+}
+
 .employee-payslip-wizard__period-row {
   display: flex;
   flex-wrap: wrap;

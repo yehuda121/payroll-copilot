@@ -9,6 +9,7 @@ export type RequestOptions = RequestInit & {
   auth?: boolean;
   /** Attach portal/employee JWT when true. */
   portalAuth?: boolean;
+  signal?: AbortSignal;
 };
 
 export class ApiClientError extends Error {
@@ -30,6 +31,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
     ...init,
+    signal: init.signal,
     headers: rawBody
       ? {
           'Accept-Language': locale,

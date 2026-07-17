@@ -29,16 +29,9 @@ class BatchPayslipProcessor:
         self._progress = get_batch_progress_store()
 
     def process(self, batch_job_id: str, document_id: str) -> dict:
-        from payroll_copilot.infrastructure.storage.s3_storage import S3ObjectStorage
+        from payroll_copilot.infrastructure.storage.factory import create_object_storage
 
-        storage = S3ObjectStorage(
-            endpoint=self._settings.s3_endpoint,
-            access_key=self._settings.s3_access_key,
-            secret_key=self._settings.s3_secret_key,
-            bucket=self._settings.s3_bucket,
-            region=self._settings.s3_region,
-            use_ssl=self._settings.s3_use_ssl,
-        )
+        storage = create_object_storage(self._settings)
 
         try:
             self._progress.mark_stage(

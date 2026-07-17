@@ -1,11 +1,11 @@
 import { useTranslation } from 'react-i18next';
-import { GUEST_DOCUMENT_SLOTS } from '../../../lib/guest/document-slots';
-import { isImageFile, buildExtractionReviewFields } from '../../../lib/guest/extraction-review';
+import { GUEST_ACTIVE_DOCUMENT_SLOTS } from '../../../lib/guest/document-slots';
+import { isImageFile } from '../../../lib/guest/extraction-review';
 import { useGuestValidationFlow } from '../../../hooks/useGuestValidationFlow';
 import { DragDropZone } from '../../../components/ui/DragDropZone';
-import { ExtractionReviewTable } from '../../../components/ui/ExtractionReviewTable';
 import { UploadPanel } from '../../../components/ui/UploadPanel';
 import { ValidationReportView } from '../report/ValidationReportView';
+import { ChatDocumentReviewCard } from '../landing/ChatDocumentReviewCard';
 import type { DocumentLanguage } from '../../../types/api';
 import '../guest.css';
 
@@ -21,13 +21,14 @@ export function ValidationWizard({ onAskFollowUp }: ValidationWizardProps) {
     flowError,
     report,
     extraction,
-    fieldDrafts,
+    entries,
     documentLanguage,
     setDocumentLanguage,
     selectFile,
     removeFile,
-    updateFieldDraft,
-    clearFieldDraft,
+    updateEntry,
+    deleteEntry,
+    addEntry,
     startExtraction,
     continueToValidate,
     reset,
@@ -41,14 +42,6 @@ export function ValidationWizard({ onAskFollowUp }: ValidationWizardProps) {
   const preparingLabel = isImageFile(payslipFile)
     ? t('validate.preparingImage')
     : t('validate.preparingPdf');
-
-  const reviewFields = buildExtractionReviewFields(extraction?.fields, t);
-  const reviewNotice =
-    extraction?.parser_status === 'completed'
-      ? t('validate.reviewManualCheck')
-      : extraction
-        ? t('validate.reviewPartialNotice')
-        : null;
 
   const stepActive = (candidate: typeof step) => {
     const order = ['upload', 'prepare', 'review', 'validating', 'report'] as const;
@@ -124,7 +117,7 @@ export function ValidationWizard({ onAskFollowUp }: ValidationWizardProps) {
           <div className="validation-wizard__upload-supporting">
             <h3>{t('validate.supportingTitle')}</h3>
             <div className="guest-workspace">
-              {GUEST_DOCUMENT_SLOTS.filter((slot) => slot.id !== 'payslip').map((slot) => (
+              {GUEST_ACTIVE_DOCUMENT_SLOTS.filter((slot) => slot.id !== 'payslip').map((slot) => (
                 <div key={slot.id} className="document-slot">
                   <div className="document-slot__header">
                     <strong>
@@ -187,26 +180,18 @@ export function ValidationWizard({ onAskFollowUp }: ValidationWizardProps) {
 
       {step === 'review' && extraction && (
         <div className="validation-wizard__review">
-          <p className="validation-wizard__doc-meta">
-            {t('validate.uploadedDocument')}: {slots.payslip?.file.name}
-          </p>
-          <ExtractionReviewTable
-            fields={reviewFields}
-            drafts={fieldDrafts}
-            editable
-            reviewNotice={reviewNotice}
-            onChangeField={updateFieldDraft}
-            onClearField={clearFieldDraft}
-          />
-          <button
-            type="button"
-            className="btn btn--primary btn--large"
-            onClick={() => {
+          <ChatDocumentReviewCard
+            fileName={slots.payslip?.file.name || t('slots.payslip')}
+            entries={entries}
+            confirmed={false}
+            busy={false}
+            onChangeEntry={updateEntry}
+            onDeleteEntry={deleteEntry}
+            onAddEntry={addEntry}
+            onConfirm={() => {
               void continueToValidate();
             }}
-          >
-            {t('validate.reviewContinue')}
-          </button>
+          />
         </div>
       )}
 

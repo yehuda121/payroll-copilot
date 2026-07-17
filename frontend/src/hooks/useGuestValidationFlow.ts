@@ -1,14 +1,28 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { GUEST_DOCUMENT_SLOTS, type GuestDocumentSlotId } from '../lib/guest/document-slots';
+import type { GuestDocumentSlotId } from '../lib/guest/document-slots';
+import {
+  GuestExtractionSubmission,
+  mapExtractionFailureMessage,
+} from '../lib/guest/guestExtractionAbort';
+import { clearGuestSession } from '../lib/guest/guest-session';
 import { validateUploadFile } from '../lib/guest/upload-guardrails';
+import {
+  createBlankEntry,
+  entriesFromExtractionResponse,
+  hasUsableDynamicEntries,
+  parseEntryValue,
+} from '../lib/guest/extraction-review';
 import { adaptValidationReport } from '../lib/guest/validation-report-adapter';
 import { useAppLocale } from './useAppLocale';
 import { authService } from '../services/auth';
-import { documentsService } from '../services/documents';
 import { extractionService } from '../services/extraction';
 import { validationService } from '../services/validation';
-import type { DocumentLanguage, ExtractedPayslipField, GuestPayslipExtractionResponse } from '../types/api';
+import type {
+  DocumentLanguage,
+  DynamicDocumentEntry,
+  GuestPayslipExtractionResponse,
+} from '../types/api';
 import type { GuestValidationReport } from '../types/validation-report';
 
 export type UploadSlotState = {
@@ -19,42 +33,19 @@ export type UploadSlotState = {
 
 export type ValidationFlowStep = 'upload' | 'prepare' | 'review' | 'validating' | 'report';
 
+export type ExtractionProcessingStage =
+  | 'reading_pdf'
+  | 'running_ocr'
+  | 'structuring_fields'
+  | 'preparing_review'
+  | null;
+
+/** @deprecated Kept for ValidationWizard compatibility. */
 export type FieldDraft = {
   value: string;
   clear: boolean;
   dirty: boolean;
 };
-
-function serializeFieldValue(value: unknown): string {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'object') {
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return '';
-    }
-  }
-  return String(value);
-}
-
-function parseDraftValue(raw: string): unknown {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
-    return Number(trimmed);
-  }
-  if (
-    (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-    (trimmed.startsWith('[') && trimmed.endsWith(']'))
-  ) {
-    try {
-      return JSON.parse(trimmed);
-    } catch {
-      return trimmed;
-    }
-  }
-  return trimmed;
-}
 
 export function useGuestValidationFlow() {
   const { t } = useTranslation();
@@ -64,13 +55,19 @@ export function useGuestValidationFlow() {
   const [flowError, setFlowError] = useState<string | null>(null);
   const [report, setReport] = useState<GuestValidationReport | null>(null);
   const [extraction, setExtraction] = useState<GuestPayslipExtractionResponse | null>(null);
-  const [fieldDrafts, setFieldDrafts] = useState<Record<string, FieldDraft>>({});
+  const [entries, setEntries] = useState<DynamicDocumentEntry[]>([]);
   const [documentLanguage, setDocumentLanguage] = useState<DocumentLanguage>('auto');
+  const [processingStage, setProcessingStage] = useState<ExtractionProcessingStage>(null);
+  const submissionRef = useRef(new GuestExtractionSubmission());
+  const slotsRef = useRef(slots);
+  slotsRef.current = slots;
 
   const selectedNames = useMemo(
     () => Object.values(slots).map((slot) => slot?.file.name).filter(Boolean) as string[],
     [slots],
   );
+
+  const isBusy = step === 'prepare' || step === 'validating';
 
   const selectFile = useCallback(
     async (slotId: GuestDocumentSlotId, file: File) => {
@@ -80,10 +77,11 @@ export function useGuestValidationFlow() {
           ...prev,
           [slotId]: { file, error: result.message },
         }));
-        return;
+        return false;
       }
       setSlots((prev) => ({ ...prev, [slotId]: { file } }));
       setFlowError(null);
+      return true;
     },
     [selectedNames, t],
   );
@@ -96,63 +94,71 @@ export function useGuestValidationFlow() {
     });
   }, []);
 
-  const initDrafts = useCallback((fields: ExtractedPayslipField[]) => {
-    const next: Record<string, FieldDraft> = {};
-    for (const field of fields) {
-      next[field.key] = {
-        value: serializeFieldValue(field.value),
-        clear: false,
-        dirty: false,
-      };
-    }
-    setFieldDrafts(next);
+  const updateEntry = useCallback(
+    (id: string, patch: Partial<Pick<DynamicDocumentEntry, 'key' | 'value'>>) => {
+      setEntries((prev) =>
+        prev.map((entry) => {
+          if (entry.id !== id) return entry;
+          const next: DynamicDocumentEntry = { ...entry, source: 'user' };
+          if (patch.key !== undefined) next.key = patch.key;
+          if (patch.value !== undefined) {
+            next.value =
+              typeof patch.value === 'string' ? parseEntryValue(patch.value) : patch.value;
+          }
+          return next;
+        }),
+      );
+    },
+    [],
+  );
+
+  const deleteEntry = useCallback((id: string) => {
+    setEntries((prev) => prev.filter((entry) => entry.id !== id));
   }, []);
 
-  const updateFieldDraft = useCallback((key: string, value: string) => {
-    setFieldDrafts((prev) => ({
-      ...prev,
-      [key]: {
-        value,
-        clear: value.trim() === '',
-        dirty: true,
-      },
-    }));
+  const addEntry = useCallback(() => {
+    setEntries((prev) => [...prev, createBlankEntry()]);
   }, []);
 
-  const clearFieldDraft = useCallback((key: string) => {
-    setFieldDrafts((prev) => ({
-      ...prev,
-      [key]: {
-        value: '',
-        clear: true,
-        dirty: true,
-      },
-    }));
-  }, []);
-
-  /** Extract → Review (no validation yet). */
-  const startExtraction = useCallback(async () => {
-    const payslip = slots.payslip?.file;
+  const startExtraction = useCallback(async (payslipOverride?: File): Promise<string | null> => {
+    const payslip = payslipOverride ?? slotsRef.current.payslip?.file;
     if (!payslip) {
       setFlowError(t('validate.payslipRequired'));
-      return;
+      return null;
     }
+
+    const submission = submissionRef.current;
+    const signal = submission.begin();
+    if (!signal) return null;
 
     setFlowError(null);
     setExtraction(null);
     setReport(null);
-    setFieldDrafts({});
+    setEntries([]);
     setStep('prepare');
+    setProcessingStage('reading_pdf');
+    setSlots((prev) => ({
+      ...prev,
+      payslip: { file: payslip, error: prev.payslip?.error },
+    }));
 
     try {
       await authService.createGuestSession();
+      setProcessingStage('running_ocr');
 
       const extractionResponse = await extractionService.extractGuestPayslip(
         payslip,
         documentLanguage,
+        signal,
       );
+      if (signal.aborted) {
+        throw new DOMException('Extraction cancelled.', 'AbortError');
+      }
+      setProcessingStage('structuring_fields');
       setExtraction(extractionResponse);
-      initDrafts(extractionResponse.fields);
+      // Document-origin entries only — never synthesize empty canonical schema rows.
+      const nextEntries = entriesFromExtractionResponse(extractionResponse);
+      setEntries(nextEntries);
       setSlots((prev) => ({
         ...prev,
         payslip: {
@@ -165,45 +171,101 @@ export function useGuestValidationFlow() {
       if (extractionResponse.ocr_status === 'failed') {
         setFlowError(extractionResponse.error_message || t('validate.extractionOcrFailed'));
         setStep('upload');
-        return;
+        setProcessingStage(null);
+        return null;
       }
 
-      if (extractionResponse.parser_status === 'failed') {
-        setFlowError(extractionResponse.error_message || t('validate.extractionParserFailed'));
-        if (extractionResponse.fields.length === 0) {
-          setStep('upload');
-          return;
-        }
+      if (extractionResponse.parser_status === 'failed' || !hasUsableDynamicEntries(nextEntries)) {
+        setFlowError(
+          extractionResponse.error_message ||
+            t('landingChat.extractionEmpty', {
+              defaultValue: 'We could not extract usable information from this document.',
+            }),
+        );
+        setStep('upload');
+        setProcessingStage(null);
+        return null;
       }
 
-      for (const slot of GUEST_DOCUMENT_SLOTS.filter((item) => item.id !== 'payslip')) {
-        const selected = slots[slot.id];
-        if (!selected?.file || selected.error) {
+      setProcessingStage('preparing_review');
+      setStep('review');
+      setProcessingStage(null);
+      return extractionResponse.document_id;
+    } catch (err) {
+      setFlowError(
+        mapExtractionFailureMessage(err, {
+          intentionallyCancelled: submission.wasIntentionallyCancelled,
+          cancelledMessage: t('landingChat.extractionCancelled', {
+            defaultValue: 'Extraction cancelled.',
+          }),
+          fallbackMessage: t('validate.extractionFailed'),
+        }),
+      );
+      setStep('upload');
+      setProcessingStage(null);
+      return null;
+    } finally {
+      submission.end();
+    }
+  }, [documentLanguage, t]);
+
+  const storeSupportingFiles = useCallback(
+    async (
+      files: Array<{ slotId: GuestDocumentSlotId; file: File }>,
+      payslipDocumentId?: string,
+    ) => {
+      for (const item of files) {
+        if (item.slotId !== 'national_id' && item.slotId !== 'contract') {
+          setSlots((prev) => ({
+            ...prev,
+            [item.slotId]: { file: item.file, error: prev[item.slotId]?.error },
+          }));
           continue;
         }
-        const response = await documentsService.upload(
-          selected.file,
-          slot.backendType,
-          documentLanguage,
+        const uploaded = await extractionService.uploadGuestSupporting(
+          item.file,
+          item.slotId,
+          payslipDocumentId,
         );
         setSlots((prev) => ({
           ...prev,
-          [slot.id]: { ...selected, documentId: response.document_id },
+          [item.slotId]: {
+            file: item.file,
+            documentId: uploaded.document_id,
+            error: prev[item.slotId]?.error,
+          },
         }));
       }
+    },
+    [],
+  );
 
-      setStep('review');
-    } catch (err) {
-      setFlowError(err instanceof Error ? err.message : t('validate.extractionFailed'));
-      setStep('upload');
-    }
-  }, [slots, documentLanguage, initDrafts, t]);
+  const cancelExtraction = useCallback(() => {
+    submissionRef.current.cancel();
+    setProcessingStage(null);
+    setStep('upload');
+    setFlowError(t('landingChat.extractionCancelled', { defaultValue: 'Extraction cancelled.' }));
+  }, [t]);
 
-  /** Persist edits (if any) → Validate → Results. */
+  /**
+   * Confirm reviewed document (edits optional) → canonical mapping → validation.
+   * Does not require a prior /corrections call — confirm accepts the entries snapshot.
+   */
   const continueToValidate = useCallback(async () => {
+    if (submissionRef.current.isBusy || step === 'validating') return;
     const documentId = slots.payslip?.documentId || extraction?.document_id;
     if (!documentId) {
       setFlowError(t('validate.extractionFailed'));
+      return;
+    }
+
+    if (!hasUsableDynamicEntries(entries)) {
+      setFlowError(
+        t('landingChat.confirmBlockedEmpty', {
+          defaultValue: 'Add or correct at least one field before confirming.',
+        }),
+      );
+      setStep('review');
       return;
     }
 
@@ -211,24 +273,12 @@ export function useGuestValidationFlow() {
     setStep('validating');
 
     try {
-      const corrections = Object.entries(fieldDrafts)
-        .filter(([, draft]) => draft.dirty)
-        .map(([key, draft]) => ({
-          key,
-          value: draft.clear ? null : parseDraftValue(draft.value),
-          clear: draft.clear || draft.value.trim() === '',
-        }));
+      // Corrections are optional. Confirm alone freezes the reviewed entries for mapping.
+      await extractionService.confirmGuestExtraction(documentId, entries);
 
-      let latestExtraction = extraction;
-      if (corrections.length > 0) {
-        latestExtraction = await extractionService.correctGuestExtraction(documentId, corrections);
-        setExtraction(latestExtraction);
-        initDrafts(latestExtraction.fields);
-      }
-
-      const supportingIds = GUEST_DOCUMENT_SLOTS.filter(
-        (slot) => slot.id !== 'payslip' && slots[slot.id]?.documentId,
-      ).map((slot) => slots[slot.id]!.documentId as string);
+      const supportingIds = Object.entries(slots)
+        .filter(([slotId, slot]) => slotId !== 'payslip' && Boolean(slot?.documentId))
+        .map(([, slot]) => slot!.documentId!) as string[];
 
       const validation = await validationService.runValidation({
         document_id: documentId,
@@ -242,17 +292,38 @@ export function useGuestValidationFlow() {
       setFlowError(err instanceof Error ? err.message : t('validate.validationFailed'));
       setStep('review');
     }
-  }, [slots, extraction, fieldDrafts, locale, initDrafts, t]);
+  }, [slots, extraction, entries, locale, t, step]);
 
   const reset = useCallback(() => {
+    submissionRef.current.cancel();
+    clearGuestSession();
     setSlots({});
     setReport(null);
     setExtraction(null);
-    setFieldDrafts({});
+    setEntries([]);
     setFlowError(null);
     setStep('upload');
+    setProcessingStage(null);
     setDocumentLanguage('auto');
   }, []);
+
+  useEffect(() => {
+    const submission = submissionRef.current;
+    const onBeforeUnload = () => {
+      submission.cancel();
+      clearGuestSession();
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      submission.cancel();
+    };
+  }, []);
+
+  // Compatibility stubs for ValidationWizard (schema-era API).
+  const fieldDrafts: Record<string, FieldDraft> = {};
+  const updateFieldDraft = useCallback((_key: string, _value: string) => {}, []);
+  const clearFieldDraft = useCallback((_key: string) => {}, []);
 
   return {
     step,
@@ -260,15 +331,23 @@ export function useGuestValidationFlow() {
     flowError,
     report,
     extraction,
+    entries,
     fieldDrafts,
     documentLanguage,
     setDocumentLanguage,
     selectFile,
     removeFile,
+    updateEntry,
+    deleteEntry,
+    addEntry,
     updateFieldDraft,
     clearFieldDraft,
     startExtraction,
+    storeSupportingFiles,
+    cancelExtraction,
     continueToValidate,
     reset,
+    processingStage,
+    isBusy,
   };
 }

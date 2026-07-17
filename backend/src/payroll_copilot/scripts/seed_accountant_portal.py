@@ -20,15 +20,12 @@ from payroll_copilot.application.use_cases.seed_accountant_portal import (
     SeedProductionBlockedError,
 )
 from payroll_copilot.infrastructure.config.settings import get_settings
-from payroll_copilot.infrastructure.persistence.database import async_session_factory
-from payroll_copilot.infrastructure.persistence.repositories.audit_log_repository import (
-    SqlAlchemyAuditLogRepository,
-)
-from payroll_copilot.infrastructure.persistence.repositories.document_repository import (
-    SqlAlchemyDocumentRepository,
-)
-from payroll_copilot.infrastructure.persistence.repositories.employee_repository import (
-    SqlAlchemyEmployeeRepository,
+from payroll_copilot.infrastructure.persistence.dynamodb.factory import (
+    get_audit_log_repository,
+    get_document_extraction_repository,
+    get_document_repository,
+    get_employee_repository,
+    get_workspace_bootstrap,
 )
 
 
@@ -41,54 +38,36 @@ def _repo_root() -> Path:
 
 async def _run(*, cleanup: bool, dataset: Path | None) -> int:
     settings = get_settings()
-    async with async_session_factory() as session:
-        use_case = SeedAccountantPortalUseCase(
-            session=session,
-            employees=SqlAlchemyEmployeeRepository(session),
-            documents=SqlAlchemyDocumentRepository(session),
-            audit_logs=SqlAlchemyAuditLogRepository(session),
-            encryption_key=settings.encryption_key,
-            app_env=settings.app_env,
-            repo_root=_repo_root(),
-        )
-        try:
-            if cleanup:
-                result = await use_case.cleanup()
-                await session.commit()
-                print(json.dumps(dataclasses.asdict(result), ensure_ascii=False, indent=2))
-                return 0
-            result = await use_case.execute(dataset)
-            await session.commit()
-            print(json.dumps(dataclasses.asdict(result), ensure_ascii=False, indent=2))
-            return 0
-        except SeedProductionBlockedError as exc:
-            print(f"ERROR: {exc}", file=sys.stderr)
-            await session.rollback()
-            return 2
-        except SeedDatasetError as exc:
-            print(f"ERROR: {exc}", file=sys.stderr)
-            await session.rollback()
-            return 1
-        except Exception:
-            await session.rollback()
-            raise
+    use_case = SeedAccountantPortalUseCase(
+        employees=get_employee_repository(),
+        documents=get_document_repository(),
+        audit_logs=get_audit_log_repository(),
+        encryption_key=settings.encryption_key,
+        app_env=settings.app_env,
+        workspace=get_workspace_bootstrap(),
+        extractions=get_document_extraction_repository(),
+        repo_root=_repo_root(),
+    )
+    try:
+        if cleanup:
+            result = await use_case.cleanup()
+        else:
+            result = await use_case.seed(dataset_path=dataset)
+    except SeedProductionBlockedError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    except SeedDatasetError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    print(json.dumps(dataclasses.asdict(result), indent=2, default=str))
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="Idempotent accountant portal development seed / cleanup."
-    )
-    parser.add_argument(
-        "--cleanup",
-        action="store_true",
-        help=f"Remove only records belonging to the accountant_portal_seed_v1 dataset.",
-    )
-    parser.add_argument(
-        "--dataset",
-        type=Path,
-        default=None,
-        help="Optional path to accountant_portal_seed.json",
-    )
+    parser = argparse.ArgumentParser(description="Seed accountant portal demo dataset")
+    parser.add_argument("--cleanup", action="store_true", help="Remove seeded dataset rows")
+    parser.add_argument("--dataset", type=Path, default=None, help="Optional dataset JSON path")
     args = parser.parse_args(argv)
     return asyncio.run(_run(cleanup=args.cleanup, dataset=args.dataset))
 

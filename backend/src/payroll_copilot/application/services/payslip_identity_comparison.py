@@ -113,6 +113,44 @@ def normalize_person_name(value: Any) -> str | None:
     return text or None
 
 
+def detect_name_script(value: Any) -> str | None:
+    """Return a coarse script family for name comparison: hebrew, arabic, latin, or mixed."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    hebrew = arabic = latin = 0
+    for ch in text:
+        code = ord(ch)
+        if 0x0590 <= code <= 0x05FF:
+            hebrew += 1
+        elif 0x0600 <= code <= 0x06FF or 0x0750 <= code <= 0x077F:
+            arabic += 1
+        elif ch.isalpha() and (code < 0x0300 or 0x1E00 <= code <= 0x1EFF):
+            latin += 1
+    scores = {"hebrew": hebrew, "arabic": arabic, "latin": latin}
+    dominant = max(scores, key=scores.get)
+    if scores[dominant] == 0:
+        return None
+    # Mixed significant scripts → cannot compare reliably.
+    significant = sum(1 for count in scores.values() if count > 0)
+    if significant > 1:
+        return "mixed"
+    return dominant
+
+
+def names_share_comparable_language(left: Any, right: Any) -> bool:
+    """True when both names use the same primary script family."""
+    left_script = detect_name_script(left)
+    right_script = detect_name_script(right)
+    if left_script is None or right_script is None:
+        return True
+    if left_script == "mixed" or right_script == "mixed":
+        return False
+    return left_script == right_script
+
+
 def parse_pay_period(value: Any) -> tuple[int | None, int | None]:
     """Best-effort parse of pay_period into (year, month)."""
     if value is None:
@@ -194,6 +232,7 @@ class PayslipIdentityComparisonService:
         selected_year: int,
         selected_month: int,
         extraction_fields: list[Any] | dict[str, Any],
+        period_resolution: str | None = None,
     ) -> PayslipComparisonResult:
         identity_fields: list[FieldComparison] = []
 
@@ -311,7 +350,7 @@ class PayslipIdentityComparisonService:
                 )
             )
 
-        # --- Employee name (warning only) ---
+        # --- Employee name (same-language compare; cross-language cannot validate) ---
         name_payload = _field_payload(extraction_fields, "employee_name")
         name_value, name_state, _ = _usable_extraction(name_payload)
         extracted_name = normalize_person_name(name_value)
@@ -336,6 +375,18 @@ class PayslipIdentityComparisonService:
                     expected_display=trusted_full_name,
                     severity="warning",
                     explanation_code="employee_name_uncertain",
+                )
+            )
+        elif not names_share_comparable_language(name_value, trusted_full_name):
+            identity_fields.append(
+                FieldComparison(
+                    key="employee_name",
+                    status="cannot_validate",
+                    extracted_display=str(name_value),
+                    expected_display=trusted_full_name,
+                    severity="info",
+                    blocks_confirmation=False,
+                    explanation_code="employee_name_language_mismatch",
                 )
             )
         elif extracted_name == trusted_name:
@@ -371,7 +422,7 @@ class PayslipIdentityComparisonService:
         elif not has_usable_compare:
             overall = "incomplete"
         elif all(
-            f.status in {"match", "missing", "uncertain", "extracted"}
+            f.status in {"match", "missing", "uncertain", "extracted", "cannot_validate"}
             or (f.key != "national_id" and f.status == "mismatch")
             for f in identity_fields
         ) and any(f.status == "match" for f in identity_fields):
@@ -429,14 +480,17 @@ class PayslipIdentityComparisonService:
                 explanation_code="period_match",
             )
         else:
+            keep_selected = (period_resolution or "").strip().lower() == "keep_selected"
             period = PeriodCheckResult(
                 status="mismatch",
-                blocks_confirmation=True,
+                blocks_confirmation=not keep_selected,
                 selected_year=selected_year,
                 selected_month=selected_month,
                 extracted_year=extracted_year,
                 extracted_month=extracted_month,
-                explanation_code="period_mismatch",
+                explanation_code=(
+                    "period_kept_selected" if keep_selected else "period_mismatch"
+                ),
             )
 
         return PayslipComparisonResult(identity_check=identity, period_check=period)

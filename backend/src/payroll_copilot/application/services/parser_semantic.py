@@ -30,12 +30,29 @@ _FIELD_ALIASES = {
     "name": "employee_name",
     "employee": "employee_name",
     "full_name": "employee_name",
+    "worker_name": "employee_name",
     "period": "pay_period",
     "salary_period": "pay_period",
+    "pay_month": "pay_period",
+    "payroll_month": "pay_period",
     "base": "base_salary",
     "gross": "gross_salary",
+    "total_payment": "gross_salary",
+    "gross_pay": "gross_salary",
     "net": "net_salary",
+    "net_pay": "net_salary",
+    "worker_number": "employee_number",
+    "worker_id": "employee_id",
+    "employee_no": "employee_number",
+    "id_number": "employee_id",
+    "bank_transfer": "payment_method",
+    "payment": "payment_method",
 }
+
+# Guest landing simple field names that are not canonical top-level keys.
+_GUEST_ADDITIONAL_KEYS = frozenset(
+    {"national_id", "payroll_month", "total_deductions", "total_payments", "bank_transfer"}
+)
 _SCHEMA_STRUCTURAL_KEYS = frozenset(
     {"$ref", "$defs", "definitions", "properties", "required", "title"}
 )
@@ -108,6 +125,7 @@ def normalize_payslip_parser_payload(payload: dict[str, Any]) -> tuple[dict[str,
 
     - Maps common aliases (e.g. name → employee_name) when the canonical key is absent
     - Drops known noise metadata keys
+    - Promotes guest-simple extras into additional_fields
     - Fills absent required keys with explicit MISSING stubs (structure only)
     """
     if not isinstance(payload, dict):
@@ -129,13 +147,29 @@ def normalize_payslip_parser_payload(payload: dict[str, Any]) -> tuple[dict[str,
             continue
         normalized[key] = value
 
+    additional = normalized.get("additional_fields")
+    if not isinstance(additional, dict):
+        additional = {}
+    for key in list(normalized.keys()):
+        if key in PAYSLIP_FIELD_KEYS or key in {"additional_fields", "parser_notes", "language"}:
+            continue
+        # Preserve guest extras (national_id, total_deductions, …) instead of failing.
+        if key in _GUEST_ADDITIONAL_KEYS or _SEMANTIC_KEY_RE.match(key or ""):
+            if key not in additional:
+                additional[key] = normalized.pop(key)
+                warnings.append("parser_guest_field_promoted")
+            else:
+                normalized.pop(key, None)
+                warnings.append("parser_unknown_top_level_stripped")
+            continue
+        normalized.pop(key, None)
+        warnings.append("parser_unknown_top_level_stripped")
+    normalized["additional_fields"] = additional
+
     for key in PAYSLIP_FIELD_KEYS:
         if key not in normalized:
             normalized[key] = dict(_MISSING_FIELD_STUB)
             warnings.append("parser_missing_required_fields")
-
-    if "additional_fields" not in normalized:
-        normalized["additional_fields"] = {}
 
     return normalized, list(dict.fromkeys(warnings))
 
@@ -217,6 +251,9 @@ def _is_field_object(raw: object) -> bool:
         return False
     if _is_schema_stub_field(raw):
         return False
+    # Simplified parser contract: {value, source_text, confidence}
+    if "value" in raw and "status" not in raw:
+        return True
     if "status" not in raw or "value" not in raw:
         return False
     # Disallow pure schema fragments mixed into field objects.
@@ -226,11 +263,39 @@ def _is_field_object(raw: object) -> bool:
     return True
 
 
+def expand_simplified_field(raw: dict[str, Any]) -> dict[str, Any]:
+    """Expand minimal LLM field objects into the full server field contract."""
+    if "status" in raw:
+        return raw
+    value = raw.get("value")
+    source_text = raw.get("source_text")
+    confidence = raw.get("confidence")
+    if value in (None, ""):
+        status = "MISSING"
+    elif isinstance(source_text, str) and source_text.strip():
+        status = "FOUND"
+    else:
+        status = "UNCERTAIN"
+    expanded = dict(_MISSING_FIELD_STUB)
+    expanded.update(raw)
+    expanded["status"] = status
+    expanded["parser_method"] = raw.get("parser_method") or "semantic_llm"
+    if status == "MISSING":
+        expanded["confidence"] = None
+    elif confidence is not None:
+        expanded["confidence"] = confidence
+    return expanded
+
+
 def _status_of(raw: dict[str, Any]) -> str:
     status = raw.get("status")
     if isinstance(status, str):
         return status.strip().upper()
-    return ""
+    if raw.get("value") in (None, ""):
+        return "MISSING"
+    if isinstance(raw.get("source_text"), str) and str(raw.get("source_text")).strip():
+        return "FOUND"
+    return "UNCERTAIN"
 
 
 def _all_known_fields_missing(payload: dict[str, Any]) -> bool:
@@ -252,6 +317,7 @@ def validate_payslip_parser_payload(
     ocr_text: str,
     layout_context: dict[str, Any] | None = None,
     require_evidence_ids: bool | None = None,
+    embedded_text_mode: bool = False,
 ) -> list[str]:
     """Validate model JSON before coercion.
 
@@ -302,11 +368,14 @@ def validate_payslip_parser_payload(
         )
 
     known_evidence_ids = _layout_evidence_ids(layout_context)
-    evidence_required = (
-        require_evidence_ids
-        if require_evidence_ids is not None
-        else bool(known_evidence_ids)
-    )
+    if embedded_text_mode:
+        evidence_required = False
+    else:
+        evidence_required = (
+            require_evidence_ids
+            if require_evidence_ids is not None
+            else bool(known_evidence_ids)
+        )
 
     for key in PAYSLIP_FIELD_KEYS:
         raw = payload[key]
@@ -323,9 +392,10 @@ def validate_payslip_parser_payload(
                 "Parser response field is not a valid field instance.",
             )
         assert isinstance(raw, dict)
-        value = raw.get("value")
+        field_obj = expand_simplified_field(raw)
+        value = field_obj.get("value")
         if value not in (None, "") and evidence_required:
-            evidence_ids = raw.get("evidence_ids") or []
+            evidence_ids = field_obj.get("evidence_ids") or []
             if not isinstance(evidence_ids, list) or not evidence_ids:
                 _raise(
                     "missing_evidence_ids",
@@ -382,7 +452,7 @@ def validate_payslip_parser_payload(
                 )
 
     if ocr_context_has_usable_evidence(ocr_text=ocr_text, layout_context=layout_context):
-        if _all_known_fields_missing(payload):
+        if _all_known_fields_missing(payload) and not _has_any_additional_value(payload):
             _raise(
                 "all_fields_missing",
                 "parser_all_fields_missing_with_ocr_evidence",
@@ -390,3 +460,16 @@ def validate_payslip_parser_payload(
             )
 
     return []
+
+
+def _has_any_additional_value(payload: dict[str, Any]) -> bool:
+    additional = payload.get("additional_fields")
+    if not isinstance(additional, dict):
+        return False
+    for raw in additional.values():
+        if not isinstance(raw, dict):
+            continue
+        expanded = expand_simplified_field(raw)
+        if expanded.get("value") not in (None, ""):
+            return True
+    return False

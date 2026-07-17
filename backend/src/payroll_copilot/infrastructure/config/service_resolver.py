@@ -120,9 +120,20 @@ def get_resolved_redis_url(settings: Settings) -> str:
 
 
 def get_resolved_s3_endpoint(settings: Settings) -> str:
+    """Return a custom S3 endpoint, or empty string for Amazon S3.
+
+    Empty ``s3_endpoint`` means use the default AWS S3 endpoint for ``s3_region``
+    (no ``endpoint_url`` passed to boto3). Non-empty values keep the MinIO /
+    local-vs-Docker fallback behavior.
+    """
+    configured = (settings.s3_endpoint or "").strip()
+    if not configured:
+        logger.info("S3 endpoint: using Amazon S3 (region=%s)", settings.s3_region)
+        return ""
+
     return resolve_service_url(
-        service_name="S3/MinIO",
-        configured_url=settings.s3_endpoint,
+        service_name="S3",
+        configured_url=configured,
         local_url=settings.s3_local_endpoint,
         auto_fallback=settings.service_auto_fallback,
         probe_timeout_seconds=settings.service_probe_timeout_seconds,

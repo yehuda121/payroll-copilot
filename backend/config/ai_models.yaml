@@ -1,44 +1,53 @@
-# Default model assignments per agent — swap without code changes
+# Default model assignments per agent — swap without code changes.
+# Production default: Amazon Bedrock (MODEL_PROVIDER=bedrock in settings).
+# Local development: set MODEL_PROVIDER=ollama and use the ollama blocks below
+# or override via environment / Settings.
 providers:
-  default: ollama
+  default: bedrock
 
 agents:
   payslip_splitter:
-    provider: ollama
-    model: llama3.1:8b
+    provider: bedrock
+    model: anthropic.claude-3-5-sonnet-20241022-v2:0
     temperature: 0.0
 
   payslip_extractor:
-    provider: ollama
-    model: llama3.1:8b
+    provider: bedrock
+    model: anthropic.claude-3-5-sonnet-20241022-v2:0
     temperature: 0.0
 
   contract_analyzer:
-    provider: ollama
-    model: llama3.1:8b
+    provider: bedrock
+    model: anthropic.claude-3-5-sonnet-20241022-v2:0
     temperature: 0.1
 
   compliance_explainer:
-    provider: ollama
-    model: llama3.1:8b
+    provider: bedrock
+    model: anthropic.claude-3-5-sonnet-20241022-v2:0
     temperature: 0.3
 
   vacation_sick_leave:
-    provider: ollama
-    model: llama3.1:8b
+    provider: bedrock
+    model: anthropic.claude-3-5-sonnet-20241022-v2:0
     temperature: 0.0
 
   email_parser:
-    provider: ollama
-    model: llama3.1:8b
+    provider: bedrock
+    model: anthropic.claude-3-5-sonnet-20241022-v2:0
     temperature: 0.0
 
 embeddings:
-  provider: ollama
-  model: nomic-embed-text
-  dimensions: 768
+  provider: bedrock
+  model: amazon.titan-embed-text-v2:0
+  dimensions: 1024
 
-# Future cloud providers — enable per organization
+# Local-only Ollama profiles (used when MODEL_PROVIDER=ollama)
+local_ollama:
+  default_model: mistral-nemo:12b
+  embedding_model: nomic-embed-text
+  embedding_dimensions: 768
+
+# Future / unused cloud stubs
 cloud_providers:
   openai:
     enabled: false

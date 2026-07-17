@@ -15,6 +15,8 @@ const SLOT_ACCEPT: Record<string, string[]> = {
   ],
   contract: ['application/pdf'],
   national_id: ['application/pdf', 'image/png', 'image/jpeg'],
+  bank_details: ['application/pdf', 'image/png', 'image/jpeg'],
+  tax_form: ['application/pdf', 'image/png', 'image/jpeg'],
 };
 
 const INJECTION_PATTERNS = [

@@ -32,13 +32,11 @@ import { SystemDashboardPage } from '../pages/admin/SystemDashboard';
 import { UsersAndRolesPage } from '../pages/admin/UsersAndRoles';
 import { AttendancePage } from '../pages/employee/Attendance';
 import { DocumentCenterPage } from '../pages/employee/DocumentCenter';
-import { EmployeeDashboardPage } from '../pages/employee/EmployeeDashboard';
 import { EmploymentContractPage } from '../pages/employee/EmploymentContract';
 import { MyPayslipsPage } from '../pages/employee/MyPayslips';
 import { NationalIdReviewPage } from '../pages/employee/NationalIdReview';
+import { PayslipMonthWorkspacePage } from '../pages/employee/PayslipMonthWorkspace';
 import { PayrollChatPage } from '../pages/employee/PayrollChat';
-import { UploadDocumentsPage } from '../pages/employee/UploadDocuments';
-import { ValidationHistoryPage } from '../pages/employee/ValidationHistory';
 import { LandingPage } from '../pages/public/LandingPage';
 import { LoginPage } from '../pages/public/LoginPage';
 import { SignupPage } from '../pages/public/SignupPage';
@@ -74,15 +72,16 @@ export const appRouteElements = (
 
     <Route element={<ProtectedRoute allowedRoles={['employee']} />}>
       <Route element={<EmployeeLayout />}>
-        <Route path="/employee" element={<EmployeeDashboardPage />} />
+        <Route path="/employee" element={<Navigate to="/employee/payslips" replace />} />
         <Route path="/employee/documents" element={<DocumentCenterPage />} />
         <Route path="/employee/documents/national-id" element={<NationalIdReviewPage />} />
-        <Route path="/employee/upload" element={<UploadDocumentsPage />} />
+        <Route path="/employee/upload" element={<Navigate to="/employee/payslips" replace />} />
         <Route path="/employee/payslips" element={<MyPayslipsPage />} />
+        <Route path="/employee/payslips/:year/:month" element={<PayslipMonthWorkspacePage />} />
         <Route path="/employee/attendance" element={<AttendancePage />} />
         <Route path="/employee/contract" element={<EmploymentContractPage />} />
         <Route path="/employee/chat" element={<PayrollChatPage />} />
-        <Route path="/employee/validation-history" element={<ValidationHistoryPage />} />
+        <Route path="/employee/validation-history" element={<Navigate to="/employee/payslips" replace />} />
       </Route>
     </Route>
 

@@ -75,7 +75,7 @@ def test_auto_fallback_disabled_returns_configured_without_probing() -> None:
 
 def test_s3_endpoint_local_fallback() -> None:
     resolved = resolve_service_url(
-        service_name="S3/MinIO",
+        service_name="S3",
         configured_url="http://minio:9000",
         local_url="http://localhost:9000",
         auto_fallback=True,
@@ -83,3 +83,80 @@ def test_s3_endpoint_local_fallback() -> None:
         probe=_reachable("http://localhost:9000"),
     )
     assert resolved == "http://localhost:9000"
+
+
+def test_empty_s3_endpoint_means_amazon_s3() -> None:
+    from types import SimpleNamespace
+
+    from payroll_copilot.infrastructure.config.service_resolver import get_resolved_s3_endpoint
+
+    settings = SimpleNamespace(
+        s3_endpoint="",
+        s3_local_endpoint="http://localhost:9000",
+        s3_region="eu-west-1",
+        service_auto_fallback=True,
+        service_probe_timeout_seconds=0.1,
+    )
+    assert get_resolved_s3_endpoint(settings) == ""
+
+
+def test_create_object_storage_uses_custom_endpoint_for_minio(monkeypatch) -> None:
+    from types import SimpleNamespace
+
+    from payroll_copilot.infrastructure.storage import factory as storage_factory
+
+    captured: dict = {}
+
+    class _FakeStorage:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+    monkeypatch.setattr(storage_factory, "S3ObjectStorage", _FakeStorage)
+    monkeypatch.setattr(
+        storage_factory,
+        "get_resolved_s3_endpoint",
+        lambda settings: "http://localhost:9000",
+    )
+
+    settings = SimpleNamespace(
+        s3_bucket="payroll-copilot",
+        s3_region="us-east-1",
+        s3_access_key="minioadmin",
+        s3_secret_key="minioadmin",
+        s3_use_ssl=False,
+        s3_auto_create_bucket=True,
+    )
+    storage_factory.create_object_storage(settings)
+    assert captured["endpoint"] == "http://localhost:9000"
+    assert captured["auto_create_bucket"] is True
+    assert captured["use_ssl"] is False
+
+
+def test_create_object_storage_amazon_s3_disables_auto_create(monkeypatch) -> None:
+    from types import SimpleNamespace
+
+    from payroll_copilot.infrastructure.storage import factory as storage_factory
+
+    captured: dict = {}
+
+    class _FakeStorage:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+    monkeypatch.setattr(storage_factory, "S3ObjectStorage", _FakeStorage)
+    monkeypatch.setattr(storage_factory, "get_resolved_s3_endpoint", lambda settings: "")
+
+    settings = SimpleNamespace(
+        s3_bucket="payroll-copilot-prod",
+        s3_region="eu-central-1",
+        s3_access_key="",
+        s3_secret_key="",
+        s3_use_ssl=False,
+        s3_auto_create_bucket=True,
+    )
+    storage_factory.create_object_storage(settings)
+    assert captured["endpoint"] is None
+    assert captured["auto_create_bucket"] is False
+    assert captured["use_ssl"] is True
+    assert captured["access_key"] is None
+    assert captured["secret_key"] is None

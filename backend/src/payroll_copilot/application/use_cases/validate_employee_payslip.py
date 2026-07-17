@@ -110,6 +110,7 @@ class ValidateEmployeePayslipUseCase:
             selected_year=selected_year,
             selected_month=selected_month,
             extraction_fields=fields,
+            period_resolution=str((document.metadata or {}).get("period_resolution") or "") or None,
         )
 
         if comparison.identity_check.blocks_confirmation:

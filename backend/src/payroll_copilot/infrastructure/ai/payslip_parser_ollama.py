@@ -29,6 +29,7 @@ from payroll_copilot.application.ports.payslip_parser import (
     StructuredPayslipParse,
 )
 from payroll_copilot.application.services.parser_semantic import (
+    expand_simplified_field,
     is_invalid_additional_field_key,
     normalize_payslip_parser_payload,
     validate_payslip_parser_payload,
@@ -51,16 +52,17 @@ Never invent confidence. Hebrew/English/Arabic. No payroll validation.
 
 _MISSING_FIELD_INSTANCE: dict[str, Any] = {
     "value": None,
-    "confidence": None,
     "source_text": None,
-    "status": "MISSING",
-    "evidence_ids": [],
-    "source_bbox": None,
-    "source_page": None,
-    "parser_method": "layout_llm",
-    "warnings": [],
-    "normalized_value": None,
+    "confidence": None,
 }
+
+_SIMPLE_FIELD_INSTANCE: dict[str, Any] = {
+    "value": None,
+    "source_text": None,
+    "confidence": None,
+}
+
+_shared_http_client: httpx.AsyncClient | None = None
 
 _SEMANTIC_RETRY_INSTRUCTION = (
     "Your previous response was valid JSON but semantically invalid because it returned "
@@ -80,15 +82,54 @@ def _load_system_prompt() -> str:
     return _FALLBACK_SYSTEM_PROMPT
 
 
-def build_payslip_instance_template(*, language: str | None = None) -> dict[str, Any]:
+_GUEST_SIMPLE_FIELD_KEYS: tuple[str, ...] = (
+    "employee_name",
+    "employee_id",
+    "national_id",
+    "payroll_month",
+    "gross_salary",
+    "net_salary",
+    "total_deductions",
+    "total_payments",
+    "bank_transfer",
+)
+
+
+def build_payslip_instance_template(
+    *,
+    language: str | None = None,
+    simplified: bool = True,
+    field_keys: tuple[str, ...] | None = None,
+) -> dict[str, Any]:
     """Compact JSON instance template (no $ref / $defs / schema keywords)."""
-    template: dict[str, Any] = {
-        key: dict(_MISSING_FIELD_INSTANCE) for key in PAYSLIP_FIELD_KEYS
-    }
-    template["additional_fields"] = {}
-    template["parser_notes"] = None
+    stub = _SIMPLE_FIELD_INSTANCE if simplified else dict(_SIMPLE_FIELD_INSTANCE)
+    keys = field_keys or PAYSLIP_FIELD_KEYS
+    template: dict[str, Any] = {key: dict(stub) for key in keys}
+    if not simplified:
+        for key in keys:
+            template[key].update(
+                {
+                    "status": "MISSING",
+                    "evidence_ids": [],
+                    "source_bbox": None,
+                    "source_page": None,
+                    "parser_method": "semantic_llm",
+                    "warnings": [],
+                    "normalized_value": None,
+                }
+            )
+    if field_keys is None:
+        template["additional_fields"] = {}
+        template["parser_notes"] = None
     template["language"] = language
     return template
+
+
+def _get_shared_http_client(timeout_seconds: float) -> httpx.AsyncClient:
+    global _shared_http_client
+    if _shared_http_client is None or _shared_http_client.is_closed:
+        _shared_http_client = httpx.AsyncClient(timeout=timeout_seconds)
+    return _shared_http_client
 
 
 def _strip_json_fences(content: str) -> str:
@@ -103,26 +144,87 @@ def _strip_json_fences(content: str) -> str:
     return text
 
 
+def _strip_trailing_commas(text: str) -> str:
+    """Remove trailing commas before } or ] — common LLM JSON defect."""
+    out: list[str] = []
+    in_string = False
+    escape = False
+    for ch in text:
+        if in_string:
+            out.append(ch)
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+            out.append(ch)
+            continue
+        if ch in "}]" and out:
+            # Drop whitespace and one trailing comma before closer
+            while out and out[-1] in " \t\r\n":
+                out.pop()
+            if out and out[-1] == ",":
+                out.pop()
+        out.append(ch)
+    return "".join(out)
+
+
+def _close_truncated_json(text: str) -> str:
+    """Best-effort close of truncated JSON objects/arrays outside strings."""
+    in_string = False
+    escape = False
+    stack: list[str] = []
+    for ch in text:
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+            continue
+        if ch in "{[":
+            stack.append("}" if ch == "{" else "]")
+        elif ch in "}]" and stack and stack[-1] == ch:
+            stack.pop()
+    if in_string:
+        text += '"'
+    return text + "".join(reversed(stack))
+
+
 def _parse_json_object(content: str) -> dict[str, Any]:
     cleaned = _strip_json_fences(content)
-    try:
-        payload = json.loads(cleaned)
-    except json.JSONDecodeError as exc:
-        start = cleaned.find("{")
-        end = cleaned.rfind("}")
-        if start >= 0 and end > start:
-            try:
-                payload = json.loads(cleaned[start : end + 1])
-            except json.JSONDecodeError as nested:
-                raise PayslipParserJsonError(
-                    f"Model did not return valid JSON: {exc}"
-                ) from nested
-        else:
-            raise PayslipParserJsonError(f"Model did not return valid JSON: {exc}") from exc
+    candidates = [cleaned]
+    stripped = cleaned.strip()
+    start = stripped.find("{")
+    end = stripped.rfind("}")
+    if start >= 0 and end > start:
+        candidates.append(stripped[start : end + 1])
+    if start >= 0:
+        candidates.append(_close_truncated_json(stripped[start:]))
 
-    if not isinstance(payload, dict):
-        raise PayslipParserJsonError("Model JSON root must be an object.")
-    return payload
+    last_error: Exception | None = None
+    for candidate in candidates:
+        for variant in (candidate, _strip_trailing_commas(candidate)):
+            try:
+                payload = json.loads(variant)
+            except json.JSONDecodeError as exc:
+                last_error = exc
+                continue
+            if isinstance(payload, dict):
+                return payload
+            last_error = PayslipParserJsonError("Model JSON root must be an object.")
+
+    raise PayslipParserJsonError(
+        f"Model did not return valid JSON: {last_error}"
+    ) from last_error
 
 
 def _normalize_field_payload(raw: object) -> dict[str, Any]:
@@ -139,21 +241,14 @@ def _normalize_field_payload(raw: object) -> dict[str, Any]:
             warning_code="parser_semantic_invalid",
         )
     if not isinstance(raw, dict):
-        return {
-            "value": raw,
-            "confidence": None,
-            "source_text": None,
-            "status": FieldExtractionStatus.UNCERTAIN.value,
-            "evidence_ids": [],
-            "source_bbox": None,
-            "source_page": None,
-            "parser_method": "layout_llm",
-            "warnings": [],
-            "normalized_value": None,
-        }
-    if "status" not in raw or "value" not in raw:
+        return expand_simplified_field(
+            {"value": raw, "source_text": None, "confidence": None}
+        )
+    if "status" not in raw:
+        return expand_simplified_field(raw)
+    if "value" not in raw:
         raise PayslipParserSemanticError(
-            "Field object missing required value/status keys.",
+            "Field object missing required value key.",
             category="invalid_field_object",
             warning_code="parser_semantic_invalid",
         )
@@ -174,7 +269,7 @@ def _normalize_field_payload(raw: object) -> dict[str, Any]:
         "evidence_ids": [str(item) for item in evidence_ids if item is not None],
         "source_bbox": raw.get("source_bbox"),
         "source_page": raw.get("source_page"),
-        "parser_method": raw.get("parser_method") or "layout_llm",
+        "parser_method": raw.get("parser_method") or "semantic_llm",
         "warnings": [str(item) for item in warnings],
         "normalized_value": raw.get("normalized_value"),
     }
@@ -236,25 +331,66 @@ def coerce_structured_payslip(payload: dict[str, Any]) -> StructuredPayslipParse
     )
 
 
+def coerce_partial_structured_payslip(payload: dict[str, Any]) -> StructuredPayslipParse:
+    """Coerce valid canonical fields and ignore malformed ones."""
+    if not isinstance(payload, dict):
+        raise PayslipParserSchemaError("Payslip payload must be an object.")
+
+    fields: dict[str, Any] = {}
+    for key in PAYSLIP_FIELD_KEYS:
+        if key not in payload:
+            fields[key] = ExtractedField(status=FieldExtractionStatus.MISSING)
+            continue
+        try:
+            fields[key] = ExtractedField.model_validate(_normalize_field_payload(payload[key]))
+        except (PayslipParserSemanticError, Exception):  # noqa: BLE001
+            fields[key] = ExtractedField(status=FieldExtractionStatus.MISSING)
+
+    additional: dict[str, ExtractedField] = {}
+    additional_raw = payload.get("additional_fields") or {}
+    if isinstance(additional_raw, dict):
+        for name, value in additional_raw.items():
+            if not isinstance(name, str) or not name.strip() or name in PAYSLIP_FIELD_KEYS:
+                continue
+            if is_invalid_additional_field_key(name):
+                continue
+            try:
+                additional[name] = ExtractedField.model_validate(_normalize_field_payload(value))
+            except (PayslipParserSemanticError, Exception):  # noqa: BLE001
+                continue
+
+    return StructuredPayslipParse(
+        **fields,
+        additional_fields=additional,
+        parser_notes=payload.get("parser_notes") if isinstance(payload.get("parser_notes"), str) else None,
+        language=payload.get("language") if isinstance(payload.get("language"), str) else None,
+    )
+
+
 class OllamaPayslipParser:
-    """PayslipParser implementation using local Ollama chat API."""
+    """PayslipParser implementation via ModelProvider (Bedrock or Ollama).
+
+    Prompts and post-validation are unchanged; only the LLM transport differs.
+    """
 
     def __init__(
         self,
         *,
-        base_url: str,
+        model_provider: Any,
         model: str,
-        timeout_seconds: float = 180.0,
+        timeout_seconds: float = 45.0,
         temperature: float = 0.0,
         use_json_format: bool = True,
         layout_enabled: bool = True,
+        max_predict: int = 4096,
     ) -> None:
-        self._base_url = base_url.rstrip("/")
+        self._provider = model_provider
         self._model = model
         self._timeout_seconds = timeout_seconds
         self._temperature = temperature
         self._use_json_format = use_json_format
         self._layout_enabled = layout_enabled
+        self._max_predict = max_predict
         self._system_prompt = _load_system_prompt()
 
     async def parse(
@@ -265,17 +401,21 @@ class OllamaPayslipParser:
         pages_text: list[str] | None = None,
         layout_context: dict[str, object] | None = None,
         retry_hint: str | None = None,
+        embedded_text_mode: bool = False,
+        simple_guest_fields: bool = False,
     ) -> PayslipParseResult:
         if not ocr_text or not ocr_text.strip():
             raise PayslipParserEmptyOcrError()
 
-        layout_payload = layout_context if self._layout_enabled else None
+        layout_payload = layout_context if self._layout_enabled and not embedded_text_mode else None
         user_content = self._build_user_prompt(
             ocr_text=ocr_text,
             language=language,
             pages_text=pages_text,
             layout_context=layout_payload,
             retry_hint=retry_hint,
+            embedded_text_mode=embedded_text_mode,
+            simple_guest_fields=simple_guest_fields,
         )
         context_chars = (
             len(json.dumps(layout_payload, ensure_ascii=False)) if layout_payload else 0
@@ -301,21 +441,29 @@ class OllamaPayslipParser:
                 payload,
                 ocr_text=ocr_text,
                 layout_context=layout_payload if isinstance(layout_payload, dict) else None,
+                embedded_text_mode=embedded_text_mode,
             )
             fields = coerce_structured_payslip(payload)
         except PayslipParserJsonError:
             raise
-        except PayslipParserSemanticError as exc:
+        except PayslipParserSemanticError as tip_exc:
             logger.info(
                 "payslip_parser_semantic_reject model=%s category=%s warning=%s retry=%s",
                 self._model,
-                exc.category,
-                exc.warning_code,
+                tip_exc.category,
+                tip_exc.warning_code,
                 bool(retry_hint),
             )
-            raise
-        except Exception as exc:  # noqa: BLE001 — schema failures
-            raise PayslipParserSchemaError(f"Payslip schema validation failed: {exc}") from exc
+            raise PayslipParserSemanticError(
+                tip_exc.message,
+                category=tip_exc.category,
+                warning_code=tip_exc.warning_code,
+                partial_payload=payload,
+            ) from tip_exc
+        except Exception as tip_exc:  # noqa: BLE001 — schema failures
+            raise PayslipParserSchemaError(
+                f"Payslip schema validation failed: {tip_exc}"
+            ) from tip_exc
 
         if fields.language is None:
             fields = fields.model_copy(update={"language": language})
@@ -325,6 +473,7 @@ class OllamaPayslipParser:
             language=fields.language or language,
             fields=fields,
             raw_model_response=raw_content,
+            parsed_payload=payload,
             warnings=warnings,
             retry_used=bool(retry_hint),
         )
@@ -337,6 +486,8 @@ class OllamaPayslipParser:
         pages_text: list[str] | None,
         layout_context: dict[str, object] | None,
         retry_hint: str | None,
+        embedded_text_mode: bool = False,
+        simple_guest_fields: bool = False,
     ) -> str:
         pages_block = ""
         if pages_text:
@@ -357,71 +508,82 @@ class OllamaPayslipParser:
         layout_block = ""
         if layout_context:
             layout_block = (
-                "\nLAYOUT OCR CONTEXT (authoritative evidence; use evidence ids):\n"
+                "\nOPTIONAL LAYOUT OCR CONTEXT (page/line references when helpful):\n"
                 f"{json.dumps(layout_context, ensure_ascii=False)}\n"
             )
 
-        allowed = ", ".join(PAYSLIP_FIELD_KEYS)
-        template = build_payslip_instance_template(
-            language=language if language != "auto" else None
-        )
+        if simple_guest_fields:
+            field_keys = _GUEST_SIMPLE_FIELD_KEYS
+            allowed = ", ".join(field_keys)
+            template = build_payslip_instance_template(
+                language=language if language != "auto" else None,
+                simplified=True,
+                field_keys=field_keys,
+            )
+            mapping_hint = (
+                "Map labels by meaning: Employee name; Employee ID / Worker number; "
+                "National ID / Teudat Zeut; Payroll month / Period; Gross; Net; "
+                "Total deductions; Total payments; Bank transfer / Payment method.\n"
+            )
+        else:
+            field_keys = PAYSLIP_FIELD_KEYS
+            allowed = ", ".join(field_keys)
+            template = build_payslip_instance_template(
+                language=language if language != "auto" else None,
+                simplified=True,
+            )
+            mapping_hint = (
+                "Map payslip labels by meaning into canonical field names.\n"
+                "Examples: Worker Number / Employee ID / מספר עובד -> employee_id or employee_number; "
+                "Gross Salary / Total Payments -> gross_salary.\n"
+            )
+
         template_json = json.dumps(template, ensure_ascii=False, indent=2)
+        evidence_rule = (
+            "For each non-null value include source_text copied from the document text. "
+            "Do not require evidence_ids."
+            if embedded_text_mode or simple_guest_fields
+            else "Include source_text from OCR. evidence_ids are optional when unsure."
+        )
 
         return (
             f"Document language hint: {language}\n"
-            "Extract payslip fields from the OCR evidence below.\n"
-            "Use coordinates and nearby labels when layout context is present.\n"
+            f"{mapping_hint}"
             f"{retry_block}\n"
             f"{layout_block}\n"
-            "OCR TEXT (fallback / full page text):\n"
+            "DOCUMENT TEXT:\n"
             f"{pages_block or ocr_text}\n\n"
-            f"Allowed known field names (return each exactly once as a top-level key): {allowed}\n\n"
-            "CRITICAL: Your entire response must be ONE JSON object matching the instance "
-            "template below. Do NOT return OCR blocks, layout objects, schema definitions, "
-            "$ref, $defs, block_type, pages, lines, or words as the root.\n"
-            "Do NOT rename fields (use employee_name, not name). Do NOT add parser_version.\n"
-            "The template status MISSING is only the default shape. "
-            "When OCR/layout evidence shows a value, you MUST set status FOUND or UNCERTAIN, "
-            "copy source_text from OCR, and cite evidence_ids from the layout context. "
-            "Returning every field as MISSING while amounts/labels are visible in OCR is invalid.\n"
-            "Map visible amounts to the correct semantic fields when labels support it. "
-            "Never invent digits, never invent employee names, never invent net from gross.\n"
-            f"{template_json}\n"
-            "Return the populated JSON instance now. No markdown. No commentary.\n"
+            f"Return each of these fields exactly once: {allowed}\n"
+            f"{evidence_rule}\n"
+            "Use null value when absent. Do not invent digits or names.\n"
+            "Preserve every field you can read; do not clear other fields if one is missing.\n"
+            "Return ONE JSON object using this simplified per-field shape only:\n"
+            '{"field_name": {"value": ..., "source_text": ..., "confidence": 0.0}}\n'
+            f"Template:\n{template_json}\n"
+            "Return populated JSON only. No markdown.\n"
         )
 
     async def _chat(self, user_content: str) -> tuple[str, str]:
-        messages = [
-            {"role": "system", "content": self._system_prompt},
-            {"role": "user", "content": user_content},
-        ]
-        payload: dict[str, Any] = {
-            "model": self._model,
-            "messages": messages,
-            "stream": False,
-            "options": {
-                "temperature": self._temperature,
-                "num_predict": 8192,
-            },
-        }
-        if self._use_json_format:
-            payload["format"] = "json"
+        from payroll_copilot.application.ports import Message
 
+        messages = [
+            Message(role="system", content=self._system_prompt),
+            Message(role="user", content=user_content),
+        ]
         try:
-            async with httpx.AsyncClient(timeout=self._timeout_seconds) as client:
-                response = await client.post(f"{self._base_url}/api/chat", json=payload)
-                if response.status_code >= 400 and self._use_json_format and "format" in payload:
-                    payload.pop("format", None)
-                    response = await client.post(f"{self._base_url}/api/chat", json=payload)
-                response.raise_for_status()
-                data = response.json()
-        except httpx.HTTPError as exc:
-            logger.exception("Ollama payslip parser request failed")
+            result = await self._provider.complete(
+                messages,
+                temperature=self._temperature,
+                max_tokens=self._max_predict,
+                json_mode=self._use_json_format,
+            )
+        except Exception as exc:  # noqa: BLE001 — map provider failures to parser errors
+            logger.exception("Payslip parser LLM request failed")
             raise PayslipParserUnavailableError(
-                f"Ollama payslip parser unavailable: {exc}"
+                f"Payslip parser LLM unavailable: {exc}"
             ) from exc
 
-        content = data.get("message", {}).get("content", "")
-        if not isinstance(content, str) or not content.strip():
-            raise PayslipParserJsonError("Ollama returned an empty response.")
-        return content, self._model
+        content = result.content if isinstance(result.content, str) else ""
+        if not content.strip():
+            raise PayslipParserJsonError("Model returned an empty payslip extraction response.")
+        return content, result.model or self._model

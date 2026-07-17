@@ -170,6 +170,7 @@ class PayslipParseResult(BaseModel):
     language: str | None = None
     fields: StructuredPayslipParse
     raw_model_response: str | None = None
+    parsed_payload: dict[str, Any] | None = None
     warnings: list[str] = Field(default_factory=list)
     retry_used: bool = False
 

@@ -82,7 +82,49 @@ def test_name_mismatch_warns_but_does_not_block_when_nid_matches():
     assert name.status == "mismatch"
     assert name.blocks_confirmation is False
     assert result.identity_check.blocks_confirmation is False
+
+
+def test_name_different_language_cannot_validate():
+    svc = PayslipIdentityComparisonService()
+    result = svc.compare(
+        trusted_full_name="Yehuda Shmulovitz",
+        trusted_employee_number="5",
+        trusted_national_id_plaintext="313366783",
+        trusted_national_id_masked="****6783",
+        selected_year=2026,
+        selected_month=6,
+        extraction_fields=_fields(
+            employee_id="313366783",
+            employee_name="יהודה שמולוביץ",
+            pay_period="06/2026",
+        ),
+    )
+    name = next(f for f in result.identity_check.fields if f.key == "employee_name")
+    assert name.status == "cannot_validate"
+    assert name.explanation_code == "employee_name_language_mismatch"
+    assert name.blocks_confirmation is False
     assert result.blocks_confirmation is False
+
+
+def test_period_keep_selected_does_not_block():
+    svc = PayslipIdentityComparisonService()
+    result = svc.compare(
+        trusted_full_name="Yehuda Shmulovitz",
+        trusted_employee_number="5",
+        trusted_national_id_plaintext="313366783",
+        trusted_national_id_masked="****6783",
+        selected_year=2026,
+        selected_month=1,
+        period_resolution="keep_selected",
+        extraction_fields=_fields(
+            employee_id="313366783",
+            employee_name="Yehuda Shmulovitz",
+            pay_period="02/2026",
+        ),
+    )
+    assert result.period_check.status == "mismatch"
+    assert result.period_check.blocks_confirmation is False
+    assert result.period_check.explanation_code == "period_kept_selected"
 
 
 def test_period_mismatch_blocks():

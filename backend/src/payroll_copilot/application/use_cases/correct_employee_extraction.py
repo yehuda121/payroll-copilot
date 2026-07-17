@@ -96,7 +96,15 @@ class CorrectEmployeeExtractionUseCase:
             selected_year=selected_year,
             selected_month=selected_month,
             extraction_fields=correction.fields,
+            period_resolution=str(meta.get("period_resolution") or "") or None,
         )
+
+        from payroll_copilot.application.services.employee_workspace_snapshot import (
+            apply_comparison_snapshot,
+        )
+
+        document.metadata = apply_comparison_snapshot(meta, comparison)
+        await self._documents.save(document)
 
         if self._audit is not None:
             await self._audit.append(

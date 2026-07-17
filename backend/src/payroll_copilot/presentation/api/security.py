@@ -1,30 +1,45 @@
-"""JWT principal resolution for employee-bound routes."""
+"""Authentication principal resolution (Amazon Cognito + guest tokens)."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, Header, HTTPException, status
 from jose import JWTError, jwt
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from payroll_copilot.application.ports.employee_audit import EmployeeRepository
 from payroll_copilot.domain.dev_employee_binding import (
     DEMO_ORGANIZATION_ID,
+    DEV_EMPLOYEE_DISPLAY_NAME_EN,
+    DEV_EMPLOYEE_DISPLAY_NAME_HE,
+    DEV_EMPLOYEE_NUMBER,
+    DEV_EMPLOYEE_SEED_NATIONAL_ID,
     DEV_EMPLOYEE_USER_EMAIL,
     DEV_EMPLOYEE_USER_ID,
     get_dev_bound_employee_id,
 )
 from payroll_copilot.domain.entities import Employee
-from payroll_copilot.domain.enums import EmployeeStatus, UserRole
+from payroll_copilot.domain.enums import EmployeeStatus, EmploymentType, SalaryType, UserRole
+from payroll_copilot.infrastructure.auth.cognito import (
+    CognitoConfigurationError,
+    cognito_configured,
+    get_cognito_token_verifier,
+    role_from_cognito_claims,
+)
 from payroll_copilot.infrastructure.config.settings import get_settings
-from payroll_copilot.infrastructure.persistence.database import get_db_session
-from payroll_copilot.infrastructure.persistence.models import UserModel
-from payroll_copilot.infrastructure.persistence.repositories.employee_repository import (
-    SqlAlchemyEmployeeRepository,
+from payroll_copilot.infrastructure.persistence.dynamodb.factory import (
+    get_employee_repository,
+    get_user_store,
+    get_workspace_bootstrap,
+)
+from payroll_copilot.infrastructure.persistence.dynamodb.user_store import UserRecord
+from payroll_copilot.infrastructure.security.field_crypto import (
+    encrypt_national_id,
+    hash_national_id,
+    mask_national_id,
 )
 
 
@@ -44,50 +59,149 @@ class BoundEmployeeContext:
     national_id_encrypted: bytes | None
 
 
-def _decode_bearer(authorization: str | None) -> dict:
+def _extract_bearer(authorization: str | None) -> str:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "missing_authorization", "message": "Authorization Bearer token required."},
         )
-    token = authorization.split(" ", 1)[1].strip()
+    return authorization.split(" ", 1)[1].strip()
+
+
+def _decode_guest_or_legacy_hs256(token: str) -> dict:
+    """Decode guest (and rare local HS256) tokens signed with JWT_SECRET_KEY."""
     settings = get_settings()
     try:
-        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+        return jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
     except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "invalid_token", "message": "Invalid or expired access token."},
         ) from exc
-    return payload
 
 
-async def get_auth_principal(
-    authorization: Annotated[str | None, Header()] = None,
-    session: AsyncSession = Depends(get_db_session),
-) -> AuthPrincipal:
-    payload = _decode_bearer(authorization)
-    token_type = str(payload.get("type") or "access")
-    if token_type == "guest":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "guest_not_allowed", "message": "Guest token cannot access employee routes."},
-        )
+def _decode_cognito_token(token: str) -> dict:
     try:
-        user_id = UUID(str(payload["sub"]))
+        verifier = get_cognito_token_verifier()
+        return verifier.verify(token)
+    except CognitoConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "cognito_not_configured", "message": str(exc)},
+        ) from exc
+    except JWTError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "invalid_token", "message": "Invalid or expired Cognito token."},
+        ) from exc
+
+
+async def upsert_user_from_cognito_claims(
+    claims: dict,
+    *,
+    default_role: str | None = None,
+) -> UserRecord:
+    """Create or update the local user mirror from Cognito claims (sub = user id)."""
+    try:
+        user_id = UUID(str(claims["sub"]))
     except (KeyError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "invalid_token", "message": "Token subject is invalid."},
         ) from exc
 
-    result = await session.execute(select(UserModel).where(UserModel.id == user_id))
-    user = result.scalar_one_or_none()
-    if user is None or not user.is_active:
+    raw_email = claims.get("email")
+    email = str(raw_email).strip().lower() if raw_email else ""
+    if not email:
+        username = claims.get("username") or claims.get("cognito:username")
+        candidate = str(username).strip().lower() if username else ""
+        if candidate and "@" in candidate:
+            email = candidate
+
+    role_value = role_from_cognito_claims(claims) or default_role or UserRole.EMPLOYEE.value
+    try:
+        role = UserRole(role_value)
+    except ValueError:
+        role = UserRole.EMPLOYEE
+
+    store = get_user_store()
+    user = await store.get_by_id(user_id)
+    if user is None:
+        user = UserRecord(
+            id=user_id,
+            organization_id=DEMO_ORGANIZATION_ID,
+            email=email or f"{user_id}@cognito.local",
+            password_hash=None,
+            role=role,
+            preferred_locale="he",
+            is_active=True,
+            employee_id=None,
+        )
+    else:
+        if email:
+            user.email = email
+        user.is_active = True
+        user.password_hash = None
+        if role_from_cognito_claims(claims):
+            user.role = role
+        if user.organization_id is None:
+            user.organization_id = DEMO_ORGANIZATION_ID
+
+    return await store.save(user)
+
+
+async def get_auth_principal(
+    authorization: Annotated[str | None, Header()] = None,
+) -> AuthPrincipal:
+    token = _extract_bearer(authorization)
+    settings = get_settings()
+
+    try:
+        unverified = jwt.get_unverified_claims(token)
+    except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "user_not_found", "message": "Authenticated user was not found."},
+            detail={"code": "invalid_token", "message": "Malformed bearer token."},
+        ) from exc
+
+    token_type = str(unverified.get("type") or "")
+    if token_type == "guest":
+        payload = _decode_guest_or_legacy_hs256(token)
+        if str(payload.get("type") or "") != "guest":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "invalid_token", "message": "Invalid guest token."},
+            )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "guest_not_allowed", "message": "Guest token cannot access employee routes."},
         )
+
+    store = get_user_store()
+    if cognito_configured(settings):
+        claims = _decode_cognito_token(token)
+        user = await upsert_user_from_cognito_claims(claims)
+    else:
+        payload = _decode_guest_or_legacy_hs256(token)
+        if str(payload.get("type") or "access") == "guest":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={"code": "guest_not_allowed", "message": "Guest token cannot access employee routes."},
+            )
+        try:
+            user_id = UUID(str(payload["sub"]))
+        except (KeyError, ValueError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "invalid_token", "message": "Token subject is invalid."},
+            ) from exc
+        user = await store.get_by_id(user_id)
+        if user is None or not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "user_not_found", "message": "Authenticated user was not found."},
+            )
+
     role = user.role.value if hasattr(user.role, "value") else str(user.role)
     return AuthPrincipal(
         user_id=user.id,
@@ -100,7 +214,6 @@ async def get_auth_principal(
 
 async def require_bound_employee(
     principal: AuthPrincipal = Depends(get_auth_principal),
-    session: AsyncSession = Depends(get_db_session),
 ) -> BoundEmployeeContext:
     if principal.role != UserRole.EMPLOYEE.value:
         raise HTTPException(
@@ -115,7 +228,7 @@ async def require_bound_employee(
                 "message": "Authenticated user is not bound to an employee record.",
             },
         )
-    employees: EmployeeRepository = SqlAlchemyEmployeeRepository(session)
+    employees: EmployeeRepository = get_employee_repository()
     employee = await employees.get_by_id(principal.employee_id)
     if employee is None:
         raise HTTPException(
@@ -149,17 +262,26 @@ async def require_bound_employee(
     )
 
 
-async def ensure_dev_employee_user(session: AsyncSession) -> UserModel:
-    """Idempotently create the development employee auth user bound to seed employee #5."""
+async def ensure_dev_employee_user() -> UserRecord:
+    """Idempotently create the development employee auth user bound to seed employee #5.
+
+    Also ensures the bound Employee record exists in DynamoDB so ``/employees/me``
+    and related portal routes succeed locally. Only for local environments when
+    Cognito is not configured.
+    """
     settings = get_settings()
     if settings.app_env.lower() in {"production", "prod"}:
         raise RuntimeError("Dev employee user bootstrap is blocked in production.")
+    if cognito_configured(settings):
+        raise RuntimeError("Dev employee user bootstrap is blocked when Cognito is configured.")
 
     employee_id = get_dev_bound_employee_id()
-    result = await session.execute(select(UserModel).where(UserModel.id == DEV_EMPLOYEE_USER_ID))
-    user = result.scalar_one_or_none()
+    await _ensure_dev_bound_employee_record(employee_id)
+
+    store = get_user_store()
+    user = await store.get_by_id(DEV_EMPLOYEE_USER_ID)
     if user is None:
-        user = UserModel(
+        user = UserRecord(
             id=DEV_EMPLOYEE_USER_ID,
             organization_id=DEMO_ORGANIZATION_ID,
             email=DEV_EMPLOYEE_USER_EMAIL,
@@ -169,12 +291,48 @@ async def ensure_dev_employee_user(session: AsyncSession) -> UserModel:
             is_active=True,
             employee_id=employee_id,
         )
-        session.add(user)
     else:
         user.organization_id = DEMO_ORGANIZATION_ID
         user.role = UserRole.EMPLOYEE
         user.employee_id = employee_id
         user.email = DEV_EMPLOYEE_USER_EMAIL
         user.is_active = True
-    await session.flush()
-    return user
+    return await store.save(user)
+
+
+async def _ensure_dev_bound_employee_record(employee_id: UUID) -> Employee:
+    """Create or refresh the seed employee #5 record used by the local employee portal."""
+    employees = get_employee_repository()
+    existing = await employees.get_by_id(employee_id)
+    if existing is not None and existing.status != EmployeeStatus.DISABLED:
+        return existing
+
+    bootstrap = get_workspace_bootstrap()
+    department_id = await bootstrap.ensure_default_department(DEMO_ORGANIZATION_ID)
+    national_id = DEV_EMPLOYEE_SEED_NATIONAL_ID
+    nid_hash = hash_national_id(national_id)
+    metadata = {
+        "dataset_id": "accountant_portal_seed_v1",
+        "fixture_dataset_marker": "DEVELOPMENT_SEED",
+        "verified_display_name": DEV_EMPLOYEE_DISPLAY_NAME_HE,
+        "display_name_en": DEV_EMPLOYEE_DISPLAY_NAME_EN,
+        "national_id_hash": nid_hash,
+        "national_id_masked": mask_national_id(national_id),
+        "profile_incomplete": True,
+        "dev_bootstrap": True,
+    }
+    employee = Employee(
+        id=employee_id,
+        organization_id=DEMO_ORGANIZATION_ID,
+        employee_number=DEV_EMPLOYEE_NUMBER,
+        first_name="יהודה",
+        last_name="שמולביץ",
+        department_id=department_id,
+        employment_type=EmploymentType.FULL_TIME,
+        salary_type=SalaryType.MONTHLY,
+        contract_start_date=date(2026, 1, 1),
+        status=EmployeeStatus.ACTIVE,
+        metadata=metadata,
+    )
+    encrypted = encrypt_national_id(national_id, encryption_key=get_settings().encryption_key)
+    return await employees.save_with_national_id(employee, national_id_encrypted=encrypted)

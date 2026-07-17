@@ -1,6 +1,7 @@
+import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getRoleHomePath } from '../../auth/authProvider';
+import { getRoleHomePath, loadCognitoSession } from '../../auth/authProvider';
 import { useAuth } from '../../auth/AuthContext';
 import { DEV_IDENTITIES } from '../../auth/devAuth';
 import { useConfirmDialog } from '../../components/ui/Dialog';
@@ -11,7 +12,13 @@ export function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { confirm } = useConfirmDialog();
-  const { devAuthEnabled, loginWithDevRole, isAuthenticated, session } = useAuth();
+  const {
+    devAuthEnabled,
+    loginWithDevRole,
+    loginWithCredentials,
+    isAuthenticated,
+    session,
+  } = useAuth();
 
   if (isAuthenticated && session) {
     return <Navigate to={getRoleHomePath(session.user.role)} replace />;
@@ -69,8 +76,30 @@ export function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <h1>{t('auth.signInTitle')}</h1>
-        <p className="auth-card__subtitle">{t('auth.cognitoPending')}</p>
-        <PlaceholderLoginForm />
+        <p className="auth-card__subtitle">
+          {t('auth.cognitoSignInHint', {
+            defaultValue: 'Sign in with your organization account (Amazon Cognito).',
+          })}
+        </p>
+        <CognitoLoginForm
+          onLogin={async (email, password) => {
+            await loginWithCredentials({ email, password });
+            const next = loadCognitoSession();
+            if (!next) {
+              throw new Error(t('auth.loginFailed'));
+            }
+            navigate(getRoleHomePath(next.user.role));
+          }}
+          onError={async (message) => {
+            await confirm({
+              title: t('auth.loginFailedTitle'),
+              message,
+              confirmLabel: t('common.close'),
+              cancelLabel: t('common.close'),
+              variant: 'danger',
+            });
+          }}
+        />
         <p className="auth-card__footer">
           {t('auth.noAccount')} <Link to="/signup">{t('common.signup')}</Link>
         </p>
@@ -79,24 +108,60 @@ export function LoginPage() {
   );
 }
 
-function PlaceholderLoginForm() {
+function CognitoLoginForm({
+  onLogin,
+  onError,
+}: {
+  onLogin: (email: string, password: string) => Promise<void>;
+  onError: (message: string) => Promise<void>;
+}) {
   const { t } = useTranslation();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      await onLogin(email.trim(), password);
+    } catch (err) {
+      await onError(err instanceof Error ? err.message : t('auth.loginFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-      }}
-    >
+    <form onSubmit={(event) => void handleSubmit(event)}>
       <div className="form-field">
         <label htmlFor="email">{t('auth.email')}</label>
-        <input id="email" type="email" placeholder={t('auth.emailPlaceholder')} disabled />
+        <input
+          id="email"
+          type="email"
+          autoComplete="username"
+          placeholder={t('auth.emailPlaceholder')}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+          disabled={busy}
+        />
       </div>
       <div className="form-field">
         <label htmlFor="password">{t('auth.password')}</label>
-        <input id="password" type="password" placeholder="••••••••" disabled />
+        <input
+          id="password"
+          type="password"
+          autoComplete="current-password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          required
+          disabled={busy}
+        />
       </div>
-      <button type="submit" className="btn btn--primary" style={{ width: '100%' }} disabled>
-        {t('auth.signInCognitoPending')}
+      <button type="submit" className="btn btn--primary" style={{ width: '100%' }} disabled={busy}>
+        {busy ? t('common.loading') : t('common.login')}
       </button>
     </form>
   );

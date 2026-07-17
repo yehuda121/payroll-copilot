@@ -8,6 +8,7 @@ export type {
   DocumentLanguage,
   DocumentResponse,
   DocumentUploadResponse,
+  DynamicDocumentEntry,
   ExtractedPayslipField,
   GuestExtractionCorrectionRequest,
   GuestPayslipExtractionResponse,

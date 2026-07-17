@@ -14,15 +14,15 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid5, NAMESPACE_URL
 
-from sqlalchemy import delete
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from payroll_copilot.application.ports.employee_audit import (
     AuditLogEntry,
     AuditLogRepository,
     EmployeeRepository,
 )
-from payroll_copilot.application.ports.repositories import DocumentRepository
+from payroll_copilot.application.ports.repositories import (
+    DocumentExtractionRepository,
+    DocumentRepository,
+)
 from payroll_copilot.application.validation.demo_validation_context_builder import (
     DEMO_ORGANIZATION_ID,
 )
@@ -35,12 +35,8 @@ from payroll_copilot.domain.enums import (
     SalaryType,
 )
 from payroll_copilot.domain.value_objects import PayPeriod
-from payroll_copilot.infrastructure.persistence.models import DocumentExtractionModel
-from payroll_copilot.infrastructure.persistence.repositories.employee_repository import (
-    SqlAlchemyEmployeeRepository,
-)
-from payroll_copilot.infrastructure.persistence.repositories.workspace_bootstrap import (
-    OrganizationWorkspaceBootstrap,
+from payroll_copilot.infrastructure.persistence.dynamodb.bootstrap import (
+    DynamoOrganizationWorkspaceBootstrap,
 )
 from payroll_copilot.infrastructure.security.field_crypto import (
     encrypt_national_id,
@@ -146,20 +142,22 @@ class SeedAccountantPortalUseCase:
     def __init__(
         self,
         *,
-        session: AsyncSession,
         employees: EmployeeRepository,
         documents: DocumentRepository,
         audit_logs: AuditLogRepository,
         encryption_key: str,
         app_env: str,
+        workspace: DynamoOrganizationWorkspaceBootstrap,
+        extractions: DocumentExtractionRepository | None = None,
         repo_root: Path | None = None,
     ) -> None:
-        self._session = session
         self._employees = employees
         self._documents = documents
         self._audit = audit_logs
         self._encryption_key = encryption_key
         self._app_env = app_env
+        self._workspace = workspace
+        self._extractions = extractions
         self._repo_root = repo_root or Path(__file__).resolve().parents[4]
 
     async def execute(self, dataset_path: Path | None = None) -> SeedResult:
@@ -171,9 +169,9 @@ class SeedAccountantPortalUseCase:
         }
 
         org_id = DEMO_ORGANIZATION_ID
-        bootstrap = OrganizationWorkspaceBootstrap(self._session)
-        department_id = await bootstrap.ensure_default_department(org_id)
+        bootstrap = self._workspace
         await bootstrap.ensure_organization(org_id, name="Demo Organization")
+        department_id = await bootstrap.ensure_default_department(org_id)
 
         employees_by_nid: dict[str, Employee] = {}
         upserted_employees = 0
@@ -268,13 +266,10 @@ class SeedAccountantPortalUseCase:
         assert_seed_environment_allowed(self._app_env)
         documents = await self._documents.list_by_dataset_id(dataset_id=DATASET_ID)
         document_ids = [doc.id for doc in documents]
-        if document_ids:
-            await self._session.execute(
-                delete(DocumentExtractionModel).where(
-                    DocumentExtractionModel.document_id.in_(document_ids)
-                )
-            )
-            await self._session.flush()
+        if document_ids and self._extractions is not None:
+            delete_for = getattr(self._extractions, "delete_for_document_ids", None)
+            if callable(delete_for):
+                await delete_for(document_ids)
         payslips_deleted = await self._documents.delete_by_ids(document_ids)
 
         employees = await self._employees.list_by_dataset_id(dataset_id=DATASET_ID)
@@ -368,12 +363,9 @@ class SeedAccountantPortalUseCase:
             metadata=metadata,
         )
         encrypted = encrypt_national_id(national_id, encryption_key=self._encryption_key)
-        if isinstance(self._employees, SqlAlchemyEmployeeRepository):
-            await self._employees.save_with_national_id(
-                employee, national_id_encrypted=encrypted
-            )
-        else:
-            await self._employees.save(employee)
+        await self._employees.save_with_national_id(
+            employee, national_id_encrypted=encrypted
+        )
 
         await self._audit.append(
             AuditLogEntry(

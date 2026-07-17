@@ -44,6 +44,11 @@ def mock_document_processing(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
+    if engine is None:
+        pytest.skip(
+            "DATABASE_URL is not set — legacy SQLAlchemy fixtures require Postgres "
+            "(optional: docker compose --profile legacy-postgres up -d)."
+        )
     connection = await engine.connect()
     transaction = await connection.begin()
     session = AsyncSession(bind=connection, expire_on_commit=False)

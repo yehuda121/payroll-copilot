@@ -9,6 +9,7 @@ type IdentityPeriodCheckProps = {
 function statusClass(status: string, severity?: string): string {
   if (status === 'mismatch' && severity === 'critical') return 'is-critical';
   if (status === 'mismatch') return 'is-warning';
+  if (status === 'cannot_validate') return 'is-missing';
   if (status === 'uncertain') return 'is-uncertain';
   if (status === 'missing') return 'is-missing';
   if (status === 'match') return 'is-match';
@@ -24,10 +25,10 @@ function FieldRow({ field }: { field: ComparisonField }) {
         <span>{t(`employee.compare.status.${field.status}`, { defaultValue: field.status })}</span>
       </div>
       <p>
-        {t('employee.compare.extracted')}: {field.extracted_display ?? '—'}
+        {t('employee.compare.extracted')}: {field.extracted_display ?? t('common.emDash')}
       </p>
       <p>
-        {t('employee.compare.expected')}: {field.expected_display ?? '—'}
+        {t('employee.compare.expected')}: {field.expected_display ?? t('common.emDash')}
       </p>
     </li>
   );
@@ -39,6 +40,11 @@ export function IdentityPeriodCheck({ identity, period }: IdentityPeriodCheckPro
   const nameOnlyWarning =
     !identity.blocks_confirmation &&
     identity.fields.some((f) => f.key === 'employee_name' && f.status === 'mismatch');
+  const nameLanguageGap = identity.fields.some(
+    (f) =>
+      f.key === 'employee_name' &&
+      (f.status === 'cannot_validate' || f.explanation_code === 'employee_name_language_mismatch'),
+  );
 
   return (
     <div className="identity-period-check" role="region" aria-label={t('employee.compare.title')}>
@@ -57,11 +63,16 @@ export function IdentityPeriodCheck({ identity, period }: IdentityPeriodCheckPro
             extracted:
               period.extracted_month && period.extracted_year
                 ? `${period.extracted_month}/${period.extracted_year}`
-                : '—',
+                : t('common.emDash'),
           })}
         </div>
       )}
-      {nameOnlyWarning && (
+      {nameLanguageGap && (
+        <div className="identity-period-check__banner is-warning" role="status">
+          {t('employee.compare.nameLanguageMismatch')}
+        </div>
+      )}
+      {nameOnlyWarning && !nameLanguageGap && (
         <div className="identity-period-check__banner is-warning" role="status">
           {t('employee.compare.nameMismatchWarning')}
         </div>

@@ -36,15 +36,21 @@ class OllamaProvider:
         *,
         temperature: float = 0.0,
         max_tokens: int = 4096,
+        json_mode: bool = False,
     ) -> CompletionResult:
-        payload = {
+        payload: dict[str, Any] = {
             "model": self._default_model,
             "messages": [{"role": m.role, "content": m.content} for m in messages],
             "stream": False,
             "options": {"temperature": temperature, "num_predict": max_tokens},
         }
+        if json_mode:
+            payload["format"] = "json"
         async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(f"{self._base_url}/api/chat", json=payload)
+            if response.status_code >= 400 and json_mode and "format" in payload:
+                payload.pop("format", None)
+                response = await client.post(f"{self._base_url}/api/chat", json=payload)
             response.raise_for_status()
             data = response.json()
 
@@ -75,7 +81,7 @@ class OllamaProvider:
                 ),
             ),
         ]
-        result = await self.complete(structured_messages, temperature=temperature)
+        result = await self.complete(structured_messages, temperature=temperature, json_mode=True)
         parsed = self._parse_json_response(result.content)
         validated = response_schema.model_validate(parsed)
         confidence = 0.9 if parsed else 0.0
@@ -103,9 +109,23 @@ class OllamaProvider:
         return json.loads(content)
 
 
-def create_model_provider(provider_name: str, settings: Any) -> OllamaProvider:
-    """Factory for model providers. Extend for OpenAI, Claude, etc."""
-    if provider_name == "ollama":
+def create_model_provider(provider_name: str, settings: Any) -> Any:
+    """Factory for model providers (Amazon Bedrock primary; Ollama for local)."""
+    name = (provider_name or "bedrock").strip().lower()
+    if name == "bedrock":
+        from payroll_copilot.infrastructure.ai.bedrock_provider import BedrockProvider
+
+        return BedrockProvider(
+            region=getattr(settings, "bedrock_region", None) or "us-east-1",
+            model_id=getattr(settings, "bedrock_model_id", "") or "",
+            embedding_model_id=getattr(settings, "bedrock_embedding_model_id", "")
+            or "amazon.titan-embed-text-v2:0",
+            embedding_dimensions=int(
+                getattr(settings, "bedrock_embedding_dimensions", 1024) or 1024
+            ),
+            endpoint_url=(getattr(settings, "bedrock_endpoint", None) or "").strip() or None,
+        )
+    if name == "ollama":
         from payroll_copilot.infrastructure.config.ollama_resolver import get_resolved_ollama_base_url
 
         return OllamaProvider(

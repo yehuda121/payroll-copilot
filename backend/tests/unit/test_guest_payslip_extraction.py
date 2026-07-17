@@ -147,6 +147,7 @@ async def test_orchestration_success_persists_fields() -> None:
             original_filename="slip.png",
             mime_type="image/png",
             language="en",
+            ephemeral=False,
         )
     )
     assert result.ocr_status == "completed"
@@ -167,6 +168,7 @@ async def test_orchestration_ocr_failure() -> None:
             original_filename="slip.png",
             mime_type="image/png",
             language="en",
+            ephemeral=False,
         )
     )
     assert result.ocr_status == "failed"
@@ -183,6 +185,7 @@ async def test_orchestration_parser_failure_still_persists() -> None:
             original_filename="slip.png",
             mime_type="image/png",
             language="en",
+            ephemeral=False,
         )
     )
     assert result.ocr_status == "completed"

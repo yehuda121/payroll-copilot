@@ -77,7 +77,7 @@ def _found_field(
 
 
 def _full_instance(**overrides: Any) -> dict[str, Any]:
-    payload = build_payslip_instance_template(language="heb+eng")
+    payload = build_payslip_instance_template(language="heb+eng", simplified=False)
     payload.update(overrides)
     return payload
 
@@ -224,7 +224,7 @@ async def test_semantic_retry_success() -> None:
     )
     assert parser.calls == 2
     assert result.retry_used is True
-    assert "parser_semantic_retry_used" in result.warnings
+    assert "parser_retry_used" in result.warnings
     assert "parser_schema_copy_detected" in result.warnings
     assert result.fields.base_salary.value == 8000
 
@@ -243,13 +243,10 @@ async def test_semantic_retry_failure() -> None:
             raise AssertionError("unreachable")
 
     parser = _Parser()
-    use_case = ParsePayslipFromOcrUseCase(parser, timeout_seconds=5)
-    result = await use_case.execute(ParsePayslipFromOcrCommand(raw_text=OCR_WITH_AMOUNTS))
+    use_case = ParsePayslipFromOcrUseCase(parser, timeout_seconds=5, total_budget_seconds=10)
+    with pytest.raises(PayslipParserSemanticError):
+        await use_case.execute(ParsePayslipFromOcrCommand(raw_text=OCR_WITH_AMOUNTS))
     assert parser.calls == 2
-    assert result.retry_used is True
-    assert "parser_semantic_retry_failed" in result.warnings
-    assert "parser_schema_copy_detected" in result.warnings
-    assert result.fields.base_salary.status == FieldExtractionStatus.MISSING
 
 
 def test_no_silent_coercion_of_schema_stubs() -> None:
@@ -378,7 +375,7 @@ async def test_document_lab_run_parser_preserves_words_and_evidence_ids() -> Non
 
 
 @pytest.mark.asyncio
-async def test_all_missing_after_retry_returns_safe_result() -> None:
+async def test_all_missing_after_retry_raises() -> None:
     empty = _full_instance()
 
     class _Parser:
@@ -391,13 +388,10 @@ async def test_all_missing_after_retry_returns_safe_result() -> None:
             raise AssertionError("unreachable")
 
     parser = _Parser()
-    use_case = ParsePayslipFromOcrUseCase(parser, timeout_seconds=5)
-    result = await use_case.execute(ParsePayslipFromOcrCommand(raw_text=OCR_WITH_AMOUNTS))
+    use_case = ParsePayslipFromOcrUseCase(parser, timeout_seconds=5, total_budget_seconds=10)
+    with pytest.raises(PayslipParserSemanticError):
+        await use_case.execute(ParsePayslipFromOcrCommand(raw_text=OCR_WITH_AMOUNTS))
     assert parser.calls == 2
-    assert result.retry_used is True
-    assert "parser_semantic_retry_failed" in result.warnings
-    assert "parser_all_fields_missing_with_ocr_evidence" in result.warnings
-    assert result.fields.base_salary.status == FieldExtractionStatus.MISSING
 
 
 def test_invalid_evidence_ids_rejected() -> None:
@@ -441,12 +435,12 @@ def test_invalid_evidence_ids_rejected() -> None:
 
 
 def test_instance_template_lists_all_required_fields() -> None:
-    template = build_payslip_instance_template()
+    template = build_payslip_instance_template(simplified=True)
     for key in PAYSLIP_FIELD_KEYS:
         assert key in template
-        assert template[key]["status"] == "MISSING"
+        assert "value" in template[key]
+        assert "source_text" in template[key]
     assert "$ref" not in json_dumps_safe(template)
-    assert "$defs" not in json_dumps_safe(template)
 
 
 def json_dumps_safe(payload: dict[str, Any]) -> str:

@@ -158,6 +158,8 @@ class BuildEmployeePayrollMonthsUseCase:
         employee_id: UUID,
         year: int,
         month: int,
+        employee: Any | None = None,
+        national_id_encrypted: bytes | None = None,
     ) -> dict[str, Any]:
         if month < 1 or month > 12:
             raise ValueError("month must be 1-12")
@@ -168,6 +170,7 @@ class BuildEmployeePayrollMonthsUseCase:
         )
         row = next(m for m in overview["months"] if m["month"] == month)
         findings: list[dict[str, Any]] = []
+        confidence_explanation: str | None = None
         run_id = row["latest_validation"].get("validation_run_id")
         if run_id and self._findings is not None:
             records = await self._findings.list_by_run_id(UUID(str(run_id)))
@@ -177,10 +180,15 @@ class BuildEmployeePayrollMonthsUseCase:
                     "code": f.message_key,
                     "severity": f.severity.value if hasattr(f.severity, "value") else str(f.severity),
                     "message_key": f.message_key,
+                    "message_params": dict(f.message_params or {}),
                     "expected_value": f.expected_value,
                     "actual_value": f.actual_value,
                     "confidence": float(f.confidence) if f.confidence is not None else None,
                     "legal_reference": f.legal_reference,
+                    "explanation": (
+                        str((f.message_params or {}).get("explanation") or "")
+                        or None
+                    ),
                 }
                 for f in records
             ]
@@ -207,9 +215,20 @@ class BuildEmployeePayrollMonthsUseCase:
             "confirmation_status": "missing",
             "fields": [],
             "lifecycle_status": "missing",
+            "identity_check": None,
+            "period_check": None,
+            "blocks_confirmation": False,
+            "confirmed_at": None,
         }
         validation_history: list[dict[str, Any]] = []
         if payslip_doc is not None:
+            from payroll_copilot.application.services.employee_workspace_snapshot import (
+                apply_comparison_snapshot,
+                fields_for_workspace_api,
+                read_comparison_snapshot,
+                rebuild_comparison,
+            )
+
             meta = dict(payslip_doc.metadata or {})
             latest_ext = None
             if self._extractions is not None:
@@ -223,6 +242,29 @@ class BuildEmployeePayrollMonthsUseCase:
                 )
                 or "review_required"
             )
+            raw_fields = (
+                fields_from_structured(latest_ext.structured_data) if latest_ext else []
+            )
+            api_fields = fields_for_workspace_api(raw_fields)
+
+            snapshot = read_comparison_snapshot(meta)
+            if snapshot is None and latest_ext is not None and employee is not None:
+                comparison = rebuild_comparison(
+                    employee=employee,
+                    national_id_encrypted=national_id_encrypted,
+                    document=payslip_doc,
+                    extraction=latest_ext,
+                )
+                snapshot = {
+                    "identity_check": comparison.identity_check.to_dict(),
+                    "period_check": comparison.period_check.to_dict(),
+                    "blocks_confirmation": comparison.blocks_confirmation,
+                }
+                # Backfill so subsequent loads do not need to rebuild.
+                payslip_doc.metadata = apply_comparison_snapshot(meta, comparison)
+                await self._documents.save(payslip_doc)
+                meta = dict(payslip_doc.metadata or {})
+
             extraction_summary = {
                 "exists": True,
                 "extraction_id": str(latest_ext.id)
@@ -239,9 +281,7 @@ class BuildEmployeePayrollMonthsUseCase:
                     )
                 ),
                 "confirmation_status": confirmation_status,
-                "fields": fields_from_structured(latest_ext.structured_data)
-                if latest_ext
-                else [],
+                "fields": api_fields,
                 "lifecycle_status": meta.get("lifecycle_status")
                 or (
                     LIFECYCLE_CONFIRMED
@@ -249,6 +289,16 @@ class BuildEmployeePayrollMonthsUseCase:
                     else LIFECYCLE_REVIEW_REQUIRED
                 ),
                 "original_filename": payslip_doc.original_filename,
+                "identity_check": snapshot["identity_check"] if snapshot else None,
+                "period_check": snapshot["period_check"] if snapshot else None,
+                "blocks_confirmation": bool(snapshot["blocks_confirmation"])
+                if snapshot
+                else False,
+                "confirmed_at": (
+                    latest_ext.confirmed_at.isoformat()
+                    if latest_ext and latest_ext.confirmed_at
+                    else None
+                ),
             }
             current_ext = (
                 str(latest_ext.id)
@@ -263,6 +313,14 @@ class BuildEmployeePayrollMonthsUseCase:
                         and run.extraction_id
                         and str(run.extraction_id) != str(current_ext)
                     )
+                    if (
+                        run_id
+                        and str(run.id) == str(run_id)
+                        and run.enrichment is not None
+                    ):
+                        confidence_explanation = getattr(
+                            run.enrichment, "confidence_explanation", None
+                        )
                     validation_history.append(
                         {
                             "validation_run_id": str(run.id),
@@ -310,6 +368,7 @@ class BuildEmployeePayrollMonthsUseCase:
             "latest_validation": {
                 **row["latest_validation"],
                 "findings": findings,
+                "confidence_explanation": confidence_explanation,
                 "outdated": next(
                     (
                         h["outdated"]

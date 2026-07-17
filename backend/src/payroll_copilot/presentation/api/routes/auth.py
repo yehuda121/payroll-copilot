@@ -1,12 +1,11 @@
-"""Authentication routes."""
+"""Authentication routes — Amazon Cognito for users; short-lived guest tokens for landing."""
 
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from jose import jwt
-from pydantic import BaseModel, EmailStr
-from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel, EmailStr, Field
 
 from payroll_copilot.domain.dev_employee_binding import (
     DEMO_ORGANIZATION_ID,
@@ -14,9 +13,19 @@ from payroll_copilot.domain.dev_employee_binding import (
     DEV_EMPLOYEE_USER_ID,
 )
 from payroll_copilot.domain.enums import UserRole
+from payroll_copilot.infrastructure.auth.cognito import (
+    CognitoAuthenticationError,
+    CognitoConfigurationError,
+    api_role_from_domain,
+    cognito_configured,
+    get_cognito_auth_client,
+    role_from_cognito_claims,
+)
 from payroll_copilot.infrastructure.config.settings import get_settings
-from payroll_copilot.infrastructure.persistence.database import get_db_session
-from payroll_copilot.presentation.api.security import ensure_dev_employee_user
+from payroll_copilot.presentation.api.security import (
+    ensure_dev_employee_user,
+    upsert_user_from_cognito_claims,
+)
 
 router = APIRouter()
 
@@ -24,6 +33,11 @@ router = APIRouter()
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str = Field(min_length=20)
+    username: str | None = None
 
 
 class TokenResponse(BaseModel):
@@ -46,50 +60,133 @@ class DevEmployeeSessionResponse(BaseModel):
     user: dict
 
 
-def _create_token(subject: str, expires_delta: timedelta, token_type: str = "access") -> str:
+def _create_guest_token(subject: str, expires_delta: timedelta) -> str:
+    """Issue a short-lived guest JWT (not a Cognito user-pool token)."""
     settings = get_settings()
     payload = {
         "sub": subject,
-        "type": token_type,
+        "type": "guest",
         "exp": datetime.now(UTC) + expires_delta,
         "iat": datetime.now(UTC),
     }
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 
+def _create_local_access_token(subject: str, expires_delta: timedelta) -> str:
+    """HS256 access token used only when Cognito is not configured (local/dev)."""
+    settings = get_settings()
+    payload = {
+        "sub": subject,
+        "type": "access",
+        "exp": datetime.now(UTC) + expires_delta,
+        "iat": datetime.now(UTC),
+    }
+    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+
+
+def _user_payload_from_model(user, *, claims: dict | None = None) -> dict:
+    role = user.role.value if hasattr(user.role, "value") else str(user.role)
+    role = api_role_from_domain(role)
+    email = user.email
+    full_name = email.split("@")[0] if email else "user"
+    if claims:
+        full_name = (
+            str(claims.get("name") or claims.get("given_name") or full_name).strip() or full_name
+        )
+    return {
+        "id": str(user.id),
+        "email": email,
+        "role": role,
+        "preferred_locale": getattr(user, "preferred_locale", None) or "he",
+        "organization_id": str(user.organization_id) if user.organization_id else None,
+        "employee_id": str(user.employee_id) if user.employee_id else None,
+        "full_name": full_name,
+    }
+
+
 @router.post("/login", response_model=TokenResponse)
 async def login(request: LoginRequest) -> TokenResponse:
+    """Authenticate with Amazon Cognito and return API tokens (same contract as before)."""
     settings = get_settings()
-    # Production: validate against database. Bootstrap accepts demo credentials.
-    if request.email != "accountant@demo.co.il" or request.password != "demo":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    if not cognito_configured(settings):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "cognito_not_configured",
+                "message": "Amazon Cognito is not configured for this environment.",
+            },
+        )
 
-    user_id = str(uuid4())
-    access_token = _create_token(
-        user_id, timedelta(minutes=settings.jwt_access_token_expire_minutes)
-    )
-    refresh_token = _create_token(
-        user_id, timedelta(days=settings.jwt_refresh_token_expire_days), "refresh"
+    try:
+        client = get_cognito_auth_client()
+        result = client.login(email=str(request.email), password=request.password)
+    except CognitoConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "cognito_not_configured", "message": str(exc)},
+        ) from exc
+    except CognitoAuthenticationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        ) from exc
+
+    role_hint = role_from_cognito_claims(result.claims)
+    user = await upsert_user_from_cognito_claims(
+        result.claims,
+        default_role=role_hint,
     )
 
+    refresh = result.refresh_token or ""
     return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        expires_in=settings.jwt_access_token_expire_minutes * 60,
-        user={
-            "id": user_id,
-            "email": request.email,
-            "role": "accountant",
-            "preferred_locale": "he",
-        },
+        access_token=result.access_token,
+        refresh_token=refresh,
+        token_type=result.token_type.lower() if result.token_type else "bearer",
+        expires_in=result.expires_in,
+        user=_user_payload_from_model(user, claims=result.claims),
+    )
+
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_tokens(request: RefreshRequest) -> TokenResponse:
+    """Refresh Cognito tokens. Keeps the same TokenResponse contract."""
+    settings = get_settings()
+    if not cognito_configured(settings):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "cognito_not_configured",
+                "message": "Amazon Cognito is not configured for this environment.",
+            },
+        )
+    try:
+        client = get_cognito_auth_client()
+        result = client.refresh(
+            refresh_token=request.refresh_token,
+            username=request.username,
+        )
+    except CognitoAuthenticationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "invalid_refresh_token", "message": str(exc)},
+        ) from exc
+
+    user = await upsert_user_from_cognito_claims(result.claims)
+    return TokenResponse(
+        access_token=result.access_token,
+        refresh_token=result.refresh_token or request.refresh_token,
+        token_type="bearer",
+        expires_in=result.expires_in,
+        user=_user_payload_from_model(user, claims=result.claims),
     )
 
 
 @router.post("/guest/session", response_model=GuestSessionResponse, status_code=201)
 async def create_guest_session() -> GuestSessionResponse:
+    """Issue a short-lived guest token for the public landing flow (unchanged contract)."""
     settings = get_settings()
     guest_id = str(uuid4())
-    token = _create_token(guest_id, timedelta(hours=settings.guest_session_ttl_hours), "guest")
+    token = _create_guest_token(guest_id, timedelta(hours=settings.guest_session_ttl_hours))
     expires_at = datetime.now(UTC) + timedelta(hours=settings.guest_session_ttl_hours)
     return GuestSessionResponse(guest_token=token, expires_at=expires_at)
 
@@ -99,25 +196,21 @@ async def create_guest_session() -> GuestSessionResponse:
     response_model=DevEmployeeSessionResponse,
     status_code=201,
 )
-async def create_dev_employee_session(
-    session: AsyncSession = Depends(get_db_session),
-) -> DevEmployeeSessionResponse:
-    """Development-only: issue a JWT for the stable employee↔user binding.
+async def create_dev_employee_session() -> DevEmployeeSessionResponse:
+    """Local-only HS256 session when Cognito is not configured.
 
-    Blocked when APP_ENV is production. Does not accept client employee_id.
+    Unavailable in production and whenever Cognito is enabled.
     """
     settings = get_settings()
-    if settings.app_env.lower() in {"production", "prod"}:
+    if settings.app_env.lower() in {"production", "prod"} or cognito_configured(settings):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "not_available", "message": "Dev employee session is not available."},
         )
-    user = await ensure_dev_employee_user(session)
-    await session.commit()
-    access_token = _create_token(
+    user = await ensure_dev_employee_user()
+    access_token = _create_local_access_token(
         str(user.id),
         timedelta(minutes=settings.jwt_access_token_expire_minutes),
-        "access",
     )
     return DevEmployeeSessionResponse(
         access_token=access_token,

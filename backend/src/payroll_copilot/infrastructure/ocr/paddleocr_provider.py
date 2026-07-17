@@ -30,6 +30,11 @@ from payroll_copilot.infrastructure.ocr.language import (
 )
 from payroll_copilot.infrastructure.ocr.media_types import is_pdf, resolve_media_type
 from payroll_copilot.infrastructure.ocr.pdf_rasterizer import rasterize_pdf_to_png_pages
+from payroll_copilot.infrastructure.ocr.pdf_text import (
+    assess_embedded_text_quality,
+    extract_embedded_pdf_text,
+    log_extraction_stage,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -87,10 +92,46 @@ class PaddleOCRProvider:
         resolved_media = resolve_media_type(filename=filename, content_type=media_type)
         requested = normalize_document_language(language)
         paddle_lang = to_paddle_lang(requested)
+        warnings: list[str] = []
 
         try:
             if is_pdf(resolved_media):
+                page_texts, page_count = await asyncio.to_thread(extract_embedded_pdf_text, content)
+                text_len = sum(len((t or "").strip()) for t in page_texts)
+                log_extraction_stage(
+                    stage="pdf_embedded_text",
+                    document_type="payslip",
+                    page_count=page_count,
+                    extracted_text_length=text_len,
+                )
+                if assess_embedded_text_quality(page_texts).usable:
+                    pages = tuple(
+                        OcrPage(
+                            page=index,
+                            language=requested,
+                            text=text.strip(),
+                            confidence=None,
+                            lines=tuple(
+                                OcrLine(text=line, confidence=None, bbox=(0.0, 0.0, 0.0, 0.0), words=())
+                                for line in text.splitlines()
+                                if line.strip()
+                            ),
+                        )
+                        for index, text in enumerate(page_texts, start=1)
+                    )
+                    raw_text = "\n\n".join(page.text for page in pages if page.text).strip()
+                    return OCRResult(
+                        pages=pages,
+                        engine=f"{self.engine_name}+pdf_text",
+                        language_requested=requested,
+                        language_effective=requested,
+                        raw_text=raw_text,
+                        overall_confidence=None,
+                        fields=(),
+                        warnings=("pdf_embedded_text_used",),
+                    )
                 page_images = await asyncio.to_thread(rasterize_pdf_to_png_pages, content)
+                warnings.append("pdf_embedded_text_insufficient_ocr_fallback")
             else:
                 page_images = [content]
 
@@ -113,6 +154,13 @@ class PaddleOCRProvider:
                 raise OcrEmptyDocumentError()
 
             raw_text = "\n\n".join(page.text for page in pages if page.text).strip()
+            log_extraction_stage(
+                stage="ocr_completed",
+                document_type="payslip",
+                page_count=len(pages),
+                extracted_text_length=len(raw_text),
+                error_code=None if raw_text else "ocr_empty_text",
+            )
             return OCRResult(
                 pages=tuple(pages),
                 engine=self.engine_name,
@@ -121,7 +169,7 @@ class PaddleOCRProvider:
                 raw_text=raw_text,
                 overall_confidence=average_confidence(page_confidences),
                 fields=(),
-                warnings=(),
+                warnings=tuple(dict.fromkeys(warnings)),
             )
         except (
             OcrEmptyDocumentError,

@@ -15,6 +15,7 @@ def rasterize_pdf_to_png_pages(
     pdf_bytes: bytes,
     *,
     dpi: int = 200,
+    max_pages: int | None = None,
 ) -> list[bytes]:
     """Render each PDF page to PNG bytes.
 
@@ -37,7 +38,8 @@ def rasterize_pdf_to_png_pages(
         pages: list[bytes] = []
         zoom = dpi / 72.0
         matrix = fitz.Matrix(zoom, zoom)
-        for index in range(document.page_count):
+        limit = document.page_count if max_pages is None else min(document.page_count, max_pages)
+        for index in range(limit):
             try:
                 page = document.load_page(index)
                 pixmap = page.get_pixmap(matrix=matrix, alpha=False)

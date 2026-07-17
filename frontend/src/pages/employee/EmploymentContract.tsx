@@ -1,10 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
 
 export function EmploymentContractPage() {
+  const { t } = useTranslation();
   return (
     <PortalPage
-      title="Employment Contract"
-      description="Access your employment agreement and contract-derived validation context (RAG-indexed)."
+      title={t('employee.pages.contractTitle')}
+      description={t('employee.pages.contractDescription')}
       integrationNote="@integration-point EMPLOYEE_CONTRACT"
     />
   );

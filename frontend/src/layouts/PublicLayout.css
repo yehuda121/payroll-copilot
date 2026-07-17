@@ -90,6 +90,11 @@
   padding: 2rem 1.5rem 3rem;
 }
 
+.landing--chat-first {
+  max-width: 960px;
+  padding-top: 1.25rem;
+}
+
 .landing__hero {
   display: grid;
   grid-template-columns: 1fr 1fr;

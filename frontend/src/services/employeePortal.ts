@@ -90,10 +90,12 @@ export type PayrollMonthValidationSummary = {
     code: string;
     severity: string;
     message_key: string;
+    message_params?: Record<string, unknown>;
     expected_value?: string | null;
     actual_value?: string | null;
     confidence?: number | null;
     legal_reference?: string | null;
+    explanation?: string | null;
   }>;
 };
 
@@ -124,6 +126,10 @@ export type PayrollMonthDetail = {
     lifecycle_status: string;
     original_filename?: string | null;
     fields: Array<Record<string, unknown>>;
+    identity_check?: IdentityCheck | null;
+    period_check?: PeriodCheck | null;
+    blocks_confirmation?: boolean;
+    confirmed_at?: string | null;
   };
   validation_history?: Array<{
     validation_run_id: string;
@@ -137,6 +143,7 @@ export type PayrollMonthDetail = {
   latest_validation: PayrollMonthValidationSummary & {
     outdated?: boolean;
     extraction_id?: string | null;
+    confidence_explanation?: string | null;
   };
   missing_documents: Array<{ document_type: string; reason_code: string }>;
   presentation_status: string;
@@ -243,10 +250,11 @@ export const employeePortalService = {
   async uploadOwnedDocument(
     file: File,
     options: {
-      documentType: 'attendance' | 'contract' | 'national_id' | 'id_appendix';
+      documentType: 'attendance' | 'contract' | 'national_id' | 'id_appendix' | 'payslip';
       periodYear?: number;
       periodMonth?: number;
       language?: DocumentLanguage;
+      signal?: AbortSignal;
     },
   ): Promise<{ document_id: string; status: string }> {
     const formData = new FormData();
@@ -264,20 +272,28 @@ export const employeePortalService = {
       body: formData,
       rawBody: true,
       portalAuth: true,
+      signal: options.signal,
     });
   },
 
   async extractPayslip(
-    file: File,
+    file: File | null,
     options: {
       language?: DocumentLanguage;
       periodYear: number;
       periodMonth: number;
       confirmNewVersion?: boolean;
+      documentId?: string;
+      signal?: AbortSignal;
     },
   ): Promise<EmployeePayslipExtraction> {
     const formData = new FormData();
-    formData.append('file', file);
+    if (file) {
+      formData.append('file', file);
+    }
+    if (options.documentId) {
+      formData.append('document_id', options.documentId);
+    }
     formData.append('language', options.language ?? 'auto');
     formData.append('period_year', String(options.periodYear));
     formData.append('period_month', String(options.periodMonth));
@@ -286,6 +302,48 @@ export const employeePortalService = {
       method: 'POST',
       body: formData,
       rawBody: true,
+      portalAuth: true,
+      signal: options.signal,
+    });
+  },
+
+  async resolvePayslipPeriod(
+    documentId: string,
+    action: 'keep' | 'move' | 'cancel',
+  ): Promise<{
+    document_id: string;
+    action: string;
+    resolved: boolean;
+    period_year?: number;
+    period_month?: number;
+  }> {
+    return apiRequest(`/documents/employee/${encodeURIComponent(documentId)}/resolve-period`, {
+      method: 'POST',
+      body: JSON.stringify({ action }),
+      portalAuth: true,
+    });
+  },
+
+  async fetchDocumentContentBlob(documentId: string, signal?: AbortSignal): Promise<Blob> {
+    const { env } = await import('../config/env');
+    const { getPortalAuthHeaders } = await import('../lib/auth/access-token');
+    const response = await fetch(
+      `${env.apiBaseUrl}/documents/employee/${encodeURIComponent(documentId)}/content`,
+      {
+        method: 'GET',
+        headers: getPortalAuthHeaders(),
+        signal,
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to load document content (${response.status})`);
+    }
+    return response.blob();
+  },
+
+  async deleteOwnedDocument(documentId: string): Promise<{ document_id: string; deleted: boolean }> {
+    return apiRequest(`/documents/employee/${encodeURIComponent(documentId)}`, {
+      method: 'DELETE',
       portalAuth: true,
     });
   },
@@ -319,6 +377,7 @@ export const employeePortalService = {
     documentId: string;
     locale?: string;
     supportingDocumentIds?: string[];
+    signal?: AbortSignal;
   }): Promise<ValidationRunResponse> {
     return apiRequest<ValidationRunResponse>('/validation/employee/run', {
       method: 'POST',
@@ -328,6 +387,7 @@ export const employeePortalService = {
         locale: input.locale,
       }),
       portalAuth: true,
+      signal: input.signal,
     });
   },
 };

@@ -6,27 +6,20 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from payroll_copilot.application.validation.demo_validation_context_builder import (
     DEMO_ORGANIZATION_ID,
 )
-from payroll_copilot.infrastructure.persistence.database import get_db_session
-from payroll_copilot.infrastructure.persistence.repositories.audit_log_repository import (
-    SqlAlchemyAuditLogRepository,
-)
 
 router = APIRouter()
-
 
 @router.get("")
 async def list_audit_logs(
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     organization_id: UUID | None = None,
-    session: AsyncSession = Depends(get_db_session),
 ) -> list[dict[str, Any]]:
-    repo = SqlAlchemyAuditLogRepository(session)
+    repo = get_audit_log_repository()
     rows = await repo.list_recent(
         organization_id=organization_id or DEMO_ORGANIZATION_ID,
         limit=limit,

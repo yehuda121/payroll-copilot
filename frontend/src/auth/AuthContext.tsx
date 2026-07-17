@@ -4,7 +4,11 @@ import { clearAccessToken, saveAccessToken } from '../lib/auth/access-token';
 import { apiRequest } from '../services/api';
 import { employeePortalService } from '../services/employeePortal';
 import type { AuthSession, LoginCredentials, UserRole } from '../types/auth';
-import { cognitoAuthProvider } from './authProvider';
+import {
+  clearCognitoSession,
+  cognitoAuthProvider,
+  loadCognitoSession,
+} from './authProvider';
 import { clearDevSession, devLoginAsRole, loadDevSession, saveDevSession } from './devAuth';
 
 type AuthContextValue = {
@@ -17,6 +21,13 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+function initialSession(): AuthSession | null {
+  if (env.devAuthEnabled) {
+    return loadDevSession();
+  }
+  return loadCognitoSession();
+}
 
 async function fetchDevEmployeeAccessToken(): Promise<string | null> {
   try {
@@ -31,17 +42,21 @@ async function fetchDevEmployeeAccessToken(): Promise<string | null> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<AuthSession | null>(() =>
-    env.devAuthEnabled ? loadDevSession() : null,
-  );
+  const [session, setSession] = useState<AuthSession | null>(() => initialSession());
 
   const loginWithDevRole = useCallback(async (role: UserRole) => {
+    if (!env.devAuthEnabled) {
+      throw new Error('Dev role login is disabled. Sign in with Cognito credentials.');
+    }
+    clearCognitoSession();
     const next = devLoginAsRole(role);
     if (role === 'employee') {
       const token = await fetchDevEmployeeAccessToken();
       if (!token) {
         clearAccessToken();
-        throw new Error('Employee portal token could not be issued. Is the API running with seed data?');
+        throw new Error(
+          'Employee portal token could not be issued. Cognito may be enabled, or seed data is missing.',
+        );
       }
       saveAccessToken(token);
       next.accessToken = token;
@@ -55,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           organizationId: me.organization_id,
         };
       } catch {
-        // Keep seeded Yehuda display name if /me is temporarily unavailable.
+        // Keep seeded display name if /me is temporarily unavailable.
       }
       saveDevSession(next);
     } else {
@@ -69,12 +84,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (env.devAuthEnabled) {
       throw new Error('Use dev role login when VITE_DEV_AUTH_ENABLED is true.');
     }
+    clearDevSession();
     const next = await cognitoAuthProvider.login(credentials);
     setSession(next);
   }, []);
 
   const logout = useCallback(() => {
     clearDevSession();
+    clearCognitoSession();
     clearAccessToken();
     setSession(null);
     void cognitoAuthProvider.logout();

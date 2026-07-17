@@ -145,11 +145,14 @@ pip install -e ".[ocr-paddle]"
 - `PAYSLIP_PARSER_LAYOUT_ENABLED` (default true) — send OCR lines/words/bboxes to the LLM
 - `PAYSLIP_PARSER_INCLUDE_WORDS` / `PAYSLIP_PARSER_MAX_LINES` / `PAYSLIP_PARSER_MAX_WORDS` / `PAYSLIP_PARSER_MAX_CONTEXT_CHARS`
 
-### Database migrations
+### Database migrations (legacy)
 
-`DATABASE_URL` is shared by FastAPI and Alembic (`alembic/env.py` prefers the env var over `alembic.ini`).
+Runtime persistence is DynamoDB. `DATABASE_URL` is optional and used only for Alembic / SQLAlchemy tooling (`alembic/env.py` prefers the env var over `alembic.ini`).
 
-In Docker, the one-shot `migrate` Compose service runs `alembic upgrade head` before `api` / `worker` / `beat` start. Do not use localhost inside containers.
+```powershell
+docker compose --profile legacy-postgres up -d
+docker compose --profile legacy-postgres run --rm migrate
+```
 
 ### Current limitations
 

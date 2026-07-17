@@ -16,7 +16,7 @@ from payroll_copilot.application.exceptions import (
     OcrEmptyDocumentError,
     OcrProviderError,
 )
-from payroll_copilot.application.ports.ocr import OCRResult, OcrPage
+from payroll_copilot.application.ports.ocr import OCRResult, OcrLine, OcrPage
 from payroll_copilot.infrastructure.ocr.confidence import average_confidence
 from payroll_copilot.infrastructure.ocr.language import (
     DEFAULT_TESSERACT_MULTI_LANG,
@@ -25,6 +25,12 @@ from payroll_copilot.infrastructure.ocr.language import (
 )
 from payroll_copilot.infrastructure.ocr.media_types import is_pdf, resolve_media_type
 from payroll_copilot.infrastructure.ocr.pdf_rasterizer import rasterize_pdf_to_png_pages
+from payroll_copilot.infrastructure.ocr.pdf_text import (
+    assess_embedded_text_quality,
+    extract_embedded_pdf_text,
+    log_extraction_stage,
+)
+from payroll_copilot.infrastructure.ocr.text_normalize import normalize_extracted_text
 from payroll_copilot.infrastructure.ocr.preprocessing import (
     DocumentImagePreprocessor,
     OcrPreprocessingConfig,
@@ -68,6 +74,7 @@ class TesseractOCRProvider:
         filename: str | None = None,
         language: str = "auto",
     ) -> OCRResult:
+        started = time.perf_counter()
         if not content:
             raise OcrEmptyDocumentError()
 
@@ -83,13 +90,66 @@ class TesseractOCRProvider:
 
         try:
             if is_pdf(resolved_media):
-                page_images = await asyncio.to_thread(rasterize_pdf_to_png_pages, content)
+                page_texts, page_count = await asyncio.to_thread(extract_embedded_pdf_text, content)
+                text_len = sum(len((t or "").strip()) for t in page_texts)
+                log_extraction_stage(
+                    stage="pdf_embedded_text",
+                    document_type="payslip",
+                    page_count=page_count,
+                    extracted_text_length=text_len,
+                    duration_ms=(time.perf_counter() - started) * 1000,
+                )
+                quality = assess_embedded_text_quality(page_texts)
+                if quality.usable:
+                    normalized_pages = [normalize_extracted_text(text) for text in page_texts]
+                    pages = tuple(
+                        OcrPage(
+                            page=index,
+                            language=tess_lang,
+                            text=text.strip(),
+                            confidence=None,
+                            lines=tuple(
+                                OcrLine(text=line, confidence=None, bbox=(0.0, 0.0, 0.0, 0.0), words=())
+                                for line in text.splitlines()
+                                if line.strip()
+                            ),
+                        )
+                        for index, text in enumerate(normalized_pages, start=1)
+                    )
+                    raw_text = normalize_extracted_text(
+                        "\n\n".join(page.text for page in pages if page.text)
+                    )
+                    log_extraction_stage(
+                        stage="ocr_completed_embedded_text",
+                        document_type="payslip",
+                        page_count=page_count,
+                        extracted_text_length=len(raw_text),
+                        duration_ms=(time.perf_counter() - started) * 1000,
+                    )
+                    return OCRResult(
+                        pages=pages,
+                        engine=f"{self.engine_name}+pdf_text",
+                        language_requested=requested,
+                        language_effective=tess_lang,
+                        raw_text=raw_text,
+                        overall_confidence=None,
+                        fields=(),
+                        warnings=("pdf_embedded_text_used",),
+                    )
+
+                page_images = await asyncio.to_thread(
+                    rasterize_pdf_to_png_pages,
+                    content,
+                    max_pages=self._strategy.max_pages,
+                )
+                strategy_prefix = [f"pdf_embedded_text_insufficient:{quality.reason or 'unknown'}"]
             else:
                 page_images = [content]
+                strategy_prefix = []
 
             pages: list[OcrPage] = []
             page_confidences: list[float] = []
-            strategy_warnings: list[str] = []
+            strategy_warnings: list[str] = list(strategy_prefix)
 
             for index, image_bytes in enumerate(page_images, start=1):
                 page, warning = await asyncio.to_thread(
@@ -108,7 +168,15 @@ class TesseractOCRProvider:
             if not pages:
                 raise OcrEmptyDocumentError()
 
-            raw_text = "\n\n".join(page.text for page in pages if page.text).strip()
+            raw_text = normalize_extracted_text("\n\n".join(page.text for page in pages if page.text))
+            log_extraction_stage(
+                stage="ocr_completed",
+                document_type="payslip",
+                page_count=len(pages),
+                extracted_text_length=len(raw_text),
+                duration_ms=(time.perf_counter() - started) * 1000,
+                error_code=None if raw_text else "ocr_empty_text",
+            )
             return OCRResult(
                 pages=tuple(pages),
                 engine=self.engine_name,
@@ -126,9 +194,17 @@ class TesseractOCRProvider:
             raise OcrProviderError(f"Tesseract OCR failed: {exc}") from exc
 
     def _candidate_psms(self) -> tuple[int, ...]:
-        if not self._strategy.multi_psm_enabled:
-            return (self._strategy.psm_candidates[0],)
-        return self._strategy.psm_candidates[: self._strategy.max_candidates]
+        if self._strategy.multi_psm_enabled:
+            return self._strategy.psm_candidates[: self._strategy.max_candidates]
+        return (self._strategy.primary_psm,)
+
+    def _ocr_result_is_usable(self, layout: object, *, tess_lang: str) -> bool:
+        text = getattr(layout, "text", "") or ""
+        stripped = normalize_extracted_text(text)
+        if len(stripped.replace(" ", "").replace("\n", "")) < self._strategy.min_usable_text_chars:
+            return False
+        valid_words = int(getattr(layout, "valid_word_count", 0) or 0)
+        return valid_words > 0 or len(stripped) >= self._strategy.min_usable_text_chars
 
     def _extract_image_sync(
         self,
@@ -169,7 +245,16 @@ class TesseractOCRProvider:
             scored: list[tuple[int, float, float, int, object]] = []
             failures = 0
 
-            for psm in self._candidate_psms():
+            psms_to_try = list(self._candidate_psms())
+            if not self._strategy.multi_psm_enabled and self._strategy.fallback_psm not in psms_to_try:
+                psms_to_try.append(self._strategy.fallback_psm)
+
+            for psm in psms_to_try:
+                if scored and not self._strategy.multi_psm_enabled:
+                    # Adaptive mode: only try fallback when primary OCR is clearly unusable.
+                    _, _, _, _, best_layout = scored[0]
+                    if self._ocr_result_is_usable(best_layout, tess_lang=tess_lang):
+                        break
                 candidate_started = time.perf_counter()
                 config = build_tesseract_config(oem=oem, psm=psm)
                 try:
@@ -245,7 +330,7 @@ class TesseractOCRProvider:
             page = OcrPage(
                 page=page_number,
                 language=language_label,
-                text=selected.text,
+                text=normalize_extracted_text(selected.text),
                 confidence=selected.mean_confidence,
                 lines=selected.lines,
                 words=selected.words,

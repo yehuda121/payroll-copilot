@@ -91,6 +91,24 @@ export type ExtractedPayslipField = {
   original_value?: unknown;
 };
 
+/** Document-first landing extraction entry (complete Document Model row). */
+export type DynamicDocumentEntry = {
+  id: string;
+  key: string;
+  value: unknown;
+  confidence: number | null;
+  page: number | null;
+  source: string;
+  source_text: string | null;
+  /** Logical document section title when known (additive). */
+  section?: string | null;
+  /** field | table_cell | … (additive). */
+  kind?: string | null;
+  table_id?: string | null;
+  row_index?: number | null;
+  column?: string | null;
+};
+
 export type GuestPayslipExtractionResponse = {
   document_id: string;
   extraction_id: string;
@@ -102,15 +120,24 @@ export type GuestPayslipExtractionResponse = {
   parser_model: string | null;
   warnings: string[];
   fields: ExtractedPayslipField[];
+  entries?: DynamicDocumentEntry[];
   error_message?: string | null;
 };
 
 export type GuestExtractionCorrectionRequest = {
-  corrections: Array<{
+  corrections?: Array<{
     key: string;
     value?: unknown;
     clear?: boolean;
   }>;
+  entry_patches?: Array<{
+    id?: string;
+    key?: string;
+    value?: unknown;
+    delete?: boolean;
+    add?: boolean;
+  }>;
+  entries?: DynamicDocumentEntry[];
 };
 
 export type BatchJobResponse = {

@@ -2,8 +2,14 @@
 
 ## Overview
 
+**Production runtime:** Amazon DynamoDB (single-table) is the primary business database. Document bytes are stored in Amazon S3. See [ARCHITECTURE.md](../ARCHITECTURE.md).
+
+**Legacy (optional):** PostgreSQL 16 + Alembic / SQLAlchemy models remain in the repo for older tests and tooling. They are **not** the active runtime path. Start with `docker compose --profile legacy-postgres` and set `DATABASE_URL` only when needed.
+
+### Legacy PostgreSQL notes (optional tooling)
+
 PostgreSQL 16 with extensions:
-- `pgvector` — RAG embeddings
+- `pgvector` — RAG embeddings (legacy path)
 - `uuid-ossp` — UUID primary keys
 - `pg_trgm` — fuzzy name matching for employee identification
 

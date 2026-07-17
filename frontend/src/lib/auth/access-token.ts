@@ -3,6 +3,7 @@
  * Guest tokens remain separate (guest-session.ts).
  */
 
+import { loadCognitoSession } from '../../auth/authProvider';
 import { loadDevSession } from '../../auth/devAuth';
 
 const ACCESS_TOKEN_KEY = 'payroll_copilot_access_token';
@@ -23,9 +24,13 @@ export function clearAccessToken(): void {
   sessionStorage.removeItem(ACCESS_TOKEN_KEY);
 }
 
-/** Prefer stored access token; fall back to persisted session.accessToken. */
+/** Prefer stored access token; fall back to Cognito or dev session. */
 export function getPortalAuthHeaders(): Record<string, string> {
-  const token = loadAccessToken() ?? loadDevSession()?.accessToken ?? null;
+  const token =
+    loadAccessToken() ??
+    loadCognitoSession()?.accessToken ??
+    loadDevSession()?.accessToken ??
+    null;
   if (!token) return {};
   return { Authorization: `Bearer ${token}` };
 }

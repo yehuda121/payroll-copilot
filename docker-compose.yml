@@ -4,7 +4,12 @@ networks:
     driver: bridge
 
 services:
+  # Legacy PostgreSQL — optional (Alembic / SQLAlchemy tests only).
+  # Runtime persistence is DynamoDB. Start with:
+  #   docker compose --profile legacy-postgres up -d
   postgres:
+    profiles:
+      - legacy-postgres
     image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: payroll
@@ -40,6 +45,16 @@ services:
       start_period: 5s
     restart: unless-stopped
 
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    ports:
+      - "8001:8000"
+    networks:
+      - payroll_net
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    restart: unless-stopped
+
+  # Local S3 substitute (MinIO). Production uses Amazon S3 (empty S3_ENDPOINT).
   minio:
     image: minio/minio:latest
     ports:
@@ -53,11 +68,12 @@ services:
     networks:
       - payroll_net
     command: server /data --console-address ":9001"
-    # MinIO server image has no curl/wget; rely on process start + DependsOn service_started.
     restart: unless-stopped
 
-  # One-shot: alembic upgrade head. Idempotent. Never drops data or recreates volumes.
+  # One-shot Alembic — only with legacy-postgres profile + DATABASE_URL set.
   migrate:
+    profiles:
+      - legacy-postgres
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -84,14 +100,12 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      postgres:
-        condition: service_healthy
+      dynamodb:
+        condition: service_started
       redis:
         condition: service_healthy
       minio:
         condition: service_started
-      migrate:
-        condition: service_completed_successfully
     volumes:
       - ./backend/config:/app/config:ro
       - ./backend/tests/fixtures:/app/tests/fixtures:ro
@@ -116,14 +130,12 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      postgres:
-        condition: service_healthy
+      dynamodb:
+        condition: service_started
       redis:
         condition: service_healthy
       minio:
         condition: service_started
-      migrate:
-        condition: service_completed_successfully
     volumes:
       - ./backend/config:/app/config:ro
     networks:
@@ -141,8 +153,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
+      dynamodb:
+        condition: service_started
     volumes:
       - ./backend/config:/app/config:ro
     networks:
@@ -173,8 +185,9 @@ services:
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
     restart: unless-stopped
 
-  # Optional fallback when host Ollama is not available.
+  # Optional local LLM when host Ollama is not available.
   # Start with: docker compose --profile docker-ollama up -d
+  # Production uses Amazon Bedrock (MODEL_PROVIDER=bedrock) — never start this in prod.
   ollama:
     profiles:
       - docker-ollama

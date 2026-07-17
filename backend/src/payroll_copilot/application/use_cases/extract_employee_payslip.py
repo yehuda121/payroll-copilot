@@ -40,6 +40,7 @@ class EmployeePayslipExtractionCommand:
     user_id: UUID
     national_id_encrypted: bytes | None
     confirm_new_version: bool = False
+    source_document_id: UUID | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,7 +76,19 @@ class ExtractEmployeePayslipUseCase:
             period_year=command.period_year,
             period_month=command.period_month,
         )
-        if existing is not None and not command.confirm_new_version:
+        reuse_id = command.source_document_id
+        if reuse_id is not None:
+            source = await self._documents.get_by_id(reuse_id)
+            if (
+                source is None
+                or source.employee_id != employee.id
+                or source.organization_id != employee.organization_id
+            ):
+                from payroll_copilot.application.exceptions import DocumentNotFoundError
+
+                raise DocumentNotFoundError(reuse_id)
+            existing = source
+        elif existing is not None and not command.confirm_new_version:
             latest = await self._extractions.get_latest_for_document(existing.id)
             uploaded_at = existing.created_at.isoformat() if existing.created_at else None
             raise DuplicatePayslipPeriodError(
@@ -89,7 +102,7 @@ class ExtractEmployeePayslipUseCase:
             "selected_period_year": command.period_year,
             "selected_period_month": command.period_month,
         }
-        if existing is not None and command.confirm_new_version:
+        if existing is not None and command.confirm_new_version and reuse_id is None:
             metadata_extra["supersedes_document_id"] = str(existing.id)
             metadata_extra["document_version_action"] = "explicit_new_version"
 
@@ -104,14 +117,21 @@ class ExtractEmployeePayslipUseCase:
                 uploaded_by=command.user_id,
                 period_year=command.period_year,
                 period_month=command.period_month,
-                confirm_new_version=command.confirm_new_version,
+                confirm_new_version=command.confirm_new_version or reuse_id is not None,
                 metadata_extra=metadata_extra,
+                ephemeral=False,
+                reuse_document_id=reuse_id,
             )
         )
 
-        # Persist extracted period separately without overwriting selected period columns.
+        # Persist extracted period + identity/period comparison snapshot for month reload.
         document = await self._documents.get_by_id(guest_result.document_id)
+        comparison = self._run_comparison(command, guest_result.fields)
         if document is not None:
+            from payroll_copilot.application.services.employee_workspace_snapshot import (
+                apply_comparison_snapshot,
+            )
+
             extracted_year, extracted_month = self._extracted_period(guest_result.fields)
             meta = dict(document.metadata or {})
             meta["selected_period_year"] = command.period_year
@@ -120,10 +140,9 @@ class ExtractEmployeePayslipUseCase:
                 meta["extracted_period_year"] = extracted_year
             if extracted_month is not None:
                 meta["extracted_period_month"] = extracted_month
-            document.metadata = meta
+            document.metadata = apply_comparison_snapshot(meta, comparison)
             await self._documents.save(document)
 
-        comparison = self._run_comparison(command, guest_result.fields)
         await self._audit_extract(command, guest_result, comparison)
 
         latest = await self._extractions.get_latest_for_document(guest_result.document_id)

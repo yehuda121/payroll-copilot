@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from functools import lru_cache
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
@@ -97,8 +98,11 @@ def resolve_ollama_base_url(
     return fallback
 
 
-def get_resolved_ollama_base_url(settings: Settings) -> str:
-    """Resolve Ollama URL from application settings."""
+@lru_cache
+def _resolved_ollama_base_url_cached() -> str:
+    from payroll_copilot.infrastructure.config.settings import get_settings
+
+    settings = get_settings()
     return resolve_ollama_base_url(
         explicit_url=settings.ollama_base_url,
         local_url=settings.ollama_local_url,
@@ -107,3 +111,9 @@ def get_resolved_ollama_base_url(settings: Settings) -> str:
         auto_fallback=settings.ollama_auto_fallback,
         probe_timeout_seconds=settings.ollama_probe_timeout_seconds,
     )
+
+
+def get_resolved_ollama_base_url(settings: Settings) -> str:
+    """Resolve Ollama URL from application settings (cached per process)."""
+    _ = settings
+    return _resolved_ollama_base_url_cached()

@@ -10,9 +10,21 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from payroll_copilot.application.ports.ocr import OCRProvider, OCRResult, OcrLine, OcrPage
+from payroll_copilot.application.ports.email import (
+    EmailAddress,
+    EmailDeliveryError,
+    EmailMessage,
+    EmailSendResult,
+    EmailService,
+)
 
 __all__ = [
     "CompletionResult",
+    "EmailAddress",
+    "EmailDeliveryError",
+    "EmailMessage",
+    "EmailSendResult",
+    "EmailService",
     "LegalRulesLoader",
     "Message",
     "ModelProvider",
@@ -50,7 +62,7 @@ class StructuredResult:
 
 @runtime_checkable
 class ModelProvider(Protocol):
-    """Abstraction for LLM providers (Ollama, OpenAI, Claude, etc.)."""
+    """Abstraction for LLM providers (Amazon Bedrock, Ollama, etc.)."""
 
     @property
     def embedding_dimensions(self) -> int: ...
@@ -61,6 +73,7 @@ class ModelProvider(Protocol):
         *,
         temperature: float = 0.0,
         max_tokens: int = 4096,
+        json_mode: bool = False,
     ) -> CompletionResult: ...
 
     async def complete_structured(

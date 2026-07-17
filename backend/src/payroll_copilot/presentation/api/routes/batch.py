@@ -66,17 +66,9 @@ async def upload_bulk_payslips(file: UploadFile = File(...)) -> BatchJobResponse
 
     content = await file.read()
     from payroll_copilot.infrastructure.config.settings import get_settings
-    from payroll_copilot.infrastructure.storage.s3_storage import S3ObjectStorage
+    from payroll_copilot.infrastructure.storage.factory import create_object_storage
 
-    settings = get_settings()
-    storage = S3ObjectStorage(
-        endpoint=settings.s3_endpoint,
-        access_key=settings.s3_access_key,
-        secret_key=settings.s3_secret_key,
-        bucket=settings.s3_bucket,
-        region=settings.s3_region,
-        use_ssl=settings.s3_use_ssl,
-    )
+    storage = create_object_storage(get_settings())
     await storage.upload(f"documents/{document_id}", content, "application/pdf")
 
     store = get_batch_progress_store()

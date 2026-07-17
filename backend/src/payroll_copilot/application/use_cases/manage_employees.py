@@ -16,9 +16,6 @@ from payroll_copilot.application.ports.employee_audit import (
 )
 from payroll_copilot.domain.entities import Employee
 from payroll_copilot.domain.enums import EmployeeStatus, EmploymentType, SalaryType
-from payroll_copilot.infrastructure.persistence.repositories.employee_repository import (
-    SqlAlchemyEmployeeRepository,
-)
 from payroll_copilot.infrastructure.security.field_crypto import (
     encrypt_national_id,
     hash_national_id,
@@ -175,12 +172,9 @@ class ManageEmployeesUseCase:
             metadata=metadata,
         )
 
-        if isinstance(self._employees, SqlAlchemyEmployeeRepository):
-            await self._employees.save_with_national_id(
-                employee, national_id_encrypted=encrypted
-            )
-        else:
-            await self._employees.save(employee)
+        await self._employees.save_with_national_id(
+            employee, national_id_encrypted=encrypted
+        )
 
         await self._audit.append(
             AuditLogEntry(
@@ -247,12 +241,9 @@ class ManageEmployeesUseCase:
 
         employee.metadata = metadata
 
-        if isinstance(self._employees, SqlAlchemyEmployeeRepository):
-            await self._employees.save_with_national_id(
-                employee, national_id_encrypted=encrypted
-            )
-        else:
-            await self._employees.save(employee)
+        await self._employees.save_with_national_id(
+            employee, national_id_encrypted=encrypted
+        )
 
         await self._audit.append(
             AuditLogEntry(

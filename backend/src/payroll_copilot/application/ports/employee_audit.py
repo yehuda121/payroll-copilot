@@ -65,6 +65,15 @@ class EmployeeRepository(ABC):
     @abstractmethod
     async def save(self, employee: Employee) -> Employee: ...
 
+    async def save_with_national_id(
+        self,
+        employee: Employee,
+        *,
+        national_id_encrypted: bytes | None,
+    ) -> Employee:
+        """Persist employee and optional encrypted National ID. Default ignores NID bytes."""
+        return await self.save(employee)
+
     async def get_national_id_encrypted(self, employee_id: UUID) -> bytes | None:
         """Return encrypted National ID bytes for server-side comparison only."""
         raise NotImplementedError

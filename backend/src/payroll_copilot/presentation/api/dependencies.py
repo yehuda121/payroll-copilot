@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from payroll_copilot.application.ports.organization_bootstrap import OrganizationBootstrapPort
 from payroll_copilot.application.ports.repositories import (
@@ -30,74 +31,56 @@ from payroll_copilot.application.validation.guest_extraction_context_builder imp
     GuestExtractionValidationContextBuilder,
 )
 from payroll_copilot.infrastructure.ai.payslip_parser_factory import create_payslip_parser
-from payroll_copilot.infrastructure.config.service_resolver import get_resolved_s3_endpoint
 from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.infrastructure.ocr.factory import create_ocr_provider
-from payroll_copilot.infrastructure.persistence.database import get_db_session
+from payroll_copilot.infrastructure.persistence import dynamodb as dynamo_persistence
+from payroll_copilot.infrastructure.storage.factory import create_object_storage
 from payroll_copilot.infrastructure.storage.s3_storage import S3ObjectStorage
-from payroll_copilot.infrastructure.persistence.repositories.document_extraction_repository import (
-    SqlAlchemyDocumentExtractionRepository,
-)
-from payroll_copilot.infrastructure.persistence.repositories.document_repository import (
-    SqlAlchemyDocumentRepository,
-)
-from payroll_copilot.infrastructure.persistence.repositories.organization_bootstrap import (
-    SqlAlchemyOrganizationBootstrap,
-)
-from payroll_copilot.infrastructure.persistence.repositories.validation_finding_repository import (
-    SqlAlchemyValidationFindingRepository,
-)
-from payroll_copilot.infrastructure.persistence.repositories.validation_run_repository import (
-    SqlAlchemyValidationRunRepository,
-)
+from payroll_copilot.infrastructure.email.factory import create_email_service
+from payroll_copilot.application.ports.email import EmailService
 from payroll_copilot.infrastructure.rules.yaml_loader import YamlLegalRulesLoader
 
 
-def get_document_repository(
-    session: AsyncSession = Depends(get_db_session),
-) -> DocumentRepository:
-    return SqlAlchemyDocumentRepository(session)
+def get_document_repository() -> DocumentRepository:
+    return dynamo_persistence.get_document_repository()
 
 
-def get_document_extraction_repository(
-    session: AsyncSession = Depends(get_db_session),
-) -> DocumentExtractionRepository:
-    return SqlAlchemyDocumentExtractionRepository(session)
+def get_document_extraction_repository() -> DocumentExtractionRepository:
+    return dynamo_persistence.get_document_extraction_repository()
 
 
-def get_validation_run_repository(
-    session: AsyncSession = Depends(get_db_session),
-) -> ValidationRunRepository:
-    return SqlAlchemyValidationRunRepository(session)
+def get_validation_run_repository() -> ValidationRunRepository:
+    return dynamo_persistence.get_validation_run_repository()
 
 
-def get_validation_finding_repository(
-    session: AsyncSession = Depends(get_db_session),
-) -> ValidationFindingRepository:
-    return SqlAlchemyValidationFindingRepository(session)
+def get_validation_finding_repository() -> ValidationFindingRepository:
+    return dynamo_persistence.get_validation_finding_repository()
 
 
-def get_organization_bootstrap(
-    session: AsyncSession = Depends(get_db_session),
-) -> OrganizationBootstrapPort:
-    return SqlAlchemyOrganizationBootstrap(session)
+def get_organization_bootstrap() -> OrganizationBootstrapPort:
+    return dynamo_persistence.get_organization_bootstrap()
 
 
+@lru_cache
 def get_object_storage() -> S3ObjectStorage:
-    settings = get_settings()
-    return S3ObjectStorage(
-        endpoint=get_resolved_s3_endpoint(settings),
-        access_key=settings.s3_access_key,
-        secret_key=settings.s3_secret_key,
-        bucket=settings.s3_bucket,
-        region=settings.s3_region,
-        use_ssl=settings.s3_use_ssl,
-    )
+    return create_object_storage(get_settings())
 
 
+@lru_cache
+def get_email_service() -> EmailService:
+    return create_email_service(get_settings())
+
+
+@lru_cache
 def get_ocr_provider() -> OCRProvider:
     settings = get_settings()
     return create_ocr_provider(settings.ocr_provider, settings)
+
+
+@lru_cache
+def get_payslip_parser() -> PayslipParser:
+    settings = get_settings()
+    return create_payslip_parser(settings)
 
 
 def get_extract_document_text_use_case(
@@ -108,11 +91,6 @@ def get_extract_document_text_use_case(
         ocr_provider,
         timeout_seconds=settings.ocr_timeout_seconds,
     )
-
-
-def get_payslip_parser() -> PayslipParser:
-    settings = get_settings()
-    return create_payslip_parser(settings)
 
 
 def get_parse_payslip_use_case(
@@ -126,6 +104,7 @@ def get_parse_payslip_use_case(
     return ParsePayslipFromOcrUseCase(
         parser,
         timeout_seconds=settings.payslip_parser_timeout_seconds,
+        total_budget_seconds=settings.payslip_parser_total_budget_seconds,
         layout_config=parser_layout_config_from_settings(settings),
     )
 

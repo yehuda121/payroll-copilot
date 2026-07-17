@@ -13,10 +13,10 @@ export type AuthUser = {
 
 export type AuthSession = {
   user: AuthUser;
-  /** Dev mode marker — replaced by Cognito tokens in production. */
+  /** Cognito (production) or local dev role selector. */
   provider: 'dev' | 'cognito';
   issuedAt: string;
-  /** API JWT for employee-bound routes (issued by /auth/dev/employee-session). */
+  /** Bearer token for portal API calls (Cognito access token or local HS256). */
   accessToken?: string;
 };
 

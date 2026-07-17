@@ -99,15 +99,26 @@ class PayslipParserSemanticError(PayslipParserSchemaError):
         *,
         category: str = "semantic_invalid",
         warning_code: str | None = None,
+        partial_payload: dict | None = None,
     ) -> None:
         PayslipParserError.__init__(self, message, code="semantic_validation_failed")
         self.category = category
         self.warning_code = warning_code or "parser_semantic_invalid"
+        self.partial_payload = partial_payload
 
 
 class PayslipParserTimeoutError(PayslipParserError):
     def __init__(self, message: str = "Payslip parser timed out.") -> None:
         super().__init__(message, code="parser_timeout")
+
+
+class ExtractionCancelledError(Exception):
+    """Guest extraction was cancelled by the client."""
+
+    def __init__(self, message: str = "Extraction cancelled.") -> None:
+        self.message = message
+        self.code = "extraction_cancelled"
+        super().__init__(message)
 
 
 class EmployeeAuthError(Exception):

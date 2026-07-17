@@ -116,6 +116,24 @@ async def test_routing_hebrew_uses_tesseract_and_warns() -> None:
 
 
 @pytest.mark.asyncio
+async def test_routing_auto_uses_tesseract_for_israeli_payslips() -> None:
+    primary = _FakeProvider("paddleocr")
+    fallback = _FakeProvider("tesseract")
+    router = RoutingOCRProvider(primary=primary, hebrew_fallback=fallback)
+
+    result = await router.extract(
+        content=_PNG_1X1,
+        media_type="image/png",
+        filename="slip.png",
+        language="auto",
+    )
+
+    assert result.engine == "tesseract"
+    assert fallback.calls and not primary.calls
+    assert any("heb+eng" in w for w in result.warnings)
+
+
+@pytest.mark.asyncio
 async def test_routing_english_uses_paddle() -> None:
     primary = _FakeProvider("paddleocr")
     fallback = _FakeProvider("tesseract")

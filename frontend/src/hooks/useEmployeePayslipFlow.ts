@@ -1,6 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useOptionalUnsavedChanges } from '../features/accountant/UnsavedChangesGuard';
+import {
+  GuestExtractionSubmission,
+  isAbortError,
+  mapExtractionFailureMessage,
+} from '../lib/guest/guestExtractionAbort';
 import { validateUploadFile } from '../lib/guest/upload-guardrails';
 import { adaptValidationReport } from '../lib/guest/validation-report-adapter';
 import { useAppLocale } from './useAppLocale';
@@ -15,6 +20,10 @@ import type { DocumentLanguage, ExtractedPayslipField } from '../types/api';
 import type { GuestValidationReport } from '../types/validation-report';
 
 export type EmployeeFlowStep = 'upload' | 'prepare' | 'review' | 'validating' | 'report';
+
+export type EmployeeBusyPhase = 'extracting' | 'confirming' | 'validating' | null;
+
+export type EmployeeReviewTab = 'original' | 'digital';
 
 export type FieldDraft = {
   value: string;
@@ -69,10 +78,14 @@ export function useEmployeePayslipFlow() {
   const { locale } = useAppLocale();
   const unsaved = useOptionalUnsavedChanges();
   const initial = nowPeriod();
+  const extractSubmissionRef = useRef(new GuestExtractionSubmission());
+  const validateSubmissionRef = useRef(new GuestExtractionSubmission());
 
   const [step, setStep] = useState<EmployeeFlowStep>('upload');
+  const [busyPhase, setBusyPhase] = useState<EmployeeBusyPhase>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const [periodYear, setPeriodYear] = useState(initial.year);
   const [periodMonth, setPeriodMonth] = useState(initial.month);
   const [documentLanguage, setDocumentLanguage] = useState<DocumentLanguage>('auto');
@@ -81,6 +94,8 @@ export function useEmployeePayslipFlow() {
   const [fieldDrafts, setFieldDrafts] = useState<Record<string, FieldDraft>>({});
   const [report, setReport] = useState<GuestValidationReport | null>(null);
   const [duplicateConflict, setDuplicateConflict] = useState<DuplicateConflict | null>(null);
+  const [reviewTab, setReviewTab] = useState<EmployeeReviewTab>('digital');
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const [acknowledgement, setAcknowledgement] = useState(false);
   const [confirmationStatus, setConfirmationStatus] = useState<string | null>(null);
@@ -95,10 +110,30 @@ export function useEmployeePayslipFlow() {
     return () => unsaved?.setDirty(false);
   }, [dirty, step, unsaved]);
 
+  useEffect(() => {
+    if (!file) {
+      setFilePreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setFilePreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  useEffect(() => {
+    const extractSubmission = extractSubmissionRef.current;
+    const validateSubmission = validateSubmissionRef.current;
+    return () => {
+      extractSubmission.cancel();
+      validateSubmission.cancel();
+    };
+  }, []);
+
   const identityCheck: IdentityCheck | null = extraction?.identity_check ?? null;
   const periodCheck: PeriodCheck | null = extraction?.period_check ?? null;
   const blocksConfirmation = Boolean(extraction?.blocks_confirmation);
   const isConfirmed = confirmationStatus === 'confirmed';
+  const isBusy = busyPhase !== null;
 
   const initDrafts = useCallback((fields: ExtractedPayslipField[]) => {
     const next: Record<string, FieldDraft> = {};
@@ -114,6 +149,7 @@ export function useEmployeePayslipFlow() {
 
   const selectFile = useCallback(
     async (next: File) => {
+      if (isBusy) return;
       const result = await validateUploadFile('payslip', next, file ? [file.name] : [], t);
       if (!result.ok) {
         setFile(next);
@@ -126,14 +162,31 @@ export function useEmployeePayslipFlow() {
       setDuplicateConflict(null);
       setAcknowledgement(false);
       setConfirmationStatus(null);
+      setStatusMessage(null);
     },
-    [file, t],
+    [file, isBusy, t],
   );
 
   const removeFile = useCallback(() => {
+    if (isBusy) return;
     setFile(null);
     setFileError(null);
-  }, []);
+  }, [isBusy]);
+
+  const cancelUploadSelection = useCallback(() => {
+    if (busyPhase === 'extracting') {
+      extractSubmissionRef.current.cancel();
+      setBusyPhase(null);
+      setStatusMessage(null);
+      setStep('upload');
+      setFlowError(t('employee.upload.extractionCancelled'));
+      return;
+    }
+    setFile(null);
+    setFileError(null);
+    setFlowError(null);
+    setStatusMessage(null);
+  }, [busyPhase, t]);
 
   const updateFieldDraft = useCallback((key: string, value: string) => {
     setFieldDrafts((prev) => ({
@@ -168,12 +221,20 @@ export function useEmployeePayslipFlow() {
         return;
       }
 
+      const signal = extractSubmissionRef.current.begin();
+      if (!signal) return;
+
       setFlowError(null);
       setDuplicateConflict(null);
       setExtraction(null);
       setReport(null);
       setFieldDrafts({});
+      setAcknowledgement(false);
+      setConfirmationStatus(null);
+      setBusyPhase('extracting');
+      setStatusMessage(t('employee.upload.extractingDocument'));
       setStep('prepare');
+      setReviewTab('digital');
 
       try {
         const response = await employeePortalService.extractPayslip(file, {
@@ -181,7 +242,11 @@ export function useEmployeePayslipFlow() {
           periodYear,
           periodMonth,
           confirmNewVersion,
+          signal,
         });
+        extractSubmissionRef.current.end();
+        setBusyPhase(null);
+        setStatusMessage(null);
         setExtraction(response);
         initDrafts(response.fields);
 
@@ -197,6 +262,23 @@ export function useEmployeePayslipFlow() {
         }
         setStep('review');
       } catch (err) {
+        const intentional = extractSubmissionRef.current.wasIntentionallyCancelled;
+        extractSubmissionRef.current.end();
+        setBusyPhase(null);
+        setStatusMessage(null);
+
+        if (intentional || isAbortError(err)) {
+          setFlowError(
+            mapExtractionFailureMessage(err, {
+              intentionallyCancelled: true,
+              cancelledMessage: t('employee.upload.extractionCancelled'),
+              fallbackMessage: t('validate.extractionFailed'),
+            }),
+          );
+          setStep('upload');
+          return;
+        }
+
         if (err instanceof ApiClientError && err.code === 'duplicate_payslip_period') {
           const details = (err.details || {}) as Record<string, unknown>;
           setDuplicateConflict({
@@ -216,6 +298,15 @@ export function useEmployeePayslipFlow() {
     },
     [file, periodYear, periodMonth, documentLanguage, initDrafts, t],
   );
+
+  const cancelExtraction = useCallback(() => {
+    if (busyPhase !== 'extracting') return;
+    extractSubmissionRef.current.cancel();
+    setBusyPhase(null);
+    setStatusMessage(null);
+    setStep('upload');
+    setFlowError(t('employee.upload.extractionCancelled'));
+  }, [busyPhase, t]);
 
   const confirmDuplicateVersion = useCallback(async () => {
     await runExtract(true);
@@ -261,6 +352,8 @@ export function useEmployeePayslipFlow() {
     }
 
     setFlowError(null);
+    setBusyPhase('confirming');
+    setStatusMessage(t('employee.upload.confirming'));
     try {
       const latest = await persistCorrectionsIfNeeded();
       if (latest?.blocks_confirmation) {
@@ -278,6 +371,9 @@ export function useEmployeePayslipFlow() {
         return;
       }
       setFlowError(err instanceof Error ? err.message : t('validate.extractionFailed'));
+    } finally {
+      setBusyPhase(null);
+      setStatusMessage(null);
     }
   }, [
     extraction,
@@ -303,18 +399,39 @@ export function useEmployeePayslipFlow() {
       return;
     }
 
+    const signal = validateSubmissionRef.current.begin();
+    if (!signal) return;
+
     setFlowError(null);
+    setBusyPhase('validating');
+    setStatusMessage(t('employee.upload.validatingPayroll'));
     setStep('validating');
 
     try {
       const validation = await employeePortalService.validatePayslip({
         documentId,
         locale,
+        signal,
       });
+      validateSubmissionRef.current.end();
+      setBusyPhase(null);
+      setStatusMessage(null);
       setReport(adaptValidationReport(validation, t));
       unsaved?.setDirty(false);
+      setReviewTab('digital');
       setStep('report');
     } catch (err) {
+      const intentional = validateSubmissionRef.current.wasIntentionallyCancelled;
+      validateSubmissionRef.current.end();
+      setBusyPhase(null);
+      setStatusMessage(null);
+
+      if (intentional || isAbortError(err)) {
+        setFlowError(t('employee.upload.validationCancelled'));
+        setStep('review');
+        return;
+      }
+
       if (err instanceof ApiClientError) {
         if (
           err.code === 'national_id_mismatch' ||
@@ -331,11 +448,24 @@ export function useEmployeePayslipFlow() {
     }
   }, [extraction, blocksConfirmation, isConfirmed, locale, unsaved, t]);
 
+  const cancelValidation = useCallback(() => {
+    if (busyPhase !== 'validating') return;
+    validateSubmissionRef.current.cancel();
+    setBusyPhase(null);
+    setStatusMessage(null);
+    setStep('review');
+    setFlowError(t('employee.upload.validationCancelled'));
+  }, [busyPhase, t]);
+
   const reset = useCallback(async () => {
     if (unsaved) {
       const ok = await unsaved.confirmIfDirty();
       if (!ok) return;
     }
+    extractSubmissionRef.current.cancel();
+    validateSubmissionRef.current.cancel();
+    setBusyPhase(null);
+    setStatusMessage(null);
     setFile(null);
     setFileError(null);
     setFlowError(null);
@@ -345,6 +475,7 @@ export function useEmployeePayslipFlow() {
     setDuplicateConflict(null);
     setAcknowledgement(false);
     setConfirmationStatus(null);
+    setReviewTab('digital');
     setStep('upload');
     setDocumentLanguage('auto');
     const next = nowPeriod();
@@ -355,8 +486,12 @@ export function useEmployeePayslipFlow() {
 
   return {
     step,
+    busyPhase,
+    isBusy,
+    statusMessage,
     file,
     fileError,
+    filePreviewUrl,
     periodYear,
     periodMonth,
     setPeriodYear,
@@ -376,14 +511,19 @@ export function useEmployeePayslipFlow() {
     confirmationStatus,
     isConfirmed,
     dirty,
+    reviewTab,
+    setReviewTab,
     selectFile,
     removeFile,
+    cancelUploadSelection,
     updateFieldDraft,
     clearFieldDraft,
     startExtraction: () => runExtract(false),
+    cancelExtraction,
     confirmDuplicateVersion,
     confirmExtractedFields,
     continueToValidate,
+    cancelValidation,
     reset,
   };
 }
