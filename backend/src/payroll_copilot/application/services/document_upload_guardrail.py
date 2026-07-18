@@ -19,6 +19,7 @@ _ALLOWED_MIME_TYPES: dict[DocumentType, frozenset[str]] = {
     ),
     DocumentType.CONTRACT: frozenset({"application/pdf"}),
     DocumentType.NATIONAL_ID: frozenset({"application/pdf", "image/png", "image/jpeg"}),
+    DocumentType.ID_APPENDIX: frozenset({"application/pdf", "image/png", "image/jpeg"}),
     DocumentType.EMPLOYEE_EXCEL: frozenset(
         {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
     ),

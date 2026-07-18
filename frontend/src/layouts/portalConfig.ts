@@ -4,11 +4,10 @@ export const EMPLOYEE_PORTAL: PortalConfig = {
   portalNameKey: 'employee.navigation.portalName',
   portalSubtitleKey: 'employee.navigation.portalSubtitle',
   basePath: '/employee',
+  showUserEmail: true,
   navItems: [
-    { labelKey: 'employee.navigation.payslips', path: '/employee/payslips' },
     { labelKey: 'employee.navigation.documents', path: '/employee/documents' },
-    { labelKey: 'employee.navigation.attendance', path: '/employee/attendance' },
-    { labelKey: 'employee.navigation.contract', path: '/employee/contract' },
+    { labelKey: 'employee.navigation.payslips', path: '/employee/payslips' },
     { labelKey: 'employee.navigation.chat', path: '/employee/chat' },
   ],
 };

@@ -73,6 +73,11 @@ export function PortalShell({ config }: PortalShellProps) {
             {t('portal.shell.batchActiveBanner')}
           </div>
         )}
+        {config.showUserEmail && user?.email ? (
+          <p className="portal-shell__nav-email" title={user.email}>
+            {user.email}
+          </p>
+        ) : null}
         <nav className="portal-shell__nav" aria-label={portalName}>
           {config.navItems.map((item) => (
             <NavLink

@@ -171,3 +171,29 @@ async def test_assistant_chat_greeting_prefixed_injection_is_blocked(client: Asy
     )
     assert response.status_code == 200
     assert response.json()["guardrail_status"] in {"blocked_safety", "blocked"}
+
+
+@pytest.mark.asyncio
+async def test_employee_assistant_requires_authenticated_employee(client: AsyncClient) -> None:
+    response = await client.post(
+        "/api/v1/assistant/employee/chat",
+        json={"message": "What is my name?", "locale": "en"},
+    )
+    assert response.status_code in {401, 403}
+
+
+@pytest.mark.asyncio
+async def test_employee_assistant_rejects_frontend_employee_selectors(
+    client: AsyncClient,
+) -> None:
+    response = await client.post(
+        "/api/v1/assistant/employee/chat",
+        json={
+            "message": "What is my salary?",
+            "locale": "en",
+            "employee_id": "another-employee",
+        },
+    )
+    # Authentication may reject first; with authentication, Pydantic rejects
+    # the forbidden selector. In no case can it affect employee binding.
+    assert response.status_code in {401, 403, 422}

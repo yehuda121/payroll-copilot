@@ -8,6 +8,12 @@
   justify-content: flex-start;
 }
 
+.employee-documents-workspace__title {
+  margin: 0.75rem 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
 .employee-timeline--compact {
   margin: 0 0 0.65rem;
   gap: 0.3rem;

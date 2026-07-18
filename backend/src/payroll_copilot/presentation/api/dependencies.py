@@ -16,6 +16,9 @@ from payroll_copilot.application.ports.repositories import (
 from payroll_copilot.application.ports.ocr import OCRProvider
 from payroll_copilot.application.ports.payslip_parser import PayslipParser
 from payroll_copilot.application.use_cases.documents import GetDocumentUseCase, UploadDocumentUseCase
+from payroll_copilot.application.use_cases.employee_document_workspace import (
+    EmployeeDocumentWorkspaceUseCase,
+)
 from payroll_copilot.application.use_cases.extract_guest_payslip import ExtractGuestPayslipUseCase
 from payroll_copilot.application.use_cases.ocr_extract import ExtractDocumentTextUseCase
 from payroll_copilot.application.use_cases.parse_payslip import ParsePayslipFromOcrUseCase
@@ -138,6 +141,24 @@ def get_upload_document_use_case(
         document_repository=document_repository,
         object_storage=object_storage,
         organization_bootstrap=organization_bootstrap,
+    )
+
+
+def get_employee_document_workspace_use_case(
+    document_repository: DocumentRepository = Depends(get_document_repository),
+    extraction_repository: DocumentExtractionRepository = Depends(
+        get_document_extraction_repository
+    ),
+    object_storage: S3ObjectStorage = Depends(get_object_storage),
+    upload_use_case: UploadDocumentUseCase = Depends(get_upload_document_use_case),
+    ocr_use_case: ExtractDocumentTextUseCase = Depends(get_extract_document_text_use_case),
+) -> EmployeeDocumentWorkspaceUseCase:
+    return EmployeeDocumentWorkspaceUseCase(
+        documents=document_repository,
+        extractions=extraction_repository,
+        storage=object_storage,
+        upload_document=upload_use_case,
+        ocr=ocr_use_case,
     )
 
 

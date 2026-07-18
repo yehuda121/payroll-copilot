@@ -1,5 +1,5 @@
 import { env } from '../config/env';
-import { getPortalAuthHeaders } from '../lib/auth/access-token';
+import { clearAccessToken, getPortalAuthHeaders } from '../lib/auth/access-token';
 import { getAuthHeaders } from '../lib/guest/guest-session';
 import { readStoredLocale } from '../i18n';
 
@@ -23,6 +23,42 @@ export class ApiClientError extends Error {
     this.code = code;
     this.details = details;
   }
+}
+
+let portalAuthRedirectInFlight = false;
+
+function isAuthenticationFailure(status: number, message: string, code?: string): boolean {
+  if (status === 401) return true;
+  const normalizedCode = (code || '').toLowerCase();
+  if (normalizedCode === 'invalid_token' || normalizedCode === 'unauthorized') return true;
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('invalid or expired access token') ||
+    normalized.includes('invalid or expired cognito token') ||
+    normalized.includes('invalid token') ||
+    normalized.includes('token expired') ||
+    normalized.includes('401 unauthorized') ||
+    normalized === 'unauthorized'
+  );
+}
+
+/** Reuse the same session clears as AuthContext.logout, then hard-navigate to Login. */
+async function clearSessionAndRedirectToLogin(): Promise<void> {
+  if (portalAuthRedirectInFlight) return;
+  portalAuthRedirectInFlight = true;
+
+  const [{ clearCognitoSession }, { clearDevSession }] = await Promise.all([
+    import('../auth/authProvider'),
+    import('../auth/devAuth'),
+  ]);
+  clearDevSession();
+  clearCognitoSession();
+  clearAccessToken();
+
+  if (typeof window === 'undefined') return;
+  const path = window.location.pathname;
+  if (path === '/login' || path.startsWith('/login/')) return;
+  window.location.replace('/login');
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -66,6 +102,13 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     } catch {
       // Keep default message when response is not JSON.
     }
+
+    if (portalAuth && isAuthenticationFailure(response.status, message, code)) {
+      await clearSessionAndRedirectToLogin();
+      // Navigation replaces the page; avoid surfacing token errors in UI.
+      return new Promise<T>(() => undefined);
+    }
+
     throw new ApiClientError(message, response.status, code, details);
   }
 

@@ -100,6 +100,8 @@ Authoritative architecture detail: [ARCHITECTURE.md](ARCHITECTURE.md).
 | **Cognito for authentication** | Managed identity (email auth, verification, JWTs) without owning password storage. Application code still owns org scope, employee binding, and role authorization after the token is verified. |
 | **Deterministic validation** | Compliance pass/fail must be auditable and repeatable. AI extracts and explains; the rule engine alone decides outcomes against versioned YAML rule packs. |
 | **Bedrock prepared, currently on hold** | AWS region and provider adapters were laid out for managed inference, but the active development/runtime path remains the local Ollama pipeline until the next implementation phase. |
+| **Employee session in-memory cache** | Authenticated employee UI may reuse data already loaded in the current browser session (e.g. payroll month detail). The cache never fetches on its own, never persists to storage, clears on logout, and does not bypass backend authorization. |
+| **Employee AI context boundary** | The authenticated Employee Chat inspects the frontend session inventory, then calls a dedicated employee-authorized endpoint. The backend derives the employee identity from authentication, loads only intent-required structured resources, sanitizes them, and appends that prepared context to the unchanged labor-law RAG context. Browser values and identifiers are never trusted as LLM context; Public Landing Chat remains on its existing endpoint. |
 
 ---
 
@@ -179,9 +181,33 @@ payroll-copilot/
 
 ## Employee Portal
 
-The Employee Portal centers on **My Payslips** → a **monthly workspace** at `/employee/payslips/:year/:month`.
+Navigation (Employee Portal only):
 
-### End-to-end workflow
+1. **My Documents** (default home)
+2. **My Payslips**
+3. **Payroll AI Chat**
+
+### My Documents
+
+Workspace at `/employee/documents` with top-level document tabs:
+
+- **ID Card**
+- **ID Appendix**
+- **Employment Contract**
+
+Each document type uses the same inner structure as the payslip month workspace:
+
+| Tab | Purpose |
+|-----|---------|
+| **Upload** | Select a file and run OCR/AI extraction (default language: Hebrew). Replacements require confirmation; the previous version remains active unless the new extraction and persistence succeed |
+| **Digital Form** | ID Card and ID Appendix use fixed payroll fields (manual entry or extraction). Employment Contract keeps the dynamic extracted-field editor. All support explicit save |
+| **Original Document** | Filename, upload date, type, status; delete original with confirmation. No embedded preview |
+
+### My Payslips
+
+Monthly list → workspace at `/employee/payslips/:year/:month`.
+
+### End-to-end payslip workflow
 
 ```mermaid
 flowchart TD
@@ -196,7 +222,7 @@ flowchart TD
 
 Compact workspace timeline: **Upload → Extract → Review → Validate → Completed**.
 
-### Workspace tabs
+### Payslip workspace tabs
 
 | Tab | Purpose |
 |-----|---------|
@@ -231,10 +257,10 @@ Compact workspace timeline: **Upload → Extract → Review → Validate → Com
 
 | Page | Status |
 |------|--------|
+| My Documents workspace | Implemented (extract / persisted digital form / safe replacement / original document) |
 | My Payslips / month workspace | Implemented |
-| Document Center / National ID review | Foundation (upload + status; structured ID OCR not connected) |
-| Attendance / Contract / Chat | Mostly stubs / integration placeholders |
-| Dedicated Validation History route | Redirects to My Payslips (history lives in the month workspace) |
+| Payroll AI Chat | Implemented (authenticated endpoint; labor-law RAG + backend-authorized structured employee context; no document embeddings) |
+| Attendance & Employment Contract nav items | Removed from Employee navigation (legacy routes redirect to My Documents) |
 
 ---
 

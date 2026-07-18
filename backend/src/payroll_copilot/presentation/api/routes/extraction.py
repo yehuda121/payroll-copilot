@@ -25,6 +25,7 @@ from payroll_copilot.application.exceptions import (
     DocumentUploadRejectedError,
     DuplicatePayslipPeriodError,
     OcrError,
+    PayslipParserError,
 )
 from payroll_copilot.application.use_cases.confirm_employee_extraction import (
     ConfirmEmployeeExtractionUseCase,
@@ -49,10 +50,15 @@ from payroll_copilot.application.use_cases.extract_guest_payslip import (
     ExtractGuestPayslipUseCase,
     GuestPayslipExtractionCommand,
 )
+from payroll_copilot.application.use_cases.employee_document_workspace import (
+    EmployeeDocumentWorkspaceUseCase,
+    ExtractEmployeeDocumentCommand,
+)
 from payroll_copilot.domain.enums import DocumentType
 from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.presentation.api.dependencies import (
     get_correct_guest_extraction_use_case,
+    get_employee_document_workspace_use_case,
     get_extract_guest_payslip_use_case,
 )
 from payroll_copilot.presentation.api.security import BoundEmployeeContext, require_bound_employee
@@ -120,6 +126,28 @@ class FieldCorrectionRequest(BaseModel):
 
 class CorrectGuestExtractionRequest(BaseModel):
     corrections: list[FieldCorrectionRequest] = Field(default_factory=list)
+
+
+class EmployeeDocumentFormFieldRequest(BaseModel):
+    key: str
+    value: object | None = None
+    source_text: str | None = None
+    original_value: object | None = None
+
+
+class SaveEmployeeDocumentFormRequest(BaseModel):
+    fields: list[EmployeeDocumentFormFieldRequest] = Field(default_factory=list)
+
+
+class EmployeeDocumentFormResponse(BaseModel):
+    document_id: str
+    extraction_id: str
+    extraction_version: int
+    document_type: str
+    original_filename: str
+    uploaded_at: str | None = None
+    status: str
+    fields: list[ExtractedFieldResponse] = Field(default_factory=list)
 
 
 class DynamicDocumentEntryRequest(BaseModel):
@@ -478,6 +506,223 @@ def _comparison_response(comparison) -> tuple[IdentityCheckResponse, PeriodCheck
     )
     period = PeriodCheckResponse(**comparison.period_check.to_dict())
     return identity, period
+
+
+def _employee_document_form_response(result) -> EmployeeDocumentFormResponse:
+    fields = []
+    for field in result.fields:
+        fields.append(
+            ExtractedFieldResponse(
+                key=str(field.get("key") or ""),
+                value=field.get("effective_value"),
+                confidence=field.get("confidence"),
+                source_text=field.get("source_text"),
+                status=str(field.get("extraction_status") or "MISSING"),
+                edited_by_user=bool(field.get("edited_by_employee")),
+                original_value=field.get("extracted_value"),
+            )
+        )
+    document = result.document
+    extraction = result.extraction
+    return EmployeeDocumentFormResponse(
+        document_id=str(document.id),
+        extraction_id=str(extraction.id),
+        extraction_version=extraction.extraction_version,
+        document_type=document.document_type.value,
+        original_filename=document.original_filename,
+        uploaded_at=document.created_at.isoformat() if document.created_at else None,
+        status=document.status.value,
+        fields=fields,
+    )
+
+
+@router.post(
+    "/employee/document-extract",
+    response_model=EmployeeDocumentFormResponse,
+    status_code=201,
+)
+async def extract_employee_document(
+    file: UploadFile = File(...),
+    document_type: DocumentType = Form(...),
+    language: str = Form("auto"),
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+    use_case: EmployeeDocumentWorkspaceUseCase = Depends(
+        get_employee_document_workspace_use_case
+    ),
+) -> EmployeeDocumentFormResponse:
+    """Extract and atomically activate an Employee Documents digital form."""
+    if document_type not in {
+        DocumentType.NATIONAL_ID,
+        DocumentType.ID_APPENDIX,
+        DocumentType.CONTRACT,
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "unsupported_document_type",
+                "message": "Unsupported document type.",
+            },
+        )
+    normalized_language = language.strip().lower()
+    if normalized_language not in _ALLOWED_LANGUAGES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "invalid_language",
+                "message": "Invalid document language.",
+            },
+        )
+    content = await file.read()
+    settings = get_settings()
+    if not content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "empty_document", "message": "Empty file"},
+        )
+    if len(content) > settings.max_upload_size_mb * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail={
+                "code": "file_too_large",
+                "message": f"File exceeds maximum size of {settings.max_upload_size_mb}MB",
+            },
+        )
+    command = UploadDocumentCommand(
+        content=content,
+        original_filename=file.filename or "document",
+        mime_type=file.content_type or "application/octet-stream",
+        document_type=document_type,
+        document_language=normalized_language,
+    )
+    try:
+        _upload_guardrail.validate(command)
+        result = await use_case.extract_and_replace(
+            ExtractEmployeeDocumentCommand(
+                content=content,
+                original_filename=command.original_filename,
+                mime_type=command.mime_type,
+                language=normalized_language,
+                document_type=document_type,
+                organization_id=bound.employee.organization_id,
+                employee_id=bound.employee.id,
+                user_id=bound.principal.user_id,
+            )
+        )
+    except DocumentUploadRejectedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "upload_rejected", "message": exc.message},
+        ) from exc
+    except (OcrError, PayslipParserError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+    return _employee_document_form_response(result)
+
+
+@router.get(
+    "/employee/document/{document_id}",
+    response_model=EmployeeDocumentFormResponse,
+)
+async def get_employee_document_form(
+    document_id: str,
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+    use_case: EmployeeDocumentWorkspaceUseCase = Depends(
+        get_employee_document_workspace_use_case
+    ),
+) -> EmployeeDocumentFormResponse:
+    try:
+        result = await use_case.get_form(
+            document_id=_parse_uuid(document_id, "document_id"),
+            organization_id=bound.employee.organization_id,
+            employee_id=bound.employee.id,
+        )
+    except (DocumentNotFoundError, DocumentNotOwnedError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "code": "document_form_not_found",
+                "message": "Digital Form not found.",
+            },
+        ) from exc
+    return _employee_document_form_response(result)
+
+
+@router.put(
+    "/employee/document/{document_id}",
+    response_model=EmployeeDocumentFormResponse,
+)
+async def save_employee_document_form(
+    document_id: str,
+    request: SaveEmployeeDocumentFormRequest,
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+    use_case: EmployeeDocumentWorkspaceUseCase = Depends(
+        get_employee_document_workspace_use_case
+    ),
+) -> EmployeeDocumentFormResponse:
+    try:
+        result = await use_case.save_form(
+            document_id=_parse_uuid(document_id, "document_id"),
+            organization_id=bound.employee.organization_id,
+            employee_id=bound.employee.id,
+            user_id=bound.principal.user_id,
+            fields=[field.model_dump() for field in request.fields],
+        )
+    except (DocumentNotFoundError, DocumentNotOwnedError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "code": "document_form_not_found",
+                "message": "Digital Form not found.",
+            },
+        ) from exc
+    return _employee_document_form_response(result)
+
+
+@router.put(
+    "/employee/document-type/{document_type}",
+    response_model=EmployeeDocumentFormResponse,
+)
+async def save_employee_document_form_by_type(
+    document_type: DocumentType,
+    request: SaveEmployeeDocumentFormRequest,
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+    use_case: EmployeeDocumentWorkspaceUseCase = Depends(
+        get_employee_document_workspace_use_case
+    ),
+) -> EmployeeDocumentFormResponse:
+    """Save a fixed Digital Form, creating a form-only shell when needed."""
+    if document_type not in {
+        DocumentType.NATIONAL_ID,
+        DocumentType.ID_APPENDIX,
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "unsupported_document_type",
+                "message": "Manual Digital Forms are only supported for ID documents.",
+            },
+        )
+    try:
+        result = await use_case.save_form(
+            document_id=None,
+            document_type=document_type,
+            organization_id=bound.employee.organization_id,
+            employee_id=bound.employee.id,
+            user_id=bound.principal.user_id,
+            fields=[field.model_dump() for field in request.fields],
+        )
+    except (DocumentNotFoundError, DocumentNotOwnedError) as tip_exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "code": "document_form_not_found",
+                "message": "Digital Form not found.",
+            },
+        ) from tip_exc
+    return _employee_document_form_response(result)
+
 
 @router.post(
     "/employee/payslip-extract",

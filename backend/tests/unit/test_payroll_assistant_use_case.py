@@ -132,6 +132,27 @@ class _UnavailableOllamaModel:
         raise httpx.ConnectError("getaddrinfo failed")
 
 
+class _CapturingEmployeeContextModel:
+    embedding_dimensions = 768
+
+    def __init__(self) -> None:
+        self.messages: list[Message] = []
+
+    async def complete(self, messages: list[Message], **_kwargs: object) -> CompletionResult:
+        self.messages = messages
+        return CompletionResult(
+            content="Your name is Noa Levi.",
+            model="test",
+            confidence=0.9,
+        )
+
+    async def complete_structured(self, *_args: object, **_kwargs: object) -> object:
+        raise AssertionError("structured completion is not used")
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        raise AssertionError("employee context does not use embeddings")
+
+
 @pytest.mark.asyncio
 async def test_assistant_does_not_crash_when_ollama_unavailable() -> None:
     pytest.importorskip("langgraph")
@@ -152,3 +173,26 @@ async def test_assistant_does_not_crash_when_ollama_unavailable() -> None:
     assert result.guardrail_status != "blocked"
     assert result.answer
     assert "approved" in result.answer.lower()
+
+
+@pytest.mark.asyncio
+async def test_employee_context_is_appended_without_embeddings() -> None:
+    pytest.importorskip("langgraph")
+    from payroll_copilot.infrastructure.ai.agents.payroll_assistant_graph import (
+        PayrollAssistantGraph,
+    )
+
+    model = _CapturingEmployeeContextModel()
+    graph = PayrollAssistantGraph(tools=_StubToolsWithContext(), model_provider=model)
+    result = await graph.run(
+        message="What is my name?",
+        session_id="employee-chat-session",
+        document_ids=[],
+        validation_run_id=None,
+        locale="en",
+        prepared_employee_context='[{"resource":"employee_profile","full_name":"Noa Levi"}]',
+    )
+
+    assert result["answer"] == "Your name is Noa Levi."
+    assert result["used_tools"] == ["employee_context"]
+    assert "Noa Levi" in model.messages[-1].content

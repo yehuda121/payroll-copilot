@@ -60,6 +60,15 @@
   flex: 1;
 }
 
+.portal-shell__nav-email {
+  margin: 0 0 0.65rem;
+  padding: 0 0.7rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--color-text-muted);
+  word-break: break-word;
+}
+
 .portal-shell__nav-link {
   padding: 0.55rem 0.7rem;
   border-radius: var(--radius-sm);

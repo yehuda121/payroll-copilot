@@ -191,6 +191,17 @@ export type EmployeeDocumentCenter = {
   };
 };
 
+export type EmployeeDocumentForm = {
+  document_id: string;
+  extraction_id: string;
+  extraction_version: number;
+  document_type: 'national_id' | 'id_appendix' | 'contract';
+  original_filename: string;
+  uploaded_at: string | null;
+  status: string;
+  fields: ExtractedPayslipField[];
+};
+
 export type FindingExplanation = {
   finding_id: string;
   validation_status: string;
@@ -274,6 +285,72 @@ export const employeePortalService = {
       portalAuth: true,
       signal: options.signal,
     });
+  },
+
+  async extractEmployeeDocument(
+    file: File,
+    options: {
+      documentType: 'national_id' | 'id_appendix' | 'contract';
+      language?: DocumentLanguage;
+      signal?: AbortSignal;
+    },
+  ): Promise<EmployeeDocumentForm> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('document_type', options.documentType);
+    formData.append('language', options.language ?? 'auto');
+    return apiRequest<EmployeeDocumentForm>('/extraction/employee/document-extract', {
+      method: 'POST',
+      body: formData,
+      rawBody: true,
+      portalAuth: true,
+      signal: options.signal,
+    });
+  },
+
+  async getEmployeeDocumentForm(documentId: string): Promise<EmployeeDocumentForm> {
+    return apiRequest<EmployeeDocumentForm>(
+      `/extraction/employee/document/${encodeURIComponent(documentId)}`,
+      { portalAuth: true },
+    );
+  },
+
+  async saveEmployeeDocumentForm(
+    documentId: string,
+    fields: Array<{
+      key: string;
+      value: unknown;
+      source_text?: string | null;
+      original_value?: unknown;
+    }>,
+  ): Promise<EmployeeDocumentForm> {
+    return apiRequest<EmployeeDocumentForm>(
+      `/extraction/employee/document/${encodeURIComponent(documentId)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ fields }),
+        portalAuth: true,
+      },
+    );
+  },
+
+  async saveEmployeeDocumentFormByType(
+    documentType: 'national_id' | 'id_appendix' | 'contract',
+    fields: Array<{
+      key: string;
+      value: unknown;
+      source_text?: string | null;
+      original_value?: unknown;
+    }>,
+  ): Promise<EmployeeDocumentForm> {
+    return apiRequest<EmployeeDocumentForm>(
+      `/extraction/employee/document-type/${encodeURIComponent(documentType)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ fields }),
+        portalAuth: true,
+      },
+    );
   },
 
   async extractPayslip(

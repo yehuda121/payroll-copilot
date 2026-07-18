@@ -30,9 +30,7 @@ import { RulePacksPage } from '../pages/admin/RulePacks';
 import { SystemConfigurationPage } from '../pages/admin/SystemConfiguration';
 import { SystemDashboardPage } from '../pages/admin/SystemDashboard';
 import { UsersAndRolesPage } from '../pages/admin/UsersAndRoles';
-import { AttendancePage } from '../pages/employee/Attendance';
 import { DocumentCenterPage } from '../pages/employee/DocumentCenter';
-import { EmploymentContractPage } from '../pages/employee/EmploymentContract';
 import { MyPayslipsPage } from '../pages/employee/MyPayslips';
 import { NationalIdReviewPage } from '../pages/employee/NationalIdReview';
 import { PayslipMonthWorkspacePage } from '../pages/employee/PayslipMonthWorkspace';
@@ -72,14 +70,14 @@ export const appRouteElements = (
 
     <Route element={<ProtectedRoute allowedRoles={['employee']} />}>
       <Route element={<EmployeeLayout />}>
-        <Route path="/employee" element={<Navigate to="/employee/payslips" replace />} />
+        <Route path="/employee" element={<Navigate to="/employee/documents" replace />} />
         <Route path="/employee/documents" element={<DocumentCenterPage />} />
         <Route path="/employee/documents/national-id" element={<NationalIdReviewPage />} />
         <Route path="/employee/upload" element={<Navigate to="/employee/payslips" replace />} />
         <Route path="/employee/payslips" element={<MyPayslipsPage />} />
         <Route path="/employee/payslips/:year/:month" element={<PayslipMonthWorkspacePage />} />
-        <Route path="/employee/attendance" element={<AttendancePage />} />
-        <Route path="/employee/contract" element={<EmploymentContractPage />} />
+        <Route path="/employee/attendance" element={<Navigate to="/employee/documents" replace />} />
+        <Route path="/employee/contract" element={<Navigate to="/employee/documents" replace />} />
         <Route path="/employee/chat" element={<PayrollChatPage />} />
         <Route path="/employee/validation-history" element={<Navigate to="/employee/payslips" replace />} />
       </Route>

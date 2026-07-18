@@ -19,10 +19,8 @@ from payroll_copilot.domain.enums import DocumentType
 
 
 def _extraction_connection(document_type: DocumentType) -> str:
-    if document_type == DocumentType.PAYSLIP:
+    if document_type == DocumentType.PAYSLIP or document_type in PERSISTENT_TYPES:
         return "connected"
-    if document_type == DocumentType.NATIONAL_ID:
-        return "foundation"  # review/persistence ready; OCR parser not connected
     return "extraction_not_connected"
 
 
@@ -95,7 +93,7 @@ def _doc_row(
             "can_upload": True,
             "can_replace": True,
             "can_review": document_type == DocumentType.PAYSLIP
-            or document_type == DocumentType.NATIONAL_ID,
+            or document_type in PERSISTENT_TYPES,
             "can_confirm": document_type == DocumentType.PAYSLIP and confirmation != "confirmed",
         },
     }
@@ -162,7 +160,7 @@ class ListEmployeeDocumentsUseCase:
                 "note_code": "use_payroll_months",
             },
             "national_id_review": {
-                "extraction_connection": "foundation",
-                "parser_status": "extraction_not_connected",
+                "extraction_connection": "connected",
+                "parser_status": "document_workspace",
             },
         }

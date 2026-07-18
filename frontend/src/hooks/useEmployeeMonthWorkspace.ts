@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { useEmployeeSession } from '../auth/EmployeeSessionContext';
 import {
   GuestExtractionSubmission,
   isAbortError,
@@ -161,6 +162,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
   const { t } = useTranslation();
   const { locale } = useAppLocale();
   const navigate = useNavigate();
+  const session = useEmployeeSession();
   const uploadSubmission = useRef(new GuestExtractionSubmission());
   const extractSubmission = useRef(new GuestExtractionSubmission());
   const validateSubmission = useRef(new GuestExtractionSubmission());
@@ -233,11 +235,8 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     [initDrafts],
   );
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const row = await employeePortalService.getPayrollMonthDetail(year, month);
+  const applyMonthDetail = useCallback(
+    (row: PayrollMonthDetail) => {
       setDetail(row);
       const nextFields = fieldsFromDetail(row);
       if (nextFields.length > 0) {
@@ -276,12 +275,38 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
         setAcknowledgement(false);
         setPeriodPrompt(null);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setLoading(false);
-    }
-  }, [year, month, initDrafts, t]);
+    },
+    [initDrafts, t],
+  );
+
+  const refresh = useCallback(
+    async (opts?: { force?: boolean }) => {
+      setError(null);
+
+      if (!opts?.force) {
+        const cached = session.getPayrollMonthDetail(year, month);
+        if (cached) {
+          applyMonthDetail(cached);
+          setLoading(false);
+          return;
+        }
+      } else {
+        session.invalidatePayrollMonth(year, month);
+      }
+
+      setLoading(true);
+      try {
+        const row = await employeePortalService.getPayrollMonthDetail(year, month);
+        session.setPayrollMonthDetail(row);
+        applyMonthDetail(row);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : t('common.error'));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [year, month, applyMonthDetail, session, t],
+  );
 
   useEffect(() => {
     void refresh();
@@ -370,10 +395,11 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
         setPendingFile(null);
         if (opts?.forCompare) {
           setPendingExtraction(response);
+          session.invalidatePayrollMonth(year, month);
           return;
         }
         applyExtraction(response);
-        await refresh();
+        await refresh({ force: true });
       } catch (err) {
         const intentional = extractSubmission.current.wasIntentionallyCancelled;
         extractSubmission.current.end();
@@ -394,7 +420,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
           return;
         }
         setError(toUserFacingError(err, t('validate.extractionFailed')));
-        await refresh();
+        await refresh({ force: true });
       }
     },
     [
@@ -406,6 +432,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       fields,
       applyExtraction,
       refresh,
+      session,
       t,
     ],
   );
@@ -423,7 +450,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     applyExtraction(pendingExtraction);
     setPendingExtraction(null);
     setPreviousFieldsForCompare(null);
-    void refresh();
+    void refresh({ force: true });
   }, [pendingExtraction, applyExtraction, refresh]);
 
   const cancelPendingExtraction = useCallback(() => {
@@ -505,6 +532,8 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       const confirmed = await employeePortalService.confirmExtraction(documentId, true);
       setConfirmationStatus(confirmed.confirmation_status);
       setValidationOutdated(true);
+      // Server state changed; drop cached month so the next open refetches.
+      session.invalidatePayrollMonth(year, month);
       return confirmed.confirmation_status === 'confirmed';
     } catch (err) {
       if (err instanceof ApiClientError) {
@@ -517,7 +546,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       setBusyPhase(null);
       setStatusMessage(null);
     }
-  }, [documentId, blocksConfirmation, fieldDrafts, applyExtraction, t]);
+  }, [documentId, blocksConfirmation, fieldDrafts, applyExtraction, session, year, month, t]);
 
   const runValidation = useCallback(async () => {
     if (!documentId) {
@@ -551,7 +580,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
         }
         return next;
       });
-      await refresh();
+      await refresh({ force: true });
     } catch (err) {
       const intentional = validateSubmission.current.wasIntentionallyCancelled;
       validateSubmission.current.end();
@@ -610,7 +639,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
               : prev,
           );
         }
-        await refresh();
+        await refresh({ force: true });
       } catch (err) {
         setError(err instanceof Error ? err.message : t('common.error'));
       }
@@ -639,7 +668,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
         return null;
       });
       setTab('upload');
-      await refresh();
+      await refresh({ force: true });
       return true;
     } catch (err) {
       setError(toUserFacingError(err, t('common.error')));

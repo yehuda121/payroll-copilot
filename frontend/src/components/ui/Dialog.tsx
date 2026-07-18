@@ -110,14 +110,18 @@ export function ModalDialog({
 }: ModalDialogProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
+  // Focus the dialog shell once on mount. Do not re-run when `onClose` identity
+  // changes — that would steal focus from inputs on every keystroke.
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     dialogRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
       }
     };
     document.addEventListener('keydown', onKeyDown);
@@ -125,7 +129,7 @@ export function ModalDialog({
       document.removeEventListener('keydown', onKeyDown);
       previous?.focus();
     };
-  }, [onClose]);
+  }, []);
 
   return createPortal(
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>

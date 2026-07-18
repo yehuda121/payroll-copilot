@@ -3,7 +3,12 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next';
 import { useAppLocale } from '../../hooks/useAppLocale';
 import { assistantService } from '../../services/assistant';
-import type { AssistantGuardrailStatus, ChatMessage } from '../../types/assistant';
+import type {
+  AssistantChatRequest,
+  AssistantChatResponse,
+  AssistantGuardrailStatus,
+  ChatMessage,
+} from '../../types/assistant';
 import '../ui/ui.css';
 import '../../features/guest/guest.css';
 
@@ -14,6 +19,11 @@ type GuestChatPanelProps = {
   documentIds?: string[];
   pendingQuestion?: string | null;
   onPendingQuestionConsumed?: () => void;
+  /**
+   * Employee chat supplies its authenticated handler. Public callers omit it
+   * and keep using the existing public assistant service unchanged.
+   */
+  chatHandler?: (payload: AssistantChatRequest) => Promise<AssistantChatResponse>;
 };
 
 function formatTimestamp(iso: string, locale: string): string {
@@ -34,6 +44,7 @@ export function GuestChatPanel({
   documentIds = [],
   pendingQuestion = null,
   onPendingQuestionConsumed,
+  chatHandler = assistantService.chat,
 }: GuestChatPanelProps) {
   const { t, i18n } = useTranslation();
   const { locale } = useAppLocale();
@@ -94,7 +105,7 @@ export function GuestChatPanel({
       setIsLoading(true);
 
       try {
-        const response = await assistantService.chat({
+        const response = await chatHandler({
           message: trimmed,
           session_id: sessionId,
           document_ids: documentIds,
@@ -125,7 +136,7 @@ export function GuestChatPanel({
         setIsLoading(false);
       }
     },
-    [documentIds, locale, sessionId, t, validationRunId],
+    [chatHandler, documentIds, locale, sessionId, t, validationRunId],
   );
 
   useEffect(() => {

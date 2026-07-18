@@ -57,6 +57,9 @@ class DocumentExtractionRepository(ABC):
     async def save(self, extraction: DocumentExtraction) -> DocumentExtraction:
         ...
 
+    async def delete_for_document_ids(self, document_ids: list[UUID]) -> int:
+        raise NotImplementedError
+
 
 class ValidationRunRepository(ABC):
     @abstractmethod

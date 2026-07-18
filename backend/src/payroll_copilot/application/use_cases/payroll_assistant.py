@@ -15,6 +15,7 @@ class AssistantChatCommand:
     document_ids: list[str] | None = None
     validation_run_id: str | None = None
     locale: str = "en"
+    prepared_employee_context: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,13 +37,19 @@ class PayrollAssistantChatUseCase:
 
     async def execute(self, command: AssistantChatCommand) -> AssistantChatResult:
         session_id = command.session_id or str(uuid4())
-        payload = await self._runner.run(
-            message=command.message,
-            session_id=session_id,
-            document_ids=command.document_ids or [],
-            validation_run_id=command.validation_run_id,
-            locale=command.locale,
-        )
+        runner_args: dict[str, object] = {
+            "message": command.message,
+            "session_id": session_id,
+            "document_ids": command.document_ids or [],
+            "validation_run_id": command.validation_run_id,
+            "locale": command.locale,
+        }
+        # Keep the public runner call byte-for-byte compatible when no employee
+        # context exists. The authenticated employee endpoint is the only caller
+        # that supplies this argument.
+        if command.prepared_employee_context:
+            runner_args["prepared_employee_context"] = command.prepared_employee_context
+        payload = await self._runner.run(**runner_args)
         return AssistantChatResult(
             answer=str(payload["answer"]),
             session_id=str(payload["session_id"]),

@@ -4,6 +4,7 @@ export type AssistantSourceType =
   | 'document'
   | 'contract'
   | 'attendance'
+  | 'employee_context'
   | 'system';
 
 export type AssistantGuardrailStatus =
@@ -38,6 +39,24 @@ export type AssistantChatResponse = {
   requires_human_review: boolean;
   guardrail_status: AssistantGuardrailStatus;
   locale?: 'he' | 'en' | 'ar';
+};
+
+export type EmployeeAssistantChatRequest = {
+  message: string;
+  session_id?: string;
+  locale?: 'he' | 'en' | 'ar';
+  /** Availability hints only; the backend remains authoritative. */
+  available_resource_keys?: string[];
+};
+
+export type EmployeeAssistantChatResponse = AssistantChatResponse & {
+  context_updates: {
+    profile: import('../services/employeePortal').EmployeeMe | null;
+    payroll_months: import('../services/employeePortal').PayrollMonthsResponse[];
+    payroll_month_details: import('../services/employeePortal').PayrollMonthDetail[];
+    document_center: import('../services/employeePortal').EmployeeDocumentCenter | null;
+    loaded_resource_keys: string[];
+  };
 };
 
 export type ChatMessage = {

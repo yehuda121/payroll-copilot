@@ -13,4 +13,6 @@ export type PortalConfig = {
   portalSubtitleKey?: string;
   basePath: string;
   navItems: NavItem[];
+  /** When true, show the authenticated user's email above the sidebar nav. */
+  showUserEmail?: boolean;
 };

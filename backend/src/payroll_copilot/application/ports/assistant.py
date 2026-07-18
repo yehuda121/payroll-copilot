@@ -89,4 +89,5 @@ class PayrollAssistantRunnerPort(Protocol):
         document_ids: list[str],
         validation_run_id: str | None,
         locale: str,
+        prepared_employee_context: str | None = None,
     ) -> dict[str, object]: ...
