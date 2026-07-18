@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ModalDialog } from '../../components/ui/Dialog';
 import { useAppLocale } from '../../hooks/useAppLocale';
-import { employeePortalService } from '../../services/employeePortal';
+import { useEmployeeWorkspace } from './EmployeeWorkspaceContext';
 import '../guest/landing/landing-chat.css';
 
 type EmployeeValidationAiButtonProps = {
@@ -26,6 +26,7 @@ export function EmployeeValidationAiButton({
 }: EmployeeValidationAiButtonProps) {
   const { t } = useTranslation();
   const { locale } = useAppLocale();
+  const { api: workspaceApi } = useEmployeeWorkspace();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +48,7 @@ export function EmployeeValidationAiButton({
     if (explanation) return;
     setLoading(true);
     try {
-      const result = await employeePortalService.explainFinding(
+      const result = await workspaceApi.explainFinding(
         validationRunId!,
         findingId!,
         locale,

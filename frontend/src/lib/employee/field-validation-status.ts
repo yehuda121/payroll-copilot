@@ -83,27 +83,22 @@ export function buildEmployeeFieldValidationMap(
         };
         continue;
       }
-      if (statusUpper === 'MISSING' || field.value == null || String(field.value).trim() === '') {
-        out[field.key] = {
-          status: 'unchecked',
-          labelKey: 'employee.validation.status.unchecked',
-          explanation: null,
-          expected: null,
-          actual: null,
-          confidencePercent: null,
-        };
-        continue;
-      }
+      // No matching finding: never invent "passed". Backend only persists
+      // findings (failures / missing-data), not explicit per-field passes.
+      const empty =
+        statusUpper === 'MISSING' ||
+        field.value == null ||
+        String(field.value).trim() === '';
       out[field.key] = {
-        status: 'passed',
-        labelKey: 'employee.validation.status.passed',
+        status: 'unchecked',
+        labelKey: 'employee.validation.status.unchecked',
         explanation: null,
         expected: null,
         actual: null,
         confidencePercent:
-          field.confidence != null && !Number.isNaN(field.confidence)
-            ? Math.round(field.confidence * 100)
-            : null,
+          empty || field.confidence == null || Number.isNaN(field.confidence)
+            ? null
+            : Math.round(field.confidence * 100),
       };
       continue;
     }

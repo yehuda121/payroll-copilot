@@ -115,6 +115,18 @@ class DynamoValidationRunRepository(ValidationRunRepository):
         )
         return [self._to_record(item) for item in items]
 
+    async def delete_for_document_ids(self, document_ids: list[UUID]) -> int:
+        deleted = 0
+        for document_id in document_ids:
+            items = await self._table.query_eq_pk(
+                keys.gsi1_doc(document_id),
+                sk_begins_with="VALRUN#",
+            )
+            for item in items:
+                await self._table.delete_item({"PK": item["PK"], "SK": item["SK"]})
+                deleted += 1
+        return deleted
+
 
 class DynamoValidationFindingRepository(ValidationFindingRepository):
     def __init__(self, table: DynamoTable) -> None:
@@ -175,3 +187,15 @@ class DynamoValidationFindingRepository(ValidationFindingRepository):
         records = [self._to_record(item) for item in items]
         records.sort(key=lambda r: str(r.id))
         return records
+
+    async def delete_for_run_ids(self, run_ids: list[UUID]) -> int:
+        deleted = 0
+        for run_id in run_ids:
+            items = await self._table.query_eq_pk(
+                keys.gsi1_valrun(run_id),
+                sk_begins_with="VALFIND#",
+            )
+            for item in items:
+                await self._table.delete_item({"PK": item["PK"], "SK": item["SK"]})
+                deleted += 1
+        return deleted

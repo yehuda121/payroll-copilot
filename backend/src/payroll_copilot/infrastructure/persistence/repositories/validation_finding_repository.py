@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from payroll_copilot.application.dto.validation_run import ValidationFindingRecord
@@ -41,3 +41,14 @@ class SqlAlchemyValidationFindingRepository(ValidationFindingRepository):
         )
         models = result.scalars().all()
         return [finding_model_to_record(model) for model in models]
+
+    async def delete_for_run_ids(self, run_ids: list[UUID]) -> int:
+        if not run_ids:
+            return 0
+        result = await self._session.execute(
+            delete(ValidationFindingModel).where(
+                ValidationFindingModel.validation_run_id.in_(run_ids)
+            )
+        )
+        await self._session.flush()
+        return int(result.rowcount or 0)

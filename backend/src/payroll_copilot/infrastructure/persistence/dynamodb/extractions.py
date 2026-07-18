@@ -39,6 +39,12 @@ class DynamoDocumentExtractionRepository(DocumentExtractionRepository):
             "extraction_version": extraction.extraction_version,
             "created_at": dumps_value(extraction.created_at),
             "ocr_result": dumps_value(extraction.ocr_result or {}),
+            "layout_snapshot": dumps_value(extraction.layout_snapshot)
+            if extraction.layout_snapshot
+            else None,
+            "layout_analysis": dumps_value(extraction.layout_analysis)
+            if extraction.layout_analysis
+            else None,
             "parser_model": extraction.parser_model,
             "language": extraction.language or "auto",
             "ocr_status": extraction.ocr_status,
@@ -69,6 +75,8 @@ class DynamoDocumentExtractionRepository(DocumentExtractionRepository):
             extraction_version=int(item.get("extraction_version") or 1),
             created_at=loads_datetime(item.get("created_at")) or datetime.now(UTC),
             ocr_result=dict(item.get("ocr_result") or {}),
+            layout_snapshot=dict(item.get("layout_snapshot") or {}),
+            layout_analysis=dict(item.get("layout_analysis") or {}),
             parser_model=item.get("parser_model"),
             language=str(item.get("language") or "auto"),
             ocr_status=str(item.get("ocr_status") or "completed"),

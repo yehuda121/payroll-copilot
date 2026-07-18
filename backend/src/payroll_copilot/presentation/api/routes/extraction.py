@@ -33,6 +33,9 @@ from payroll_copilot.application.use_cases.confirm_employee_extraction import (
 from payroll_copilot.application.services.document_upload_guardrail import (
     DocumentUploadGuardrailService,
 )
+from payroll_copilot.application.services.employee_document_lifecycle import (
+    is_employee_visible_document,
+)
 from payroll_copilot.application.use_cases.correct_guest_extraction import (
     CorrectGuestExtractionUseCase,
     FieldCorrection,
@@ -61,10 +64,31 @@ from payroll_copilot.presentation.api.dependencies import (
     get_employee_document_workspace_use_case,
     get_extract_guest_payslip_use_case,
 )
-from payroll_copilot.presentation.api.security import BoundEmployeeContext, require_bound_employee
+from payroll_copilot.presentation.api.security import (
+    AuthPrincipal,
+    BoundEmployeeContext,
+    bind_accountant_selected_employee,
+    require_accountant,
+    require_bound_employee,
+)
 
 router = APIRouter()
 _upload_guardrail = DocumentUploadGuardrailService(get_settings())
+
+
+async def _require_employee_visible_document(
+    document_id: UUID,
+    bound: BoundEmployeeContext,
+) -> None:
+    """Hide accountant-review drafts from employee principals, even by UUID."""
+    if bound.principal.role != "employee":
+        return
+    document = await get_document_repository().get_by_id(document_id)
+    if document is None or not is_employee_visible_document(document):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "document_not_found", "message": "Document not found"},
+        )
 
 _ALLOWED_LANGUAGES = frozenset({"he", "en", "ar", "auto"})
 
@@ -770,6 +794,7 @@ async def extract_employee_payslip(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail={"code": "document_not_found", "message": "Document not found"},
             )
+        await _require_employee_visible_document(source_document_id, bound)
         from payroll_copilot.presentation.api.dependencies import get_object_storage
 
         try:
@@ -895,6 +920,7 @@ async def correct_employee_extraction(
     guest_use_case: CorrectGuestExtractionUseCase = Depends(get_correct_guest_extraction_use_case),
 ) -> EmployeePayslipExtractionResponse:
     parsed_id = _parse_uuid(document_id, "document_id")
+    await _require_employee_visible_document(parsed_id, bound)
     if not request.corrections:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -963,6 +989,7 @@ async def confirm_employee_extraction(
 ) -> dict:
     """Persist employee confirmation of the latest extraction version."""
     parsed_id = _parse_uuid(document_id, "document_id")
+    await _require_employee_visible_document(parsed_id, bound)
     use_case = ConfirmEmployeeExtractionUseCase(
         documents=get_document_repository(),
         extractions=get_document_extraction_repository(),
@@ -992,3 +1019,163 @@ async def confirm_employee_extraction(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": tip_exc.code, "message": tip_exc.message},
         ) from tip_exc
+
+
+async def _accountant_selected_context(
+    employee_number: str,
+    principal: AuthPrincipal,
+) -> BoundEmployeeContext:
+    return await bind_accountant_selected_employee(
+        employee_number=employee_number,
+        principal=principal,
+    )
+
+
+@router.post(
+    "/accountant/{employee_number}/document-extract",
+    response_model=EmployeeDocumentFormResponse,
+    status_code=201,
+)
+async def accountant_extract_employee_document(
+    employee_number: str,
+    file: UploadFile = File(...),
+    document_type: DocumentType = Form(...),
+    language: str = Form("auto"),
+    principal: AuthPrincipal = Depends(require_accountant),
+    use_case: EmployeeDocumentWorkspaceUseCase = Depends(
+        get_employee_document_workspace_use_case
+    ),
+) -> EmployeeDocumentFormResponse:
+    return await extract_employee_document(
+        file=file,
+        document_type=document_type,
+        language=language,
+        bound=await _accountant_selected_context(employee_number, principal),
+        use_case=use_case,
+    )
+
+
+@router.get(
+    "/accountant/{employee_number}/document/{document_id}",
+    response_model=EmployeeDocumentFormResponse,
+)
+async def accountant_get_employee_document_form(
+    employee_number: str,
+    document_id: str,
+    principal: AuthPrincipal = Depends(require_accountant),
+    use_case: EmployeeDocumentWorkspaceUseCase = Depends(
+        get_employee_document_workspace_use_case
+    ),
+) -> EmployeeDocumentFormResponse:
+    return await get_employee_document_form(
+        document_id=document_id,
+        bound=await _accountant_selected_context(employee_number, principal),
+        use_case=use_case,
+    )
+
+
+@router.put(
+    "/accountant/{employee_number}/document/{document_id}",
+    response_model=EmployeeDocumentFormResponse,
+)
+async def accountant_save_employee_document_form(
+    employee_number: str,
+    document_id: str,
+    request: SaveEmployeeDocumentFormRequest,
+    principal: AuthPrincipal = Depends(require_accountant),
+    use_case: EmployeeDocumentWorkspaceUseCase = Depends(
+        get_employee_document_workspace_use_case
+    ),
+) -> EmployeeDocumentFormResponse:
+    return await save_employee_document_form(
+        document_id=document_id,
+        request=request,
+        bound=await _accountant_selected_context(employee_number, principal),
+        use_case=use_case,
+    )
+
+
+@router.put(
+    "/accountant/{employee_number}/document-type/{document_type}",
+    response_model=EmployeeDocumentFormResponse,
+)
+async def accountant_save_employee_document_form_by_type(
+    employee_number: str,
+    document_type: DocumentType,
+    request: SaveEmployeeDocumentFormRequest,
+    principal: AuthPrincipal = Depends(require_accountant),
+    use_case: EmployeeDocumentWorkspaceUseCase = Depends(
+        get_employee_document_workspace_use_case
+    ),
+) -> EmployeeDocumentFormResponse:
+    return await save_employee_document_form_by_type(
+        document_type=document_type,
+        request=request,
+        bound=await _accountant_selected_context(employee_number, principal),
+        use_case=use_case,
+    )
+
+
+@router.post(
+    "/accountant/{employee_number}/payslip-extract",
+    response_model=EmployeePayslipExtractionResponse,
+    status_code=201,
+)
+async def accountant_extract_employee_payslip(
+    employee_number: str,
+    file: UploadFile | None = File(None),
+    document_id: str | None = Form(None),
+    language: str = Form("auto"),
+    period_year: int = Form(...),
+    period_month: int = Form(...),
+    confirm_new_version: bool = Form(False),
+    principal: AuthPrincipal = Depends(require_accountant),
+    guest_use_case: ExtractGuestPayslipUseCase = Depends(
+        get_extract_guest_payslip_use_case
+    ),
+) -> EmployeePayslipExtractionResponse:
+    return await extract_employee_payslip(
+        file=file,
+        document_id=document_id,
+        language=language,
+        period_year=period_year,
+        period_month=period_month,
+        confirm_new_version=confirm_new_version,
+        bound=await _accountant_selected_context(employee_number, principal),
+        guest_use_case=guest_use_case,
+    )
+
+
+@router.post(
+    "/accountant/{employee_number}/{document_id}/corrections",
+    response_model=EmployeePayslipExtractionResponse,
+)
+async def accountant_correct_employee_extraction(
+    employee_number: str,
+    document_id: str,
+    request: CorrectGuestExtractionRequest,
+    principal: AuthPrincipal = Depends(require_accountant),
+    guest_use_case: CorrectGuestExtractionUseCase = Depends(
+        get_correct_guest_extraction_use_case
+    ),
+) -> EmployeePayslipExtractionResponse:
+    return await correct_employee_extraction(
+        document_id=document_id,
+        request=request,
+        bound=await _accountant_selected_context(employee_number, principal),
+        guest_use_case=guest_use_case,
+    )
+
+
+@router.post("/accountant/{employee_number}/{document_id}/confirm")
+async def accountant_confirm_employee_extraction(
+    employee_number: str,
+    document_id: str,
+    request: ConfirmEmployeeExtractionRequest,
+    principal: AuthPrincipal = Depends(require_accountant),
+) -> dict:
+    return await confirm_employee_extraction(
+        document_id=document_id,
+        request=request,
+        bound=await _accountant_selected_context(employee_number, principal),
+    )

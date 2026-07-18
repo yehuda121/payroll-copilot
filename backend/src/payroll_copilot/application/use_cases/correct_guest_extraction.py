@@ -283,6 +283,8 @@ class CorrectGuestExtractionUseCase:
             extraction_version=version,
             created_at=now,
             ocr_result=deepcopy(previous.ocr_result or {}),
+            layout_snapshot=deepcopy(previous.layout_snapshot or {}),
+            layout_analysis=deepcopy(previous.layout_analysis or {}),
             parser_model=previous.parser_model,
             language=previous.language,
             ocr_status=previous.ocr_status,
@@ -366,6 +368,7 @@ class CorrectGuestExtractionUseCase:
                 confidence=None,
                 source_text=source_text,
                 status=FieldExtractionStatus.MISSING,
+                candidate_ids=list(current.get("candidate_ids") or []),
                 edited_by_user=True,
                 original_value=original_value,
             )
@@ -374,6 +377,7 @@ class CorrectGuestExtractionUseCase:
             confidence=1.0,
             source_text=source_text,
             status=FieldExtractionStatus.FOUND,
+            candidate_ids=list(current.get("candidate_ids") or []),
             edited_by_user=True,
             original_value=original_value if original_value is not None else current.get("value"),
         )

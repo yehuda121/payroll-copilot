@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useEmployeeSession } from '../auth/EmployeeSessionContext';
+import { useEmployeeWorkspace } from '../features/employee/EmployeeWorkspaceContext';
 import {
   GuestExtractionSubmission,
   isAbortError,
@@ -12,7 +13,6 @@ import { adaptValidationReport } from '../lib/guest/validation-report-adapter';
 import { useAppLocale } from './useAppLocale';
 import { ApiClientError } from '../services/api';
 import {
-  employeePortalService,
   type EmployeePayslipExtraction,
   type IdentityCheck,
   type PeriodCheck,
@@ -22,7 +22,13 @@ import type { DocumentLanguage, ExtractedPayslipField } from '../types/api';
 import type { GuestValidationReport } from '../types/validation-report';
 import type { FieldDraft } from './useEmployeePayslipFlow';
 
-export type WorkspaceTab = 'upload' | 'digital' | 'validation' | 'original';
+export type WorkspaceTab =
+  | 'upload'
+  | 'digital'
+  | 'validation'
+  | 'original'
+  | 'chat'
+  | 'publishing';
 export type BusyPhase = 'uploading' | 'extracting' | 'confirming' | 'validating' | null;
 
 function serializeFieldValue(value: unknown): string {
@@ -162,6 +168,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
   const { t } = useTranslation();
   const { locale } = useAppLocale();
   const navigate = useNavigate();
+  const { api: workspaceApi, basePath } = useEmployeeWorkspace();
   const session = useEmployeeSession();
   const uploadSubmission = useRef(new GuestExtractionSubmission());
   const extractSubmission = useRef(new GuestExtractionSubmission());
@@ -296,7 +303,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
 
       setLoading(true);
       try {
-        const row = await employeePortalService.getPayrollMonthDetail(year, month);
+        const row = await workspaceApi.getPayrollMonthDetail(year, month);
         session.setPayrollMonthDetail(row);
         applyMonthDetail(row);
       } catch (err) {
@@ -305,7 +312,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
         setLoading(false);
       }
     },
-    [year, month, applyMonthDetail, session, t],
+    [year, month, applyMonthDetail, session, t, workspaceApi],
   );
 
   useEffect(() => {
@@ -322,6 +329,27 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
+
+  useEffect(() => {
+    if (!documentId || pendingFile) return;
+    const controller = new AbortController();
+    void workspaceApi
+      .fetchDocumentContentBlob(documentId, controller.signal)
+      .then((blob) => {
+        if (controller.signal.aborted) return;
+        const url = URL.createObjectURL(blob);
+        setPreviewUrl((previous) => {
+          if (previous) URL.revokeObjectURL(previous);
+          return url;
+        });
+      })
+      .catch((reason: unknown) => {
+        if (!controller.signal.aborted && !isAbortError(reason)) {
+          setError(toUserFacingError(reason, t('employee.upload.originalUnavailable')));
+        }
+      });
+    return () => controller.abort();
+  }, [documentId, pendingFile, t, workspaceApi]);
 
   const selectFile = useCallback(
     async (file: File) => {
@@ -380,7 +408,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
         }
         const useFile = Boolean(pendingFile) && !opts?.forCompare;
         const useDocId = Boolean(documentId) && (!pendingFile || Boolean(opts?.forCompare));
-        const response = await employeePortalService.extractPayslip(useFile ? pendingFile : null, {
+        const response = await workspaceApi.extractPayslip(useFile ? pendingFile : null, {
           language: documentLanguage,
           periodYear: year,
           periodMonth: month,
@@ -434,6 +462,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       refresh,
       session,
       t,
+      workspaceApi,
     ],
   );
 
@@ -526,10 +555,10 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
           clear: draft.clear || draft.value.trim() === '',
         }));
       if (corrections.length > 0) {
-        const latest = await employeePortalService.correctExtraction(documentId, corrections);
+        const latest = await workspaceApi.correctExtraction(documentId, corrections);
         applyExtraction(latest);
       }
-      const confirmed = await employeePortalService.confirmExtraction(documentId, true);
+      const confirmed = await workspaceApi.confirmExtraction(documentId, true);
       setConfirmationStatus(confirmed.confirmation_status);
       setValidationOutdated(true);
       // Server state changed; drop cached month so the next open refetches.
@@ -546,7 +575,17 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       setBusyPhase(null);
       setStatusMessage(null);
     }
-  }, [documentId, blocksConfirmation, fieldDrafts, applyExtraction, session, year, month, t]);
+  }, [
+    documentId,
+    blocksConfirmation,
+    fieldDrafts,
+    applyExtraction,
+    session,
+    year,
+    month,
+    t,
+    workspaceApi,
+  ]);
 
   const runValidation = useCallback(async () => {
     if (!documentId) {
@@ -562,7 +601,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       const supporting = detail?.attendance.document_id
         ? [detail.attendance.document_id]
         : [];
-      const validation = await employeePortalService.validatePayslip({
+      const validation = await workspaceApi.validatePayslip({
         documentId,
         locale,
         supportingDocumentIds: supporting,
@@ -592,7 +631,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       }
       setError(toUserFacingError(err, t('validate.validationFailed')));
     }
-  }, [documentId, detail, locale, refresh, t]);
+  }, [documentId, detail, locale, refresh, t, workspaceApi]);
 
   const confirmAndValidate = useCallback(async () => {
     if (!documentId) return;
@@ -618,10 +657,10 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     async (action: 'keep' | 'move' | 'cancel') => {
       if (!documentId) return;
       try {
-        const result = await employeePortalService.resolvePayslipPeriod(documentId, action);
+        const result = await workspaceApi.resolvePayslipPeriod(documentId, action);
         setPeriodPrompt(null);
         if (action === 'move' && result.period_year && result.period_month) {
-          navigate(`/employee/payslips/${result.period_year}/${result.period_month}`);
+          navigate(`${basePath}/payslips/${result.period_year}/${result.period_month}`);
           return;
         }
         if (action === 'keep') {
@@ -644,7 +683,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
         setError(err instanceof Error ? err.message : t('common.error'));
       }
     },
-    [documentId, navigate, refresh, t],
+    [basePath, documentId, navigate, refresh, t, workspaceApi],
   );
 
   const deleteOwnedDocument = useCallback(async () => {
@@ -653,7 +692,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     setStatusMessage(t('employee.workspace.deletingDocument'));
     setError(null);
     try {
-      await employeePortalService.deleteOwnedDocument(documentId);
+      await workspaceApi.deleteOwnedDocument(documentId);
       setExtraction(null);
       setFields([]);
       setFieldDrafts({});
@@ -677,7 +716,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       setBusyPhase(null);
       setStatusMessage(null);
     }
-  }, [documentId, refresh, t]);
+  }, [documentId, refresh, t, workspaceApi]);
 
   const timelineStep = useMemo(() => {
     if (report && !validationOutdated) return 'completed';

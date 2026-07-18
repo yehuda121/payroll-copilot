@@ -1,37 +1,82 @@
-"""Batch payslip PDF processor with stage progress reporting."""
+"""Sequential bulk-payslip processor using the Employee Portal pipeline."""
 
 from __future__ import annotations
 
-from uuid import uuid4
+import asyncio
+from pathlib import Path
+from typing import Any
+from uuid import UUID, uuid4
 
 import fitz
 
-from payroll_copilot.application.services.batch_progress_store import get_batch_progress_store
-from payroll_copilot.application.services.manual_review_queue import (
-    get_manual_review_queue,
-    should_enqueue_low_confidence,
+from payroll_copilot.application.ports.object_storage import ObjectStoragePort
+from payroll_copilot.application.services.batch_payslip_pipeline import (
+    BatchPayslipPipelineService,
+    BatchSlipPipelineResult,
+)
+from payroll_copilot.application.services.batch_progress_store import (
+    BatchExtractedItem,
+    BatchProgressStoreProtocol,
+    get_batch_progress_store,
 )
 from payroll_copilot.infrastructure.config.settings import get_settings
 
+_PHASE_TO_STAGE = {
+    "ocr": "ocr",
+    "extracting": "parser",
+    "matching": "identify",
+    "validation": "validation",
+    "completed": "report",
+}
+
 
 class BatchPayslipProcessor:
-    """Processes bulk PDF containing multiple payslips.
+    """Split once, then process and persist every payslip independently."""
 
-    Pipeline foundation:
-    Upload → Split → OCR → Parser → Employee Identification → Validation → Report
+    def __init__(
+        self,
+        *,
+        progress: BatchProgressStoreProtocol | None = None,
+        storage: ObjectStoragePort | None = None,
+        pipeline: BatchPayslipPipelineService | None = None,
+    ) -> None:
+        settings = get_settings()
+        self._progress = progress or get_batch_progress_store()
+        if storage is None:
+            from payroll_copilot.infrastructure.storage.factory import (
+                create_object_storage,
+            )
 
-    Downstream OCR/parser/validation wiring remains incremental; stages are marked
-    honestly (skipped) when not yet connected — never invents validation results.
-    """
+            storage = create_object_storage(settings)
+        if pipeline is None:
+            from payroll_copilot.infrastructure.tasks.batch_pipeline_factory import (
+                create_batch_payslip_pipeline,
+            )
 
-    def __init__(self) -> None:
-        self._settings = get_settings()
-        self._progress = get_batch_progress_store()
+            pipeline = create_batch_payslip_pipeline()
+        self._storage = storage
+        self._pipeline = pipeline
 
-    def process(self, batch_job_id: str, document_id: str) -> dict:
-        from payroll_copilot.infrastructure.storage.factory import create_object_storage
+    def process(self, batch_job_id: str, document_id: str) -> dict[str, Any]:
+        """Celery entry point. The worker itself is synchronous."""
+        return asyncio.run(self._process_async(batch_job_id, document_id))
 
-        storage = create_object_storage(self._settings)
+    async def _process_async(
+        self,
+        batch_job_id: str,
+        document_id: str,
+    ) -> dict[str, Any]:
+        job = self._progress.get(batch_job_id)
+        if (
+            job is None
+            or not job.organization_id
+            or not job.created_by_user_id
+        ):
+            raise ValueError("Batch job is missing organization or actor context.")
+
+        organization_id = UUID(job.organization_id)
+        actor_user_id = UUID(job.created_by_user_id)
+        source_name = job.source_filename or "bulk-payslips.pdf"
 
         try:
             self._progress.mark_stage(
@@ -39,88 +84,146 @@ class BatchPayslipProcessor:
                 "split",
                 status="running",
                 job_status="running",
-                detail="Downloading source PDF",
+                detail="Downloading and splitting the source PDF",
             )
-
-            storage_key = f"documents/{document_id}"
-            import asyncio
-
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            pdf_bytes = loop.run_until_complete(storage.download(storage_key))
-
+            pdf_bytes = await self._storage.download(f"documents/{document_id}")
             splits = self._split_pdf(pdf_bytes)
-            child_documents = []
-
-            for i, split_bytes in enumerate(splits):
-                child_id = str(uuid4())
-                child_key = f"documents/{child_id}"
-                loop.run_until_complete(storage.upload(child_key, split_bytes, "application/pdf"))
-                child_documents.append(
-                    {
-                        "document_id": child_id,
-                        "slip_index": i,
-                        "storage_key": child_key,
-                    }
-                )
-
+            total = len(splits)
             self._progress.mark_stage(
                 batch_job_id,
                 "split",
                 status="completed",
-                total_slips=len(splits),
-                detail=f"Split into {len(splits)} slip(s)",
+                total_slips=total,
+                detail=f"Split into {total} payslip(s)",
             )
-            self._progress.mark_stage(
-                batch_job_id,
-                "ocr",
-                status="skipped",
-                detail="OCR per-slip wiring pending — documents stored for downstream processing",
-            )
-            self._progress.mark_stage(
-                batch_job_id,
-                "parser",
-                status="skipped",
-                detail="Parser per-slip wiring pending",
-            )
-            self._progress.mark_stage(
-                batch_job_id,
-                "identify",
-                status="skipped",
-                detail="National-ID matching runs when OCR/parser fields are available",
-            )
-            self._progress.mark_stage(
-                batch_job_id,
-                "validation",
-                status="skipped",
-                detail="Validation wiring pending for batch children",
-            )
+
+            counts = {
+                "passed": 0,
+                "warnings": 0,
+                "failed": 0,
+                "unknown": 0,
+                "processing": total,
+            }
+            completed_items: list[dict[str, Any]] = []
+            failed_count = 0
+
+            for index, split_bytes in enumerate(splits):
+                item_id = str(uuid4())
+                item = BatchExtractedItem(
+                    id=item_id,
+                    slip_index=index,
+                    status="processing",
+                    processing_stage="queued",
+                )
+                self._progress.upsert_item(batch_job_id, item)
+
+                current_phase = "queued"
+
+                def publish_phase(
+                    phase: str,
+                    details: dict[str, Any] | None = None,
+                ) -> None:
+                    nonlocal item, current_phase
+                    current_phase = phase
+                    item = BatchExtractedItem(
+                        **{
+                            **item.to_dict(),
+                            "processing_stage": phase,
+                            "status": "processing",
+                            "employee_number": (
+                                details.get("employee_number")
+                                if details
+                                else item.employee_number
+                            ),
+                            "employee_name": (
+                                details.get("employee_name")
+                                if details
+                                else item.employee_name
+                            ),
+                        }
+                    )
+                    self._progress.upsert_item(batch_job_id, item)
+                    stage = _PHASE_TO_STAGE.get(phase)
+                    if stage:
+                        self._progress.mark_stage(
+                            batch_job_id,
+                            stage,
+                            status="running",
+                            job_status="running",
+                            detail=f"Payslip {index + 1}/{total}: {phase}",
+                        )
+
+                try:
+                    result = await self._pipeline.process(
+                        content=split_bytes,
+                        original_filename=self._split_filename(source_name, index),
+                        organization_id=organization_id,
+                        actor_user_id=actor_user_id,
+                        progress=publish_phase,
+                        batch_job_id=batch_job_id,
+                        batch_item_id=item_id,
+                        slip_index=index,
+                        source_document_id=document_id,
+                    )
+                    item = self._item_from_result(
+                        item_id=item_id,
+                        slip_index=index,
+                        result=result,
+                    )
+                except Exception as exc:  # noqa: BLE001 - isolate one bad payslip
+                    item = BatchExtractedItem(
+                        id=item_id,
+                        slip_index=index,
+                        status="failed",
+                        processing_stage=current_phase,
+                        error_message=str(exc) or exc.__class__.__name__,
+                    )
+
+                self._progress.upsert_item(batch_job_id, item)
+                self._increment_counts(counts, item.status)
+                if item.status == "failed":
+                    failed_count += 1
+                processed = index + 1
+                self._progress.mark_stage(
+                    batch_job_id,
+                    _PHASE_TO_STAGE.get(item.processing_stage, "report"),
+                    status="completed"
+                    if item.status != "processing"
+                    else "running",
+                    job_status="running",
+                    processed_slips=processed,
+                    failed_slips=failed_count,
+                    report_summary={"total": total, **counts},
+                    detail=(
+                        f"Processed payslip {processed}/{total}: {item.status}"
+                    ),
+                )
+                completed_items.append(item.to_dict())
+
+            for stage in ("ocr", "parser", "identify", "validation"):
+                self._progress.mark_stage(
+                    batch_job_id,
+                    stage,
+                    status="completed",
+                    detail=f"Completed across {total} payslip(s)",
+                )
             self._progress.mark_stage(
                 batch_job_id,
                 "report",
                 status="completed",
                 job_status="completed",
-                processed_slips=len(splits),
-                report_summary={
-                    "total": len(splits),
-                    "passed": 0,
-                    "warnings": 0,
-                    "critical": 0,
-                    "pending_pipeline": len(splits),
-                },
-                detail="Split complete; downstream validation not yet executed",
+                processed_slips=total,
+                failed_slips=failed_count,
+                report_summary={"total": total, **counts},
+                detail=f"Completed {total} payslip(s)",
             )
-
             return {
                 "batch_job_id": batch_job_id,
-                "total_slips": len(splits),
-                "child_documents": child_documents,
-                "status": "split_complete",
+                "total_slips": total,
+                "items": completed_items,
+                "status": "completed",
             }
-        except Exception as exc:  # noqa: BLE001 — surface failure into progress store
+        except Exception as exc:  # source download/split failure only
             self._progress.mark_stage(
                 batch_job_id,
                 "split",
@@ -131,65 +234,74 @@ class BatchPayslipProcessor:
             )
             raise
 
-    def enqueue_low_confidence_match(
-        self,
+    @staticmethod
+    def _item_from_result(
         *,
-        batch_job_id: str,
-        confidence: float | None,
-        national_id_masked: str | None,
-        extracted_fields: dict | None = None,
-    ) -> str | None:
-        """Called by future identify stage — never auto-creates employees."""
-        if not should_enqueue_low_confidence(confidence):
-            return None
-        item = get_manual_review_queue().enqueue(
-            reason="low_confidence_employee_identification",
-            confidence=confidence,
-            batch_job_id=batch_job_id,
-            national_id_masked=national_id_masked,
-            extracted_fields=extracted_fields or {},
+        item_id: str,
+        slip_index: int,
+        result: BatchSlipPipelineResult,
+    ) -> BatchExtractedItem:
+        return BatchExtractedItem(
+            id=item_id,
+            slip_index=slip_index,
+            status=result.status,
+            employee_number=result.employee_number,
+            employee_name=result.employee_name,
+            document_id=str(result.document_id),
+            national_id_masked=result.national_id_masked,
+            payroll_year=result.payroll_year,
+            payroll_month=result.payroll_month,
+            warnings=result.warnings,
+            critical_issues=result.critical_issues,
+            processing_stage=result.processing_stage,
+            validation_run_id=(
+                str(result.validation_run_id)
+                if result.validation_run_id is not None
+                else None
+            ),
+            error_message=result.error_message,
         )
-        return item.id
-
-    def _split_pdf(self, pdf_bytes: bytes) -> list[bytes]:
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        splits: list[bytes] = []
-        current_pages: list[int] = []
-
-        for page_num in range(len(doc)):
-            page = doc[page_num]
-            text = page.get_text()
-            is_boundary = self._is_payslip_start(text, page_num == 0)
-
-            if is_boundary and current_pages:
-                splits.append(self._extract_pages(doc, current_pages))
-                current_pages = []
-
-            current_pages.append(page_num)
-
-        if current_pages:
-            splits.append(self._extract_pages(doc, current_pages))
-
-        doc.close()
-
-        if not splits:
-            splits = [pdf_bytes]
-
-        return splits
 
     @staticmethod
-    def _is_payslip_start(text: str, is_first_page: bool) -> bool:
-        if is_first_page:
-            return True
-        indicators = ["תלוש שכר", "payslip", "salary slip", "מספר עובד", "employee"]
-        text_lower = text.lower()
-        return any(ind.lower() in text_lower for ind in indicators)
+    def _increment_counts(counts: dict[str, int], status: str) -> None:
+        counts["processing"] = max(0, counts["processing"] - 1)
+        key = {
+            "warning": "warnings",
+            "unknown_employee": "unknown",
+        }.get(status, status)
+        if key in counts:
+            counts[key] += 1
+        else:
+            counts["failed"] += 1
+
+    @staticmethod
+    def _split_filename(source_name: str, index: int) -> str:
+        stem = Path(source_name).stem or "bulk-payslips"
+        return f"{stem}-payslip-{index + 1}.pdf"
+
+    def _split_pdf(self, pdf_bytes: bytes) -> list[bytes]:
+        """Split a payroll package into one independent payslip per page.
+
+        Bulk payroll files in this workflow are page packages: each page is a
+        separate employee payslip. OCR cannot be used to discover boundaries
+        here because scanned pages often have no embedded PDF text.
+        """
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        try:
+            splits = [
+                self._extract_pages(doc, [page_num])
+                for page_num in range(len(doc))
+            ]
+            return splits or [pdf_bytes]
+        finally:
+            doc.close()
 
     @staticmethod
     def _extract_pages(doc: fitz.Document, page_indices: list[int]) -> bytes:
         new_doc = fitz.open()
-        for idx in page_indices:
-            new_doc.insert_pdf(doc, from_page=idx, to_page=idx)
-        pdf_bytes = new_doc.tobytes()
-        new_doc.close()
-        return pdf_bytes
+        try:
+            for index in page_indices:
+                new_doc.insert_pdf(doc, from_page=index, to_page=index)
+            return new_doc.tobytes()
+        finally:
+            new_doc.close()

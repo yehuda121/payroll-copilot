@@ -422,6 +422,14 @@
       "completedAt": "اكتمل {{at}}",
       "rulesTitle": "قواعد التحقق",
       "noRules": "لم تُرجع أي قواعد تحقق لهذه الجولة.",
+      "groups": {
+        "identity": "الهوية",
+        "employment": "التوظيف",
+        "salary": "الراتب",
+        "taxes": "الضرائب",
+        "benefits": "المزايا",
+        "dates": "التواريخ"
+      },
       "annotatedFormTitle": "النموذج الرقمي بعد التحقق",
       "reason": "السبب",
       "expected": "المتوقع",

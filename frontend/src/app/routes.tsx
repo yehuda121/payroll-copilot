@@ -6,10 +6,10 @@ import { useAuth } from '../auth/AuthContext';
 import { DialogProvider } from '../components/ui/Dialog';
 import { UnsavedChangesProvider } from '../features/accountant/UnsavedChangesGuard';
 import { AccountantLayout } from '../layouts/AccountantLayout';
+import { AccountantEmployeeWorkspaceLayout } from '../layouts/AccountantEmployeeWorkspace';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { EmployeeLayout } from '../layouts/EmployeeLayout';
 import { PublicLayout } from '../layouts/PublicLayout';
-import { AccountantDashboardPage } from '../pages/accountant/AccountantDashboard';
 import { AccountantAuditLogsPage } from '../pages/accountant/AccountantAuditLogs';
 import { AddEmployeePage } from '../pages/accountant/AddEmployee';
 import { ApprovalQueuePage } from '../pages/accountant/ApprovalQueue';
@@ -20,6 +20,7 @@ import { EmployeeManagementPage } from '../pages/accountant/EmployeeManagement';
 import { EmployeeProfilePage } from '../pages/accountant/EmployeeProfile';
 import { PayrollRulesPage } from '../pages/accountant/PayrollRules';
 import { ValidationFindingsPage } from '../pages/accountant/ValidationFindings';
+import { BatchItemReviewWorkspacePage } from '../pages/accountant/BatchItemReviewWorkspace';
 import { AdminAuditLogsPage } from '../pages/admin/AdminAuditLogs';
 import { AiModelsPage } from '../pages/admin/AiModels';
 import { DepartmentRulesPage } from '../pages/admin/DepartmentRules';
@@ -85,12 +86,26 @@ export const appRouteElements = (
 
     <Route element={<ProtectedRoute allowedRoles={['payroll_accountant']} />}>
       <Route element={<AccountantLayout />}>
-        <Route path="/accountant" element={<AccountantDashboardPage />} />
+        <Route path="/accountant" element={<Navigate to="/accountant/employees" replace />} />
         <Route path="/accountant/employees" element={<EmployeeManagementPage />} />
         <Route path="/accountant/employees/add" element={<AddEmployeePage />} />
         <Route path="/accountant/employees/:employeeNumber" element={<EmployeeProfilePage />} />
+        <Route
+          path="/accountant/employees/:employeeNumber/workspace"
+          element={<AccountantEmployeeWorkspaceLayout />}
+        >
+          <Route index element={<Navigate to="documents" replace />} />
+          <Route path="documents" element={<DocumentCenterPage />} />
+          <Route path="payslips" element={<MyPayslipsPage />} />
+          <Route path="payslips/:year/:month" element={<PayslipMonthWorkspacePage />} />
+          <Route path="chat" element={<PayrollChatPage />} />
+        </Route>
         <Route path="/accountant/employees/:employeeNumber/edit" element={<EditEmployeePage />} />
         <Route path="/accountant/bulk-upload" element={<BulkPayrollUploadPage />} />
+        <Route
+          path="/accountant/bulk-upload/jobs/:jobId/items/:itemId/resolve"
+          element={<BatchItemReviewWorkspacePage />}
+        />
         <Route path="/accountant/batch-monitor" element={<BatchProcessingMonitorPage />} />
         <Route path="/accountant/rules" element={<PayrollRulesPage />} />
         <Route path="/accountant/findings" element={<ValidationFindingsPage />} />

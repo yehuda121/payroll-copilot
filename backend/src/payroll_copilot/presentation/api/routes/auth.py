@@ -1,7 +1,7 @@
 """Authentication routes — Amazon Cognito for users; short-lived guest tokens for landing."""
 
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException, status
 from jose import jwt
@@ -22,6 +22,8 @@ from payroll_copilot.infrastructure.auth.cognito import (
     role_from_cognito_claims,
 )
 from payroll_copilot.infrastructure.config.settings import get_settings
+from payroll_copilot.infrastructure.persistence.dynamodb.factory import get_user_store
+from payroll_copilot.infrastructure.persistence.dynamodb.user_store import UserRecord
 from payroll_copilot.presentation.api.security import (
     ensure_dev_employee_user,
     upsert_user_from_cognito_claims,
@@ -58,6 +60,10 @@ class DevEmployeeSessionResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     user: dict
+
+
+DEV_ACCOUNTANT_USER_ID = UUID("00000000-0000-4000-8000-000000000201")
+DEV_ACCOUNTANT_EMAIL = "david.levy@dev.payroll-copilot.local"
 
 
 def _create_guest_token(subject: str, expires_delta: timedelta) -> str:
@@ -221,5 +227,55 @@ async def create_dev_employee_session() -> DevEmployeeSessionResponse:
             "role": UserRole.EMPLOYEE.value,
             "organization_id": str(DEMO_ORGANIZATION_ID),
             "employee_id": str(user.employee_id) if user.employee_id else None,
+        },
+    )
+
+
+@router.post(
+    "/dev/accountant-session",
+    response_model=DevEmployeeSessionResponse,
+    status_code=201,
+)
+async def create_dev_accountant_session() -> DevEmployeeSessionResponse:
+    """Issue a local-only accountant token with an explicit organization binding."""
+    settings = get_settings()
+    if settings.app_env.lower() in {"production", "prod"} or cognito_configured(settings):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "not_available", "message": "Dev accountant session is not available."},
+        )
+    store = get_user_store()
+    user = await store.get_by_id(DEV_ACCOUNTANT_USER_ID)
+    if user is None:
+        user = UserRecord(
+            id=DEV_ACCOUNTANT_USER_ID,
+            organization_id=DEMO_ORGANIZATION_ID,
+            email=DEV_ACCOUNTANT_EMAIL,
+            password_hash=None,
+            role=UserRole.ACCOUNTANT,
+            preferred_locale="he",
+            is_active=True,
+            employee_id=None,
+        )
+    else:
+        user.organization_id = DEMO_ORGANIZATION_ID
+        user.email = DEV_ACCOUNTANT_EMAIL
+        user.role = UserRole.ACCOUNTANT
+        user.is_active = True
+        user.employee_id = None
+    user = await store.save(user)
+    access_token = _create_local_access_token(
+        str(user.id),
+        timedelta(minutes=settings.jwt_access_token_expire_minutes),
+    )
+    return DevEmployeeSessionResponse(
+        access_token=access_token,
+        expires_in=settings.jwt_access_token_expire_minutes * 60,
+        user={
+            "id": str(user.id),
+            "email": user.email,
+            "role": "payroll_accountant",
+            "organization_id": str(user.organization_id),
+            "employee_id": None,
         },
     )

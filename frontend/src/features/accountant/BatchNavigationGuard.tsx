@@ -7,12 +7,25 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { batchService } from '../../services/batch';
+import type { BatchEmployeeStatus, BatchJobStatus } from '../../types/api';
 
 type BatchGuardContextValue = {
   isBatchActive: boolean;
   setBatchActive: (active: boolean) => void;
   batchLabel: string;
   setBatchLabel: (label: string) => void;
+  activeJobId: string | null;
+  activeJob: BatchJobStatus | null;
+  trackBatch: (jobId: string) => void;
+  refreshBatch: () => Promise<void>;
+  selectedTab: 'upload' | 'extracted';
+  setSelectedTab: (tab: 'upload' | 'extracted') => void;
+  statusFilter: BatchEmployeeStatus | 'all';
+  setStatusFilter: (status: BatchEmployeeStatus | 'all') => void;
+  savedScrollY: number;
+  setSavedScrollY: (value: number) => void;
+  batchError: string | null;
 };
 
 const BatchGuardContext = createContext<BatchGuardContextValue | null>(null);
@@ -26,6 +39,43 @@ const BatchGuardContext = createContext<BatchGuardContextValue | null>(null);
 export function BatchNavigationGuardProvider({ children }: { children: ReactNode }) {
   const [isBatchActive, setBatchActive] = useState(false);
   const [batchLabel, setBatchLabel] = useState('Batch processing is running');
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [activeJob, setActiveJob] = useState<BatchJobStatus | null>(null);
+  const [selectedTab, setSelectedTab] = useState<'upload' | 'extracted'>('upload');
+  const [statusFilter, setStatusFilter] = useState<BatchEmployeeStatus | 'all'>('all');
+  const [savedScrollY, setSavedScrollY] = useState(0);
+  const [batchError, setBatchError] = useState<string | null>(null);
+
+  const refreshBatch = useCallback(async () => {
+    if (!activeJobId) return;
+    try {
+      const next = await batchService.getJobStatus(activeJobId);
+      setActiveJob(next);
+      setBatchError(null);
+      const active = next.status === 'queued' || next.status === 'running';
+      setBatchActive(active);
+    } catch (error) {
+      setBatchError(error instanceof Error ? error.message : 'Unable to load batch progress.');
+    }
+  }, [activeJobId]);
+
+  const trackBatch = useCallback((jobId: string) => {
+    setActiveJobId(jobId);
+    setActiveJob(null);
+    setBatchActive(true);
+    setSelectedTab('extracted');
+    setStatusFilter('all');
+  }, []);
+
+  const activeJobStatus = activeJob?.status;
+
+  useEffect(() => {
+    if (!activeJobId) return;
+    if (activeJobStatus && !['queued', 'running'].includes(activeJobStatus)) return;
+    void refreshBatch();
+    const timer = window.setInterval(() => void refreshBatch(), 1500);
+    return () => window.clearInterval(timer);
+  }, [activeJobId, activeJobStatus, refreshBatch]);
 
   useEffect(() => {
     if (!isBatchActive) return;
@@ -43,8 +93,30 @@ export function BatchNavigationGuardProvider({ children }: { children: ReactNode
       setBatchActive,
       batchLabel,
       setBatchLabel,
+      activeJobId,
+      activeJob,
+      trackBatch,
+      refreshBatch,
+      selectedTab,
+      setSelectedTab,
+      statusFilter,
+      setStatusFilter,
+      savedScrollY,
+      setSavedScrollY,
+      batchError,
     }),
-    [batchLabel, isBatchActive],
+    [
+      activeJob,
+      activeJobId,
+      batchError,
+      batchLabel,
+      isBatchActive,
+      refreshBatch,
+      savedScrollY,
+      selectedTab,
+      statusFilter,
+      trackBatch,
+    ],
   );
 
   return <BatchGuardContext.Provider value={value}>{children}</BatchGuardContext.Provider>;
@@ -68,5 +140,16 @@ export function useOptionalBatchNavigationGuard(): BatchGuardContextValue {
     setBatchActive: noopBool,
     batchLabel: '',
     setBatchLabel: noopLabel,
+    activeJobId: null,
+    activeJob: null,
+    trackBatch: () => undefined,
+    refreshBatch: async () => undefined,
+    selectedTab: 'upload',
+    setSelectedTab: () => undefined,
+    statusFilter: 'all',
+    setStatusFilter: () => undefined,
+    savedScrollY: 0,
+    setSavedScrollY: () => undefined,
+    batchError: null,
   };
 }

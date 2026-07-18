@@ -109,6 +109,9 @@ def get_parse_payslip_use_case(
         timeout_seconds=settings.payslip_parser_timeout_seconds,
         total_budget_seconds=settings.payslip_parser_total_budget_seconds,
         layout_config=parser_layout_config_from_settings(settings),
+        evidence_bound_enabled=bool(
+            getattr(settings, "payslip_parser_evidence_bound_enabled", False)
+        ),
     )
 
 

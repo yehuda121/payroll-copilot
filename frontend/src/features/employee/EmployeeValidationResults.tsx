@@ -19,6 +19,7 @@ import '../guest/landing/landing-chat.css';
 
 type ValidationCard = {
   key: string;
+  category: 'identity' | 'employment' | 'salary' | 'taxes' | 'benefits' | 'dates';
   title: string;
   status: EmployeeCardStatus;
   explanation: string | null;
@@ -62,6 +63,7 @@ export function EmployeeValidationResults({
     if (period) {
       out.push({
         key: 'pay_period',
+        category: 'dates',
         title: t('employee.validation.checkTitles.pay_period'),
         status: mapCompareToCardStatus(period.status),
         explanation:
@@ -91,6 +93,7 @@ export function EmployeeValidationResults({
         if (scope.key === 'attendance') continue;
         out.push({
           key: `scope-${scope.key}`,
+          category: categoryForRule(scope.key),
           title: translateScopeTitle(scope.key, scope.label, t),
           status: mapScopeToCardStatus(scope.status, scope.reason),
           explanation: translateScopeReason(scope.reason, t),
@@ -104,6 +107,9 @@ export function EmployeeValidationResults({
         if (/attendance/i.test(`${messageKey} ${finding.rule_id || ''}`)) continue;
         out.push({
           key: `finding-${finding.id}`,
+          category: categoryForRule(
+            `${finding.rule_id || ''} ${finding.message_key || ''} ${finding.code || ''}`,
+          ),
           title: translateFindingTitle(messageKey, t),
           status: mapFindingToCardStatus(finding),
           explanation:
@@ -142,6 +148,16 @@ export function EmployeeValidationResults({
     for (const card of cards) c[card.status] += 1;
     return c;
   }, [cards]);
+  const groupedCards = useMemo(
+    () =>
+      (['identity', 'employment', 'salary', 'taxes', 'benefits', 'dates'] as const)
+        .map((category) => ({
+          category,
+          cards: cards.filter((card) => card.category === category),
+        }))
+        .filter((group) => group.cards.length > 0),
+    [cards],
+  );
 
   const overallLabel = report
     ? translateOverallResult(String(report.overallResult || report.overallStatus), t)
@@ -218,58 +234,71 @@ export function EmployeeValidationResults({
         {cards.length === 0 ? (
           <p>{t('employee.validation.noRules')}</p>
         ) : (
-          cards.map((card) => {
-            const visual = statusVisual(card.status);
-            const hasDetails =
-              Boolean(card.explanation) ||
-              card.expected != null ||
-              card.actual != null ||
-              card.confidence != null;
-            return (
-              <article key={card.key} className={`employee-validation-card ${visual.css}`}>
-                <header className="employee-validation-card__head">
-                  <h4>{card.title}</h4>
-                  <span className={`employee-field-status ${visual.css}`}>
-                    <span aria-hidden="true">{visual.icon}</span>
-                    <span>{visual.label}</span>
-                  </span>
-                </header>
-                <div className="employee-validation-card__actions">
-                  <EmployeeValidationAiButton
-                    cardTitle={card.title}
-                    findingId={card.findingId}
-                    validationRunId={report?.runId}
-                    staticExplanation={card.explanation}
-                  />
-                </div>
-                {hasDetails && (
-                  <details className="employee-validation-card__details">
-                    <summary>{t('employee.validation.details')}</summary>
-                    <div className="employee-validation-card__details-body">
-                      {card.explanation && (
-                        <p className="employee-validation-card__explain">{card.explanation}</p>
-                      )}
-                      {card.expected != null && (
-                        <p>
-                          <strong>{t('employee.validation.expected')}:</strong> {card.expected}
-                        </p>
-                      )}
-                      {card.actual != null && (
-                        <p>
-                          <strong>{t('employee.validation.actual')}:</strong> {card.actual}
-                        </p>
-                      )}
-                      {card.confidence != null && (
-                        <p>
-                          <strong>{t('validate.confidenceLabel')}:</strong> {card.confidence}%
-                        </p>
-                      )}
+          groupedCards.map((group) => (
+            <section key={group.category} className="employee-validation-group">
+              <h4>
+                {t(`employee.validation.groups.${group.category}`, {
+                  defaultValue: group.category,
+                })}
+              </h4>
+              {group.cards.map((card) => {
+                const visual = statusVisual(card.status);
+                const hasDetails =
+                  Boolean(card.explanation) ||
+                  card.expected != null ||
+                  card.actual != null ||
+                  card.confidence != null;
+                return (
+                  <article key={card.key} className={`employee-validation-card ${visual.css}`}>
+                    <header className="employee-validation-card__head">
+                      <h4>{card.title}</h4>
+                      <span className={`employee-field-status ${visual.css}`}>
+                        <span aria-hidden="true">{visual.icon}</span>
+                        <span>{visual.label}</span>
+                      </span>
+                    </header>
+                    <div className="employee-validation-card__actions">
+                      <EmployeeValidationAiButton
+                        cardTitle={card.title}
+                        findingId={card.findingId}
+                        validationRunId={report?.runId}
+                        staticExplanation={card.explanation}
+                      />
                     </div>
-                  </details>
-                )}
-              </article>
-            );
-          })
+                    {hasDetails && (
+                      <div className="employee-validation-card__details">
+                        <div className="employee-validation-card__details-body">
+                          {card.explanation && (
+                            <p className="employee-validation-card__explain">
+                              {card.explanation}
+                            </p>
+                          )}
+                          {card.expected != null && (
+                            <p>
+                              <strong>{t('employee.validation.expected')}:</strong>{' '}
+                              {card.expected}
+                            </p>
+                          )}
+                          {card.actual != null && (
+                            <p>
+                              <strong>{t('employee.validation.actual')}:</strong>{' '}
+                              {card.actual}
+                            </p>
+                          )}
+                          {card.confidence != null && (
+                            <p>
+                              <strong>{t('validate.confidenceLabel')}:</strong>{' '}
+                              {card.confidence}%
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </section>
+          ))
         )}
       </section>
     </div>
@@ -295,6 +324,7 @@ function identityFieldCard(field: ComparisonField, t: TFunction): ValidationCard
   }
   return {
     key: `identity-${field.key}`,
+    category: 'identity',
     title: t(`employee.validation.checkTitles.${field.key}`, {
       defaultValue: t('employee.validation.checkTitles.identity'),
     }),
@@ -304,4 +334,14 @@ function identityFieldCard(field: ComparisonField, t: TFunction): ValidationCard
     actual: field.extracted_display,
     confidence: null,
   };
+}
+
+function categoryForRule(value: string): ValidationCard['category'] {
+  const normalized = value.toLowerCase();
+  if (/identity|employee|national|name/.test(normalized)) return 'identity';
+  if (/tax|income|credit|withhold/.test(normalized)) return 'taxes';
+  if (/benefit|pension|provident|insurance|fund/.test(normalized)) return 'benefits';
+  if (/date|period|month|year/.test(normalized)) return 'dates';
+  if (/salary|gross|net|wage|pay|hour|overtime/.test(normalized)) return 'salary';
+  return 'employment';
 }

@@ -93,7 +93,7 @@ export function getRoleHomePath(role: UserRole): string {
     case 'employee':
       return '/employee/documents';
     case 'payroll_accountant':
-      return '/accountant';
+      return '/accountant/employees';
     case 'developer_admin':
       return '/admin';
   }

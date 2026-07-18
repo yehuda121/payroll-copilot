@@ -14,6 +14,7 @@ from payroll_copilot.application.services.employee_document_lifecycle import (
     LIFECYCLE_REVIEW_REQUIRED,
     LIFECYCLE_UPLOADED,
     PERSISTENT_TYPES,
+    is_employee_visible_document,
 )
 from payroll_copilot.domain.enums import DocumentType
 
@@ -114,11 +115,14 @@ class ListEmployeeDocumentsUseCase:
         *,
         organization_id: UUID,
         employee_id: UUID,
+        include_unpublished: bool = False,
     ) -> dict[str, Any]:
         docs = await self._documents.list_for_employee(
             organization_id=organization_id,
             employee_id=employee_id,
         )
+        if not include_unpublished:
+            docs = [doc for doc in docs if is_employee_visible_document(doc)]
 
         by_type: dict[DocumentType, list[Any]] = {t: [] for t in PERSISTENT_TYPES}
         monthly_count = 0

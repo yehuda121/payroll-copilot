@@ -59,6 +59,12 @@ export type EmployeeAssistantChatResponse = AssistantChatResponse & {
   };
 };
 
+export type AccountantEmployeeAssistantChatRequest = EmployeeAssistantChatRequest & {
+  employee_number: string;
+  /** Exact draft under review; prevents cross-document payroll context. */
+  document_id?: string;
+};
+
 export type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';

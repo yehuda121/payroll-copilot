@@ -395,6 +395,8 @@ class EmployeeDocumentWorkspaceUseCase:
             extraction_version=version,
             created_at=now,
             ocr_result=deepcopy(previous.ocr_result) if previous else {},
+            layout_snapshot=deepcopy(previous.layout_snapshot) if previous else {},
+            layout_analysis=deepcopy(previous.layout_analysis) if previous else {},
             parser_model=(previous.parser_model if previous else None),
             language=(previous.language if previous else "he"),
             ocr_status=(previous.ocr_status if previous else "skipped"),

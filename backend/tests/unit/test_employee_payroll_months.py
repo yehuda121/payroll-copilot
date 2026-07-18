@@ -192,3 +192,32 @@ async def test_employee_isolation_and_latest_validation():
     other_june = other["months"][5]
     assert other_june["payslip"]["document_id"] == str(payslip_b.id)
     assert other_june["latest_validation"]["exists"] is False
+
+
+@pytest.mark.asyncio
+async def test_accountant_draft_is_hidden_from_employee_until_published():
+    draft = _doc(EMP_A, 2026, 7)
+    draft.metadata = {
+        "publication_status": "draft",
+        "review_status": "pending_review",
+    }
+    use_case = BuildEmployeePayrollMonthsUseCase(
+        documents=_Docs([draft]),  # type: ignore[arg-type]
+        validation_runs=_Runs({}),  # type: ignore[arg-type]
+        validation_findings=_Findings(),  # type: ignore[arg-type]
+    )
+
+    employee_view = await use_case.execute(
+        organization_id=ORG,
+        employee_id=EMP_A,
+        year=2026,
+    )
+    accountant_view = await use_case.execute(
+        organization_id=ORG,
+        employee_id=EMP_A,
+        year=2026,
+        include_unpublished=True,
+    )
+
+    assert employee_view["months"][6]["payslip"]["exists"] is False
+    assert accountant_view["months"][6]["payslip"]["document_id"] == str(draft.id)

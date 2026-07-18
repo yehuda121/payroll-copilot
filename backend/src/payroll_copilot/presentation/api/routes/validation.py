@@ -28,10 +28,17 @@ from payroll_copilot.application.use_cases.persisted_validation import (
     RunPersistedValidationCommand,
     RunPersistedValidationUseCase,
 )
+from payroll_copilot.application.services.employee_document_lifecycle import (
+    is_employee_visible_document,
+)
+from payroll_copilot.application.services.guest_ephemeral_store import (
+    get_guest_ephemeral_store,
+)
 from payroll_copilot.application.use_cases.validate_employee_payslip import ValidateEmployeePayslipUseCase
 from payroll_copilot.application.validation.guest_extraction_context_builder import (
     ExtractionRequiredError,
 )
+from payroll_copilot.domain.enums import UserRole
 from payroll_copilot.infrastructure.ai.agents.validation_report_store import cache_validation_report
 from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.infrastructure.i18n import finding_explanation, finding_message, resolve_locale
@@ -39,7 +46,14 @@ from payroll_copilot.presentation.api.dependencies import (
     get_run_persisted_validation_use_case,
     get_validation_run_use_case,
 )
-from payroll_copilot.presentation.api.security import BoundEmployeeContext, require_bound_employee
+from payroll_copilot.presentation.api.security import (
+    AuthPrincipal,
+    BoundEmployeeContext,
+    bind_accountant_selected_employee,
+    get_auth_principal,
+    require_accountant,
+    require_bound_employee,
+)
 
 router = APIRouter()
 
@@ -184,7 +198,12 @@ async def run_validation(
     use_case: RunPersistedValidationUseCase = Depends(get_run_persisted_validation_use_case),
     accept_language: str | None = Header(default=None, alias="Accept-Language"),
 ) -> ValidationRunResponse:
-    """Trigger deterministic validation for a payslip document."""
+    """Guest landing validation for ephemeral payslips only.
+
+    Persisted employee/accountant documents must use the authenticated
+    `/validation/employee/run` or `/validation/accountant/{employee_number}/run`
+    endpoints.
+    """
     settings = get_settings()
     locale = resolve_locale(
         explicit=request.locale,
@@ -192,20 +211,36 @@ async def run_validation(
         default=settings.default_locale,
     )
     document_id = _parse_uuid(request.document_id, "document_id")
-    employee_id = (
-        _parse_uuid(request.employee_id, "employee_id") if request.employee_id is not None else None
-    )
+    store = get_guest_ephemeral_store()
+    ephemeral = store.get(document_id)
+    if ephemeral is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "code": "guest_session_not_found",
+                "message": "Guest validation session not found for this document.",
+            },
+        )
     supporting_document_ids = tuple(
         _parse_uuid(value, "supporting_document_id") for value in request.supporting_document_ids
     )
+    for support_id in supporting_document_ids:
+        if store.get_supporting(support_id) is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "code": "supporting_document_not_found",
+                    "message": "Supporting document is not part of this guest session.",
+                },
+            )
 
     try:
         record = await use_case.execute(
             RunPersistedValidationCommand(
                 document_id=document_id,
-                employee_id=employee_id,
-                include_historical=request.include_historical,
-                include_contract_rag=request.include_contract_rag,
+                employee_id=None,
+                include_historical=False,
+                include_contract_rag=False,
                 supporting_document_ids=supporting_document_ids,
                 locale=locale,
             )
@@ -237,6 +272,13 @@ async def run_employee_validation(
         default=settings.default_locale,
     )
     document_id = _parse_uuid(request.document_id, "document_id")
+    if bound.principal.role == "employee":
+        document = await get_document_repository().get_by_id(document_id)
+        if document is None or not is_employee_visible_document(document):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "document_not_found", "message": "Document not found"},
+            )
     supporting_document_ids = tuple(
         _parse_uuid(value, "supporting_document_id") for value in request.supporting_document_ids
     )
@@ -282,10 +324,38 @@ async def run_employee_validation(
         ) from tip_exc
     return _to_response(result.record, locale=locale)
 
+
+@router.post(
+    "/accountant/{employee_number}/run",
+    response_model=ValidationRunResponse,
+    status_code=202,
+)
+async def run_accountant_selected_employee_validation(
+    employee_number: str,
+    request: ValidationRunRequest,
+    principal: AuthPrincipal = Depends(require_accountant),
+    validation: RunPersistedValidationUseCase = Depends(
+        get_run_persisted_validation_use_case
+    ),
+    accept_language: str | None = Header(default=None, alias="Accept-Language"),
+) -> ValidationRunResponse:
+    selected = await bind_accountant_selected_employee(
+        employee_number=employee_number,
+        principal=principal,
+    )
+    return await run_employee_validation(
+        request=request,
+        bound=selected,
+        validation=validation,
+        accept_language=accept_language,
+    )
+
+
 @router.get("/runs/{validation_run_id}", response_model=ValidationRunResponse)
 async def get_validation_run(
     validation_run_id: str,
     use_case: GetValidationRunUseCase = Depends(get_validation_run_use_case),
+    principal: AuthPrincipal = Depends(get_auth_principal),
     locale: str | None = None,
     accept_language: str | None = Header(default=None, alias="Accept-Language"),
 ) -> ValidationRunResponse:
@@ -302,4 +372,51 @@ async def get_validation_run(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Validation run {validation_run_id} not found",
         )
+    await _authorize_validation_run_access(record=record, principal=principal)
     return _to_response(record, locale=resolved)
+
+
+async def _authorize_validation_run_access(
+    *,
+    record: ValidationRunRecord,
+    principal: AuthPrincipal,
+) -> None:
+    """Hide cross-tenant validation runs behind a generic not-found response."""
+    document = await get_document_repository().get_by_id(record.document_id)
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Validation run {record.id} not found",
+        )
+
+    if principal.role == UserRole.EMPLOYEE.value:
+        if (
+            principal.employee_id is None
+            or document.employee_id != principal.employee_id
+            or document.organization_id != principal.organization_id
+            or not is_employee_visible_document(document)
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Validation run {record.id} not found",
+            )
+        return
+
+    if principal.role in {UserRole.ACCOUNTANT.value, UserRole.ADMIN.value}:
+        if (
+            principal.organization_id is None
+            or document.organization_id != principal.organization_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Validation run {record.id} not found",
+            )
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail={
+            "code": "validation_access_denied",
+            "message": "Authenticated role cannot access validation runs.",
+        },
+    )

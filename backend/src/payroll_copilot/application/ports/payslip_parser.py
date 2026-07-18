@@ -34,6 +34,8 @@ class ExtractedField(BaseModel):
     original_value: str | float | int | bool | dict[str, Any] | list[Any] | None = None
     # Additive layout-aware provenance (optional; backward compatible).
     evidence_ids: list[str] = Field(default_factory=list)
+    # Phase 3 deterministic association candidates (authoritative when evidence-bound).
+    candidate_ids: list[str] = Field(default_factory=list)
     source_bbox: list[float] | None = None
     source_page: int | None = None
     parser_method: str | None = None

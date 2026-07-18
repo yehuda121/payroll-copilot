@@ -2,7 +2,6 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
 import { LanguageSelector } from '../components/ui/LanguageSelector';
-import { useConfirmDialog } from '../components/ui/Dialog';
 import { useOptionalBatchNavigationGuard } from '../features/accountant/BatchNavigationGuard';
 import { useOptionalUnsavedChanges } from '../features/accountant/UnsavedChangesGuard';
 import { useAppLocale } from '../hooks/useAppLocale';
@@ -19,8 +18,7 @@ export function PortalShell({ config }: PortalShellProps) {
   const { session, logout } = useAuth();
   const user = session?.user;
   const navigate = useNavigate();
-  const { confirm } = useConfirmDialog();
-  const { isBatchActive, batchLabel } = useOptionalBatchNavigationGuard();
+  const { isBatchActive } = useOptionalBatchNavigationGuard();
   const unsaved = useOptionalUnsavedChanges();
 
   const portalName = config.portalNameKey
@@ -42,18 +40,8 @@ export function PortalShell({ config }: PortalShellProps) {
       navigate(path);
       return;
     }
-    if (!isBatchActive) return;
-    event.preventDefault();
-    const ok = await confirm({
-      title: t('portal.shell.leaveBatchTitle'),
-      message: t('portal.shell.leaveBatchMessage', {
-        label: batchLabel || t('portal.shell.batchActiveDefault'),
-      }),
-      confirmLabel: t('portal.shell.leaveBatchConfirm'),
-      cancelLabel: t('portal.shell.leaveBatchStay'),
-      variant: 'warning',
-    });
-    if (ok) navigate(path);
+    // Batch work runs server-side and remains visible through the accountant
+    // workspace provider, so normal in-app navigation must not interrupt it.
   };
 
   return (

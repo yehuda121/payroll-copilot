@@ -28,9 +28,14 @@ celery_app.conf.update(
 )
 
 
-@celery_app.task(name="process_bulk_payslip_pdf", bind=True, max_retries=3)
+@celery_app.task(name="process_bulk_payslip_pdf", bind=True, max_retries=0)
 def process_bulk_payslip_pdf(self, batch_job_id: str, document_id: str) -> dict:
-    """Background task: split bulk PDF, OCR, identify, validate each slip."""
+    """Background task: split bulk PDF, then OCR/identify/validate each slip.
+
+    Retries are disabled: after the first payslip is persisted, a whole-job
+    retry would risk duplicate documents and double-counted progress.
+    Per-slip failures are isolated inside the processor instead.
+    """
     from payroll_copilot.infrastructure.tasks.batch_processor import BatchPayslipProcessor
 
     processor = BatchPayslipProcessor()

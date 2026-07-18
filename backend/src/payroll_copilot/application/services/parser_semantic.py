@@ -73,6 +73,7 @@ _FIELD_CONTRACT_KEYS = frozenset(
         "source_text",
         "status",
         "evidence_ids",
+        "candidate_ids",
         "source_bbox",
         "source_page",
         "parser_method",
@@ -112,6 +113,7 @@ _MISSING_FIELD_STUB: dict[str, Any] = {
     "source_text": None,
     "status": "MISSING",
     "evidence_ids": [],
+    "candidate_ids": [],
     "source_bbox": None,
     "source_page": None,
     "parser_method": "layout_llm",
@@ -266,18 +268,25 @@ def _is_field_object(raw: object) -> bool:
 def expand_simplified_field(raw: dict[str, Any]) -> dict[str, Any]:
     """Expand minimal LLM field objects into the full server field contract."""
     if "status" in raw:
-        return raw
+        expanded = dict(raw)
+        if "candidate_ids" not in expanded:
+            expanded["candidate_ids"] = list(raw.get("candidate_ids") or [])
+        return expanded
     value = raw.get("value")
     source_text = raw.get("source_text")
     confidence = raw.get("confidence")
-    if value in (None, ""):
+    candidate_ids = raw.get("candidate_ids") or []
+    if not isinstance(candidate_ids, list):
+        candidate_ids = []
+    if value in (None, "") and not candidate_ids:
         status = "MISSING"
-    elif isinstance(source_text, str) and source_text.strip():
+    elif candidate_ids or (isinstance(source_text, str) and source_text.strip()):
         status = "FOUND"
     else:
         status = "UNCERTAIN"
     expanded = dict(_MISSING_FIELD_STUB)
     expanded.update(raw)
+    expanded["candidate_ids"] = [str(item) for item in candidate_ids if item is not None]
     expanded["status"] = status
     expanded["parser_method"] = raw.get("parser_method") or "semantic_llm"
     if status == "MISSING":
@@ -291,24 +300,14 @@ def _status_of(raw: dict[str, Any]) -> str:
     status = raw.get("status")
     if isinstance(status, str):
         return status.strip().upper()
+    candidate_ids = raw.get("candidate_ids") or []
+    if isinstance(candidate_ids, list) and candidate_ids:
+        return "FOUND"
     if raw.get("value") in (None, ""):
         return "MISSING"
     if isinstance(raw.get("source_text"), str) and str(raw.get("source_text")).strip():
         return "FOUND"
     return "UNCERTAIN"
-
-
-def _all_known_fields_missing(payload: dict[str, Any]) -> bool:
-    for key in PAYSLIP_FIELD_KEYS:
-        raw = payload.get(key)
-        if not isinstance(raw, dict):
-            return False
-        status = _status_of(raw)
-        if status != "MISSING":
-            return False
-        if raw.get("value") not in (None, ""):
-            return False
-    return True
 
 
 def validate_payslip_parser_payload(
@@ -318,6 +317,8 @@ def validate_payslip_parser_payload(
     layout_context: dict[str, Any] | None = None,
     require_evidence_ids: bool | None = None,
     embedded_text_mode: bool = False,
+    evidence_bound: bool = False,
+    known_candidate_ids: set[str] | None = None,
 ) -> list[str]:
     """Validate model JSON before coercion.
 
@@ -368,7 +369,9 @@ def validate_payslip_parser_payload(
         )
 
     known_evidence_ids = _layout_evidence_ids(layout_context)
-    if embedded_text_mode:
+    if evidence_bound:
+        evidence_required = False
+    elif embedded_text_mode:
         evidence_required = False
     else:
         evidence_required = (
@@ -376,6 +379,7 @@ def validate_payslip_parser_payload(
             if require_evidence_ids is not None
             else bool(known_evidence_ids)
         )
+    candidate_ids_known = known_candidate_ids or set()
 
     for key in PAYSLIP_FIELD_KEYS:
         raw = payload[key]
@@ -394,7 +398,13 @@ def validate_payslip_parser_payload(
         assert isinstance(raw, dict)
         field_obj = expand_simplified_field(raw)
         value = field_obj.get("value")
-        if value not in (None, "") and evidence_required:
+        candidate_ids = field_obj.get("candidate_ids") or []
+        mapped = value not in (None, "") or (
+            isinstance(candidate_ids, list) and bool(candidate_ids)
+        )
+        if mapped and evidence_bound:
+            _validate_candidate_ids(field_obj, known_ids=candidate_ids_known)
+        elif value not in (None, "") and evidence_required:
             evidence_ids = field_obj.get("evidence_ids") or []
             if not isinstance(evidence_ids, list) or not evidence_ids:
                 _raise(
@@ -434,7 +444,9 @@ def validate_payslip_parser_payload(
                 "additional_fields entry is not a valid field instance.",
             )
         assert isinstance(raw, dict)
-        if raw.get("value") not in (None, "") and evidence_required:
+        if raw.get("value") not in (None, "") and evidence_bound:
+            _validate_candidate_ids(expand_simplified_field(raw), known_ids=candidate_ids_known)
+        elif raw.get("value") not in (None, "") and evidence_required:
             evidence_ids = raw.get("evidence_ids") or []
             if not isinstance(evidence_ids, list) or not evidence_ids:
                 _raise(
@@ -453,13 +465,47 @@ def validate_payslip_parser_payload(
 
     if ocr_context_has_usable_evidence(ocr_text=ocr_text, layout_context=layout_context):
         if _all_known_fields_missing(payload) and not _has_any_additional_value(payload):
-            _raise(
-                "all_fields_missing",
-                "parser_all_fields_missing_with_ocr_evidence",
-                "All known fields are MISSING despite usable OCR evidence.",
-            )
+            # Evidence-bound mode may legitimately map nothing when candidates lack matches.
+            if not evidence_bound:
+                _raise(
+                    "all_fields_missing",
+                    "parser_all_fields_missing_with_ocr_evidence",
+                    "All known fields are MISSING despite usable OCR evidence.",
+                )
 
     return []
+
+
+def _validate_candidate_ids(field_obj: dict[str, Any], *, known_ids: set[str]) -> None:
+    candidate_ids = field_obj.get("candidate_ids") or []
+    if not isinstance(candidate_ids, list) or not candidate_ids:
+        _raise(
+            "missing_candidate_ids",
+            "parser_semantic_invalid",
+            "Evidence-bound field mapping is missing candidate_ids.",
+        )
+    if known_ids and any(str(item) not in known_ids for item in candidate_ids if item is not None):
+        _raise(
+            "invalid_candidate_ids",
+            "parser_semantic_invalid",
+            "Parser field cites candidate_ids that are not in the evidence bundle.",
+        )
+
+
+def _all_known_fields_missing(payload: dict[str, Any]) -> bool:
+    for key in PAYSLIP_FIELD_KEYS:
+        raw = payload.get(key)
+        if not isinstance(raw, dict):
+            return False
+        status = _status_of(raw)
+        if status != "MISSING":
+            return False
+        if raw.get("value") not in (None, ""):
+            return False
+        candidate_ids = raw.get("candidate_ids") or []
+        if isinstance(candidate_ids, list) and candidate_ids:
+            return False
+    return True
 
 
 def _has_any_additional_value(payload: dict[str, Any]) -> bool:

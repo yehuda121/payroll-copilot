@@ -79,6 +79,21 @@ _VALIDATION_TERMS = (
     "تحذير",
     "امتثال",
 )
+_EVIDENCE_TERMS = (
+    "evidence",
+    "extracted from",
+    "source page",
+    "associated",
+    "association",
+    "ראיה",
+    "חולץ מ",
+    "עמוד מקור",
+    "שיוך",
+    "دليل",
+    "مستخرج من",
+    "صفحة المصدر",
+    "مرتبط",
+)
 _DOCUMENT_TERMS = (
     "my document",
     "my contract",
@@ -164,11 +179,13 @@ class EmployeeAIContextBuilder:
         employee: Any,
         national_id_encrypted: bytes | None,
         today: date | None = None,
+        include_unpublished: bool = False,
+        review_document_id: UUID | None = None,
     ) -> EmployeeAIContextResult:
         """Load only context requested by intent for the already-bound employee."""
         current_date = today or date.today()
         intent = analyze_employee_context_intent(message, today=current_date)
-        if not intent.needs_employee_context:
+        if not intent.needs_employee_context and review_document_id is None:
             return EmployeeAIContextResult()
 
         profile = self._profile_payload(employee) if intent.profile else None
@@ -191,7 +208,37 @@ class EmployeeAIContextBuilder:
             extractions=self._extractions,
         )
 
-        if intent.payroll or intent.validation:
+        if review_document_id is not None:
+            review_document = await self._documents.get_by_id(review_document_id)
+            if (
+                review_document is None
+                or review_document.organization_id != employee.organization_id
+                or review_document.employee_id != employee.id
+                or review_document.period is None
+            ):
+                return EmployeeAIContextResult(profile=profile)
+            detail = await payroll_builder.month_detail(
+                organization_id=employee.organization_id,
+                employee_id=employee.id,
+                year=review_document.period.year,
+                month=review_document.period.month,
+                employee=employee,
+                national_id_encrypted=national_id_encrypted,
+                include_unpublished=include_unpublished,
+                document_id=review_document_id,
+            )
+            month_details.append(detail)
+            chunks.append(
+                {
+                    "resource": (
+                        f"review_payslip:{review_document.period.year}-"
+                        f"{review_document.period.month:02d}"
+                    ),
+                    "data": _sanitize_for_llm(detail),
+                }
+            )
+            loaded_keys.append(f"review_document:{review_document_id}")
+        elif intent.payroll or intent.validation:
             year = intent.year or current_date.year
             if intent.month is not None:
                 detail = await payroll_builder.month_detail(
@@ -201,6 +248,7 @@ class EmployeeAIContextBuilder:
                     month=intent.month,
                     employee=employee,
                     national_id_encrypted=national_id_encrypted,
+                    include_unpublished=include_unpublished,
                 )
                 month_details.append(detail)
                 chunks.append(
@@ -215,6 +263,7 @@ class EmployeeAIContextBuilder:
                     organization_id=employee.organization_id,
                     employee_id=employee.id,
                     year=year,
+                    include_unpublished=include_unpublished,
                 )
                 payroll_lists.append(overview)
                 loaded_keys.append(f"payroll_months_list:{year}")
@@ -231,6 +280,7 @@ class EmployeeAIContextBuilder:
                         month=selected_month,
                         employee=employee,
                         national_id_encrypted=national_id_encrypted,
+                        include_unpublished=include_unpublished,
                     )
                     month_details.append(detail)
                     chunks.append(
@@ -250,13 +300,14 @@ class EmployeeAIContextBuilder:
                         }
                     )
 
-        if intent.documents:
+        if intent.documents and review_document_id is None:
             document_center = await ListEmployeeDocumentsUseCase(
                 documents=self._documents,
                 extractions=self._extractions,
             ).execute(
                 organization_id=employee.organization_id,
                 employee_id=employee.id,
+                include_unpublished=include_unpublished,
             )
             chunks.append(
                 {
@@ -335,6 +386,7 @@ def analyze_employee_context_intent(
     payroll = _contains_any(normalized, _PAYROLL_TERMS)
     validation = _contains_any(normalized, _VALIDATION_TERMS)
     documents = _contains_any(normalized, _DOCUMENT_TERMS)
+    evidence = _contains_any(normalized, _EVIDENCE_TERMS)
 
     year: int | None = None
     month: int | None = None
@@ -352,6 +404,8 @@ def analyze_employee_context_intent(
     # A personal compliance question needs both canonical payroll/validation
     # facts and the unchanged legal-law search path.
     if validation:
+        payroll = True
+    if evidence:
         payroll = True
 
     return EmployeeContextIntent(

@@ -1,0 +1,156 @@
+.accountant-bulk {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.accountant-bulk__upload,
+.accountant-bulk__results {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.accountant-bulk__progress {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+}
+
+.accountant-bulk__progress > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.accountant-bulk__progress span {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.accountant-bulk__progress progress {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 0.75rem;
+}
+
+.accountant-bulk__summary {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(7rem, 1fr));
+  gap: 0.75rem;
+  overflow-x: auto;
+}
+
+.accountant-bulk__summary-card {
+  display: grid;
+  min-width: 7rem;
+  gap: 0.25rem;
+  padding: 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+}
+
+.accountant-bulk__summary-card strong {
+  font-size: 1.35rem;
+}
+
+.accountant-bulk__summary-card.is-passed {
+  border-inline-start: 4px solid #198754;
+}
+
+.accountant-bulk__summary-card.is-warning {
+  border-inline-start: 4px solid #d89b00;
+}
+
+.accountant-bulk__summary-card.is-failed {
+  border-inline-start: 4px solid #c73535;
+}
+
+.accountant-bulk__summary-card.is-unknown_employee {
+  border-inline-start: 4px solid #6f42c1;
+}
+
+.accountant-bulk__summary-card.is-processing {
+  border-inline-start: 4px solid #2878c8;
+}
+
+.accountant-bulk__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.accountant-bulk__list {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.accountant-bulk__employee {
+  display: grid;
+  grid-template-columns: minmax(8rem, auto) minmax(12rem, 1fr) minmax(12rem, 2fr);
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  color: inherit;
+  text-align: start;
+  background: var(--color-surface);
+}
+
+.accountant-bulk__employee:not(:disabled) {
+  cursor: pointer;
+}
+
+.accountant-bulk__employee:not(:disabled):hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 3px 12px rgb(0 0 0 / 8%);
+}
+
+.accountant-bulk__employee-name {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.accountant-bulk__employee-name small {
+  color: var(--color-text-muted);
+}
+
+.status-badge--batch-passed {
+  color: #12663f;
+  background: #dff5e8;
+}
+
+.status-badge--batch-warning {
+  color: #765400;
+  background: #fff1c7;
+}
+
+.status-badge--batch-failed {
+  color: #8f2222;
+  background: #fde2e2;
+}
+
+.status-badge--batch-unknown_employee {
+  color: #52318f;
+  background: #eee5ff;
+}
+
+.status-badge--batch-processing {
+  color: #185b9e;
+  background: #deefff;
+}
+
+@media (max-width: 800px) {
+  .accountant-bulk__progress,
+  .accountant-bulk__employee {
+    grid-template-columns: 1fr;
+  }
+
+  .accountant-bulk__progress progress {
+    grid-column: auto;
+  }
+}

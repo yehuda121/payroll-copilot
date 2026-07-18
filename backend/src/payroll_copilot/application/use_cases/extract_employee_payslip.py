@@ -15,6 +15,9 @@ from payroll_copilot.application.services.payslip_identity_comparison import (
     PayslipIdentityComparisonService,
     parse_pay_period,
 )
+from payroll_copilot.application.services.employee_document_lifecycle import (
+    is_employee_visible_document,
+)
 from payroll_copilot.application.use_cases.extract_guest_payslip import (
     ExtractedFieldView,
     ExtractGuestPayslipUseCase,
@@ -76,6 +79,8 @@ class ExtractEmployeePayslipUseCase:
             period_year=command.period_year,
             period_month=command.period_month,
         )
+        if existing is not None and not is_employee_visible_document(existing):
+            existing = None
         reuse_id = command.source_document_id
         if reuse_id is not None:
             source = await self._documents.get_by_id(reuse_id)

@@ -1,0 +1,39 @@
+.accountant-employee-workspace {
+  display: grid;
+  gap: 1rem;
+}
+
+.accountant-employee-workspace__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.875rem;
+  background: var(--color-surface);
+}
+
+.accountant-employee-workspace__header h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.accountant-employee-workspace__header p {
+  margin: 0.25rem 0 0;
+  color: var(--color-text-muted);
+}
+
+.accountant-employee-workspace__tabs {
+  margin-block: 0;
+}
+
+.accountant-employee-workspace__tabs a {
+  text-decoration: none;
+}
+
+@media (max-width: 700px) {
+  .accountant-employee-workspace__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

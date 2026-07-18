@@ -1,3 +1,80 @@
+.field-evidence {
+  display: grid;
+  gap: 1rem;
+}
+
+.field-evidence__heading {
+  margin: 0;
+}
+
+.field-evidence__grid,
+.field-evidence__alternative dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.field-evidence__grid > div,
+.field-evidence__alternative dl > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.field-evidence dt {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.field-evidence dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.field-evidence__code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.78rem;
+}
+
+.field-evidence__conflict,
+.field-evidence__unavailable {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-muted);
+}
+
+.field-evidence__alternatives {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.field-evidence__alternatives h4 {
+  margin: 0;
+}
+
+.field-evidence__alternative {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.field-evidence__alternative > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .field-evidence__grid,
+  .field-evidence__alternative dl {
+    grid-template-columns: 1fr;
+  }
+}
 .landing-chat {
   display: flex;
   flex-direction: column;

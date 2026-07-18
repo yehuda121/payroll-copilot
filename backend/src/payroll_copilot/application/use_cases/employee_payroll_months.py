@@ -17,13 +17,21 @@ from payroll_copilot.application.services.employee_document_lifecycle import (
     LIFECYCLE_CONFIRMED,
     LIFECYCLE_REVIEW_REQUIRED,
     fields_from_structured,
+    is_employee_visible_document,
 )
 from payroll_copilot.application.services.employee_payroll_month_status import (
     compute_presentation_status,
     document_summary,
     highest_severity,
 )
+from payroll_copilot.application.services.extraction_explainability import (
+    attach_field_evidence,
+    build_field_evidence_map,
+    build_validation_explanation,
+    build_validation_run_explanation,
+)
 from payroll_copilot.domain.enums import DocumentType
+from payroll_copilot.infrastructure.config.settings import get_settings
 
 
 class BuildEmployeePayrollMonthsUseCase:
@@ -47,12 +55,15 @@ class BuildEmployeePayrollMonthsUseCase:
         employee_id: UUID,
         year: int,
         current_year: int | None = None,
+        include_unpublished: bool = False,
     ) -> dict[str, Any]:
         now_year = current_year or datetime.utcnow().year
         docs = await self._documents.list_for_employee(
             organization_id=organization_id,
             employee_id=employee_id,
         )
+        if not include_unpublished:
+            docs = [doc for doc in docs if is_employee_visible_document(doc)]
 
         years_from_docs = {d.period.year for d in docs if d.period is not None}
         available_years = sorted(years_from_docs | {now_year}, reverse=True)
@@ -160,6 +171,8 @@ class BuildEmployeePayrollMonthsUseCase:
         month: int,
         employee: Any | None = None,
         national_id_encrypted: bytes | None = None,
+        include_unpublished: bool = False,
+        document_id: UUID | None = None,
     ) -> dict[str, Any]:
         if month < 1 or month > 12:
             raise ValueError("month must be 1-12")
@@ -167,23 +180,128 @@ class BuildEmployeePayrollMonthsUseCase:
             organization_id=organization_id,
             employee_id=employee_id,
             year=year,
+            include_unpublished=include_unpublished,
         )
         row = next(m for m in overview["months"] if m["month"] == month)
         findings: list[dict[str, Any]] = []
         confidence_explanation: str | None = None
+
+        docs = await self._documents.list_for_employee(
+            organization_id=organization_id,
+            employee_id=employee_id,
+        )
+        if not include_unpublished:
+            docs = [doc for doc in docs if is_employee_visible_document(doc)]
+        matching_payslips = [
+            d
+            for d in docs
+            if d.document_type == DocumentType.PAYSLIP
+            and d.period
+            and d.period.year == year
+            and d.period.month == month
+        ]
+        if document_id is not None:
+            payslip_doc = next(
+                (document for document in matching_payslips if document.id == document_id),
+                None,
+            )
+            if payslip_doc is None:
+                from payroll_copilot.application.exceptions import DocumentNotFoundError
+
+                raise DocumentNotFoundError(document_id)
+        else:
+            payslip_doc = (
+                sorted(
+                    matching_payslips,
+                    key=lambda item: item.created_at or item.id,
+                    reverse=True,
+                )[0]
+                if matching_payslips
+                else None
+            )
+
+        selected_run = None
+        if payslip_doc is not None:
+            selected_run = (
+                await self._runs.list_latest_by_document_ids([payslip_doc.id])
+            ).get(payslip_doc.id)
+        selected_findings = (
+            await self._findings.list_by_run_id(selected_run.id)
+            if selected_run is not None and self._findings is not None
+            else []
+        )
+        selected_validation = (
+            self._validation_payload(selected_run, selected_findings)
+            if selected_run is not None
+            else None
+        )
+        row["payslip"] = document_summary(payslip_doc)
+        row["latest_validation"] = (
+            {
+                "exists": True,
+                "validation_run_id": selected_validation["validation_run_id"],
+                "status": selected_validation["status"],
+                "overall_result": selected_validation.get("status_result"),
+                "confidence": selected_validation.get("confidence"),
+                "completed_at": selected_validation.get("completed_at"),
+                "findings_count": selected_validation.get("findings_count", 0),
+                "highest_severity": selected_validation.get("highest_severity"),
+                "scope": selected_validation.get("scope") or [],
+            }
+            if selected_validation
+            else {
+                "exists": False,
+                "validation_run_id": None,
+                "status": "not_run",
+                "overall_result": None,
+                "confidence": None,
+                "completed_at": None,
+                "findings_count": 0,
+                "highest_severity": None,
+                "scope": [],
+            }
+        )
+        row["presentation_status"] = compute_presentation_status(
+            payslip_exists=payslip_doc is not None,
+            validation_exists=selected_validation is not None,
+            overall_result=(
+                selected_validation.get("status_result")
+                if selected_validation
+                else None
+            ),
+            highest_finding_severity=(
+                selected_validation.get("highest_severity")
+                if selected_validation
+                else None
+            ),
+            overall_confidence=(
+                selected_validation.get("confidence")
+                if selected_validation
+                else None
+            ),
+            validation_status=(
+                selected_validation.get("status")
+                if selected_validation
+                else None
+            ),
+        )
         run_id = row["latest_validation"].get("validation_run_id")
         if run_id and self._findings is not None:
-            records = await self._findings.list_by_run_id(UUID(str(run_id)))
+            records = selected_findings
             findings = [
                 {
                     "id": str(f.id),
                     "code": f.message_key,
-                    "severity": f.severity.value if hasattr(f.severity, "value") else str(f.severity),
+                    "severity": f.severity.value
+                    if hasattr(f.severity, "value")
+                    else str(f.severity),
                     "message_key": f.message_key,
                     "message_params": dict(f.message_params or {}),
                     "expected_value": f.expected_value,
                     "actual_value": f.actual_value,
-                    "confidence": float(f.confidence) if f.confidence is not None else None,
+                    "confidence": float(f.confidence)
+                    if f.confidence is not None
+                    else None,
                     "legal_reference": f.legal_reference,
                     "explanation": (
                         str((f.message_params or {}).get("explanation") or "")
@@ -192,22 +310,6 @@ class BuildEmployeePayrollMonthsUseCase:
                 }
                 for f in records
             ]
-
-        docs = await self._documents.list_for_employee(
-            organization_id=organization_id,
-            employee_id=employee_id,
-        )
-        payslip_doc = next(
-            (
-                d
-                for d in docs
-                if d.document_type == DocumentType.PAYSLIP
-                and d.period
-                and d.period.year == year
-                and d.period.month == month
-            ),
-            None,
-        )
         extraction_summary: dict[str, Any] = {
             "exists": False,
             "extraction_id": None,
@@ -246,6 +348,19 @@ class BuildEmployeePayrollMonthsUseCase:
                 fields_from_structured(latest_ext.structured_data) if latest_ext else []
             )
             api_fields = fields_for_workspace_api(raw_fields)
+            explainability_enabled = bool(
+                get_settings().layout_explainability_enabled
+            )
+            evidence_by_field = (
+                build_field_evidence_map(
+                    latest_ext.structured_data,
+                    latest_ext.layout_analysis,
+                )
+                if explainability_enabled and latest_ext
+                else {}
+            )
+            if evidence_by_field:
+                api_fields = attach_field_evidence(api_fields, evidence_by_field)
 
             snapshot = read_comparison_snapshot(meta)
             if snapshot is None and latest_ext is not None and employee is not None:
@@ -282,6 +397,7 @@ class BuildEmployeePayrollMonthsUseCase:
                 ),
                 "confirmation_status": confirmation_status,
                 "fields": api_fields,
+                "explainability_enabled": explainability_enabled,
                 "lifecycle_status": meta.get("lifecycle_status")
                 or (
                     LIFECYCLE_CONFIRMED
@@ -307,7 +423,13 @@ class BuildEmployeePayrollMonthsUseCase:
             )
             if hasattr(self._runs, "list_for_document"):
                 runs = await self._runs.list_for_document(payslip_doc.id)
+                run_evidence_cache: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
                 for run in runs:
+                    run_findings = (
+                        await self._findings.list_by_run_id(run.id)
+                        if self._findings is not None
+                        else []
+                    )
                     outdated = bool(
                         current_ext
                         and run.extraction_id
@@ -321,6 +443,32 @@ class BuildEmployeePayrollMonthsUseCase:
                         confidence_explanation = getattr(
                             run.enrichment, "confidence_explanation", None
                         )
+                    run_structured: dict[str, Any] = {}
+                    run_evidence: dict[str, Any] = {}
+                    if explainability_enabled and self._extractions is not None:
+                        run_key = str(run.extraction_id) if run.extraction_id else ""
+                        if run_key and run_key in run_evidence_cache:
+                            run_structured, run_evidence = run_evidence_cache[run_key]
+                        elif run.extraction_id is not None:
+                            if (
+                                latest_ext is not None
+                                and str(run.extraction_id) == str(latest_ext.id)
+                            ):
+                                run_ext = latest_ext
+                            else:
+                                run_ext = await self._extractions.get_by_id(
+                                    run.extraction_id
+                                )
+                            if run_ext is not None:
+                                run_structured = dict(run_ext.structured_data or {})
+                                run_evidence = build_field_evidence_map(
+                                    run_ext.structured_data,
+                                    run_ext.layout_analysis,
+                                )
+                            run_evidence_cache[run_key] = (
+                                run_structured,
+                                run_evidence,
+                            )
                     validation_history.append(
                         {
                             "validation_run_id": str(run.id),
@@ -343,6 +491,53 @@ class BuildEmployeePayrollMonthsUseCase:
                             if run.extraction_id
                             else None,
                             "outdated": outdated,
+                            "findings": [
+                                {
+                                    "id": str(finding.id),
+                                    "code": finding.message_key,
+                                    "severity": finding.severity.value
+                                    if hasattr(finding.severity, "value")
+                                    else str(finding.severity),
+                                    "message_key": finding.message_key,
+                                    "message_params": dict(
+                                        finding.message_params or {}
+                                    ),
+                                    "expected_value": finding.expected_value,
+                                    "actual_value": finding.actual_value,
+                                    "confidence": (
+                                        float(finding.confidence)
+                                        if finding.confidence is not None
+                                        else None
+                                    ),
+                                    **(
+                                        {
+                                            "evidence_explanation": build_validation_explanation(
+                                                finding=finding,
+                                                structured_data=run_structured,
+                                                evidence_by_field=run_evidence,
+                                            )
+                                        }
+                                        if explainability_enabled
+                                        else {}
+                                    ),
+                                }
+                                for finding in run_findings
+                            ],
+                            **(
+                                {
+                                    "evidence_summary": build_validation_run_explanation(
+                                        overall_result=run.overall_result,
+                                        fields=fields_for_workspace_api(
+                                            fields_from_structured(run_structured)
+                                        )
+                                        if run_structured
+                                        else [],
+                                        evidence_by_field=run_evidence,
+                                    )
+                                }
+                                if explainability_enabled
+                                else {}
+                            ),
                         }
                     )
         confirmed = extraction_summary.get("confirmation_status") == "confirmed"

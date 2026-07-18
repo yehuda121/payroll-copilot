@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
@@ -44,31 +44,35 @@ export function EmployeeManagementPage() {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<string>('');
   const [disablingNumber, setDisablingNumber] = useState<string | null>(null);
+  const requestSequence = useRef(0);
 
-  const load = async () => {
+  const load = useCallback(async (nextQuery: string, nextStatus: string) => {
+    const requestId = ++requestSequence.current;
     setLoading(true);
     setError(null);
     try {
       const data = await employeesService.list({
-        q: query || undefined,
-        status: status || undefined,
+        q: nextQuery || undefined,
+        status: nextStatus || undefined,
         includeDisabled: true,
       });
+      if (requestId !== requestSequence.current) return;
       setRows(data);
     } catch (err) {
+      if (requestId !== requestSequence.current) return;
       const message =
         err instanceof ApiClientError ? err.message : getAccountantErrorMessage('loadFailed', t);
       setError(message);
       setRows([]);
     } finally {
-      setLoading(false);
+      if (requestId === requestSequence.current) setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const timer = window.setTimeout(() => void load(query.trim(), status), 250);
+    return () => window.clearTimeout(timer);
+  }, [load, query, status]);
 
   const filteredHint = useMemo(() => {
     if (!rows.length) return t('accountant.employees.noMatch');
@@ -88,7 +92,7 @@ export function EmployeeManagementPage() {
     setError(null);
     try {
       await employeesService.disable(employeeNumber);
-      await load();
+      await load(query.trim(), status);
     } catch (err) {
       const message =
         err instanceof ApiClientError
@@ -126,8 +130,12 @@ export function EmployeeManagementPage() {
             <option value="disabled">{getEmployeeStatusLabel('disabled', t)}</option>
             <option value="terminated">{getEmployeeStatusLabel('terminated', t)}</option>
           </select>
-          <button type="button" className="btn btn--secondary" onClick={() => void load()}>
-            {t('common.apply')}
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={() => void load(query.trim(), status)}
+          >
+            {t('common.refresh')}
           </button>
         </div>
         <Link to="/accountant/employees/add" className="btn btn--primary">
@@ -158,7 +166,9 @@ export function EmployeeManagementPage() {
             sortable
             ariaLabel={t('accountant.employees.title')}
             getRowKey={(row) => row.employeeNumber}
-            onRowClick={(row) => navigate(`/accountant/employees/${row.employeeNumber}`)}
+            onRowClick={(row) =>
+              navigate(`/accountant/employees/${row.employeeNumber}/workspace`)
+            }
             columns={[
               { key: 'employeeNumber', header: t('accountant.employees.colNumber') },
               { key: 'fullName', header: t('accountant.employees.colFullName') },

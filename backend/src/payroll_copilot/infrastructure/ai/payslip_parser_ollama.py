@@ -100,17 +100,27 @@ def build_payslip_instance_template(
     language: str | None = None,
     simplified: bool = True,
     field_keys: tuple[str, ...] | None = None,
+    evidence_bound: bool = False,
 ) -> dict[str, Any]:
     """Compact JSON instance template (no $ref / $defs / schema keywords)."""
-    stub = _SIMPLE_FIELD_INSTANCE if simplified else dict(_SIMPLE_FIELD_INSTANCE)
+    if evidence_bound:
+        stub = {
+            "value": None,
+            "candidate_ids": [],
+            "status": "MISSING",
+            "confidence": None,
+        }
+    else:
+        stub = _SIMPLE_FIELD_INSTANCE if simplified else dict(_SIMPLE_FIELD_INSTANCE)
     keys = field_keys or PAYSLIP_FIELD_KEYS
     template: dict[str, Any] = {key: dict(stub) for key in keys}
-    if not simplified:
+    if not simplified and not evidence_bound:
         for key in keys:
             template[key].update(
                 {
                     "status": "MISSING",
                     "evidence_ids": [],
+                    "candidate_ids": [],
                     "source_bbox": None,
                     "source_page": None,
                     "parser_method": "semantic_llm",
@@ -247,17 +257,24 @@ def _normalize_field_payload(raw: object) -> dict[str, Any]:
     if "status" not in raw:
         return expand_simplified_field(raw)
     if "value" not in raw:
-        raise PayslipParserSemanticError(
-            "Field object missing required value key.",
-            category="invalid_field_object",
-            warning_code="parser_semantic_invalid",
-        )
+        # Evidence-bound responses may omit value and cite candidate_ids only.
+        if raw.get("candidate_ids"):
+            raw = {**raw, "value": None}
+        else:
+            raise PayslipParserSemanticError(
+                "Field object missing required value key.",
+                category="invalid_field_object",
+                warning_code="parser_semantic_invalid",
+            )
     status = raw.get("status", FieldExtractionStatus.MISSING.value)
     if isinstance(status, str):
         status = status.strip().upper()
     evidence_ids = raw.get("evidence_ids") or []
     if not isinstance(evidence_ids, list):
         evidence_ids = []
+    candidate_ids = raw.get("candidate_ids") or []
+    if not isinstance(candidate_ids, list):
+        candidate_ids = []
     warnings = raw.get("warnings") or []
     if not isinstance(warnings, list):
         warnings = []
@@ -267,6 +284,7 @@ def _normalize_field_payload(raw: object) -> dict[str, Any]:
         "source_text": raw.get("source_text"),
         "status": status,
         "evidence_ids": [str(item) for item in evidence_ids if item is not None],
+        "candidate_ids": [str(item) for item in candidate_ids if item is not None],
         "source_bbox": raw.get("source_bbox"),
         "source_page": raw.get("source_page"),
         "parser_method": raw.get("parser_method") or "semantic_llm",
@@ -403,11 +421,15 @@ class OllamaPayslipParser:
         retry_hint: str | None = None,
         embedded_text_mode: bool = False,
         simple_guest_fields: bool = False,
+        evidence_candidates: dict[str, object] | None = None,
     ) -> PayslipParseResult:
         if not ocr_text or not ocr_text.strip():
             raise PayslipParserEmptyOcrError()
 
-        layout_payload = layout_context if self._layout_enabled and not embedded_text_mode else None
+        evidence_bound = bool(evidence_candidates and evidence_candidates.get("llm_candidates"))
+        layout_payload = None
+        if not evidence_bound:
+            layout_payload = layout_context if self._layout_enabled and not embedded_text_mode else None
         user_content = self._build_user_prompt(
             ocr_text=ocr_text,
             language=language,
@@ -416,17 +438,21 @@ class OllamaPayslipParser:
             retry_hint=retry_hint,
             embedded_text_mode=embedded_text_mode,
             simple_guest_fields=simple_guest_fields,
+            evidence_candidates=evidence_candidates if evidence_bound else None,
         )
-        context_chars = (
-            len(json.dumps(layout_payload, ensure_ascii=False)) if layout_payload else 0
-        )
+        context_chars = 0
+        if evidence_bound and evidence_candidates:
+            context_chars = len(json.dumps(evidence_candidates.get("llm_candidates"), ensure_ascii=False))
+        elif layout_payload:
+            context_chars = len(json.dumps(layout_payload, ensure_ascii=False))
         logger.debug(
             "payslip_parser_request model=%s language=%s ocr_chars=%s layout=%s "
-            "context_chars=%s retry=%s",
+            "evidence_bound=%s context_chars=%s retry=%s",
             self._model,
             language,
             len(ocr_text),
             bool(layout_payload),
+            evidence_bound,
             context_chars,
             bool(retry_hint),
         )
@@ -437,11 +463,20 @@ class OllamaPayslipParser:
             payload = _parse_json_object(raw_content)
             payload, normalize_warnings = normalize_payslip_parser_payload(payload)
             warnings.extend(normalize_warnings)
+            known_candidate_ids = set()
+            if evidence_bound and evidence_candidates:
+                known_candidate_ids = {
+                    str(item.get("candidate_id"))
+                    for item in (evidence_candidates.get("llm_candidates") or [])
+                    if isinstance(item, dict) and item.get("candidate_id")
+                }
             validate_payslip_parser_payload(
                 payload,
                 ocr_text=ocr_text,
                 layout_context=layout_payload if isinstance(layout_payload, dict) else None,
                 embedded_text_mode=embedded_text_mode,
+                evidence_bound=evidence_bound,
+                known_candidate_ids=known_candidate_ids if evidence_bound else None,
             )
             fields = coerce_structured_payslip(payload)
         except PayslipParserJsonError:
@@ -488,7 +523,16 @@ class OllamaPayslipParser:
         retry_hint: str | None,
         embedded_text_mode: bool = False,
         simple_guest_fields: bool = False,
+        evidence_candidates: dict[str, object] | None = None,
     ) -> str:
+        if evidence_candidates and evidence_candidates.get("llm_candidates") is not None:
+            return self._build_evidence_bound_prompt(
+                language=language,
+                retry_hint=retry_hint,
+                simple_guest_fields=simple_guest_fields,
+                evidence_candidates=evidence_candidates,
+            )
+
         pages_block = ""
         if pages_text:
             chunks = []
@@ -561,6 +605,60 @@ class OllamaPayslipParser:
             '{"field_name": {"value": ..., "source_text": ..., "confidence": 0.0}}\n'
             f"Template:\n{template_json}\n"
             "Return populated JSON only. No markdown.\n"
+        )
+
+    def _build_evidence_bound_prompt(
+        self,
+        *,
+        language: str,
+        retry_hint: str | None,
+        simple_guest_fields: bool,
+        evidence_candidates: dict[str, object],
+    ) -> str:
+        """Phase 3 prompt contract: semantic mapping over deterministic candidates only."""
+        field_keys = _GUEST_SIMPLE_FIELD_KEYS if simple_guest_fields else PAYSLIP_FIELD_KEYS
+        allowed = ", ".join(field_keys)
+        template = build_payslip_instance_template(
+            language=language if language != "auto" else None,
+            simplified=True,
+            field_keys=field_keys,
+            evidence_bound=True,
+        )
+        template_json = json.dumps(template, ensure_ascii=False, indent=2)
+        candidates_json = json.dumps(
+            evidence_candidates.get("llm_candidates") or [],
+            ensure_ascii=False,
+            indent=2,
+        )
+
+        retry_block = ""
+        if retry_hint:
+            retry_block = (
+                "\n\nPREVIOUS RESPONSE WAS INVALID.\n"
+                f"{_SEMANTIC_RETRY_INSTRUCTION}\n"
+                f"Error summary: {retry_hint}\n"
+                "Return corrected STRICT JSON instance only. No markdown. No commentary.\n"
+            )
+
+        return (
+            f"Document language hint: {language}\n"
+            "EVIDENCE-BOUND PAYROLL MAPPING\n"
+            "You are a semantic interpreter. Document geometry and associations are already resolved.\n"
+            "Use ONLY the supplied CANDIDATES. Do not invent coordinates, associations, values, "
+            "rows, tables, or relationships.\n"
+            "For each canonical field: either cite one or more candidate_id values from CANDIDATES, "
+            "or return status MISSING with empty candidate_ids when evidence is insufficient "
+            "(Unknown).\n"
+            "Normalize meaning into canonical payroll field names. Prefer exact candidate values; "
+            "you may leave value null — the server hydrates value/source from candidate_ids.\n"
+            "If a candidate is marked conflict=true, you may still cite it but treat it as uncertain.\n"
+            f"{retry_block}\n"
+            "CANDIDATES (authoritative evidence):\n"
+            f"{candidates_json}\n\n"
+            f"Return each of these fields exactly once: {allowed}\n"
+            "Do not invent digits or names. Do not invent candidate_ids.\n"
+            "Return STRICT JSON matching this template:\n"
+            f"{template_json}\n"
         )
 
     async def _chat(self, user_content: str) -> tuple[str, str]:

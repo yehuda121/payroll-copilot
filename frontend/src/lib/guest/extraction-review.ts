@@ -164,7 +164,7 @@ export function isImageFile(file: File | undefined): boolean {
 
 /** @deprecated Prefer hasUsableDynamicEntries for landing. */
 export function hasUsableExtractedFields(
-  fields: Array<{ status?: string; value?: unknown }> | null | undefined,
+  fields: Array<Partial<ExtractedPayslipField>> | null | undefined,
 ): boolean {
   if (!fields || fields.length === 0) return false;
   return fields.some((field) => {

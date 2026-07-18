@@ -31,12 +31,15 @@ from payroll_copilot.application.use_cases.manage_employees import (
     ManageEmployeesUseCase,
     UpdateEmployeeCommand,
 )
-from payroll_copilot.application.validation.demo_validation_context_builder import (
-    DEMO_ORGANIZATION_ID,
-)
 from payroll_copilot.domain.enums import EmployeeStatus, EmploymentType, SalaryType
 from payroll_copilot.infrastructure.config.settings import get_settings
-from payroll_copilot.presentation.api.security import BoundEmployeeContext, require_bound_employee
+from payroll_copilot.presentation.api.security import (
+    AuthPrincipal,
+    BoundEmployeeContext,
+    bind_accountant_selected_employee,
+    require_accountant,
+    require_bound_employee,
+)
 
 router = APIRouter()
 
@@ -83,6 +86,14 @@ def _use_case() -> ManageEmployeesUseCase:
         encryption_key=settings.encryption_key,
     )
 
+
+def _accountant_organization(principal: AuthPrincipal) -> UUID:
+    # require_accountant guarantees this; keep the invariant explicit here.
+    if principal.organization_id is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    return principal.organization_id
+
+
 @router.get("")
 async def list_employees(
     q: str | None = Query(default=None),
@@ -90,12 +101,14 @@ async def list_employees(
     include_disabled: bool = Query(default=True),
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
+    principal: AuthPrincipal = Depends(require_accountant),
 ) -> list[dict[str, Any]]:
+    organization_id = _accountant_organization(principal)
     bootstrap = get_workspace_bootstrap()
-    await bootstrap.ensure_default_department(DEMO_ORGANIZATION_ID)
+    await bootstrap.ensure_default_department(organization_id)
     return await _use_case().list_employees(
         EmployeeListFilter(
-            organization_id=DEMO_ORGANIZATION_ID,
+            organization_id=organization_id,
             query=q,
             status=status_filter,
             include_disabled=include_disabled,
@@ -107,9 +120,10 @@ async def list_employees(
 @router.post("/match/national-id")
 async def match_national_id(
     body: NationalIdMatchRequest,
+    principal: AuthPrincipal = Depends(require_accountant),
 ) -> dict[str, Any]:
     matched = await _use_case().match_by_national_id(
-        DEMO_ORGANIZATION_ID, body.national_id
+        _accountant_organization(principal), body.national_id
     )
     return {"matched": matched is not None, "employee": matched}
 
@@ -338,6 +352,9 @@ async def list_my_payslips(
     year: int | None = Query(default=None),
 ) -> list[dict[str, Any]]:
     """List payslip documents owned by the authenticated employee."""
+    from payroll_copilot.application.services.employee_document_lifecycle import (
+        is_employee_visible_document,
+    )
     from payroll_copilot.domain.enums import DocumentType
 
     docs = await get_document_repository().list_for_employee(
@@ -347,6 +364,8 @@ async def list_my_payslips(
     rows: list[dict[str, Any]] = []
     for doc in docs:
         if doc.document_type != DocumentType.PAYSLIP:
+            continue
+        if not is_employee_visible_document(doc):
             continue
         if year is not None and doc.period and doc.period.year != year:
             continue
@@ -366,18 +385,167 @@ async def list_my_payslips(
         )
     return rows
 
+
+@router.get("/{employee_number}/workspace/me")
+async def get_accountant_workspace_employee(
+    employee_number: str,
+    principal: AuthPrincipal = Depends(require_accountant),
+) -> dict[str, Any]:
+    selected = await bind_accountant_selected_employee(
+        employee_number=employee_number,
+        principal=principal,
+    )
+    employee = selected.employee
+    meta = employee.metadata or {}
+    localized = meta.get("verified_display_name") or (
+        f"{employee.first_name} {employee.last_name}".strip()
+    )
+    return {
+        "employee_id": str(employee.id),
+        "employee_number": employee.employee_number,
+        "full_name": str(meta.get("display_name_en") or localized),
+        "full_name_localized": str(localized),
+        "national_id_masked": meta.get("national_id_masked"),
+        "organization_id": str(employee.organization_id),
+        "status": employee.status.value
+        if hasattr(employee.status, "value")
+        else str(employee.status),
+        "profile_incomplete": bool(meta.get("profile_incomplete", False)),
+    }
+
+
+@router.get("/{employee_number}/workspace/documents")
+async def list_accountant_workspace_documents(
+    employee_number: str,
+    principal: AuthPrincipal = Depends(require_accountant),
+) -> dict[str, Any]:
+    from payroll_copilot.application.use_cases.list_employee_documents import (
+        ListEmployeeDocumentsUseCase,
+    )
+
+    selected = await bind_accountant_selected_employee(
+        employee_number=employee_number,
+        principal=principal,
+    )
+    return await ListEmployeeDocumentsUseCase(
+        documents=get_document_repository(),
+        extractions=get_document_extraction_repository(),
+    ).execute(
+        organization_id=selected.employee.organization_id,
+        employee_id=selected.employee.id,
+        include_unpublished=True,
+    )
+
+
+@router.post(
+    "/{employee_number}/workspace/validation-runs/{validation_run_id}/findings/{finding_id}/explanation"
+)
+async def explain_accountant_workspace_finding(
+    employee_number: str,
+    validation_run_id: UUID,
+    finding_id: UUID,
+    locale: str = Query(default="en"),
+    principal: AuthPrincipal = Depends(require_accountant),
+) -> dict[str, Any]:
+    selected = await bind_accountant_selected_employee(
+        employee_number=employee_number,
+        principal=principal,
+    )
+    return await explain_my_finding(
+        validation_run_id=validation_run_id,
+        finding_id=finding_id,
+        bound=selected,
+        locale=locale,
+    )
+
+
+@router.get("/{employee_number}/workspace/payroll-months")
+async def list_accountant_workspace_payroll_months(
+    employee_number: str,
+    year: int | None = Query(default=None),
+    principal: AuthPrincipal = Depends(require_accountant),
+) -> dict[str, Any]:
+    from payroll_copilot.application.use_cases.employee_payroll_months import (
+        BuildEmployeePayrollMonthsUseCase,
+    )
+
+    selected = await bind_accountant_selected_employee(
+        employee_number=employee_number,
+        principal=principal,
+    )
+    selected_year = year or date.today().year
+    if selected_year < 2000 or selected_year > 2100:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "invalid_year", "message": "Invalid year."},
+        )
+    return await BuildEmployeePayrollMonthsUseCase(
+        documents=get_document_repository(),
+        validation_runs=get_validation_run_repository(),
+        validation_findings=get_validation_finding_repository(),
+        extractions=get_document_extraction_repository(),
+    ).execute(
+        organization_id=selected.employee.organization_id,
+        employee_id=selected.employee.id,
+        year=selected_year,
+        include_unpublished=True,
+    )
+
+
+@router.get("/{employee_number}/workspace/payroll-months/{year}/{month}")
+async def get_accountant_workspace_payroll_month_detail(
+    employee_number: str,
+    year: int,
+    month: int,
+    document_id: UUID | None = Query(default=None),
+    principal: AuthPrincipal = Depends(require_accountant),
+) -> dict[str, Any]:
+    from payroll_copilot.application.use_cases.employee_payroll_months import (
+        BuildEmployeePayrollMonthsUseCase,
+    )
+
+    if year < 2000 or year > 2100 or month < 1 or month > 12:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "invalid_period", "message": "Invalid year or month."},
+        )
+    selected = await bind_accountant_selected_employee(
+        employee_number=employee_number,
+        principal=principal,
+    )
+    return await BuildEmployeePayrollMonthsUseCase(
+        documents=get_document_repository(),
+        validation_runs=get_validation_run_repository(),
+        validation_findings=get_validation_finding_repository(),
+        extractions=get_document_extraction_repository(),
+    ).month_detail(
+        organization_id=selected.employee.organization_id,
+        employee_id=selected.employee.id,
+        year=year,
+        month=month,
+        employee=selected.employee,
+        national_id_encrypted=selected.national_id_encrypted,
+        include_unpublished=True,
+        document_id=document_id,
+    )
+
+
 @router.get("/{employee_number}")
 async def get_employee(
     employee_number: str,
+    principal: AuthPrincipal = Depends(require_accountant),
 ) -> dict[str, Any]:
     try:
-        return await _use_case().get_by_number(DEMO_ORGANIZATION_ID, employee_number)
+        return await _use_case().get_by_number(
+            _accountant_organization(principal), employee_number
+        )
     except EmployeeNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message) from exc
 
 @router.get("/{employee_number}/profile")
 async def get_employee_profile(
     employee_number: str,
+    principal: AuthPrincipal = Depends(require_accountant),
 ) -> dict[str, Any]:
     use_case = BuildEmployeeProfileUseCase(
         get_employee_repository(),
@@ -385,22 +553,26 @@ async def get_employee_profile(
         get_document_repository(),
     )
     try:
-        return await use_case.execute(DEMO_ORGANIZATION_ID, employee_number)
+        return await use_case.execute(
+            _accountant_organization(principal), employee_number
+        )
     except EmployeeNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message) from exc
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_employee(
     body: EmployeeCreateRequest,
+    principal: AuthPrincipal = Depends(require_accountant),
 ) -> dict[str, Any]:
+    organization_id = _accountant_organization(principal)
     bootstrap = get_workspace_bootstrap()
     department_id = body.department_id or await bootstrap.ensure_default_department(
-        DEMO_ORGANIZATION_ID
+        organization_id
     )
     try:
         created = await _use_case().create(
             CreateEmployeeCommand(
-                organization_id=DEMO_ORGANIZATION_ID,
+                organization_id=organization_id,
                 employee_number=body.employee_number,
                 first_name=body.first_name,
                 last_name=body.last_name,
@@ -408,6 +580,7 @@ async def create_employee(
                 employment_type=body.employment_type,
                 salary_type=body.salary_type,
                 contract_start_date=body.contract_start_date or date.today(),
+                actor_user_id=principal.user_id,
                 national_id=body.national_id,
                 email=body.email,
                 hourly_rate=body.hourly_rate,
@@ -425,11 +598,12 @@ async def create_employee(
 async def update_employee(
     employee_number: str,
     body: EmployeeUpdateRequest,
+    principal: AuthPrincipal = Depends(require_accountant),
 ) -> dict[str, Any]:
     try:
         updated = await _use_case().update(
             UpdateEmployeeCommand(
-                organization_id=DEMO_ORGANIZATION_ID,
+                organization_id=_accountant_organization(principal),
                 employee_number=employee_number,
                 first_name=body.first_name,
                 last_name=body.last_name,
@@ -456,10 +630,13 @@ async def update_employee(
 @router.post("/{employee_number}/disable")
 async def disable_employee(
     employee_number: str,
+    principal: AuthPrincipal = Depends(require_accountant),
 ) -> dict[str, Any]:
     try:
         updated = await _use_case().disable(
-            DEMO_ORGANIZATION_ID, employee_number, actor_user_id=None
+            _accountant_organization(principal),
+            employee_number,
+            actor_user_id=principal.user_id,
         )
         return updated
     except EmployeeNotFoundError as exc:

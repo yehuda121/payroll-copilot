@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Info, Pencil, Trash2 } from 'lucide-react';
 import { ModalDialog, useConfirmDialog } from '../../components/ui/Dialog';
 import type { FieldDraft } from '../../hooks/useEmployeePayslipFlow';
 import { buildDigitalFormSections } from '../../lib/employee/digital-form-model';
@@ -13,6 +13,7 @@ import {
 import type { ExtractedPayslipField } from '../../types/api';
 import { useAppLocale } from '../../hooks/useAppLocale';
 import { FieldAiPopover } from '../guest/landing/FieldAiPopover';
+import { FieldEvidenceDetails } from './FieldEvidenceDetails';
 import '../guest/landing/landing-chat.css';
 
 type EmployeeDigitalFormProps = {
@@ -85,11 +86,15 @@ export function EmployeeDigitalForm({
   const allFields = sections.flatMap((section) => section.fields);
 
   const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [evidenceKey, setEvidenceKey] = useState<string | null>(null);
   const [draftValue, setDraftValue] = useState('');
   const [editError, setEditError] = useState<string | null>(null);
 
   const editingField = editingKey
     ? allFields.find((field) => field.key === editingKey) ?? null
+    : null;
+  const evidenceField = evidenceKey
+    ? fields?.find((field) => field.key === evidenceKey) ?? null
     : null;
   const editingType: EmployeeFieldType = editingField?.type ?? 'unknown';
   const multiline = usesMultilineEditor(editingType) || draftValue.length > 72 || draftValue.includes('\n');
@@ -216,6 +221,17 @@ export function EmployeeDigitalForm({
                         )}
                       </span>
                     )}
+                    {fields?.find((item) => item.key === field.key)?.evidence_details && (
+                      <button
+                        type="button"
+                        className="employee-digital-form__icon-btn"
+                        onClick={() => setEvidenceKey(field.key)}
+                        title={t('explainability.viewEvidence')}
+                        aria-label={`${t('explainability.viewEvidence')}: ${field.label}`}
+                      >
+                        <Info size={16} strokeWidth={2} aria-hidden="true" />
+                      </button>
+                    )}
                   </div>
 
                   <div className="employee-digital-form__card-body">
@@ -340,6 +356,24 @@ export function EmployeeDigitalForm({
               {editError}
             </p>
           )}
+        </ModalDialog>
+      )}
+
+      {evidenceField?.evidence_details && (
+        <ModalDialog
+          title={t('explainability.title')}
+          onClose={() => setEvidenceKey(null)}
+          footer={
+            <button
+              type="button"
+              className="btn btn--secondary"
+              onClick={() => setEvidenceKey(null)}
+            >
+              {t('common.close', { defaultValue: 'Close' })}
+            </button>
+          }
+        >
+          <FieldEvidenceDetails evidence={evidenceField.evidence_details} />
         </ModalDialog>
       )}
     </div>

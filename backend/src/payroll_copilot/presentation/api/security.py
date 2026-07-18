@@ -212,6 +212,85 @@ async def get_auth_principal(
     )
 
 
+async def require_accountant(
+    principal: AuthPrincipal = Depends(get_auth_principal),
+) -> AuthPrincipal:
+    """Require an authenticated payroll accountant with an organization scope."""
+    if principal.role != UserRole.ACCOUNTANT.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "accountant_role_required",
+                "message": "Payroll accountant role required.",
+            },
+        )
+    if principal.organization_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "organization_binding_missing",
+                "message": "Authenticated accountant is not bound to an organization.",
+            },
+        )
+    return principal
+
+
+async def require_org_operator(
+    principal: AuthPrincipal = Depends(get_auth_principal),
+) -> AuthPrincipal:
+    """Require an accountant or admin bound to an organization."""
+    if principal.role not in {UserRole.ACCOUNTANT.value, UserRole.ADMIN.value}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "operator_role_required",
+                "message": "Accountant or admin role required.",
+            },
+        )
+    if principal.organization_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "organization_binding_missing",
+                "message": "Authenticated operator is not bound to an organization.",
+            },
+        )
+    return principal
+
+
+async def bind_accountant_selected_employee(
+    *,
+    employee_number: str,
+    principal: AuthPrincipal,
+) -> BoundEmployeeContext:
+    """Resolve a selected employee strictly inside an accountant's organization."""
+    if principal.role != UserRole.ACCOUNTANT.value or principal.organization_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "accountant_scope_required",
+                "message": "Accountant organization scope is required.",
+            },
+        )
+    employees: EmployeeRepository = get_employee_repository()
+    employee = await employees.get_by_number(
+        principal.organization_id,
+        employee_number,
+    )
+    if employee is None:
+        # Return 404 for both missing and foreign employees to prevent tenant enumeration.
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "employee_not_found", "message": "Employee not found."},
+        )
+    encrypted = await employees.get_national_id_encrypted(employee.id)
+    return BoundEmployeeContext(
+        principal=principal,
+        employee=employee,
+        national_id_encrypted=encrypted,
+    )
+
+
 async def require_bound_employee(
     principal: AuthPrincipal = Depends(get_auth_principal),
 ) -> BoundEmployeeContext:

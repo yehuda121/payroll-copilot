@@ -2,6 +2,7 @@
 
 Owns one retry on JSON/schema/semantic failure. Does not run payroll validation.
 Supports layout-aware OCR context with deterministic evidence validation.
+Phase 3: optional evidence-bound mapping from layout_analysis candidates.
 """
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from payroll_copilot.application.exceptions import (
@@ -28,6 +29,10 @@ from payroll_copilot.application.ports.payslip_parser import (
     PayslipParser,
     StructuredPayslipParse,
 )
+from payroll_copilot.application.services.candidate_evidence_validator import (
+    hydrate_and_validate_candidate_fields,
+)
+from payroll_copilot.application.services.evidence_binder import bind_evidence_candidates
 from payroll_copilot.application.services.extraction_engine import is_embedded_text_engine
 from payroll_copilot.application.services.parser_evidence import validate_structured_payslip_evidence
 from payroll_copilot.application.services.parser_layout_context import (
@@ -55,6 +60,8 @@ class ParsePayslipFromOcrCommand:
     cancel_check: CancelCheck = None
     """When True, ask the model for the small guest landing field set only."""
     simple_guest_fields: bool = False
+    """Phase 2 layout_analysis used by Phase 3 evidence-bound mapping."""
+    layout_analysis: dict[str, Any] = field(default_factory=dict)
 
 
 class ParsePayslipFromOcrUseCase:
@@ -67,11 +74,13 @@ class ParsePayslipFromOcrUseCase:
         timeout_seconds: float,
         total_budget_seconds: float | None = None,
         layout_config: ParserLayoutConfig | None = None,
+        evidence_bound_enabled: bool = False,
     ) -> None:
         self._parser = parser
         self._timeout_seconds = timeout_seconds
         self._total_budget_seconds = total_budget_seconds or min(timeout_seconds * 1.5, 90.0)
         self._layout_config = layout_config or ParserLayoutConfig()
+        self._evidence_bound_enabled = evidence_bound_enabled
 
     async def execute(self, command: ParsePayslipFromOcrCommand) -> PayslipParseResult:
         started = time.perf_counter()
@@ -89,11 +98,25 @@ class ParsePayslipFromOcrUseCase:
         language = (command.language or "auto").strip().lower() or "auto"
         embedded_mode = is_embedded_text_engine(command.engine)
         layout = self._build_layout(command, language=language)
-        layout_context = layout.payload if self._layout_config.enabled and not embedded_mode else None
+
+        evidence_bundle: dict[str, Any] = {}
+        evidence_bound = False
+        if self._evidence_bound_enabled:
+            evidence_bundle = bind_evidence_candidates(command.layout_analysis or {})
+            evidence_bound = bool(evidence_bundle.get("llm_candidates"))
+            if not evidence_bound:
+                logger.info("evidence_bound_fallback_no_candidates")
+
+        layout_context = None
+        if not evidence_bound:
+            layout_context = layout.payload if self._layout_config.enabled and not embedded_mode else None
 
         first_error: Exception | None = None
         first_warnings: list[str] = []
         last_payload: dict[str, Any] | None = None
+        if evidence_bound:
+            first_warnings.extend(list(evidence_bundle.get("warnings") or []))
+            first_warnings.append("parser_evidence_bound_enabled")
 
         for attempt in range(2):
             self._check_cancelled(command.cancel_check)
@@ -110,8 +133,9 @@ class ParsePayslipFromOcrUseCase:
                     language=language,
                     pages_text=pages_text,
                     layout_context=layout_context,
+                    evidence_candidates=evidence_bundle if evidence_bound else None,
                     retry_hint=retry_hint,
-                    embedded_text_mode=embedded_mode,
+                    embedded_text_mode=embedded_mode and not evidence_bound,
                     simple_guest_fields=command.simple_guest_fields,
                     timeout_seconds=attempt_timeout,
                     cancel_check=command.cancel_check,
@@ -122,6 +146,7 @@ class ParsePayslipFromOcrUseCase:
                     ocr_text=text,
                     layout=layout,
                     embedded_mode=embedded_mode,
+                    evidence_bundle=evidence_bundle if evidence_bound else None,
                 )
                 merged_warnings = list(dict.fromkeys([*result.warnings, *first_warnings]))
                 if attempt == 1:
@@ -143,7 +168,11 @@ class ParsePayslipFromOcrUseCase:
                     last_payload = partial_payload
                 if attempt == 1:
                     partial = self._coerce_partial_if_any(
-                        last_payload, ocr_text=text, layout=layout, embedded_mode=embedded_mode
+                        last_payload,
+                        ocr_text=text,
+                        layout=layout,
+                        embedded_mode=embedded_mode,
+                        evidence_bundle=evidence_bundle if evidence_bound else None,
                     )
                     if partial is not None and _has_usable_fields(partial):
                         warnings = list(dict.fromkeys([
@@ -200,7 +229,15 @@ class ParsePayslipFromOcrUseCase:
         ocr_text: str,
         layout: BuiltParserContext,
         embedded_mode: bool,
+        evidence_bundle: dict[str, Any] | None = None,
     ) -> StructuredPayslipParse:
+        if evidence_bundle and evidence_bundle.get("candidate_index"):
+            # Candidate hydration is authoritative — skip OCR-text sanitizer downgrades.
+            return hydrate_and_validate_candidate_fields(
+                fields,
+                candidate_index=dict(evidence_bundle.get("candidate_index") or {}),
+            )
+
         sanitized = sanitize_structured_payslip(fields, ocr_text=ocr_text)
         if embedded_mode:
             return validate_structured_payslip_evidence(
@@ -225,6 +262,7 @@ class ParsePayslipFromOcrUseCase:
         ocr_text: str,
         layout: BuiltParserContext,
         embedded_mode: bool,
+        evidence_bundle: dict[str, Any] | None = None,
     ) -> StructuredPayslipParse | None:
         if not payload:
             return None
@@ -232,7 +270,13 @@ class ParsePayslipFromOcrUseCase:
 
         try:
             partial = coerce_partial_structured_payslip(payload)
-            return self._post_process(partial, ocr_text=ocr_text, layout=layout, embedded_mode=embedded_mode)
+            return self._post_process(
+                partial,
+                ocr_text=ocr_text,
+                layout=layout,
+                embedded_mode=embedded_mode,
+                evidence_bundle=evidence_bundle,
+            )
         except Exception:  # noqa: BLE001
             return None
 
@@ -243,6 +287,7 @@ class ParsePayslipFromOcrUseCase:
         language: str,
         pages_text: list[str] | None,
         layout_context: dict[str, Any] | None,
+        evidence_candidates: dict[str, Any] | None,
         retry_hint: str | None,
         embedded_text_mode: bool,
         simple_guest_fields: bool,
@@ -259,16 +304,21 @@ class ParsePayslipFromOcrUseCase:
                 "retry_hint": retry_hint,
                 "embedded_text_mode": embedded_text_mode,
                 "simple_guest_fields": simple_guest_fields,
+                "evidence_candidates": evidence_candidates,
             }
             try:
                 coro = self._parser.parse(**parse_kwargs)
             except TypeError:
-                parse_kwargs.pop("simple_guest_fields", None)
+                parse_kwargs.pop("evidence_candidates", None)
                 try:
                     coro = self._parser.parse(**parse_kwargs)
                 except TypeError:
-                    parse_kwargs.pop("embedded_text_mode", None)
-                    coro = self._parser.parse(**parse_kwargs)
+                    parse_kwargs.pop("simple_guest_fields", None)
+                    try:
+                        coro = self._parser.parse(**parse_kwargs)
+                    except TypeError:
+                        parse_kwargs.pop("embedded_text_mode", None)
+                        coro = self._parser.parse(**parse_kwargs)
             return await asyncio.wait_for(coro, timeout=timeout_seconds)
         except TimeoutError as exc:
             raise PayslipParserTimeoutError(
@@ -329,6 +379,7 @@ def command_from_ocr_result(
     *,
     cancel_check: CancelCheck = None,
     simple_guest_fields: bool = False,
+    layout_analysis: dict[str, Any] | None = None,
 ) -> ParsePayslipFromOcrCommand:
     return ParsePayslipFromOcrCommand(
         raw_text=result.raw_text,
@@ -338,4 +389,5 @@ def command_from_ocr_result(
         warnings=tuple(result.warnings),
         cancel_check=cancel_check,
         simple_guest_fields=simple_guest_fields,
+        layout_analysis=dict(layout_analysis or {}),
     )

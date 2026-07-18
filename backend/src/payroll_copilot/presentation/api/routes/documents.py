@@ -20,6 +20,9 @@ from payroll_copilot.application.use_cases.documents import (
     UploadDocumentCommand,
     UploadDocumentUseCase,
 )
+from payroll_copilot.application.services.employee_document_lifecycle import (
+    is_employee_visible_document,
+)
 from payroll_copilot.domain.entities import Document
 from payroll_copilot.domain.enums import DocumentType
 from payroll_copilot.domain.value_objects import PayPeriod
@@ -30,7 +33,14 @@ from payroll_copilot.presentation.api.dependencies import (
     get_object_storage,
     get_upload_document_use_case,
 )
-from payroll_copilot.presentation.api.security import BoundEmployeeContext, require_bound_employee
+from payroll_copilot.presentation.api.security import (
+    AuthPrincipal,
+    BoundEmployeeContext,
+    bind_accountant_selected_employee,
+    get_auth_principal,
+    require_accountant,
+    require_bound_employee,
+)
 from payroll_copilot.infrastructure.storage.s3_storage import S3ObjectStorage
 
 logger = logging.getLogger(__name__)
@@ -301,6 +311,10 @@ async def delete_employee_owned_document(
         document is None
         or document.employee_id != bound.employee.id
         or document.organization_id != bound.employee.organization_id
+        or (
+            bound.principal.role == "employee"
+            and not is_employee_visible_document(document)
+        )
     ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     try:
@@ -326,6 +340,10 @@ async def resolve_employee_payslip_period(
         document is None
         or document.employee_id != bound.employee.id
         or document.organization_id != bound.employee.organization_id
+        or (
+            bound.principal.role == "employee"
+            and not is_employee_visible_document(document)
+        )
     ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     action = body.action.strip().lower()
@@ -394,6 +412,10 @@ async def download_employee_document_content(
         document is None
         or document.employee_id != bound.employee.id
         or document.organization_id != bound.employee.organization_id
+        or (
+            bound.principal.role == "employee"
+            and not is_employee_visible_document(document)
+        )
     ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     try:
@@ -412,14 +434,106 @@ async def download_employee_document_content(
     )
 
 
+async def _accountant_document_context(
+    employee_number: str,
+    principal: AuthPrincipal,
+) -> BoundEmployeeContext:
+    return await bind_accountant_selected_employee(
+        employee_number=employee_number,
+        principal=principal,
+    )
+
+
+@router.post(
+    "/accountant/{employee_number}/upload",
+    response_model=DocumentUploadResponse,
+    status_code=201,
+)
+async def upload_accountant_selected_document(
+    employee_number: str,
+    file: UploadFile = File(...),
+    document_type: DocumentType = Form(...),
+    period_year: int | None = Form(None),
+    period_month: int | None = Form(None),
+    document_language: str = Form("auto"),
+    principal: AuthPrincipal = Depends(require_accountant),
+    upload_use_case: UploadDocumentUseCase = Depends(get_upload_document_use_case),
+) -> DocumentUploadResponse:
+    return await upload_employee_owned_document(
+        file=file,
+        document_type=document_type,
+        period_year=period_year,
+        period_month=period_month,
+        document_language=document_language,
+        bound=await _accountant_document_context(employee_number, principal),
+        upload_use_case=upload_use_case,
+    )
+
+
+@router.delete("/accountant/{employee_number}/{document_id}")
+async def delete_accountant_selected_document(
+    employee_number: str,
+    document_id: str,
+    principal: AuthPrincipal = Depends(require_accountant),
+    storage: S3ObjectStorage = Depends(get_object_storage),
+) -> dict:
+    return await delete_employee_owned_document(
+        document_id=document_id,
+        bound=await _accountant_document_context(employee_number, principal),
+        storage=storage,
+    )
+
+
+@router.post("/accountant/{employee_number}/{document_id}/resolve-period")
+async def resolve_accountant_selected_payslip_period(
+    employee_number: str,
+    document_id: str,
+    body: ResolvePeriodBody,
+    principal: AuthPrincipal = Depends(require_accountant),
+) -> dict:
+    return await resolve_employee_payslip_period(
+        document_id=document_id,
+        body=body,
+        bound=await _accountant_document_context(employee_number, principal),
+    )
+
+
+@router.get("/accountant/{employee_number}/{document_id}/content")
+async def download_accountant_selected_document_content(
+    employee_number: str,
+    document_id: str,
+    principal: AuthPrincipal = Depends(require_accountant),
+    storage: S3ObjectStorage = Depends(get_object_storage),
+) -> Response:
+    return await download_employee_document_content(
+        document_id=document_id,
+        bound=await _accountant_document_context(employee_number, principal),
+        storage=storage,
+    )
+
+
 @router.get("/{document_id}", response_model=DocumentResponse)
 async def get_document(
     document_id: str,
     get_use_case: GetDocumentUseCase = Depends(get_get_document_use_case),
+    principal: AuthPrincipal = Depends(get_auth_principal),
 ) -> DocumentResponse:
     parsed_id = _parse_uuid(document_id, "document_id")
     document = await get_use_case.execute(parsed_id)
     if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {document_id} not found",
+        )
+    if principal.organization_id != document.organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {document_id} not found",
+        )
+    if principal.role == "employee" and (
+        principal.employee_id != document.employee_id
+        or not is_employee_visible_document(document)
+    ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Document {document_id} not found",

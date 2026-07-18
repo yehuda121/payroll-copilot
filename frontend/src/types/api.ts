@@ -89,6 +89,33 @@ export type ExtractedPayslipField = {
   status: string;
   edited_by_user?: boolean;
   original_value?: unknown;
+  evidence_details?: FieldEvidenceDetails | null;
+};
+
+export type FieldEvidenceAlternative = {
+  candidate_id: string | null;
+  source?: string | null;
+  page: number | null;
+  section: string | null;
+  row: string | null;
+  column: number | null;
+  label: string | null;
+  value: unknown;
+  association_strategy: string | null;
+  association_confidence: string | null;
+  bbox: number[] | null;
+  conflict: boolean;
+  reason?: string | null;
+};
+
+export type FieldEvidenceDetails = FieldEvidenceAlternative & {
+  available: boolean;
+  reason?: string | null;
+  user_edited?: boolean;
+  conflict_group?: string | null;
+  source_line_ids?: string[];
+  source_word_ids?: string[];
+  alternatives: FieldEvidenceAlternative[];
 };
 
 /** Document-first landing extraction entry (complete Document Model row). */
@@ -152,6 +179,33 @@ export type BatchPipelineStage = {
   detail?: string | null;
 };
 
+export type BatchEmployeeStatus =
+  | 'processing'
+  | 'passed'
+  | 'warning'
+  | 'failed'
+  | 'unknown_employee';
+
+export type BatchExtractedEmployee = {
+  id: string;
+  slip_index: number;
+  status: BatchEmployeeStatus | string;
+  employee_number?: string | null;
+  employee_name?: string | null;
+  document_id?: string | null;
+  national_id_masked?: string | null;
+  payroll_year?: number | null;
+  payroll_month?: number | null;
+  warnings: number;
+  critical_issues: number;
+  processing_stage: string;
+  validation_run_id?: string | null;
+  review_status?: string;
+  publication_status?: string;
+  error_message?: string | null;
+  resolution_status?: string | null;
+};
+
 export type BatchJobStatus = {
   id: string;
   batch_job_id?: string;
@@ -165,6 +219,7 @@ export type BatchJobStatus = {
   error_message?: string | null;
   report_summary?: Record<string, number>;
   stages: BatchPipelineStage[];
+  items?: BatchExtractedEmployee[];
   updated_at?: string | null;
   created_at?: string | null;
 };

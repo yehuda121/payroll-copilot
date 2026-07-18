@@ -41,6 +41,18 @@ async function fetchDevEmployeeAccessToken(): Promise<string | null> {
   }
 }
 
+async function fetchDevAccountantAccessToken(): Promise<string | null> {
+  try {
+    const result = await apiRequest<{ access_token: string }>('/auth/dev/accountant-session', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    return result.access_token;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(() => initialSession());
 
@@ -50,27 +62,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     clearCognitoSession();
     const next = devLoginAsRole(role);
-    if (role === 'employee') {
-      const token = await fetchDevEmployeeAccessToken();
+    if (role === 'employee' || role === 'payroll_accountant') {
+      const token =
+        role === 'employee'
+          ? await fetchDevEmployeeAccessToken()
+          : await fetchDevAccountantAccessToken();
       if (!token) {
         clearAccessToken();
         throw new Error(
-          'Employee portal token could not be issued. Cognito may be enabled, or seed data is missing.',
+          'Portal token could not be issued. Cognito may be enabled, or seed data is missing.',
         );
       }
       saveAccessToken(token);
       next.accessToken = token;
-      try {
-        const me = await employeePortalService.me();
-        next.user = {
-          ...next.user,
-          id: me.employee_id,
-          fullName: me.full_name,
-          localizedFullName: me.full_name_localized || me.full_name,
-          organizationId: me.organization_id,
-        };
-      } catch {
-        // Keep seeded display name if /me is temporarily unavailable.
+      if (role === 'employee') {
+        try {
+          const me = await employeePortalService.me();
+          next.user = {
+            ...next.user,
+            id: me.employee_id,
+            fullName: me.full_name,
+            localizedFullName: me.full_name_localized || me.full_name,
+            organizationId: me.organization_id,
+          };
+        } catch {
+          // Keep seeded display name if /me is temporarily unavailable.
+        }
       }
       saveDevSession(next);
     } else {

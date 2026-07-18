@@ -13,6 +13,9 @@ from uuid import UUID
 
 from payroll_copilot.application.ports.employee_audit import AuditLogRepository, EmployeeRepository
 from payroll_copilot.application.ports.repositories import DocumentRepository
+from payroll_copilot.application.services.employee_document_lifecycle import (
+    is_employee_visible_document,
+)
 from payroll_copilot.application.use_cases.manage_employees import (
     EmployeeNotFoundError,
     serialize_employee,
@@ -47,6 +50,7 @@ class BuildEmployeeProfileUseCase:
                 organization_id=organization_id,
                 employee_id=employee.id,
             )
+            docs = [doc for doc in docs if is_employee_visible_document(doc)]
 
         payslips = [doc for doc in docs if doc.document_type == DocumentType.PAYSLIP]
         attendance_docs = [doc for doc in docs if doc.document_type == DocumentType.ATTENDANCE]

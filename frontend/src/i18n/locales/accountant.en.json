@@ -36,7 +36,7 @@
   },
   "portal": {
     "shell": {
-      "batchActiveBanner": "Batch active — navigation will ask for confirmation",
+      "batchActiveBanner": "Batch active — processing continues in the background",
       "leaveBatchTitle": "Leave while batch processing is active?",
       "leaveBatchMessage": "{{label}} Backend processing will continue. You can return to the Batch Monitor at any time.",
       "leaveBatchConfirm": "Leave page",
@@ -331,6 +331,118 @@
         "report": "Batch report"
       }
     },
+    "workspace": {
+      "back": "Back",
+      "employeeNumber": "Employee #{{number}}",
+      "loading": "Loading employee workspace…",
+      "tabsLabel": "Selected employee workspace"
+    },
+    "bulk": {
+      "tabs": {
+        "upload": "Upload",
+        "extracted": "Extracted Employees"
+      },
+      "progress": {
+        "processed": "Processed employees",
+        "current": "Current employee",
+        "slip": "Payslip {{value}}",
+        "remaining": "Remaining",
+        "percentage": "Progress",
+        "phase": "Current phase"
+      },
+      "phases": {
+        "upload": "Uploading",
+        "split": "Splitting PDF",
+        "queued": "Queued",
+        "ocr": "Running OCR",
+        "parser": "Extracting",
+        "extracting": "Extracting",
+        "identify": "Matching employee",
+        "matching": "Matching employee",
+        "validation": "Running validation",
+        "report": "Saving result",
+        "completed": "Completed"
+      },
+      "publish": {
+        "title": "Approve and publish payslip?",
+        "message": "This makes the reviewed payslip available in the Employee Portal and Employee AI Chat.",
+        "action": "Approve & Publish",
+        "tab": "Publishing",
+        "pendingReview": "Pending accountant approval",
+        "published": "Published to employee",
+        "requireCurrentValidation": "Confirm the current Digital Payslip and run validation before publishing.",
+        "checks": {
+          "extraction": "Digital Payslip is available",
+          "corrections": "All corrections are saved and confirmed",
+          "validation": "Current Digital Payslip has a completed validation run"
+        }
+      },
+      "review": {
+        "backToBatch": "Back to Batch",
+        "resolutionRequired": "Employee resolution required",
+        "resolutionDescription": "Review and correct this payslip now, then attach it to an existing or new employee before publishing.",
+        "resolveBeforePublish": "Attach this reviewed payslip to an employee before it can be published.",
+        "ignoreTitle": "Permanently discard this payslip?",
+        "ignoreWarning": "This extracted payslip will be permanently discarded. The document, extraction results, Digital Payslip, validation history and OCR results will NOT be saved. The employee will never see this payslip. This action cannot be undone.",
+        "ignoreConfirm": "Permanently discard"
+      },
+      "validationHistory": {
+        "title": "Validation history",
+        "run": "Validation Run #{{value}}",
+        "outdated": "Previous Digital Payslip version",
+        "noFindings": "No findings were recorded for this validation run."
+      },
+      "summary": {
+        "employees": "Employees"
+      },
+      "status": {
+        "processing": "Processing",
+        "passed": "Passed",
+        "warning": "Warning",
+        "failed": "Failed",
+        "unknown_employee": "Unknown Employee"
+      },
+      "filters": {
+        "label": "Quick status filters",
+        "all": "Show All",
+        "passed": "Show Passed",
+        "warning": "Show Warnings",
+        "failed": "Show Failed",
+        "unknown": "Show Unknown",
+        "processing": "Show Processing"
+      },
+      "empty": {
+        "title": "No active bulk upload",
+        "description": "Upload a PDF to begin processing employees."
+      },
+      "emptyFilter": {
+        "title": "No employees match this filter",
+        "description": "Choose another status to review the remaining results."
+      },
+      "openWorkspace": "Open employee workspace"
+    },
+    "unknown": {
+      "title": "Resolve Unknown Employee",
+      "description": "Resolve this payslip only against employees in your organization.",
+      "notFound": "This batch item is no longer available.",
+      "create": "Create New Employee",
+      "search": "Search Existing Employee",
+      "editId": "Edit Extracted National ID",
+      "ignore": "Ignore",
+      "searchLabel": "Search employees",
+      "searchPlaceholder": "Name, National ID, or employee number",
+      "nationalId": "National ID",
+      "retryMatch": "Retry matching",
+      "ignoreDescription": "Skip this payslip and continue processing the remaining employees.",
+      "required": "All employee fields are mandatory.",
+      "employeeNumber": "Employee Number",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email Address",
+      "company": "Company",
+      "department": "Department",
+      "createAndAttach": "Create Employee and Attach Payslip"
+    },
     "reviewQueue": {
       "title": "Approval & Manual Review",
       "description": "Low-confidence employee identification never auto-creates records. Resolve matches here. Legal rule diffs also appear when proposed.",
@@ -456,5 +568,33 @@
       "cancel": "Cancel",
       "confirm": "Confirm"
     }
+  },
+  "explainability": {
+    "title": "Evidence details",
+    "viewEvidence": "View extraction evidence",
+    "unavailable": "Extraction evidence is not available for this field.",
+    "userEdited": "This field was manually edited. Extraction evidence does not support the current value.",
+    "userEditedOriginal": "This field was manually edited. The evidence below describes the original extraction only.",
+    "evidenceSource": "Evidence source",
+    "layoutEvidence": "Document layout analysis",
+    "sourcePage": "Source page",
+    "detectedLabel": "Detected label",
+    "detectedValue": "Detected value",
+    "section": "Section",
+    "row": "Row",
+    "column": "Column",
+    "strategy": "Association strategy",
+    "associationConfidence": "Association confidence",
+    "candidateId": "Candidate reference",
+    "boundingBox": "Bounding box",
+    "conflict": "This field has conflicting candidate evidence and requires human review.",
+    "primaryCandidate": "Primary candidate",
+    "alternatives": "Alternative candidates",
+    "alternativeReason": "Why it is an alternative",
+    "alternativeGeometry": "The geometry engine found another plausible association.",
+    "alternativePrimary": "The association engine ranked this candidate first geometrically.",
+    "whyThisResult": "Why this validation result?",
+    "validationTraceSummary": "{{supported}} of {{total}} extracted fields have traceable evidence.",
+    "validationTraceUnavailable": "Traceable extraction evidence is unavailable for this result."
   }
 }

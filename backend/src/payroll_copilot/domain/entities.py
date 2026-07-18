@@ -121,6 +121,10 @@ class DocumentExtraction:
     extraction_version: int = 1
     created_at: datetime = field(default_factory=datetime.utcnow)
     ocr_result: dict[str, Any] = field(default_factory=dict)
+    # Additive Phase 1 layout metadata. Never part of structured_data / field projections.
+    layout_snapshot: dict[str, Any] = field(default_factory=dict)
+    # Additive Phase 2 structure + associations. Parallel to LLM; not consumed by portals yet.
+    layout_analysis: dict[str, Any] = field(default_factory=dict)
     parser_model: str | None = None
     language: str = "auto"
     ocr_status: str = "completed"

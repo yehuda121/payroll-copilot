@@ -70,5 +70,37 @@ describe('employee field validation status map', () => {
     expect(counts.failed).toBe(1);
     expect(counts.uncertain).toBe(1);
     expect(counts.unchecked).toBe(1);
+    expect(counts.passed).toBe(0);
+  });
+
+  it('does not invent passed when a report has no finding for a found field', () => {
+    const report = {
+      runId: 'r2',
+      documentId: 'd2',
+      overallResult: 'pass',
+      overallStatus: 'Pass',
+      summary: 'Clean',
+      validationConfidence: 0.9,
+      confidenceExplanation: null,
+      scope: [],
+      uploadedDocuments: [],
+      checksPassedCount: 1,
+      findings: [],
+      extractionConnected: true,
+    } satisfies GuestValidationReport;
+
+    const map = buildEmployeeFieldValidationMap(fields, report);
+    expect(map.base_salary?.status).toBe('unchecked');
+    expect(map.travel_expenses?.status).toBe('uncertain');
+    expect(map.vacation_balance?.status).toBe('unchecked');
+    expect(countValidationStatuses(map).passed).toBe(0);
+  });
+
+  it('does not mark fields passed when validation has not run', () => {
+    const map = buildEmployeeFieldValidationMap(fields, null);
+    expect(map.base_salary).toBeUndefined();
+    expect(map.travel_expenses?.status).toBe('uncertain');
+    expect(map.vacation_balance?.status).toBe('unchecked');
+    expect(countValidationStatuses(map).passed).toBe(0);
   });
 });

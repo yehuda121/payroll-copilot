@@ -80,6 +80,9 @@ class ValidationRunRepository(ABC):
         """Return validation runs for a document, newest first."""
         return []
 
+    async def delete_for_document_ids(self, document_ids: list[UUID]) -> int:
+        raise NotImplementedError
+
 
 class ValidationFindingRepository(ABC):
     @abstractmethod
@@ -93,3 +96,6 @@ class ValidationFindingRepository(ABC):
     @abstractmethod
     async def list_by_run_id(self, run_id: UUID) -> list[ValidationFindingRecord]:
         ...
+
+    async def delete_for_run_ids(self, run_ids: list[UUID]) -> int:
+        raise NotImplementedError

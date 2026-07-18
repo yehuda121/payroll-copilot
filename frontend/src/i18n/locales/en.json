@@ -424,6 +424,14 @@
       "completedAt": "Completed {{at}}",
       "rulesTitle": "Validation rules",
       "noRules": "No validation rules were returned for this run.",
+      "groups": {
+        "identity": "Identity",
+        "employment": "Employment",
+        "salary": "Salary",
+        "taxes": "Taxes",
+        "benefits": "Benefits",
+        "dates": "Dates"
+      },
       "annotatedFormTitle": "Validated digital form",
       "reason": "Reason",
       "expected": "Expected",

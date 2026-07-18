@@ -12,11 +12,16 @@ LIFECYCLE_PROCESSING = "processing"
 LIFECYCLE_EXTRACTION_COMPLETED = "extraction_completed"
 LIFECYCLE_EXTRACTION_FAILED = "extraction_failed"
 LIFECYCLE_REVIEW_REQUIRED = "review_required"
+LIFECYCLE_ACCOUNTANT_REVIEW = "accountant_review"
 LIFECYCLE_CONFIRMED = "confirmed"
+LIFECYCLE_PUBLISHED = "published"
 LIFECYCLE_SUPERSEDED = "superseded"
 
 CONFIRMATION_REVIEW_REQUIRED = "review_required"
 CONFIRMATION_CONFIRMED = "confirmed"
+
+PUBLICATION_DRAFT = "draft"
+PUBLICATION_PUBLISHED = "published"
 
 MONTHLY_TYPES = {DocumentType.PAYSLIP, DocumentType.ATTENDANCE}
 PERSISTENT_TYPES = {
@@ -24,6 +29,15 @@ PERSISTENT_TYPES = {
     DocumentType.ID_APPENDIX,
     DocumentType.CONTRACT,
 }
+
+
+def is_employee_visible_document(document: Any) -> bool:
+    """Return false for accountant batch drafts, including provisionally matched ones."""
+    metadata = dict(getattr(document, "metadata", None) or {})
+    publication = metadata.get("publication_status")
+    if metadata.get("source") == "accountant_bulk_upload":
+        return publication == PUBLICATION_PUBLISHED
+    return publication != PUBLICATION_DRAFT
 
 
 def build_employee_storage_key(

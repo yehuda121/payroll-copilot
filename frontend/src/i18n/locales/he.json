@@ -424,6 +424,14 @@
       "completedAt": "הושלם {{at}}",
       "rulesTitle": "כללי אימות",
       "noRules": "לא הוחזרו כללי אימות עבור הרצה זו.",
+      "groups": {
+        "identity": "זהות",
+        "employment": "העסקה",
+        "salary": "שכר",
+        "taxes": "מסים",
+        "benefits": "הטבות",
+        "dates": "תאריכים"
+      },
       "annotatedFormTitle": "טופס דיגיטלי לאחר אימות",
       "reason": "סיבה",
       "expected": "צפוי",

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from payroll_copilot.application.dto.validation_run import ValidationRunRecord
@@ -66,3 +66,14 @@ class SqlAlchemyValidationRunRepository(ValidationRunRepository):
             )
         )
         return [run_model_to_record(model) for model in result.scalars().all()]
+
+    async def delete_for_document_ids(self, document_ids: list[UUID]) -> int:
+        if not document_ids:
+            return 0
+        result = await self._session.execute(
+            delete(ValidationRunModel).where(
+                ValidationRunModel.document_id.in_(document_ids)
+            )
+        )
+        await self._session.flush()
+        return int(result.rowcount or 0)

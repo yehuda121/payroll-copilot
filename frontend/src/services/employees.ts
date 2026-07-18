@@ -64,13 +64,15 @@ export const employeesService = {
     if (params?.status) query.set('status', params.status);
     if (params?.includeDisabled === false) query.set('include_disabled', 'false');
     const suffix = query.toString() ? `?${query.toString()}` : '';
-    const rows = await apiRequest<ApiEmployee[]>(`/employees${suffix}`);
+    const rows = await apiRequest<ApiEmployee[]>(`/employees${suffix}`, { portalAuth: true });
     return rows.map(mapEmployee);
   },
 
   async getByNumber(employeeNumber: string): Promise<EmployeeRecord | null> {
     try {
-      const row = await apiRequest<ApiEmployee>(`/employees/${encodeURIComponent(employeeNumber)}`);
+      const row = await apiRequest<ApiEmployee>(`/employees/${encodeURIComponent(employeeNumber)}`, {
+        portalAuth: true,
+      });
       return mapEmployee(row);
     } catch {
       return null;
@@ -81,6 +83,7 @@ export const employeesService = {
     const row = await apiRequest<ApiEmployee>('/employees', {
       method: 'POST',
       body: JSON.stringify(payload),
+      portalAuth: true,
     });
     return mapEmployee(row);
   },
@@ -89,6 +92,7 @@ export const employeesService = {
     const row = await apiRequest<ApiEmployee>(`/employees/${encodeURIComponent(employeeNumber)}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
+      portalAuth: true,
     });
     return mapEmployee(row);
   },
@@ -96,7 +100,7 @@ export const employeesService = {
   async disable(employeeNumber: string): Promise<EmployeeRecord> {
     const row = await apiRequest<ApiEmployee>(
       `/employees/${encodeURIComponent(employeeNumber)}/disable`,
-      { method: 'POST' },
+      { method: 'POST', portalAuth: true },
     );
     return mapEmployee(row);
   },
@@ -104,7 +108,11 @@ export const employeesService = {
   async matchNationalId(nationalId: string): Promise<{ matched: boolean; employee: EmployeeRecord | null }> {
     const result = await apiRequest<{ matched: boolean; employee: ApiEmployee | null }>(
       '/employees/match/national-id',
-      { method: 'POST', body: JSON.stringify({ national_id: nationalId }) },
+      {
+        method: 'POST',
+        body: JSON.stringify({ national_id: nationalId }),
+        portalAuth: true,
+      },
     );
     return {
       matched: result.matched,
@@ -115,6 +123,7 @@ export const employeesService = {
   async getProfile(employeeNumber: string): Promise<Record<string, unknown>> {
     return apiRequest<Record<string, unknown>>(
       `/employees/${encodeURIComponent(employeeNumber)}/profile`,
+      { portalAuth: true },
     );
   },
 
@@ -134,6 +143,8 @@ export const catalogService = {
 
 export const auditLogsService = {
   async list(limit = 100): Promise<AuditLogItem[]> {
-    return apiRequest<AuditLogItem[]>(`/audit-logs?limit=${limit}`);
+    return apiRequest<AuditLogItem[]>(`/audit-logs?limit=${limit}`, {
+      portalAuth: true,
+    });
   },
 };

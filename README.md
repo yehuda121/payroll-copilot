@@ -298,16 +298,44 @@ Guest extraction/session state is **ephemeral** (in-process TTL store), not the 
 
 ## Accountant Portal
 
-Production-oriented foundation under `/accountant`:
+Primary navigation under `/accountant`:
 
-- Employee management (CRUD / search / disable)
-- Employee profile (document collections, monthly expectations)
-- Bulk payroll upload UI + batch monitor with stage progress
-- Payroll rules browse / edit with versioning, audit, rollback
-- Manual review / approvals queue
-- Audit logs
+1. **Employees** — organization-scoped search and employee master data
+2. **Bulk Upload** — persistent two-tab upload and incremental extracted-employee workspace
 
-**Honest gap:** per-slip OCR → identify → validate wiring for bulk PDFs is still incremental; stages may be marked skipped when not connected.
+Opening an employee reuses the Employee Portal Documents, Payslips, monthly
+workspace, validation, Digital Payslip, Original Document, and Payroll AI Chat
+components. The frontend injects an accountant-selected workspace API; the
+backend always resolves that employee by employee number inside the
+authenticated accountant's organization before any read, edit, validation, or
+AI context operation.
+
+Bulk batch state lives above routes, so progress, results, filters, and scroll
+position survive tab changes and employee-workspace navigation. Redis-backed
+job state allows processing to continue without an open browser. The worker
+splits payroll packages into one independent payslip document per page, then
+processes each page sequentially through the shared OCR/parser, Digital Payslip
+persistence, employee matching, and deterministic validation use cases.
+National ID matching runs first, with employee number as a fallback. Every
+split PDF, OCR result, extraction version, validation run, review state, and
+processing correlation is persisted before the worker starts the next page.
+
+Batch payslips are accountant-review drafts. A provisional employee match lets
+the accountant reuse the existing Digital Payslip, Validation, Original
+Document, and Payroll AI Chat workspace, but `publication_status=draft` is a
+hard Employee Portal visibility boundary. Corrections create extraction
+versions; every revalidation creates another immutable validation run displayed
+in validation history. Only **Approve & Publish**, after the current extraction
+has been confirmed and validated, changes the document to employee-visible.
+
+Legacy accountant pages (rules, findings, approvals, audit, batch monitor) remain
+routable but are intentionally not in the Phase 1 primary navigation.
+
+One payslip failure is isolated to that item and does not stop the batch.
+Unknown-employee resolution can correct the extracted National ID or attach a
+selected employee, then resumes the same persisted draft without repeating OCR.
+Progress currently reaches the browser by polling Redis-backed job state; the UI
+contract does not depend on polling and can later move to push events.
 
 ---
 
@@ -646,7 +674,8 @@ Smoke: `GET /health`, guest assistant chat, document upload, guest/employee extr
 - Guest landing: assistant + validate-my-payslip (document-first)
 - Employee monthly workspace (Upload / Digital Payslip / Validation / Original Document)
 - Employee identity/period comparison, confirmation gate, owned validation, re-validation after edits
-- Accountant portal foundation (employees, rules, bulk UI, review, audit)
+- Accountant Phase 1 workspace (organization-scoped employees, reused employee workspaces and selected-employee AI, persistent bulk UX)
+- Accountant bulk pipeline (split → OCR → canonical extraction → match → confirm → deterministic validation, persisted incrementally)
 - Cognito adapter (login/refresh/JWT verify) + local dev auth
 - DynamoDB single-table repositories (org, employee, documents, extractions, validation, audit, bindings)
 - i18n (he / en / ar) with RTL
@@ -654,7 +683,6 @@ Smoke: `GET /health`, guest assistant chat, document upload, guest/employee extr
 
 ### In progress / partial
 
-- Bulk PDF per-slip OCR → identify → validate wiring
 - Supporting document analysis (attendance / contract / national ID structured extract)
 - Full RBAC enforcement on every accountant/guest mutation route
 - SES delivery in real environments (console fallback when unset)

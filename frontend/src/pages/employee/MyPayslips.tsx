@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
+import { useEmployeeWorkspace } from '../../features/employee/EmployeeWorkspaceContext';
 import { mapPresentationStatus } from '../../lib/employee/presentation-status';
 import {
-  employeePortalService,
   type PayrollMonthsResponse,
 } from '../../services/employeePortal';
 import { useAppLocale } from '../../hooks/useAppLocale';
@@ -31,6 +31,7 @@ export function MyPayslipsPage() {
   const { t } = useTranslation();
   const { locale } = useAppLocale();
   const navigate = useNavigate();
+  const { api: workspaceApi, basePath } = useEmployeeWorkspace();
   const currentYear = new Date().getFullYear();
 
   const [year, setYear] = useState(currentYear);
@@ -47,7 +48,7 @@ export function MyPayslipsPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await employeePortalService.listPayrollMonths(nextYear);
+      const response = await workspaceApi.listPayrollMonths(nextYear);
       setData(response);
       setYear(response.year);
     } catch (err) {
@@ -111,7 +112,7 @@ export function MyPayslipsPage() {
                     type="button"
                     role="listitem"
                     className="employee-month-card"
-                    onClick={() => navigate(`/employee/payslips/${year}/${month}`)}
+                    onClick={() => navigate(`${basePath}/payslips/${year}/${month}`)}
                   >
                     <div className="employee-month-card__head">
                       <strong>{monthLabel(month, locale)}</strong>
@@ -128,7 +129,7 @@ export function MyPayslipsPage() {
         )}
 
         <p className="employee-payslips__footnote">
-          <Link to="/employee/documents">{t('employee.navigation.documents')}</Link>
+          <Link to={`${basePath}/documents`}>{t('employee.navigation.documents')}</Link>
         </p>
       </div>
     </PortalPage>

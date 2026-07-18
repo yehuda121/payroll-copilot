@@ -17,6 +17,7 @@ from payroll_copilot.application.exceptions import (
     OcrError,
     PayslipParserError,
 )
+from payroll_copilot.application.ports.layout import LayoutBuildRequest, LayoutSnapshotConfig
 from payroll_copilot.application.ports.object_storage import ObjectStoragePort
 from payroll_copilot.application.ports.organization_bootstrap import OrganizationBootstrapPort
 from payroll_copilot.application.ports.repositories import (
@@ -33,6 +34,10 @@ from payroll_copilot.application.services.guest_ephemeral_store import (
     GuestEphemeralSession,
     get_guest_ephemeral_store,
 )
+from payroll_copilot.application.services.layout_analysis_pipeline import (
+    build_layout_analysis,
+    create_layout_structure_config,
+)
 from payroll_copilot.application.use_cases.ocr_extract import (
     ExtractDocumentTextCommand,
     ExtractDocumentTextUseCase,
@@ -48,10 +53,15 @@ from payroll_copilot.application.validation.demo_validation_context_builder impo
 from payroll_copilot.domain.entities import Document, DocumentExtraction
 from payroll_copilot.domain.enums import DocumentStatus, DocumentType
 from payroll_copilot.infrastructure.config.settings import get_settings
+from payroll_copilot.infrastructure.layout.hybrid_layout_provider import (
+    HybridLayoutProvider,
+    create_layout_provider,
+)
 from payroll_copilot.infrastructure.ocr.extraction_timing import ExtractionTimer
 from payroll_copilot.infrastructure.ocr.text_normalize import normalize_extracted_text
 
 CancelCheck = Callable[[], bool] | None
+ProgressCallback = Callable[[str, dict[str, Any] | None], None] | None
 
 
 def _utcnow() -> datetime:
@@ -102,6 +112,7 @@ class GuestPayslipExtractionCommand:
     ephemeral: bool = True
     cancel_check: CancelCheck = None
     reuse_document_id: UUID | None = None
+    progress_callback: ProgressCallback = None
 
 
 class ExtractGuestPayslipUseCase:
@@ -145,6 +156,8 @@ class ExtractGuestPayslipUseCase:
         parser_model: str | None = None
         raw_text = ""
         ocr_payload: dict[str, Any] = {}
+        layout_snapshot: dict[str, Any] = {}
+        layout_analysis: dict[str, Any] = {}
         structured: dict[str, Any] = {}
         field_confidences: dict[str, float] = {}
         fields: list[ExtractedFieldView] = []
@@ -171,6 +184,7 @@ class ExtractGuestPayslipUseCase:
 
         try:
             self._check_cancelled(command.cancel_check)
+            self._notify_progress(command.progress_callback, "ocr")
             ocr_result = await self._ocr.execute(
                 ExtractDocumentTextCommand(
                     content=command.content,
@@ -190,10 +204,24 @@ class ExtractGuestPayslipUseCase:
             raw_text = normalize_extracted_text(ocr_result.raw_text)
             warnings.extend(list(ocr_result.warnings))
             ocr_payload = _ocr_payload_from_result(ocr_result, raw_text=raw_text)
+            layout_snapshot = _build_layout_snapshot(
+                content=command.content,
+                mime_type=command.mime_type,
+                filename=command.original_filename,
+                ocr_result=ocr_result,
+            )
+            layout_analysis = _build_layout_analysis(
+                layout_snapshot=layout_snapshot,
+                content=command.content,
+                mime_type=command.mime_type,
+                filename=command.original_filename,
+                ocr_result=ocr_result,
+            )
             timer.log_stage("text_normalization", extracted_text_length=len(raw_text))
 
             self._check_cancelled(command.cancel_check)
             try:
+                self._notify_progress(command.progress_callback, "extracting")
                 if use_ephemeral:
                     # Landing page: document-first dynamic key/value extraction.
                     extractor = GuestDynamicDocumentExtractor()
@@ -245,6 +273,7 @@ class ExtractGuestPayslipUseCase:
                             ocr_result,
                             cancel_check=command.cancel_check,
                             simple_guest_fields=False,
+                            layout_analysis=layout_analysis,
                         )
                     )
                     parser_status = "completed"
@@ -363,6 +392,8 @@ class ExtractGuestPayslipUseCase:
                 extraction_version=version,
                 created_at=now,
                 ocr_result=ocr_payload,
+                layout_snapshot=layout_snapshot,
+                layout_analysis=layout_analysis,
                 parser_model=parser_model,
                 language=language,
                 ocr_status=ocr_status,
@@ -442,6 +473,11 @@ class ExtractGuestPayslipUseCase:
     def _check_cancelled(cancel_check: CancelCheck) -> None:
         if cancel_check is not None and cancel_check():
             raise ExtractionCancelledError()
+
+    @staticmethod
+    def _notify_progress(callback: ProgressCallback, stage: str) -> None:
+        if callback is not None:
+            callback(stage, None)
 
     async def _persist_document(
         self,
@@ -558,6 +594,91 @@ def _ocr_payload_from_result(ocr_result, *, raw_text: str) -> dict[str, Any]:
             for page in ocr_result.pages
         ],
     }
+
+
+def _build_layout_snapshot(
+    *,
+    content: bytes,
+    mime_type: str,
+    filename: str | None,
+    ocr_result,
+) -> dict[str, Any]:
+    """Phase 1 additive layout metadata. Never affects parser inputs or structured_data."""
+    settings = get_settings()
+    if not getattr(settings, "layout_snapshot_enabled", False):
+        return {}
+    try:
+        provider = create_layout_provider(settings)
+        return provider.build(
+            LayoutBuildRequest(
+                content=content,
+                media_type=mime_type,
+                ocr_result=ocr_result,
+                filename=filename,
+            )
+        )
+    except Exception:  # noqa: BLE001
+        # Layout must never fail extraction. Empty snapshot keeps consumers stable.
+        return {
+            "schema_version": 1,
+            "provider": "hybrid_layout_v1",
+            "source": "unavailable",
+            "coordinate_format": "xywh",
+            "coordinate_space": "unknown",
+            "engine": getattr(ocr_result, "engine", None),
+            "page_count": 0,
+            "truncated": False,
+            "pages": [],
+            "warnings": ["layout_snapshot_build_failed"],
+        }
+
+
+def _build_layout_analysis(
+    *,
+    layout_snapshot: dict[str, Any],
+    content: bytes,
+    mime_type: str,
+    filename: str | None,
+    ocr_result,
+) -> dict[str, Any]:
+    """Phase 2 additive structure + associations. Also runs when Phase 3 needs candidates."""
+    settings = get_settings()
+    structure_config = create_layout_structure_config(settings)
+    evidence_bound = bool(getattr(settings, "payslip_parser_evidence_bound_enabled", False))
+    if not structure_config.enabled and not evidence_bound:
+        return {}
+
+    # Phase 3 may enable analysis without persisting Phase 2 flag permanently.
+    if evidence_bound and not structure_config.enabled:
+        from payroll_copilot.application.ports.structure_association import LayoutStructureConfig
+
+        structure_config = LayoutStructureConfig(enabled=True)
+
+    snapshot = layout_snapshot
+    # Build an in-memory layout when Phase 1 persist flag is off.
+    if not snapshot or not (snapshot.get("pages") or []):
+        try:
+            provider = HybridLayoutProvider(
+                LayoutSnapshotConfig(
+                    enabled=True,
+                    include_words=bool(getattr(settings, "layout_snapshot_include_words", True)),
+                    max_pages=int(getattr(settings, "layout_snapshot_max_pages", 20)),
+                    max_words=int(getattr(settings, "layout_snapshot_max_words", 8_000)),
+                    max_lines=int(getattr(settings, "layout_snapshot_max_lines", 2_000)),
+                )
+            )
+            snapshot = provider.build(
+                LayoutBuildRequest(
+                    content=content,
+                    media_type=mime_type,
+                    ocr_result=ocr_result,
+                    filename=filename,
+                )
+            )
+        except Exception:  # noqa: BLE001
+            snapshot = {}
+
+    return build_layout_analysis(snapshot, config=structure_config)
 
 
 def _fields_from_structured(structured: dict[str, Any]) -> tuple[list[ExtractedFieldView], dict[str, float]]:

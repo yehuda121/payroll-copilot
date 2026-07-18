@@ -6,8 +6,8 @@ import {
 } from '../lib/employee/document-fixed-forms';
 import { validateUploadFile } from '../lib/guest/upload-guardrails';
 import { ApiClientError } from '../services/api';
+import { useEmployeeWorkspace } from '../features/employee/EmployeeWorkspaceContext';
 import {
-  employeePortalService,
   type EmployeeDocumentCenterItem,
   type EmployeeDocumentForm,
 } from '../services/employeePortal';
@@ -45,6 +45,7 @@ function fieldsFromFixedValues(values: Record<string, string>): ExtractedPayslip
  * Employee My Documents workspace for a single persistent document type.
  */
 export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentType) {
+  const { api: workspaceApi } = useEmployeeWorkspace();
   const { t } = useTranslation();
   const fixedKeys = fixedFieldKeysFor(documentType);
   const usesFixedForm = fixedKeys !== null;
@@ -114,13 +115,13 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
     setLoading(true);
     setError(null);
     try {
-      const center = await employeePortalService.listDocuments();
+      const center = await workspaceApi.listDocuments();
       const next =
         center.persistent_documents.find((row) => row.document_type === documentType) ?? null;
       setItem(next);
       if (next?.document_id) {
         try {
-          applyForm(await employeePortalService.getEmployeeDocumentForm(next.document_id));
+          applyForm(await workspaceApi.getEmployeeDocumentForm(next.document_id));
         } catch (formError) {
           if (!(formError instanceof ApiClientError && formError.status === 404)) {
             throw formError;
@@ -146,7 +147,7 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
     } finally {
       setLoading(false);
     }
-  }, [applyForm, documentType, resetFormState, t, usesFixedForm]);
+  }, [applyForm, documentType, resetFormState, t, usesFixedForm, workspaceApi]);
 
   useEffect(() => {
     void refresh();
@@ -200,7 +201,7 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
     setStatusMessage(t('employee.documents.extracting'));
     setError(null);
     try {
-      const form = await employeePortalService.extractEmployeeDocument(pendingFile, {
+      const form = await workspaceApi.extractEmployeeDocument(pendingFile, {
         documentType,
         language: documentLanguage,
       });
@@ -216,14 +217,14 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
       setBusyPhase(null);
       setStatusMessage(null);
     }
-  }, [applyForm, pendingFile, documentType, documentLanguage, refresh, t]);
+  }, [applyForm, pendingFile, documentType, documentLanguage, refresh, t, workspaceApi]);
 
   const deleteOwnedDocument = useCallback(async () => {
     if (!item?.document_id) return;
     setBusyPhase('deleting');
     setError(null);
     try {
-      await employeePortalService.deleteOwnedDocument(item.document_id);
+      await workspaceApi.deleteOwnedDocument(item.document_id);
       setPendingFile(null);
       resetFormState();
       await refresh();
@@ -235,7 +236,7 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
     } finally {
       setBusyPhase(null);
     }
-  }, [item?.document_id, refresh, resetFormState, t]);
+  }, [item?.document_id, refresh, resetFormState, t, workspaceApi]);
 
   const updateFieldDraft = useCallback(
     (key: string, value: string) => {
@@ -352,8 +353,8 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
           }));
 
       const form = item?.document_id
-        ? await employeePortalService.saveEmployeeDocumentForm(item.document_id, payload)
-        : await employeePortalService.saveEmployeeDocumentFormByType(documentType, payload);
+        ? await workspaceApi.saveEmployeeDocumentForm(item.document_id, payload)
+        : await workspaceApi.saveEmployeeDocumentFormByType(documentType, payload);
 
       applyForm(form);
       await refresh();
@@ -375,6 +376,7 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
     refresh,
     t,
     usesFixedForm,
+    workspaceApi,
   ]);
 
   const draftsForForm = useMemo(() => {

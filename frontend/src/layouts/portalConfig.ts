@@ -17,14 +17,8 @@ export const ACCOUNTANT_PORTAL: PortalConfig = {
   portalSubtitleKey: 'accountant.navigation.portalSubtitle',
   basePath: '/accountant',
   navItems: [
-    { labelKey: 'accountant.navigation.dashboard', path: '/accountant' },
     { labelKey: 'accountant.navigation.employees', path: '/accountant/employees' },
     { labelKey: 'accountant.navigation.bulkUpload', path: '/accountant/bulk-upload' },
-    { labelKey: 'accountant.navigation.batchMonitor', path: '/accountant/batch-monitor' },
-    { labelKey: 'accountant.navigation.rules', path: '/accountant/rules' },
-    { labelKey: 'accountant.navigation.findings', path: '/accountant/findings' },
-    { labelKey: 'accountant.navigation.manualReview', path: '/accountant/approvals' },
-    { labelKey: 'accountant.navigation.auditLogs', path: '/accountant/audit-logs' },
   ],
 };
 

@@ -3,25 +3,30 @@
 from __future__ import annotations
 
 from typing import Any
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from payroll_copilot.application.validation.demo_validation_context_builder import (
-    DEMO_ORGANIZATION_ID,
+from payroll_copilot.infrastructure.persistence.dynamodb.factory import (
+    get_audit_log_repository,
+)
+from payroll_copilot.presentation.api.security import (
+    AuthPrincipal,
+    require_org_operator,
 )
 
 router = APIRouter()
+
 
 @router.get("")
 async def list_audit_logs(
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
-    organization_id: UUID | None = None,
+    principal: AuthPrincipal = Depends(require_org_operator),
 ) -> list[dict[str, Any]]:
+    """Return audit rows for the authenticated operator's organization only."""
     repo = get_audit_log_repository()
     rows = await repo.list_recent(
-        organization_id=organization_id or DEMO_ORGANIZATION_ID,
+        organization_id=principal.organization_id,
         limit=limit,
         offset=offset,
     )

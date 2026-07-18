@@ -126,6 +126,7 @@ export type PayrollMonthDetail = {
     lifecycle_status: string;
     original_filename?: string | null;
     fields: Array<Record<string, unknown>>;
+    explainability_enabled?: boolean;
     identity_check?: IdentityCheck | null;
     period_check?: PeriodCheck | null;
     blocks_confirmation?: boolean;
@@ -139,6 +140,35 @@ export type PayrollMonthDetail = {
     completed_at: string | null;
     extraction_id: string | null;
     outdated: boolean;
+    evidence_summary?: {
+      result: string | null;
+      reason: string;
+      extracted_field_count: number;
+      evidence_supported_field_count: number;
+    };
+    findings?: Array<{
+      id: string;
+      code: string;
+      severity: string;
+      message_key: string;
+      message_params: Record<string, unknown>;
+      expected_value: string | null;
+      actual_value: string | null;
+      confidence?: number | null;
+      evidence_explanation?: {
+        available: boolean;
+        result: string;
+        reason: string;
+        field_key?: string | null;
+        candidate_id?: string | null;
+        page?: number | null;
+        label?: string | null;
+        value?: unknown;
+        association_strategy?: string | null;
+        association_confidence?: string | null;
+        conflict?: boolean;
+      };
+    }>;
   }>;
   latest_validation: PayrollMonthValidationSummary & {
     outdated?: boolean;

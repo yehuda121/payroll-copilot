@@ -36,7 +36,7 @@
   },
   "portal": {
     "shell": {
-      "batchActiveBanner": "עיבוד אצווה פעיל — ניווט יבקש אישור",
+      "batchActiveBanner": "עיבוד אצווה פעיל — העיבוד ממשיך ברקע",
       "leaveBatchTitle": "לעזוב בזמן שעיבוד אצווה פעיל?",
       "leaveBatchMessage": "{{label}} העיבוד בשרת ימשיך. ניתן לחזור למסך מעקב האצוות בכל עת.",
       "leaveBatchConfirm": "עזיבת הדף",
@@ -331,6 +331,118 @@
         "report": "דוח אצווה"
       }
     },
+    "workspace": {
+      "back": "חזרה",
+      "employeeNumber": "עובד מס׳ {{number}}",
+      "loading": "טוען סביבת עבודה לעובד…",
+      "tabsLabel": "סביבת העבודה של העובד שנבחר"
+    },
+    "bulk": {
+      "tabs": {
+        "upload": "העלאה",
+        "extracted": "עובדים שחולצו"
+      },
+      "progress": {
+        "processed": "עובדים שעובדו",
+        "current": "עובד נוכחי",
+        "slip": "תלוש {{value}}",
+        "remaining": "נותרו",
+        "percentage": "התקדמות",
+        "phase": "שלב נוכחי"
+      },
+      "phases": {
+        "upload": "מעלה",
+        "split": "מפצל PDF",
+        "queued": "בתור",
+        "ocr": "מריץ OCR",
+        "parser": "מחלץ נתונים",
+        "extracting": "מחלץ נתונים",
+        "identify": "מתאים עובד",
+        "matching": "מתאים עובד",
+        "validation": "מריץ אימות",
+        "report": "שומר תוצאה",
+        "completed": "הושלם"
+      },
+      "publish": {
+        "title": "לאשר ולפרסם את התלוש?",
+        "message": "הפעולה תציג את התלוש שנבדק בפורטל העובד ובצ׳אט ה-AI של העובד.",
+        "action": "אישור ופרסום",
+        "tab": "פרסום",
+        "pendingReview": "ממתין לאישור חשב שכר",
+        "published": "פורסם לעובד",
+        "requireCurrentValidation": "יש לאשר את התלוש הדיגיטלי הנוכחי ולהריץ אימות לפני הפרסום.",
+        "checks": {
+          "extraction": "התלוש הדיגיטלי זמין",
+          "corrections": "כל התיקונים נשמרו ואושרו",
+          "validation": "לתלוש הדיגיטלי הנוכחי קיימת הרצת אימות שהושלמה"
+        }
+      },
+      "review": {
+        "backToBatch": "חזרה לאצווה",
+        "resolutionRequired": "נדרש שיוך עובד",
+        "resolutionDescription": "ניתן לבדוק ולתקן את התלוש כעת, ולאחר מכן לשייך אותו לעובד קיים או חדש לפני הפרסום.",
+        "resolveBeforePublish": "יש לשייך את התלוש שנבדק לעובד לפני שניתן לפרסם אותו.",
+        "ignoreTitle": "למחוק את התלוש לצמיתות?",
+        "ignoreWarning": "התלוש שחולץ יימחק לצמיתות. המסמך, תוצאות החילוץ, התלוש הדיגיטלי, היסטוריית האימות ותוצאות ה-OCR לא יישמרו. העובד לעולם לא יראה תלוש זה. לא ניתן לבטל פעולה זו.",
+        "ignoreConfirm": "מחיקה לצמיתות"
+      },
+      "validationHistory": {
+        "title": "היסטוריית אימות",
+        "run": "הרצת אימות #{{value}}",
+        "outdated": "גרסה קודמת של התלוש הדיגיטלי",
+        "noFindings": "לא נרשמו ממצאים בהרצת אימות זו."
+      },
+      "summary": {
+        "employees": "עובדים"
+      },
+      "status": {
+        "processing": "בעיבוד",
+        "passed": "עבר",
+        "warning": "אזהרה",
+        "failed": "נכשל",
+        "unknown_employee": "עובד לא מזוהה"
+      },
+      "filters": {
+        "label": "סינון מהיר לפי סטטוס",
+        "all": "הצג הכול",
+        "passed": "הצג שעברו",
+        "warning": "הצג אזהרות",
+        "failed": "הצג שנכשלו",
+        "unknown": "הצג לא מזוהים",
+        "processing": "הצג בעיבוד"
+      },
+      "empty": {
+        "title": "אין העלאה פעילה",
+        "description": "העלו קובץ PDF כדי להתחיל לעבד עובדים."
+      },
+      "emptyFilter": {
+        "title": "אין עובדים התואמים לסינון",
+        "description": "בחרו סטטוס אחר כדי לסקור את יתר התוצאות."
+      },
+      "openWorkspace": "פתיחת סביבת עובד"
+    },
+    "unknown": {
+      "title": "פתרון עובד לא מזוהה",
+      "description": "פתרו את התלוש רק מול עובדים בארגון שלכם.",
+      "notFound": "פריט האצווה אינו זמין עוד.",
+      "create": "יצירת עובד חדש",
+      "search": "חיפוש עובד קיים",
+      "editId": "עריכת מספר הזהות שחולץ",
+      "ignore": "התעלמות",
+      "searchLabel": "חיפוש עובדים",
+      "searchPlaceholder": "שם, מספר זהות או מספר עובד",
+      "nationalId": "מספר זהות",
+      "retryMatch": "ניסיון התאמה מחדש",
+      "ignoreDescription": "דלגו על התלוש והמשיכו לעבד את יתר העובדים.",
+      "required": "כל שדות העובד הם חובה.",
+      "employeeNumber": "מספר עובד",
+      "firstName": "שם פרטי",
+      "lastName": "שם משפחה",
+      "email": "כתובת דוא״ל",
+      "company": "חברה",
+      "department": "מחלקה",
+      "createAndAttach": "יצירת עובד ושיוך התלוש"
+    },
     "reviewQueue": {
       "title": "אישורים ובדיקה ידנית",
       "description": "זיהוי עובד בביטחון נמוך לעולם לא יוצר רשומה אוטומטית. טפלו בהתאמות כאן. גם הצעות diff חוקיות יופיעו כאן.",
@@ -456,5 +568,33 @@
       "cancel": "ביטול",
       "confirm": "אישור"
     }
+  },
+  "explainability": {
+    "title": "פרטי הראיה",
+    "viewEvidence": "הצגת ראיית החילוץ",
+    "unavailable": "ראיית חילוץ אינה זמינה עבור שדה זה.",
+    "userEdited": "שדה זה נערך ידנית. ראיית החילוץ אינה תומכת בערך הנוכחי.",
+    "userEditedOriginal": "שדה זה נערך ידנית. הראיה למטה מתארת רק את החילוץ המקורי.",
+    "evidenceSource": "מקור הראיה",
+    "layoutEvidence": "ניתוח פריסת המסמך",
+    "sourcePage": "עמוד מקור",
+    "detectedLabel": "תווית שזוהתה",
+    "detectedValue": "ערך שזוהה",
+    "section": "מקטע",
+    "row": "שורה",
+    "column": "עמודה",
+    "strategy": "שיטת שיוך",
+    "associationConfidence": "ביטחון השיוך",
+    "candidateId": "מזהה מועמד",
+    "boundingBox": "תיבה תוחמת",
+    "conflict": "לשדה זה יש ראיות מועמדות סותרות ונדרשת בדיקה אנושית.",
+    "primaryCandidate": "מועמד ראשי",
+    "alternatives": "מועמדים חלופיים",
+    "alternativeReason": "מדוע זו חלופה",
+    "alternativeGeometry": "מנוע הגאומטריה מצא שיוך אפשרי נוסף.",
+    "alternativePrimary": "מנוע השיוך דירג מועמד זה ראשון לפי הגאומטריה.",
+    "whyThisResult": "מדוע התקבלה תוצאת האימות הזו?",
+    "validationTraceSummary": "ל-{{supported}} מתוך {{total}} שדות שחולצו יש ראיה ניתנת למעקב.",
+    "validationTraceUnavailable": "ראיית חילוץ ניתנת למעקב אינה זמינה עבור תוצאה זו."
   }
 }

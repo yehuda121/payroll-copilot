@@ -59,6 +59,7 @@ def sanitize_field(field: ExtractedField, *, ocr_text: str) -> ExtractedField:
             edited_by_user=field.edited_by_user,
             original_value=field.original_value,
             evidence_ids=[],
+            candidate_ids=[],
             source_bbox=None,
             source_page=None,
             parser_method=field.parser_method,
@@ -74,8 +75,10 @@ def sanitize_field(field: ExtractedField, *, ocr_text: str) -> ExtractedField:
 
     if status == FieldExtractionStatus.FOUND and not justified:
         # Value claimed FOUND without usable OCR evidence → downgrade honesty.
-        status = FieldExtractionStatus.UNCERTAIN
-        confidence = None
+        # Evidence-bound fields are hydrated from candidates; skip OCR-only downgrade.
+        if field.parser_method != "evidence_bound_llm" and not (field.candidate_ids or []):
+            status = FieldExtractionStatus.UNCERTAIN
+            confidence = None
 
     return ExtractedField(
         value=value,
@@ -85,6 +88,7 @@ def sanitize_field(field: ExtractedField, *, ocr_text: str) -> ExtractedField:
         edited_by_user=field.edited_by_user,
         original_value=field.original_value,
         evidence_ids=list(field.evidence_ids or []),
+        candidate_ids=list(field.candidate_ids or []),
         source_bbox=field.source_bbox,
         source_page=field.source_page,
         parser_method=field.parser_method,

@@ -141,6 +141,30 @@ class Settings(BaseSettings):
     payslip_parser_min_word_confidence: float = 0.0
     payslip_parser_max_context_chars: int = 50_000
 
+    # Phase 1 hybrid layout preservation (additive snapshot only; default off).
+    layout_snapshot_enabled: bool = False
+    layout_snapshot_include_words: bool = True
+    layout_snapshot_max_pages: int = 20
+    layout_snapshot_max_words: int = 8_000
+    layout_snapshot_max_lines: int = 2_000
+
+    # Phase 2 structure builder + association engine (additive analysis only; default off).
+    layout_structure_enabled: bool = False
+    layout_structure_row_overlap_min: float = 0.45
+    layout_structure_cell_gap_factor: float = 1.0
+    layout_structure_column_cluster_factor: float = 0.65
+    layout_structure_min_table_rows: int = 3
+    layout_structure_section_gap_factor: float = 2.5
+    layout_structure_max_same_row_gap_ratio: float = 0.45
+    layout_structure_max_below_gap_ratio: float = 0.12
+    layout_structure_max_alternatives: int = 3
+
+    # Phase 3 evidence-bound LLM mapping (default off; reuses Phase 2 analysis).
+    payslip_parser_evidence_bound_enabled: bool = False
+
+    # Phase 4 read-only evidence explainability (default off).
+    layout_explainability_enabled: bool = False
+
     # OCR: paddleocr is primary (en/ar). Hebrew uses transparent Tesseract fallback (H1).
     ocr_provider: str = "paddleocr"
     tesseract_lang: str = "heb+eng"
