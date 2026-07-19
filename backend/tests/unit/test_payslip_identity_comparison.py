@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from payroll_copilot.application.services.payslip_identity_comparison import (
     PayslipIdentityComparisonService,
+    person_name_tokens_equal,
 )
 
 
@@ -191,3 +192,93 @@ def test_missing_values_remain_missing():
     )
     assert result.period_check.status == "missing"
     assert result.blocks_confirmation is False
+
+
+def test_hebrew_reversed_name_tokens_match():
+    assert person_name_tokens_equal("יהודה שמולביץ", "שמולביץ יהודה")
+    svc = PayslipIdentityComparisonService()
+    result = svc.compare(
+        trusted_full_name="יהודה שמולביץ",
+        trusted_employee_number="5",
+        trusted_national_id_plaintext="313366783",
+        trusted_national_id_masked="****6783",
+        selected_year=2026,
+        selected_month=6,
+        extraction_fields=_fields(
+            employee_id="313366783",
+            employee_name="שמולביץ יהודה",
+            pay_period="06/2026",
+        ),
+    )
+    name = next(f for f in result.identity_check.fields if f.key == "employee_name")
+    assert name.status == "match"
+    assert name.explanation_code == "employee_name_match"
+    assert result.identity_check.overall == "match"
+
+
+def test_latin_first_last_swap_matches():
+    svc = PayslipIdentityComparisonService()
+    result = svc.compare(
+        trusted_full_name="Yehuda Shmulovitz",
+        trusted_employee_number="5",
+        trusted_national_id_plaintext="313366783",
+        trusted_national_id_masked="****6783",
+        selected_year=2026,
+        selected_month=6,
+        extraction_fields=_fields(
+            employee_id="313366783",
+            employee_name="Shmulovitz Yehuda",
+            pay_period="06/2026",
+        ),
+    )
+    name = next(f for f in result.identity_check.fields if f.key == "employee_name")
+    assert name.status == "match"
+
+
+def test_middle_name_omission_remains_mismatch():
+    assert not person_name_tokens_equal("Yehuda David Shmulovitz", "Yehuda Shmulovitz")
+    svc = PayslipIdentityComparisonService()
+    result = svc.compare(
+        trusted_full_name="Yehuda David Shmulovitz",
+        trusted_employee_number="5",
+        trusted_national_id_plaintext="313366783",
+        trusted_national_id_masked="****6783",
+        selected_year=2026,
+        selected_month=6,
+        extraction_fields=_fields(
+            employee_id="313366783",
+            employee_name="Yehuda Shmulovitz",
+            pay_period="06/2026",
+        ),
+    )
+    name = next(f for f in result.identity_check.fields if f.key == "employee_name")
+    assert name.status == "mismatch"
+    assert name.severity == "warning"
+    assert name.blocks_confirmation is False
+    assert result.identity_check.blocks_confirmation is False
+
+
+def test_hyphenated_surname_preserved_and_order_insensitive():
+    assert person_name_tokens_equal("Anne-Marie Cohen", "Cohen Anne-Marie")
+    assert not person_name_tokens_equal("Anne-Marie Cohen", "Anne Marie Cohen")
+    svc = PayslipIdentityComparisonService()
+    result = svc.compare(
+        trusted_full_name="Anne-Marie Cohen",
+        trusted_employee_number="5",
+        trusted_national_id_plaintext="313366783",
+        trusted_national_id_masked="****6783",
+        selected_year=2026,
+        selected_month=6,
+        extraction_fields=_fields(
+            employee_id="313366783",
+            employee_name="Cohen Anne-Marie",
+            pay_period="06/2026",
+        ),
+    )
+    name = next(f for f in result.identity_check.fields if f.key == "employee_name")
+    assert name.status == "match"
+
+
+def test_duplicate_tokens_require_exact_multiset():
+    assert person_name_tokens_equal("John John Smith", "Smith John John")
+    assert not person_name_tokens_equal("John John Smith", "John Smith")

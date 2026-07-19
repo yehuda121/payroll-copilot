@@ -43,12 +43,16 @@ export function DragDropZone({
     event.target.value = '';
   };
 
+  const zoneTitle = title ?? t('validate.dragTitle');
+  const zoneHint = hint ?? t('validate.dragHint');
+
   return (
     <div className="drag-drop">
       <div
         className={`drag-drop__zone ${isDragging ? 'is-dragging' : ''} ${selectedFileName ? 'has-file' : ''}`}
         role="button"
         tabIndex={0}
+        aria-label={selectedFileName ? `${zoneTitle}: ${selectedFileName}` : zoneTitle}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
@@ -56,15 +60,22 @@ export function DragDropZone({
           }
         }}
         onClick={() => inputRef.current?.click()}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          setIsDragging(true);
+        }}
         onDragOver={(event) => {
           event.preventDefault();
           setIsDragging(true);
         }}
-        onDragLeave={() => setIsDragging(false)}
+        onDragLeave={(event) => {
+          if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+          setIsDragging(false);
+        }}
         onDrop={onDrop}
       >
-        <strong>{selectedFileName ?? title ?? t('validate.dragTitle')}</strong>
-        <span>{hint ?? t('validate.dragHint')}</span>
+        <strong>{selectedFileName ?? zoneTitle}</strong>
+        <span>{zoneHint}</span>
         <span className="btn btn--secondary">{t('validate.browse')}</span>
       </div>
       {selectedFileName && onRemove && (

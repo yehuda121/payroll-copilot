@@ -584,9 +584,11 @@ docker compose up -d redis dynamodb minio
 # then run uvicorn / celery / npm on the host against localhost endpoints
 ```
 
-### Local LLM (Ollama)
+### AI provider routing
 
-- **Active** AI runtime for development and the current local pipeline
+- Each AI capability selects `ollama`, `openai`, or `bedrock` independently.
+- Capability variables fall back to legacy `MODEL_PROVIDER` when omitted.
+- The supplied examples route extraction to OpenAI GPT-5 and chats/RAG to Ollama.
 - Prefer host Ollama; optional `--profile docker-ollama`
 - URL resolution probes local → host gateway → Docker service (see `ollama_resolver.py`)
 
@@ -610,8 +612,10 @@ Admin-only debugger (`/admin/document-lab`) for OCR → parser → validation on
 | `DYNAMODB_AUTO_CREATE_TABLE` | `true` locally; `false` in production |
 | `S3_ENDPOINT` / `S3_BUCKET` / `S3_REGION` | Object storage |
 | `COGNITO_USER_POOL_ID` / `COGNITO_APP_CLIENT_ID` | Cognito auth |
-| `MODEL_PROVIDER` | Active provider: `ollama` (current). `bedrock` reserved for a later phase |
-| `BEDROCK_MODEL_ID` | Reserved for future Bedrock integration |
+| `MODEL_PROVIDER` | Backward-compatible fallback provider |
+| `*_PROVIDER` | Capability route, e.g. `PAYSLIP_EXTRACTION_PROVIDER=openai` |
+| `OPENAI_API_KEY` / `OPENAI_MODEL` | OpenAI credentials and default chat model |
+| `BEDROCK_MODEL_ID` | Bedrock model used when a capability routes to Bedrock |
 | `OCR_PROVIDER` | `paddleocr` (default) or tesseract path |
 | `REDIS_URL` | Celery / cache |
 | `JWT_SECRET_KEY` | Guest JWT signing |

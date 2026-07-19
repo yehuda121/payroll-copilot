@@ -73,6 +73,10 @@ class BatchExtractedItem:
     publication_status: str = "draft"
     error_message: str | None = None
     resolution_status: str | None = None
+    page_start: int | None = None
+    page_end: int | None = None
+    split_confidence: float | None = None
+    split_strategy: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -93,6 +97,10 @@ class BatchExtractedItem:
             "publication_status": self.publication_status,
             "error_message": self.error_message,
             "resolution_status": self.resolution_status,
+            "page_start": self.page_start,
+            "page_end": self.page_end,
+            "split_confidence": self.split_confidence,
+            "split_strategy": self.split_strategy,
         }
 
     @classmethod
@@ -115,6 +123,10 @@ class BatchExtractedItem:
             publication_status=str(payload.get("publication_status", "draft")),
             error_message=payload.get("error_message"),
             resolution_status=payload.get("resolution_status"),
+            page_start=payload.get("page_start"),
+            page_end=payload.get("page_end"),
+            split_confidence=payload.get("split_confidence"),
+            split_strategy=payload.get("split_strategy"),
         )
 
 

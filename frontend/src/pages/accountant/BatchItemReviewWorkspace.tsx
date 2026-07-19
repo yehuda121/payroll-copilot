@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/AuthContext';
 import { PortalPage } from '../../components/PortalPage';
 import { GuestChatPanel } from '../../components/guest/GuestChatPanel';
+import { IconBackButton } from '../../components/ui/IconBackButton';
 import { useConfirmDialog } from '../../components/ui/Dialog';
 import { EmployeeDigitalForm } from '../../features/employee/EmployeeDigitalForm';
 import type { FieldDraft } from '../../hooks/useEmployeePayslipFlow';
@@ -328,9 +329,11 @@ export function BatchItemReviewWorkspacePage() {
     >
       <div className="employee-month-workspace">
         <div className="employee-month-workspace__top">
-          <button className="btn btn--ghost" onClick={() => navigate('/accountant/bulk-upload')}>
-            ← {t('accountant.bulk.review.backToBatch')}
-          </button>
+          <IconBackButton
+            ariaLabel={t('accountant.workspace.backToBatchAria')}
+            title={t('accountant.bulk.review.backToBatch')}
+            onClick={() => navigate('/accountant/bulk-upload')}
+          />
           <span className="status-badge status-badge--batch-unknown_employee">
             {t('accountant.bulk.status.unknown_employee')}
           </span>

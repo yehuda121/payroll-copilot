@@ -1,7 +1,5 @@
-# Default model assignments per agent — swap without code changes.
-# Production default: Amazon Bedrock (MODEL_PROVIDER=bedrock in settings).
-# Local development: set MODEL_PROVIDER=ollama and use the ollama blocks below
-# or override via environment / Settings.
+# Reference model assignments. Runtime provider routing is configured through
+# capability-specific environment variables with MODEL_PROVIDER as fallback.
 providers:
   default: bedrock
 
@@ -47,11 +45,11 @@ local_ollama:
   embedding_model: nomic-embed-text
   embedding_dimensions: 768
 
-# Future / unused cloud stubs
+# Reference cloud profiles (runtime values come from Settings).
 cloud_providers:
   openai:
-    enabled: false
-    model: gpt-4o
+    enabled: true
+    model: gpt-5
   claude:
     enabled: false
     model: claude-sonnet-4-20250514

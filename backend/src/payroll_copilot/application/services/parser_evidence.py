@@ -388,6 +388,31 @@ def validate_extracted_field_evidence(
     )
 
 
+def employee_name_implausible_reason(value: object) -> str | None:
+    """Return a warning code when employee_name is semantically implausible.
+
+    Never suggests a replacement value — callers must only downgrade honesty.
+    """
+    if value is None:
+        return None
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return "implausible_employee_name_numeric_only"
+    text = str(value).strip()
+    if not text:
+        return None
+    compact = re.sub(r"\s+", "", text)
+    if not compact:
+        return None
+    letters = [ch for ch in text if ch.isalpha()]
+    if not letters:
+        if any(ch.isdigit() for ch in compact):
+            return "implausible_employee_name_numeric_only"
+        return "implausible_employee_name_no_letters"
+    if len(letters) == 1:
+        return "implausible_employee_name_too_short"
+    return None
+
+
 def apply_plausibility_checks(parsed: StructuredPayslipParse) -> StructuredPayslipParse:
     """Non-corrective sanity checks — may lower confidence or mark uncertain."""
     data = parsed.model_dump()
@@ -434,6 +459,22 @@ def apply_plausibility_checks(parsed: StructuredPayslipParse) -> StructuredPaysl
             warnings.append("negative_money_flagged")
             data[money_key] = field.model_copy(
                 update={"status": FieldExtractionStatus.UNCERTAIN, "warnings": warnings}
+            ).model_dump()
+
+    # Semantic quality gate for identity display fields — never invent/replace values.
+    name_field = ExtractedField.model_validate(data["employee_name"])
+    if name_field.value not in (None, "") and name_field.status != FieldExtractionStatus.MISSING:
+        reason = employee_name_implausible_reason(name_field.value)
+        if reason is not None:
+            warnings = list(name_field.warnings or [])
+            if reason not in warnings:
+                warnings.append(reason)
+            data["employee_name"] = name_field.model_copy(
+                update={
+                    "status": FieldExtractionStatus.UNCERTAIN,
+                    "confidence": None,
+                    "warnings": warnings,
+                }
             ).model_dump()
 
     return StructuredPayslipParse.model_validate(data)

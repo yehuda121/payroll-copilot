@@ -108,6 +108,16 @@ class Settings(BaseSettings):
     guest_validation_confidence_minimum: float = 0.35
 
     model_provider: str = "bedrock"
+    # Capability-specific routes. Empty values preserve MODEL_PROVIDER behavior.
+    payslip_extraction_provider: str = ""
+    document_extraction_provider: str = ""
+    assistant_provider: str = ""
+    employee_chat_provider: str = ""
+    accountant_chat_provider: str = ""
+    rag_provider: str = ""
+    embeddings_provider: str = ""
+    general_provider: str = ""
+
     ollama_base_url: str = ""
     ollama_local_url: str = "http://127.0.0.1:11434"
     ollama_host_url: str = "http://host.docker.internal:11434"
@@ -125,7 +135,13 @@ class Settings(BaseSettings):
     bedrock_endpoint: str = ""  # optional LocalStack / custom endpoint
 
     openai_api_key: str = ""
-    openai_model: str = "gpt-4o"
+    openai_model: str = "gpt-5"
+    openai_embedding_model: str = "text-embedding-3-small"
+    openai_embedding_dimensions: int = 1536
+    openai_timeout_seconds: float = 120.0
+    openai_max_retries: int = 2
+    openai_reasoning_effort: str = "minimal"
+    openai_base_url: str = ""
 
     # Phase 2A AI payslip parser (Ollama). Does not change other Ollama consumers.
     payslip_parser_model: str = ""

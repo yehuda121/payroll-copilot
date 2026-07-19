@@ -7,8 +7,6 @@ import re
 from typing import Any, TypedDict
 from uuid import uuid4
 
-import httpx
-
 from payroll_copilot.application.ports import Message, ModelProvider
 from payroll_copilot.application.ports.assistant import PayrollAssistantToolsPort
 from payroll_copilot.domain.assistant.types import AssistantGuardrailStatus
@@ -305,10 +303,9 @@ class PayrollAssistantGraph:
                 ],
                 temperature=0.0,
             )
-        except httpx.HTTPError:
+        except Exception:  # noqa: BLE001 — provider-neutral graceful fallback
             logger.warning(
-                "Ollama completion failed; returning approved-context template instead. "
-                "Check that a host Ollama instance is running and reachable.",
+                "AI provider completion failed; returning approved-context template.",
                 exc_info=True,
             )
             return {

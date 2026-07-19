@@ -11,6 +11,7 @@ import {
   useEmployeeMonthWorkspace,
   type WorkspaceTab,
 } from '../../hooks/useEmployeeMonthWorkspace';
+import { useWorkspacePageCopy } from '../../hooks/useWorkspacePageCopy';
 import { buildEmployeeFieldValidationMap } from '../../lib/employee/field-validation-status';
 import type { DocumentLanguage } from '../../types/api';
 import { batchService } from '../../services/batch';
@@ -72,6 +73,7 @@ function PayslipMonthWorkspace({
   monthTitle: string;
 }) {
   const { t } = useTranslation();
+  const copy = useWorkspacePageCopy();
   const { basePath, batchReview } = useEmployeeWorkspace();
   const flow = useEmployeeMonthWorkspace(year, month);
   const { confirm } = useConfirmDialog();
@@ -127,14 +129,14 @@ function PayslipMonthWorkspace({
   }, [batchReview, flow.setTab, flow.tab]);
 
   return (
-    <PortalPage title={monthTitle} description={t('employee.workspace.pageDescription')}>
+    <PortalPage title={monthTitle} description={copy.monthDescription}>
       <div className="employee-month-workspace">
         <div className="employee-month-workspace__top">
-          <Link to={`${basePath}/payslips`} className="btn btn--ghost">
-            {batchReview
-              ? `← ${t('accountant.bulk.review.backToBatch')}`
-              : t('employee.workspace.backToMonths')}
-          </Link>
+          {!batchReview && (
+            <Link to={`${basePath}/payslips`} className="btn btn--ghost">
+              {t('employee.workspace.backToMonths')}
+            </Link>
+          )}
           {batchReview && (
             <div className="employee-payslip-wizard__actions">
               <span
@@ -407,15 +409,17 @@ function UploadTab({ flow }: { flow: Flow }) {
         </label>
       </div>
 
-      <DragDropZone
-        accept=".pdf,.png,.jpg,.jpeg"
-        selectedFileName={flow.pendingFile?.name}
-        errorMessage={flow.fileError ?? undefined}
-        onFileSelected={(file) => {
-          void flow.selectFile(file);
-        }}
-        onRemove={flow.pendingFile ? flow.deleteSelectedFile : undefined}
-      />
+      <div className="employee-month-workspace__upload-shell">
+        <DragDropZone
+          accept=".pdf,.png,.jpg,.jpeg"
+          selectedFileName={flow.pendingFile?.name}
+          errorMessage={flow.fileError ?? undefined}
+          onFileSelected={(file) => {
+            void flow.selectFile(file);
+          }}
+          onRemove={flow.pendingFile ? flow.deleteSelectedFile : undefined}
+        />
+      </div>
 
       <div className="employee-payslip-wizard__actions">
         <button

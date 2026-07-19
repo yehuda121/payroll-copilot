@@ -55,7 +55,10 @@ Every result includes `ConfidenceScore` derived from:
 - Schema validation success
 - Self-consistency checks (optional double-query for critical extractions)
 
-Configuration via `MODEL_PROVIDER=ollama` and provider-specific env vars.
+`AIProviderRouter` selects a provider by `AICapability`. Capability-specific
+variables (`PAYSLIP_EXTRACTION_PROVIDER`, `DOCUMENT_EXTRACTION_PROVIDER`,
+`ASSISTANT_PROVIDER`, and others) take precedence and fall back to the
+backward-compatible `MODEL_PROVIDER` value when unset.
 
 ---
 

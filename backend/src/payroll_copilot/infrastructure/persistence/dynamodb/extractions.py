@@ -11,9 +11,30 @@ from payroll_copilot.infrastructure.persistence.dynamodb import keys
 from payroll_copilot.infrastructure.persistence.dynamodb.client import GSI1, DynamoTable
 from payroll_copilot.infrastructure.persistence.dynamodb.serde import (
     dumps_value,
+    is_empty_for_storage,
     loads_datetime,
     loads_float,
     loads_uuid,
+    prune_empty,
+)
+
+# Top-level Dynamo keys that must survive pruning even when empty-ish.
+_REQUIRED_EXTRACTION_KEYS = frozenset(
+    {
+        "PK",
+        "SK",
+        "entity_type",
+        "GSI1PK",
+        "GSI1SK",
+        "id",
+        "document_id",
+        "extraction_version",
+        "confirmation_status",
+        "ocr_status",
+        "parser_status",
+        "created_at",
+        "updated_at",
+    }
 )
 
 
@@ -56,7 +77,27 @@ class DynamoDocumentExtractionRepository(DocumentExtractionRepository):
             "confirmed_at": dumps_value(extraction.confirmed_at),
             "confirmed_by": dumps_value(extraction.confirmed_by),
         }
-        return {k: v for k, v in item.items() if v is not None}
+        return self._prune_item(item)
+
+    @staticmethod
+    def _prune_item(item: dict) -> dict:
+        """Recursively omit empty values while preserving required Dynamo keys."""
+        pruned: dict = {}
+        for key, value in item.items():
+            cleaned = prune_empty(value)
+            if key in _REQUIRED_EXTRACTION_KEYS:
+                if is_empty_for_storage(cleaned):
+                    # Required identity/lifecycle keys must remain present.
+                    if value is None:
+                        continue
+                    pruned[key] = value
+                else:
+                    pruned[key] = cleaned
+                continue
+            if is_empty_for_storage(cleaned):
+                continue
+            pruned[key] = cleaned
+        return pruned
 
     def _to_entity(self, item: dict) -> DocumentExtraction:
         field_confidences = {

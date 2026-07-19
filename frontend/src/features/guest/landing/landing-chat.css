@@ -646,6 +646,14 @@
   color: var(--color-text);
 }
 
+.field-ai-popover__panel--portal {
+  position: fixed;
+  z-index: 1100;
+  inset: auto;
+  min-width: 12rem;
+  pointer-events: auto;
+}
+
 .field-ai-popover__label {
   display: block;
   font-weight: 600;

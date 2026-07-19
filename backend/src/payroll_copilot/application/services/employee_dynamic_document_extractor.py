@@ -11,7 +11,7 @@ from payroll_copilot.application.exceptions import (
     PayslipParserJsonError,
     PayslipParserUnavailableError,
 )
-from payroll_copilot.application.ports import Message
+from payroll_copilot.application.ports import AICapability, Message
 from payroll_copilot.application.services.dynamic_document import (
     DynamicDocumentEntry,
     entries_have_usable_values,
@@ -19,7 +19,7 @@ from payroll_copilot.application.services.dynamic_document import (
 from payroll_copilot.application.services.guest_dynamic_extractor import (
     document_model_from_payload,
 )
-from payroll_copilot.infrastructure.ai.ollama_provider import create_model_provider
+from payroll_copilot.infrastructure.ai.provider_router import AIProviderRouter
 from payroll_copilot.infrastructure.config.settings import get_settings
 
 _SYSTEM_PROMPT = """You reconstruct an uploaded document into structured data.
@@ -81,12 +81,11 @@ class EmployeeDynamicDocumentExtractor:
 
     def __init__(self, *, model_provider: Any | None = None) -> None:
         settings = get_settings()
-        self._provider = model_provider or create_model_provider(settings.model_provider, settings)
-        self._model = (
-            settings.bedrock_model_id
-            if settings.model_provider.strip().lower() == "bedrock"
-            else settings.ollama_default_model
+        router = AIProviderRouter(settings)
+        self._provider = model_provider or router.provider_for(
+            AICapability.DOCUMENT_EXTRACTION
         )
+        self._model = router.model_for(AICapability.DOCUMENT_EXTRACTION)
 
     async def extract(
         self,

@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useEmployeeSession } from '../../auth/EmployeeSessionContext';
 import { PortalPage } from '../../components/PortalPage';
 import { GuestChatPanel } from '../../components/guest/GuestChatPanel';
 import { useEmployeeWorkspace } from '../../features/employee/EmployeeWorkspaceContext';
 import { useEmployeeContextBuilder } from '../../hooks/useEmployeeContextBuilder';
+import { useWorkspacePageCopy } from '../../hooks/useWorkspacePageCopy';
 import { employeeAssistantService } from '../../services/assistant';
 import type { AssistantChatRequest, AssistantChatResponse } from '../../types/assistant';
 
@@ -63,11 +63,11 @@ export function PayrollChatPanel() {
 }
 
 export function PayrollChatPage() {
-  const { t } = useTranslation();
+  const copy = useWorkspacePageCopy();
   return (
     <PortalPage
-      title={t('employee.pages.chatTitle')}
-      description={t('employee.pages.chatDescription')}
+      title={copy.chatTitle}
+      description={copy.chatDescription}
       integrationNote="@integration-point EMPLOYEE_AI_CHAT"
     >
       <PayrollChatPanel />

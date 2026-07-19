@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
+import { DragDropZone } from '../../components/ui/DragDropZone';
 import { EmptyState } from '../../components/ui/Dialog';
-import { UploadPanel } from '../../components/ui/UploadPanel';
 import { useBatchNavigationGuard } from '../../features/accountant/BatchNavigationGuard';
 import { getAccountantErrorMessage } from '../../i18n/accountantLabels';
+import { matchesBatchSearchQuery } from '../../lib/accountant/batch-search';
 import { batchService } from '../../services/batch';
 import type { BatchEmployeeStatus, BatchExtractedEmployee } from '../../types/api';
 import './BulkPayrollUpload.css';
@@ -31,13 +32,21 @@ function statusLabelKey(status: string): string {
   return `accountant.bulk.status.${status}`;
 }
 
+function periodMeta(item: BatchExtractedEmployee, locale: string): string | null {
+  if (item.payroll_year == null || item.payroll_month == null) return null;
+  return new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric' }).format(
+    new Date(item.payroll_year, item.payroll_month - 1, 1),
+  );
+}
+
 export function BulkPayrollUploadPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const batch = useBatchNavigationGuard();
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     void batch.refreshBatch();
@@ -51,13 +60,13 @@ export function BulkPayrollUploadPage() {
   }, [batch.savedScrollY, batch.setSavedScrollY]);
 
   const items = batch.activeJob?.items ?? [];
-  const filteredItems = useMemo(
-    () =>
+  const filteredItems = useMemo(() => {
+    const byStatus =
       batch.statusFilter === 'all'
         ? items
-        : items.filter((item) => item.status === batch.statusFilter),
-    [batch.statusFilter, items],
-  );
+        : items.filter((item) => item.status === batch.statusFilter);
+    return byStatus.filter((item) => matchesBatchSearchQuery(item, searchQuery));
+  }, [batch.statusFilter, items, searchQuery]);
 
   const counts = useMemo(() => {
     const result: Record<string, number> = {
@@ -83,6 +92,18 @@ export function BulkPayrollUploadPage() {
     (batch.activeJob?.status === 'completed'
       ? 'completed'
       : batch.activeJob?.current_stage || 'split');
+
+  const selectPdf = (selected: File) => {
+    const isPdf =
+      selected.type === 'application/pdf' || selected.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      setFile(null);
+      setError(t('accountant.batches.pdfOnly'));
+      return;
+    }
+    setFile(selected);
+    setError(null);
+  };
 
   const startUpload = async () => {
     if (!file) {
@@ -127,7 +148,7 @@ export function BulkPayrollUploadPage() {
       navigate(
         `${employeeBase}/payslips/${item.payroll_year}/${item.payroll_month}${reviewQuery}`,
         {
-        state: { backTo: '/accountant/bulk-upload' },
+          state: { backTo: '/accountant/bulk-upload' },
         },
       );
     } else {
@@ -171,22 +192,20 @@ export function BulkPayrollUploadPage() {
 
         {batch.selectedTab === 'upload' ? (
           <section className="accountant-bulk__upload">
-            <UploadPanel
-              slots={[
-                {
-                  id: 'bulk_pdf',
-                  label: t('accountant.batches.uploadSlotLabel'),
-                  accept: '.pdf,application/pdf',
-                },
-              ]}
-              selectedFileName={file?.name}
-              errorMessage={error ?? undefined}
-              onFilesSelected={(_slot, selected) => {
-                setFile(selected);
-                setError(null);
-              }}
-              onRemove={() => setFile(null)}
-            />
+            <div className="accountant-bulk__upload-shell">
+              <DragDropZone
+                accept=".pdf,application/pdf"
+                selectedFileName={file?.name}
+                errorMessage={error ?? undefined}
+                title={t('accountant.batches.uploadSlotLabel')}
+                hint={t('accountant.batches.dragHint')}
+                onFileSelected={selectPdf}
+                onRemove={() => {
+                  setFile(null);
+                  setError(null);
+                }}
+              />
+            </div>
             <div className="form-actions">
               <button
                 type="button"
@@ -257,18 +276,37 @@ export function BulkPayrollUploadPage() {
                   ))}
                 </div>
 
-                <div className="accountant-bulk__filters" aria-label={t('accountant.bulk.filters.label')}>
-                  {FILTERS.map((filter) => (
-                    <button
-                      key={filter.id}
-                      type="button"
-                      className={`btn ${batch.statusFilter === filter.id ? 'btn--primary' : 'btn--secondary'}`}
-                      aria-pressed={batch.statusFilter === filter.id}
-                      onClick={() => batch.setStatusFilter(filter.id)}
-                    >
-                      {t(filter.labelKey)}
-                    </button>
-                  ))}
+                <div className="accountant-bulk__toolbar">
+                  <label className="accountant-bulk__search">
+                    <span className="visually-hidden">{t('accountant.bulk.searchLabel')}</span>
+                    <input
+                      type="search"
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder={t('accountant.bulk.searchPlaceholder')}
+                      aria-label={t('accountant.bulk.searchLabel')}
+                    />
+                  </label>
+                  <div
+                    className="accountant-bulk__filters"
+                    aria-label={t('accountant.bulk.filters.label')}
+                    role="group"
+                  >
+                    {FILTERS.map((filter) => (
+                      <button
+                        key={filter.id}
+                        type="button"
+                        className={`accountant-bulk__filter-pill is-${filter.id} ${
+                          batch.statusFilter === filter.id ? 'is-active' : ''
+                        }`}
+                        aria-pressed={batch.statusFilter === filter.id}
+                        aria-label={t(filter.labelKey)}
+                        onClick={() => batch.setStatusFilter(filter.id)}
+                      >
+                        {t(filter.labelKey)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </>
             )}
@@ -289,48 +327,66 @@ export function BulkPayrollUploadPage() {
               />
             ) : filteredItems.length === 0 ? (
               <EmptyState
-                title={t('accountant.bulk.emptyFilter.title')}
-                description={t('accountant.bulk.emptyFilter.description')}
+                title={
+                  searchQuery.trim()
+                    ? t('accountant.bulk.emptySearch.title')
+                    : t('accountant.bulk.emptyFilter.title')
+                }
+                description={
+                  searchQuery.trim()
+                    ? t('accountant.bulk.emptySearch.description', { query: searchQuery.trim() })
+                    : t('accountant.bulk.emptyFilter.description')
+                }
               />
             ) : (
               <div className="accountant-bulk__list" role="list">
-                {filteredItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="listitem"
-                    className={`accountant-bulk__employee is-${item.status}`}
-                    onClick={() => openItem(item)}
-                    disabled={!item.document_id}
-                  >
-                    <span className={`status-badge status-badge--batch-${item.status}`}>
-                      {t(statusLabelKey(item.status), { defaultValue: item.status })}
-                    </span>
-                    <span className="accountant-bulk__employee-name">
-                      <strong>
-                        {item.employee_name ||
-                          t('accountant.bulk.progress.slip', {
-                            value: item.slip_index + 1,
-                          })}
-                      </strong>
-                      <small>
-                        {item.employee_number
-                          ? `#${item.employee_number}`
-                          : item.national_id_masked || t('common.emDash')}
-                      </small>
-                    </span>
-                    <span>
-                      {item.error_message ||
-                        (item.status === 'processing'
-                          ? t(`accountant.bulk.phases.${item.processing_stage}`, {
-                              defaultValue: item.processing_stage,
-                            })
-                          : item.publication_status === 'published'
-                            ? t('accountant.bulk.publish.published')
-                            : t('accountant.bulk.publish.pendingReview'))}
-                    </span>
-                  </button>
-                ))}
+                {filteredItems.map((item) => {
+                  const serial = item.slip_index + 1;
+                  const displayName =
+                    item.employee_name?.trim() || t('accountant.bulk.unnamedSlip');
+                  const period = periodMeta(item, i18n.language);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="listitem"
+                      className={`accountant-bulk__employee is-${item.status}`}
+                      onClick={() => openItem(item)}
+                      disabled={!item.document_id}
+                    >
+                      <span className="accountant-bulk__serial" title={t('accountant.bulk.serialLabel', { value: serial })}>
+                        #{serial}
+                      </span>
+                      <span className="accountant-bulk__employee-name">
+                        <strong>{displayName}</strong>
+                        <small>
+                          {[
+                            item.employee_number ? `#${item.employee_number}` : null,
+                            item.national_id_masked || null,
+                            period,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ') || t('common.emDash')}
+                        </small>
+                      </span>
+                      <span
+                        className={`status-badge status-badge--batch-${item.status} accountant-bulk__status-pill`}
+                      >
+                        {t(statusLabelKey(item.status), { defaultValue: item.status })}
+                      </span>
+                      <span className="accountant-bulk__employee-meta">
+                        {item.error_message ||
+                          (item.status === 'processing'
+                            ? t(`accountant.bulk.phases.${item.processing_stage}`, {
+                                defaultValue: item.processing_stage,
+                              })
+                            : item.publication_status === 'published'
+                              ? t('accountant.bulk.publish.published')
+                              : t('accountant.bulk.publish.pendingReview'))}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </section>

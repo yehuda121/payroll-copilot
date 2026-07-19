@@ -10,6 +10,60 @@ from typing import Any
 from uuid import UUID
 
 
+def is_empty_for_storage(value: Any) -> bool:
+    """Return True when ``value`` should be omitted from DynamoDB writes.
+
+    Empty means ``None``, whitespace-only strings, empty containers, or
+    containers that become empty after recursive pruning. Retains ``0``,
+    ``False``, enums, and other meaningful scalars.
+    """
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return value.strip() == ""
+    if isinstance(value, Enum):
+        return False
+    if isinstance(value, dict):
+        return len(value) == 0
+    if isinstance(value, (list, tuple)):
+        return len(value) == 0
+    return False
+
+
+def prune_empty(value: Any) -> Any:
+    """Recursively drop empty values for DynamoDB persistence.
+
+    Rules:
+    - Remove ``None``, ``\"\"`` / whitespace-only strings, ``[]``, ``{}``
+    - Recurse into dicts and lists
+    - Keep ``0``, ``False``, enums, and non-empty scalars
+    - Return ``None`` when the pruned value itself becomes empty (callers omit)
+    """
+    if value is None:
+        return None
+    if isinstance(value, Enum):
+        return value
+    if isinstance(value, str):
+        return None if value.strip() == "" else value
+    if isinstance(value, dict):
+        pruned: dict[str, Any] = {}
+        for key, child in value.items():
+            cleaned = prune_empty(child)
+            if is_empty_for_storage(cleaned):
+                continue
+            pruned[str(key)] = cleaned
+        return pruned if pruned else None
+    if isinstance(value, (list, tuple)):
+        pruned_list: list[Any] = []
+        for child in value:
+            cleaned = prune_empty(child)
+            if is_empty_for_storage(cleaned):
+                continue
+            pruned_list.append(cleaned)
+        return pruned_list if pruned_list else None
+    return value
+
+
 def dumps_value(value: Any) -> Any:
     if value is None:
         return None

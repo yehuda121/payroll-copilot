@@ -96,6 +96,12 @@ Status aliases accepted and normalized by the server:
 - messages may be a string or list of strings.
 - Keep Hebrew/Arabic text as written.
 
+## employee_name honesty
+
+- `employee_name` must be a person name from OCR, never a page number, amount, ID fragment, or single letter.
+- If the only nearby OCR tokens are digits or one letter, set status `MISSING` or `UNCERTAIN` with value null — do not invent a name.
+- Do not put numeric-only strings (e.g. `"5"`, `"313366783"`) into `employee_name`.
+
 ## Concrete field examples
 
 Valid extracted field:

@@ -11,7 +11,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from payroll_copilot.infrastructure.persistence.dynamodb.factory import (
     get_audit_log_repository,
     get_document_extraction_repository,
@@ -60,6 +60,8 @@ class EmployeeCreateRequest(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 class EmployeeUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     first_name: str | None = None
     last_name: str | None = None
     employment_type: EmploymentType | None = None
@@ -68,7 +70,6 @@ class EmployeeUpdateRequest(BaseModel):
     contract_end_date: date | None = None
     hourly_rate: Decimal | None = None
     monthly_salary: Decimal | None = None
-    email: str | None = None
     national_id: str | None = None
     department_id: UUID | None = None
     status: EmployeeStatus | None = None
@@ -615,7 +616,6 @@ async def update_employee(
                 hourly_rate=body.hourly_rate,
                 monthly_salary=body.monthly_salary,
                 national_id=body.national_id,
-                email=body.email,
                 status=body.status,
                 profile_incomplete=body.profile_incomplete,
                 metadata=body.metadata,

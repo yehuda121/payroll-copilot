@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
 import { useEmployeeWorkspace } from '../../features/employee/EmployeeWorkspaceContext';
+import { useWorkspacePageCopy } from '../../hooks/useWorkspacePageCopy';
 import { mapPresentationStatus } from '../../lib/employee/presentation-status';
 import {
   type PayrollMonthsResponse,
@@ -29,6 +30,7 @@ function StatusBadge({ code }: { code: string }) {
 
 export function MyPayslipsPage() {
   const { t } = useTranslation();
+  const copy = useWorkspacePageCopy();
   const { locale } = useAppLocale();
   const navigate = useNavigate();
   const { api: workspaceApi, basePath } = useEmployeeWorkspace();
@@ -66,8 +68,8 @@ export function MyPayslipsPage() {
 
   return (
     <PortalPage
-      title={t('employee.payslips.pageTitle')}
-      description={t('employee.payslips.pageDescription')}
+      title={copy.payslipsTitle}
+      description={copy.payslipsDescription}
     >
       <div className="employee-payslips">
         <div className="employee-payslips__toolbar">

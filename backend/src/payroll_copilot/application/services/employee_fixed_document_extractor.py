@@ -11,7 +11,7 @@ from payroll_copilot.application.exceptions import (
     PayslipParserJsonError,
     PayslipParserUnavailableError,
 )
-from payroll_copilot.application.ports import Message
+from payroll_copilot.application.ports import AICapability, Message
 from payroll_copilot.application.services.employee_document_form_schemas import (
     ID_APPENDIX_KEYS,
     NATIONAL_ID_KEYS,
@@ -19,7 +19,7 @@ from payroll_copilot.application.services.employee_document_form_schemas import 
     fixed_keys_for,
 )
 from payroll_copilot.domain.enums import DocumentType
-from payroll_copilot.infrastructure.ai.ollama_provider import create_model_provider
+from payroll_copilot.infrastructure.ai.provider_router import AIProviderRouter
 from payroll_copilot.infrastructure.config.settings import get_settings
 
 _ID_CARD_SYSTEM = """
@@ -328,12 +328,11 @@ class EmployeeFixedDocumentExtractor:
 
     def __init__(self, *, model_provider: Any | None = None) -> None:
         settings = get_settings()
-        self._provider = model_provider or create_model_provider(settings.model_provider, settings)
-        self._model = (
-            settings.bedrock_model_id
-            if settings.model_provider.strip().lower() == "bedrock"
-            else settings.ollama_default_model
+        router = AIProviderRouter(settings)
+        self._provider = model_provider or router.provider_for(
+            AICapability.DOCUMENT_EXTRACTION
         )
+        self._model = router.model_for(AICapability.DOCUMENT_EXTRACTION)
 
     async def extract(
         self,

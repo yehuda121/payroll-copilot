@@ -19,6 +19,11 @@ from payroll_copilot.application.services.batch_progress_store import (
     BatchProgressStoreProtocol,
     get_batch_progress_store,
 )
+from payroll_copilot.application.services.payslip_boundary_detector import (
+    PayslipBoundary,
+    PayslipBoundaryDetectionResult,
+    PayslipBoundaryDetector,
+)
 from payroll_copilot.infrastructure.config.settings import get_settings
 
 _PHASE_TO_STAGE = {
@@ -39,6 +44,7 @@ class BatchPayslipProcessor:
         progress: BatchProgressStoreProtocol | None = None,
         storage: ObjectStoragePort | None = None,
         pipeline: BatchPayslipPipelineService | None = None,
+        boundary_detector: PayslipBoundaryDetector | None = None,
     ) -> None:
         settings = get_settings()
         self._progress = progress or get_batch_progress_store()
@@ -56,6 +62,7 @@ class BatchPayslipProcessor:
             pipeline = create_batch_payslip_pipeline()
         self._storage = storage
         self._pipeline = pipeline
+        self._boundary_detector = boundary_detector or PayslipBoundaryDetector()
 
     def process(self, batch_job_id: str, document_id: str) -> dict[str, Any]:
         """Celery entry point. The worker itself is synchronous."""
@@ -87,14 +94,18 @@ class BatchPayslipProcessor:
                 detail="Downloading and splitting the source PDF",
             )
             pdf_bytes = await self._storage.download(f"documents/{document_id}")
-            splits = self._split_pdf(pdf_bytes)
+            detection = await self._detect_boundaries(pdf_bytes)
+            splits = self._materialize_splits(pdf_bytes, detection)
             total = len(splits)
+            split_detail = f"Split into {total} payslip(s) via {detection.strategy}"
+            if detection.warnings:
+                split_detail = f"{split_detail}; {', '.join(detection.warnings)}"
             self._progress.mark_stage(
                 batch_job_id,
                 "split",
                 status="completed",
                 total_slips=total,
-                detail=f"Split into {total} payslip(s)",
+                detail=split_detail,
             )
 
             counts = {
@@ -107,13 +118,17 @@ class BatchPayslipProcessor:
             completed_items: list[dict[str, Any]] = []
             failed_count = 0
 
-            for index, split_bytes in enumerate(splits):
+            for index, (split_bytes, boundary) in enumerate(splits):
                 item_id = str(uuid4())
                 item = BatchExtractedItem(
                     id=item_id,
                     slip_index=index,
                     status="processing",
                     processing_stage="queued",
+                    page_start=boundary.page_start,
+                    page_end=boundary.page_end,
+                    split_confidence=boundary.confidence,
+                    split_strategy=boundary.strategy,
                 )
                 self._progress.upsert_item(batch_job_id, item)
 
@@ -169,6 +184,7 @@ class BatchPayslipProcessor:
                         item_id=item_id,
                         slip_index=index,
                         result=result,
+                        boundary=boundary,
                     )
                 except Exception as exc:  # noqa: BLE001 - isolate one bad payslip
                     item = BatchExtractedItem(
@@ -177,6 +193,10 @@ class BatchPayslipProcessor:
                         status="failed",
                         processing_stage=current_phase,
                         error_message=str(exc) or exc.__class__.__name__,
+                        page_start=boundary.page_start,
+                        page_end=boundary.page_end,
+                        split_confidence=boundary.confidence,
+                        split_strategy=boundary.strategy,
                     )
 
                 self._progress.upsert_item(batch_job_id, item)
@@ -234,12 +254,48 @@ class BatchPayslipProcessor:
             )
             raise
 
+    async def _detect_boundaries(
+        self,
+        pdf_bytes: bytes,
+    ) -> PayslipBoundaryDetectionResult:
+        """Run deterministic detection; AI only when already inside this async path."""
+        return await self._boundary_detector.detect_async(
+            pdf_bytes,
+            ai_splitter=None,
+        )
+
+    def _materialize_splits(
+        self,
+        pdf_bytes: bytes,
+        detection: PayslipBoundaryDetectionResult,
+    ) -> list[tuple[bytes, PayslipBoundary]]:
+        if not detection.boundaries:
+            return [(pdf_bytes, PayslipBoundary(
+                page_indices=(0,),
+                confidence=0.5,
+                strategy="one_page_fallback",
+                warnings=("empty_boundaries",),
+            ))]
+
+        document = fitz.open(stream=pdf_bytes, filetype="pdf")
+        try:
+            return [
+                (
+                    self._extract_pages(document, list(boundary.page_indices)),
+                    boundary,
+                )
+                for boundary in detection.boundaries
+            ]
+        finally:
+            document.close()
+
     @staticmethod
     def _item_from_result(
         *,
         item_id: str,
         slip_index: int,
         result: BatchSlipPipelineResult,
+        boundary: PayslipBoundary,
     ) -> BatchExtractedItem:
         return BatchExtractedItem(
             id=item_id,
@@ -260,6 +316,10 @@ class BatchPayslipProcessor:
                 else None
             ),
             error_message=result.error_message,
+            page_start=boundary.page_start,
+            page_end=boundary.page_end,
+            split_confidence=boundary.confidence,
+            split_strategy=boundary.strategy,
         )
 
     @staticmethod
@@ -280,21 +340,13 @@ class BatchPayslipProcessor:
         return f"{stem}-payslip-{index + 1}.pdf"
 
     def _split_pdf(self, pdf_bytes: bytes) -> list[bytes]:
-        """Split a payroll package into one independent payslip per page.
+        """Split a payroll package using the smart boundary detector.
 
-        Bulk payroll files in this workflow are page packages: each page is a
-        separate employee payslip. OCR cannot be used to discover boundaries
-        here because scanned pages often have no embedded PDF text.
+        Deterministic text anchors group multi-page slips at high confidence.
+        Scanned or ambiguous packages fall back to one payslip per page.
         """
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        try:
-            splits = [
-                self._extract_pages(doc, [page_num])
-                for page_num in range(len(doc))
-            ]
-            return splits or [pdf_bytes]
-        finally:
-            doc.close()
+        detection = self._boundary_detector.detect(pdf_bytes)
+        return [payload for payload, _boundary in self._materialize_splits(pdf_bytes, detection)]
 
     @staticmethod
     def _extract_pages(doc: fitz.Document, page_indices: list[int]) -> bytes:

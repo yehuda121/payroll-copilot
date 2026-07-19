@@ -50,7 +50,6 @@ export function toWritePayload(
     last_name: values.lastName.trim(),
     employment_type: values.employmentType,
     salary_type: values.salaryType,
-    email: values.email.trim() || undefined,
     national_id: values.nationalId.trim() || undefined,
     contract_start_date: values.contractStartDate || undefined,
     profile_incomplete: values.profileIncomplete,
@@ -59,7 +58,9 @@ export function toWritePayload(
   };
   if (mode === 'create') {
     payload.employee_number = values.employeeNumber.trim();
+    payload.email = values.email.trim() || undefined;
   }
+  // Edit mode: email is permanently immutable — omit from write payload.
   return payload;
 }
 
@@ -133,8 +134,14 @@ export function EmployeeForm({
           id="email"
           type="email"
           value={values.email}
+          readOnly={mode === 'edit'}
+          disabled={mode === 'edit'}
+          title={mode === 'edit' ? t('accountant.workspace.emailReadonly') : undefined}
           onChange={(e) => update('email', e.target.value)}
         />
+        {mode === 'edit' && (
+          <span className="form-hint">{t('accountant.workspace.emailReadonly')}</span>
+        )}
       </div>
       <div className="form-field">
         <label htmlFor="nationalId">{t('accountant.employees.fieldNationalId')}</label>

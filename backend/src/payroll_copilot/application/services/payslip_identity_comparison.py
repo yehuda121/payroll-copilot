@@ -113,6 +113,61 @@ def normalize_person_name(value: Any) -> str | None:
     return text or None
 
 
+# Dropped before token comparison (not probabilistic). Hebrew + common Latin titles.
+_NAME_HONORIFICS = frozenset(
+    {
+        "מר",
+        "גב",
+        "גברת",
+        "האדון",
+        "mr",
+        "mrs",
+        "ms",
+        "miss",
+        "dr",
+    }
+)
+
+
+def person_name_tokens(value: Any) -> list[str] | None:
+    """Whitespace-split name tokens; hyphens inside tokens are preserved."""
+    normalized = normalize_person_name(value)
+    if normalized is None:
+        return None
+    tokens: list[str] = []
+    for raw in normalized.split(" "):
+        token = raw.strip(".,;:\"'()[]{}«»׳״")
+        if not token:
+            continue
+        # Honorifics may appear as גב' — strip trailing apostrophe/geresh for the check.
+        honorific_key = token.rstrip("'׳")
+        if honorific_key in _NAME_HONORIFICS:
+            continue
+        tokens.append(token)
+    return tokens or None
+
+
+def person_name_token_signature(value: Any) -> tuple[str, ...] | None:
+    """Sorted token multiset signature — order-insensitive, duplicate-aware."""
+    tokens = person_name_tokens(value)
+    if tokens is None:
+        return None
+    return tuple(sorted(tokens))
+
+
+def person_name_tokens_equal(left: Any, right: Any) -> bool:
+    """Deterministic order-insensitive equality via exact token multisets.
+
+    Matches full permutations (e.g. Hebrew family/given reversal). Does not
+    match middle-name omissions or other partial overlaps.
+    """
+    left_sig = person_name_token_signature(left)
+    right_sig = person_name_token_signature(right)
+    if left_sig is None or right_sig is None:
+        return False
+    return left_sig == right_sig
+
+
 def detect_name_script(value: Any) -> str | None:
     """Return a coarse script family for name comparison: hebrew, arabic, latin, or mixed."""
     if value is None:
@@ -354,7 +409,6 @@ class PayslipIdentityComparisonService:
         name_payload = _field_payload(extraction_fields, "employee_name")
         name_value, name_state, _ = _usable_extraction(name_payload)
         extracted_name = normalize_person_name(name_value)
-        trusted_name = normalize_person_name(trusted_full_name)
         if name_state == "missing" or extracted_name is None:
             identity_fields.append(
                 FieldComparison(
@@ -389,7 +443,7 @@ class PayslipIdentityComparisonService:
                     explanation_code="employee_name_language_mismatch",
                 )
             )
-        elif extracted_name == trusted_name:
+        elif person_name_tokens_equal(name_value, trusted_full_name):
             identity_fields.append(
                 FieldComparison(
                     key="employee_name",

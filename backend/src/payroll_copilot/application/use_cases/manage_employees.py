@@ -70,7 +70,6 @@ class UpdateEmployeeCommand:
     hourly_rate: Decimal | None = None
     monthly_salary: Decimal | None = None
     national_id: str | None = None
-    email: str | None = None
     status: EmployeeStatus | None = None
     profile_incomplete: bool | None = None
     metadata: dict[str, Any] | None = None
@@ -221,8 +220,6 @@ class ManageEmployeesUseCase:
             employee.monthly_salary = command.monthly_salary
         if command.status is not None:
             employee.status = command.status
-        if command.email is not None:
-            metadata["email"] = command.email.strip()
         if command.profile_incomplete is not None:
             metadata["profile_incomplete"] = command.profile_incomplete
         if command.metadata:

@@ -318,7 +318,13 @@
   border: 1px solid var(--color-border);
   border-radius: 10px;
   background: var(--color-surface);
-  overflow: hidden;
+  overflow: visible;
+}
+
+.employee-month-workspace__upload-shell {
+  width: 100%;
+  max-width: min(40rem, 100%);
+  margin-inline: auto;
 }
 
 .employee-digital-form__field--span-2 {

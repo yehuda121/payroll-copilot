@@ -10,6 +10,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
+from payroll_copilot.application.ports import AICapability
 from payroll_copilot.application.services.batch_progress_store import (
     get_batch_progress_store,
 )
@@ -39,7 +40,7 @@ from payroll_copilot.infrastructure.ai.agents.validation_report_store import InM
 from payroll_copilot.infrastructure.ai.guardrails.payroll_assistant_guardrails import (
     PayrollAssistantGuardrails,
 )
-from payroll_copilot.infrastructure.ai.ollama_provider import create_model_provider
+from payroll_copilot.infrastructure.ai.provider_router import AIProviderRouter
 from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.infrastructure.i18n import resolve_locale
 from payroll_copilot.infrastructure.persistence.dynamodb.factory import (
@@ -126,7 +127,9 @@ class BatchItemAssistantChatRequest(BaseModel):
 
 
 @lru_cache
-def _get_assistant_use_case() -> PayrollAssistantChatUseCase:
+def _get_assistant_use_case(
+    capability: AICapability = AICapability.ASSISTANT,
+) -> PayrollAssistantChatUseCase:
     settings = get_settings()
     labor_law_search = YamlApprovedLaborLawSearch(settings.legal_rules_path)
     tools = PayrollAssistantTools(
@@ -134,12 +137,7 @@ def _get_assistant_use_case() -> PayrollAssistantChatUseCase:
         validation_reports=_validation_report_store,
         document_summaries=_document_summary_store,
     )
-    model_provider = None
-    try:
-        model_provider = create_model_provider(settings.model_provider, settings)
-    except Exception:
-        model_provider = None
-
+    model_provider = AIProviderRouter(settings).provider_for(capability)
     graph = PayrollAssistantGraph(tools=tools, model_provider=model_provider)
     return PayrollAssistantChatUseCase(runner=graph)
 
@@ -156,7 +154,7 @@ async def assistant_chat(
         accept_language=accept_language,
         default=settings.default_locale,
     )
-    use_case = _get_assistant_use_case()
+    use_case = _get_assistant_use_case(AICapability.ASSISTANT)
     result = await use_case.execute(
         AssistantChatCommand(
             message=request.message,
@@ -212,6 +210,7 @@ async def _employee_assistant_chat_impl(
     accept_language: str | None,
     include_unpublished: bool,
     review_document_id: UUID | None = None,
+    capability: AICapability = AICapability.EMPLOYEE_CHAT,
 ) -> EmployeeAssistantChatResponse:
     settings = get_settings()
     locale = resolve_locale(
@@ -239,7 +238,7 @@ async def _employee_assistant_chat_impl(
     # available_resource_keys is intentionally not used for authorization or
     # data selection. It connects the frontend inventory while canonical data
     # remains backend-owned and bound to the authenticated employee.
-    result = await _get_assistant_use_case().execute(
+    result = await _get_assistant_use_case(capability).execute(
         AssistantChatCommand(
             message=request.message,
             session_id=request.session_id,
@@ -299,6 +298,7 @@ async def accountant_employee_assistant_chat(
         accept_language=accept_language,
         include_unpublished=True,
         review_document_id=request.document_id,
+        capability=AICapability.ACCOUNTANT_CHAT,
     )
 
 
@@ -418,7 +418,7 @@ async def accountant_batch_item_assistant_chat(
         ensure_ascii=False,
         default=str,
     )
-    result = await _get_assistant_use_case().execute(
+    result = await _get_assistant_use_case(AICapability.ACCOUNTANT_CHAT).execute(
         AssistantChatCommand(
             message=request.message,
             session_id=request.session_id,

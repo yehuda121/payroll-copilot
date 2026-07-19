@@ -13,6 +13,11 @@
   background: var(--color-surface);
 }
 
+.accountant-employee-workspace__identity {
+  flex: 1;
+  min-width: 0;
+}
+
 .accountant-employee-workspace__header h1 {
   margin: 0;
   font-size: 1.35rem;
@@ -21,6 +26,46 @@
 .accountant-employee-workspace__header p {
   margin: 0.25rem 0 0;
   color: var(--color-text-muted);
+}
+
+.accountant-employee-workspace__edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 0.85rem;
+}
+
+.accountant-employee-workspace__edit-grid label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.accountant-employee-workspace__edit-grid input {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  font: inherit;
+  color: inherit;
+  background: #fff;
+}
+
+.accountant-employee-workspace__email {
+  grid-column: 1 / -1;
+}
+
+.accountant-employee-workspace__edit-grid input:disabled,
+.accountant-employee-workspace__edit-grid input[readonly] {
+  background: #f1f5f9;
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.accountant-employee-workspace__profile-actions {
+  display: inline-flex;
+  gap: 0.4rem;
+  margin-inline-start: auto;
 }
 
 .accountant-employee-workspace__tabs {
@@ -34,6 +79,14 @@
 @media (max-width: 700px) {
   .accountant-employee-workspace__header {
     align-items: flex-start;
-    flex-direction: column;
+    flex-wrap: wrap;
+  }
+
+  .accountant-employee-workspace__edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .accountant-employee-workspace__profile-actions {
+    margin-inline-start: 0;
   }
 }

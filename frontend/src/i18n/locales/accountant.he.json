@@ -289,6 +289,8 @@
       "uploadingTitle": "מעלה PDF מרוכז",
       "uploadingMessage": "מעביר את הקובץ ומכניס לתור העיבוד…",
       "selectPdf": "בחרו PDF לפני התחלת העיבוד המרוכז.",
+      "pdfOnly": "ניתן להעלות קובץ PDF בלבד להעלאה מרוכזת.",
+      "dragHint": "גררו לכאן PDF עם תלושים מרובים, או בחרו קובץ מהמחשב.",
       "startTitle": "להתחיל עיבוד שכר מרוכז?",
       "startMessage": "הקובץ יועלה ויעובד בשרת (פיצול → OCR → מנתח → זיהוי → אימות → דוח). סגירת הלשונית לא תעצור את העיבוד.",
       "startConfirm": "התחלת עיבוד",
@@ -335,7 +337,20 @@
       "back": "חזרה",
       "employeeNumber": "עובד מס׳ {{number}}",
       "loading": "טוען סביבת עבודה לעובד…",
-      "tabsLabel": "סביבת העבודה של העובד שנבחר"
+      "tabsLabel": "סביבת העבודה של העובד שנבחר",
+      "backToBatchAria": "חזרה לאצווה",
+      "backToEmployeesAria": "חזרה לרשימת העובדים",
+      "editProfile": "עריכת שם העובד",
+      "saveProfile": "שמירת שם",
+      "emailReadonly": "לא ניתן לשנות את כתובת האימייל",
+      "profileNameRequired": "שם פרטי ושם משפחה הם שדות חובה.",
+      "documentsTitle": "המסמכים של {{name}}",
+      "documentsDescription": "סקירה וניהול מסמכי זהות והעסקה עבור {{name}}.",
+      "payslipsTitle": "התלושים של {{name}}",
+      "payslipsDescription": "פתחו חודש לסקירה, חילוץ ואימות תלושים עבור {{name}}.",
+      "chatTitle": "צ׳אט AI לשכר — {{name}}",
+      "chatDescription": "שאלו על התלושים ותנאי ההעסקה של {{name}}. ה-AI מסביר בלבד ואינו מחליט על עמידה בכללים.",
+      "monthDescription": "העלאה, חילוץ, סקירה ואימות של תלוש החודש עבור {{name}}."
     },
     "bulk": {
       "tabs": {
@@ -404,13 +419,17 @@
       },
       "filters": {
         "label": "סינון מהיר לפי סטטוס",
-        "all": "הצג הכול",
-        "passed": "הצג שעברו",
-        "warning": "הצג אזהרות",
-        "failed": "הצג שנכשלו",
-        "unknown": "הצג לא מזוהים",
-        "processing": "הצג בעיבוד"
+        "all": "הכול",
+        "passed": "עבר",
+        "warning": "אזהרה",
+        "failed": "נכשל",
+        "unknown": "לא מזוהה",
+        "processing": "בעיבוד"
       },
+      "searchLabel": "חיפוש עובדים שחולצו",
+      "searchPlaceholder": "חיפוש לפי שם, מספר עובד, ת.ז. או תקופה",
+      "serialLabel": "תלוש {{value}}",
+      "unnamedSlip": "עובד לא זוהה",
       "empty": {
         "title": "אין העלאה פעילה",
         "description": "העלו קובץ PDF כדי להתחיל לעבד עובדים."
@@ -418,6 +437,10 @@
       "emptyFilter": {
         "title": "אין עובדים התואמים לסינון",
         "description": "בחרו סטטוס אחר כדי לסקור את יתר התוצאות."
+      },
+      "emptySearch": {
+        "title": "אין תוצאות",
+        "description": "אין עובדים התואמים ל־״{{query}}״."
       },
       "openWorkspace": "פתיחת סביבת עובד"
     },

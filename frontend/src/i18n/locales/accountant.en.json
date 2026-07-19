@@ -289,6 +289,8 @@
       "uploadingTitle": "Uploading bulk PDF",
       "uploadingMessage": "Transferring file and queuing the pipeline…",
       "selectPdf": "Select a PDF before starting bulk processing.",
+      "pdfOnly": "Only PDF files are accepted for bulk upload.",
+      "dragHint": "Drag and drop a multi-payslip PDF here, or browse to select one.",
       "startTitle": "Start bulk payroll processing?",
       "startMessage": "The PDF will be uploaded and processed on the server (split → OCR → parser → identify → validate → report). Closing this browser tab will not stop backend processing.",
       "startConfirm": "Start processing",
@@ -335,7 +337,20 @@
       "back": "Back",
       "employeeNumber": "Employee #{{number}}",
       "loading": "Loading employee workspace…",
-      "tabsLabel": "Selected employee workspace"
+      "tabsLabel": "Selected employee workspace",
+      "backToBatchAria": "Back to batch",
+      "backToEmployeesAria": "Back to employees",
+      "editProfile": "Edit employee name",
+      "saveProfile": "Save name",
+      "emailReadonly": "Email cannot be changed",
+      "profileNameRequired": "First and last name are required.",
+      "documentsTitle": "{{name}}'s Documents",
+      "documentsDescription": "Review and manage identity and employment documents for {{name}}.",
+      "payslipsTitle": "{{name}}'s Payslips",
+      "payslipsDescription": "Open a month to review, extract, and validate payslips for {{name}}.",
+      "chatTitle": "Payroll AI Chat — {{name}}",
+      "chatDescription": "Ask questions about {{name}}'s payslips and employment terms. AI explains only — it does not decide compliance.",
+      "monthDescription": "Upload, extract, review, and validate this month’s payslip for {{name}}."
     },
     "bulk": {
       "tabs": {
@@ -404,13 +419,17 @@
       },
       "filters": {
         "label": "Quick status filters",
-        "all": "Show All",
-        "passed": "Show Passed",
-        "warning": "Show Warnings",
-        "failed": "Show Failed",
-        "unknown": "Show Unknown",
-        "processing": "Show Processing"
+        "all": "All",
+        "passed": "Passed",
+        "warning": "Warning",
+        "failed": "Failed",
+        "unknown": "Unknown",
+        "processing": "Processing"
       },
+      "searchLabel": "Search extracted employees",
+      "searchPlaceholder": "Search by name, employee #, ID, or period",
+      "serialLabel": "Payslip {{value}}",
+      "unnamedSlip": "Unrecognized employee",
       "empty": {
         "title": "No active bulk upload",
         "description": "Upload a PDF to begin processing employees."
@@ -418,6 +437,10 @@
       "emptyFilter": {
         "title": "No employees match this filter",
         "description": "Choose another status to review the remaining results."
+      },
+      "emptySearch": {
+        "title": "No matches",
+        "description": "No employees match “{{query}}”."
       },
       "openWorkspace": "Open employee workspace"
     },

@@ -9,6 +9,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from payroll_copilot.application.ports.ai_capabilities import AICapability
 from payroll_copilot.application.ports.ocr import OCRProvider, OCRResult, OcrLine, OcrPage
 from payroll_copilot.application.ports.email import (
     EmailAddress,
@@ -19,6 +20,7 @@ from payroll_copilot.application.ports.email import (
 )
 
 __all__ = [
+    "AICapability",
     "CompletionResult",
     "EmailAddress",
     "EmailDeliveryError",

@@ -110,28 +110,9 @@ class OllamaProvider:
 
 
 def create_model_provider(provider_name: str, settings: Any) -> Any:
-    """Factory for model providers (Amazon Bedrock primary; Ollama for local)."""
-    name = (provider_name or "bedrock").strip().lower()
-    if name == "bedrock":
-        from payroll_copilot.infrastructure.ai.bedrock_provider import BedrockProvider
+    """Deprecated compatibility wrapper around the central provider factory."""
+    from payroll_copilot.infrastructure.ai.provider_router import (
+        create_provider_by_name,
+    )
 
-        return BedrockProvider(
-            region=getattr(settings, "bedrock_region", None) or "us-east-1",
-            model_id=getattr(settings, "bedrock_model_id", "") or "",
-            embedding_model_id=getattr(settings, "bedrock_embedding_model_id", "")
-            or "amazon.titan-embed-text-v2:0",
-            embedding_dimensions=int(
-                getattr(settings, "bedrock_embedding_dimensions", 1024) or 1024
-            ),
-            endpoint_url=(getattr(settings, "bedrock_endpoint", None) or "").strip() or None,
-        )
-    if name == "ollama":
-        from payroll_copilot.infrastructure.config.ollama_resolver import get_resolved_ollama_base_url
-
-        return OllamaProvider(
-            base_url=get_resolved_ollama_base_url(settings),
-            default_model=settings.ollama_default_model,
-            embedding_model=settings.ollama_embedding_model,
-        )
-    msg = f"Unsupported model provider: {provider_name}"
-    raise ValueError(msg)
+    return create_provider_by_name(provider_name, settings)

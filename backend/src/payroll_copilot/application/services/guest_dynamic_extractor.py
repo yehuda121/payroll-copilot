@@ -16,14 +16,14 @@ from payroll_copilot.application.exceptions import (
     PayslipParserJsonError,
     PayslipParserUnavailableError,
 )
-from payroll_copilot.application.ports import Message
+from payroll_copilot.application.ports import AICapability, Message
 from payroll_copilot.application.services.dynamic_document import (
     DynamicDocumentEntry,
     entries_have_usable_values,
     is_document_origin_entry,
     new_entry,
 )
-from payroll_copilot.infrastructure.ai.ollama_provider import create_model_provider
+from payroll_copilot.infrastructure.ai.provider_router import AIProviderRouter
 from payroll_copilot.infrastructure.config.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -367,14 +367,11 @@ class GuestDynamicDocumentExtractor:
         max_predict: int | None = None,
     ) -> None:
         settings = get_settings()
-        provider_name = getattr(settings, "model_provider", "bedrock")
-        self._provider = model_provider or create_model_provider(provider_name, settings)
-        if model:
-            self._model = model
-        elif str(provider_name).strip().lower() == "bedrock":
-            self._model = getattr(settings, "bedrock_model_id", "") or "bedrock"
-        else:
-            self._model = settings.ollama_default_model
+        router = AIProviderRouter(settings)
+        self._provider = model_provider or router.provider_for(
+            AICapability.DOCUMENT_EXTRACTION
+        )
+        self._model = model or router.model_for(AICapability.DOCUMENT_EXTRACTION)
         configured_timeout = float(
             timeout_seconds
             if timeout_seconds is not None

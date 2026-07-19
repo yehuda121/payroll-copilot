@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
 
+from payroll_copilot.application.ports import AICapability
 from payroll_copilot.application.services.document_lab import DocumentLabService
 from payroll_copilot.application.services.fixture_document_loader import (
     FixtureAccessError,
@@ -26,7 +27,7 @@ from payroll_copilot.infrastructure.ai.agents.payroll_assistant_tools import (
     PayrollAssistantTools,
 )
 from payroll_copilot.infrastructure.ai.agents.validation_report_store import InMemoryValidationReportStore
-from payroll_copilot.infrastructure.ai.ollama_provider import create_model_provider
+from payroll_copilot.infrastructure.ai.provider_router import AIProviderRouter
 from payroll_copilot.infrastructure.config.settings import Settings, get_settings
 from payroll_copilot.presentation.api.dependencies import (
     get_extract_document_text_use_case,
@@ -69,10 +70,9 @@ def _get_assistant_use_case() -> PayrollAssistantChatUseCase | None:
         validation_reports=InMemoryValidationReportStore(),
         document_summaries=InMemoryDocumentSummaryStore(),
     )
-    try:
-        model_provider = create_model_provider(settings.model_provider, settings)
-    except Exception:
-        model_provider = None
+    model_provider = AIProviderRouter(settings).provider_for(
+        AICapability.ASSISTANT
+    )
     graph = PayrollAssistantGraph(tools=tools, model_provider=model_provider)
     return PayrollAssistantChatUseCase(runner=graph)
 

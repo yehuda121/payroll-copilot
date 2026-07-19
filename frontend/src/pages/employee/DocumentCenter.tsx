@@ -10,6 +10,7 @@ import {
   type DocumentWorkspaceTab,
   type PersistentDocumentType,
 } from '../../hooks/useEmployeeDocumentWorkspace';
+import { useWorkspacePageCopy } from '../../hooks/useWorkspacePageCopy';
 import type { DocumentLanguage } from '../../types/api';
 import '../../features/employee/employee-payslip.css';
 import '../../features/guest/landing/landing-chat.css';
@@ -30,18 +31,19 @@ const INNER_TABS: Array<{ id: DocumentWorkspaceTab; labelKey: string }> = [
 
 export function DocumentCenterPage() {
   const { t } = useTranslation();
+  const copy = useWorkspacePageCopy();
   const [documentType, setDocumentType] = useState<PersistentDocumentType>('national_id');
   const flow = useEmployeeDocumentWorkspace(documentType);
 
   const typeTitle = useMemo(() => {
     const match = DOCUMENT_TYPES.find((row) => row.id === documentType);
-    return match ? t(match.labelKey) : t('employee.documents.pageTitle');
-  }, [documentType, t]);
+    return match ? t(match.labelKey) : copy.documentsTitle;
+  }, [copy.documentsTitle, documentType, t]);
 
   return (
     <PortalPage
-      title={t('employee.documents.pageTitle')}
-      description={t('employee.documents.pageDescription')}
+      title={copy.documentsTitle}
+      description={copy.documentsDescription}
     >
       <div className="employee-month-workspace">
         <div
@@ -203,15 +205,17 @@ function UploadTab({
         </label>
       </div>
 
-      <DragDropZone
-        accept=".pdf,.png,.jpg,.jpeg"
-        selectedFileName={flow.pendingFile?.name}
-        errorMessage={flow.fileError ?? undefined}
-        onFileSelected={(file) => {
-          void flow.selectFile(file);
-        }}
-        onRemove={flow.pendingFile ? flow.deleteSelectedFile : undefined}
-      />
+      <div className="employee-month-workspace__upload-shell">
+        <DragDropZone
+          accept=".pdf,.png,.jpg,.jpeg"
+          selectedFileName={flow.pendingFile?.name}
+          errorMessage={flow.fileError ?? undefined}
+          onFileSelected={(file) => {
+            void flow.selectFile(file);
+          }}
+          onRemove={flow.pendingFile ? flow.deleteSelectedFile : undefined}
+        />
+      </div>
 
       {flow.busyPhase === 'extracting' && (
         <div className="employee-extract-loading" aria-busy="true" aria-live="polite">

@@ -9,6 +9,12 @@
   gap: 1.25rem;
 }
 
+.accountant-bulk__upload-shell {
+  width: 100%;
+  max-width: min(40rem, 100%);
+  margin-inline: auto;
+}
+
 .accountant-bulk__progress {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
@@ -76,10 +82,111 @@
   border-inline-start: 4px solid #2878c8;
 }
 
+.accountant-bulk__toolbar {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.accountant-bulk__search input {
+  width: 100%;
+  max-width: 28rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.65rem;
+  background: var(--color-surface);
+  color: inherit;
+}
+
 .accountant-bulk__filters {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.accountant-bulk__filter-pill {
+  appearance: none;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--color-surface);
+  color: var(--color-text);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.accountant-bulk__filter-pill.is-all {
+  color: #334155;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.accountant-bulk__filter-pill.is-passed {
+  color: #12663f;
+  border-color: #9ed9b8;
+  background: #f0faf4;
+}
+
+.accountant-bulk__filter-pill.is-warning {
+  color: #765400;
+  border-color: #efd48a;
+  background: #fff9e8;
+}
+
+.accountant-bulk__filter-pill.is-failed {
+  color: #8f2222;
+  border-color: #efb4b4;
+  background: #fff5f5;
+}
+
+.accountant-bulk__filter-pill.is-unknown_employee {
+  color: #52318f;
+  border-color: #c9b4ef;
+  background: #f7f2ff;
+}
+
+.accountant-bulk__filter-pill.is-processing {
+  color: #185b9e;
+  border-color: #9ec5ea;
+  background: #f0f7ff;
+}
+
+.accountant-bulk__filter-pill.is-active.is-all {
+  color: #fff;
+  border-color: #475569;
+  background: #475569;
+}
+
+.accountant-bulk__filter-pill.is-active.is-passed {
+  color: #fff;
+  border-color: #198754;
+  background: #198754;
+}
+
+.accountant-bulk__filter-pill.is-active.is-warning {
+  color: #fff;
+  border-color: #d89b00;
+  background: #d89b00;
+}
+
+.accountant-bulk__filter-pill.is-active.is-failed {
+  color: #fff;
+  border-color: #c73535;
+  background: #c73535;
+}
+
+.accountant-bulk__filter-pill.is-active.is-unknown_employee {
+  color: #fff;
+  border-color: #6f42c1;
+  background: #6f42c1;
+}
+
+.accountant-bulk__filter-pill.is-active.is-processing {
+  color: #fff;
+  border-color: #2878c8;
+  background: #2878c8;
 }
 
 .accountant-bulk__list {
@@ -89,9 +196,9 @@
 
 .accountant-bulk__employee {
   display: grid;
-  grid-template-columns: minmax(8rem, auto) minmax(12rem, 1fr) minmax(12rem, 2fr);
+  grid-template-columns: auto minmax(12rem, 1.2fr) auto minmax(10rem, 1.4fr);
   align-items: center;
-  gap: 1rem;
+  gap: 0.85rem 1rem;
   width: 100%;
   padding: 0.875rem 1rem;
   border: 1px solid var(--color-border);
@@ -110,13 +217,49 @@
   box-shadow: 0 3px 12px rgb(0 0 0 / 8%);
 }
 
+.accountant-bulk__serial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #334155;
+  background: #eef2f7;
+}
+
 .accountant-bulk__employee-name {
   display: grid;
   gap: 0.2rem;
+  min-width: 0;
+}
+
+.accountant-bulk__employee-name strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .accountant-bulk__employee-name small {
   color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountant-bulk__status-pill {
+  justify-self: start;
+  white-space: nowrap;
+}
+
+.accountant-bulk__employee-meta {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .status-badge--batch-passed {
@@ -144,13 +287,48 @@
   background: #deefff;
 }
 
-@media (max-width: 800px) {
-  .accountant-bulk__progress,
+@media (max-width: 900px) {
   .accountant-bulk__employee {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      'serial name status'
+      'serial meta meta';
+  }
+
+  .accountant-bulk__serial {
+    grid-area: serial;
+  }
+
+  .accountant-bulk__employee-name {
+    grid-area: name;
+  }
+
+  .accountant-bulk__status-pill {
+    grid-area: status;
+  }
+
+  .accountant-bulk__employee-meta {
+    grid-area: meta;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 800px) {
+  .accountant-bulk__progress {
     grid-template-columns: 1fr;
   }
 
   .accountant-bulk__progress progress {
     grid-column: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .accountant-bulk__employee {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'serial name'
+      'serial status'
+      'meta meta';
   }
 }
