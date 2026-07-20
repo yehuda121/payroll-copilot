@@ -44,7 +44,7 @@ from payroll_copilot.application.use_cases.ocr_extract import (
 )
 from payroll_copilot.domain.entities import Document, DocumentExtraction
 from payroll_copilot.domain.enums import DocumentStatus, DocumentType
-from payroll_copilot.infrastructure.ocr.text_normalize import normalize_extracted_text
+from payroll_copilot.application.services.text_normalize import normalize_extracted_text
 
 if TYPE_CHECKING:
     from uuid import UUID

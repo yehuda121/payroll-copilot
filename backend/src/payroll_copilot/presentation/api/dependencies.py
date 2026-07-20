@@ -140,10 +140,15 @@ def get_upload_document_use_case(
     object_storage: S3ObjectStorage = Depends(get_object_storage),
     organization_bootstrap: OrganizationBootstrapPort = Depends(get_organization_bootstrap),
 ) -> UploadDocumentUseCase:
+    from payroll_copilot.infrastructure.config.org_resolution import (
+        SettingsOrganizationIdResolver,
+    )
+
     return UploadDocumentUseCase(
         document_repository=document_repository,
         object_storage=object_storage,
         organization_bootstrap=organization_bootstrap,
+        organization_id_resolver=SettingsOrganizationIdResolver(),
     )
 
 

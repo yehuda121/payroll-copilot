@@ -47,18 +47,16 @@ from payroll_copilot.application.use_cases.parse_payslip import (
     ParsePayslipFromOcrUseCase,
     command_from_ocr_result,
 )
-from payroll_copilot.application.validation.demo_validation_context_builder import (
-    DEMO_ORGANIZATION_ID,
-)
+from payroll_copilot.domain.seed_ids import DEMO_ORGANIZATION_ID
 from payroll_copilot.domain.entities import Document, DocumentExtraction
 from payroll_copilot.domain.enums import DocumentStatus, DocumentType
+from payroll_copilot.application.services.text_normalize import normalize_extracted_text
 from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.infrastructure.layout.hybrid_layout_provider import (
     HybridLayoutProvider,
     create_layout_provider,
 )
 from payroll_copilot.infrastructure.ocr.extraction_timing import ExtractionTimer
-from payroll_copilot.infrastructure.ocr.text_normalize import normalize_extracted_text
 
 CancelCheck = Callable[[], bool] | None
 ProgressCallback = Callable[[str, dict[str, Any] | None], None] | None

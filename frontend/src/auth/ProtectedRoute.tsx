@@ -14,6 +14,7 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
+  // Client-side role checks are UX routing only; the API enforces authorization.
   if (!allowedRoles.includes(session.user.role)) {
     return <Navigate to={getRoleHomePath(session.user.role)} replace />;
   }

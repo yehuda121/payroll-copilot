@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from payroll_copilot.domain.enums import UserRole
 from payroll_copilot.infrastructure.persistence.database import engine, get_db_session
 from payroll_copilot.presentation.api import dependencies
+from payroll_copilot.presentation.api.security import (
+    AuthPrincipal,
+    get_auth_principal,
+    require_accountant,
+    require_org_operator,
+)
 from payroll_copilot.presentation.main import app
 
 
@@ -25,6 +33,26 @@ class FakeObjectStorage:
 @pytest.fixture
 def fake_object_storage() -> FakeObjectStorage:
     return FakeObjectStorage()
+
+
+@pytest.fixture
+def auth_as_org_operator() -> AuthPrincipal:
+    """Authenticate integration clients as an org-bound accountant."""
+    principal = AuthPrincipal(
+        user_id=uuid4(),
+        role=UserRole.ACCOUNTANT.value,
+        organization_id=uuid4(),
+        employee_id=None,
+        email="integration-accountant@test.local",
+    )
+
+    async def _override() -> AuthPrincipal:
+        return principal
+
+    app.dependency_overrides[get_auth_principal] = _override
+    app.dependency_overrides[require_org_operator] = _override
+    app.dependency_overrides[require_accountant] = _override
+    return principal
 
 
 @pytest.fixture
@@ -77,7 +105,9 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 async def client_with_storage(
     client: AsyncClient,
     fake_object_storage: FakeObjectStorage,
+    auth_as_org_operator: AuthPrincipal,
 ) -> AsyncClient:
+    del auth_as_org_operator  # fixture side-effect registers auth overrides
     app.dependency_overrides[dependencies.get_object_storage] = lambda: fake_object_storage
     yield client
     app.dependency_overrides.pop(dependencies.get_object_storage, None)

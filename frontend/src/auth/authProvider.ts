@@ -1,6 +1,11 @@
 /**
  * Amazon Cognito auth provider (via backend /auth/login + /auth/refresh).
  * Keeps Cognito secrets and USER_PASSWORD_AUTH on the server.
+ *
+ * Token storage:
+ * - Access token: sessionStorage only (see access-token.ts)
+ * - Refresh token: sessionStorage (tab-scoped; not persisted in localStorage)
+ * - Session metadata (user/role): localStorage for UX bootstrap only — not used for authorization
  */
 
 import type { AuthSession, AuthUser, LoginCredentials, UserRole } from '../types/auth';
@@ -16,6 +21,7 @@ export type AuthProvider = {
 
 const SESSION_KEY = 'payroll_copilot_cognito_session';
 const REFRESH_KEY = 'payroll_copilot_refresh_token';
+const LEGACY_REFRESH_KEY = REFRESH_KEY;
 
 type TokenResponse = {
   access_token: string;
@@ -32,6 +38,8 @@ type TokenResponse = {
     full_name?: string;
   };
 };
+
+type PersistedCognitoSession = Omit<AuthSession, 'accessToken'>;
 
 function isUserRole(value: string): value is UserRole {
   return value === 'employee' || value === 'payroll_accountant' || value === 'developer_admin';
@@ -57,10 +65,24 @@ function toSession(response: TokenResponse): AuthSession {
   };
 }
 
+function loadRefreshToken(): string | null {
+  return sessionStorage.getItem(REFRESH_KEY) ?? localStorage.getItem(LEGACY_REFRESH_KEY);
+}
+
+function saveRefreshToken(token: string | null): void {
+  localStorage.removeItem(LEGACY_REFRESH_KEY);
+  if (!token) {
+    sessionStorage.removeItem(REFRESH_KEY);
+    return;
+  }
+  sessionStorage.setItem(REFRESH_KEY, token);
+}
+
 function persistSession(session: AuthSession, refreshToken?: string): void {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  const { accessToken: _accessToken, ...rest } = session;
+  localStorage.setItem(SESSION_KEY, JSON.stringify(rest satisfies PersistedCognitoSession));
   if (refreshToken) {
-    localStorage.setItem(REFRESH_KEY, refreshToken);
+    saveRefreshToken(refreshToken);
   }
   if (session.accessToken) {
     saveAccessToken(session.accessToken);
@@ -71,10 +93,10 @@ export function loadCognitoSession(): AuthSession | null {
   const raw = localStorage.getItem(SESSION_KEY);
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as AuthSession;
+    const parsed = JSON.parse(raw) as PersistedCognitoSession;
     if (parsed?.provider !== 'cognito' || !parsed.user) return null;
-    const token = loadAccessToken() ?? parsed.accessToken;
-    return token ? { ...parsed, accessToken: token } : parsed;
+    const token = loadAccessToken();
+    return token ? { ...parsed, accessToken: token } : null;
   } catch {
     localStorage.removeItem(SESSION_KEY);
     return null;
@@ -83,7 +105,7 @@ export function loadCognitoSession(): AuthSession | null {
 
 export function clearCognitoSession(): void {
   localStorage.removeItem(SESSION_KEY);
-  localStorage.removeItem(REFRESH_KEY);
+  saveRefreshToken(null);
   clearAccessToken();
 }
 
@@ -129,12 +151,13 @@ export const cognitoAuthProvider: AuthProvider = {
   },
 
   async refreshSession(): Promise<AuthSession | null> {
-    const refreshToken = localStorage.getItem(REFRESH_KEY);
+    const refreshToken = loadRefreshToken();
     const current = loadCognitoSession();
     if (!refreshToken) return null;
     try {
       const response = await apiRequest<TokenResponse>('/auth/refresh', {
         method: 'POST',
+        skipPortalAuthRefresh: true,
         body: JSON.stringify({
           refresh_token: refreshToken,
           username: current?.user.email,

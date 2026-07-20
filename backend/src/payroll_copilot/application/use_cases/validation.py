@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from uuid import UUID, uuid4
 
 from payroll_copilot.application.validation.orchestrator import ValidationOrchestrator
+from payroll_copilot.application.ports import LegalRulesLoader
 from payroll_copilot.domain.entities import (
     Department,
     Employee,
@@ -14,7 +15,6 @@ from payroll_copilot.domain.entities import (
 from payroll_copilot.domain.enums import EmploymentType, EmployeeStatus, SalaryType
 from payroll_copilot.domain.rules import ValidationContext
 from payroll_copilot.domain.value_objects import Money, PayPeriod, ValidationReport
-from payroll_copilot.infrastructure.rules.yaml_loader import YamlLegalRulesLoader
 
 
 @dataclass
@@ -31,7 +31,7 @@ class RunValidationCommand:
 class RunValidationUseCase:
     """Execute deterministic payroll validation."""
 
-    def __init__(self, rules_loader: YamlLegalRulesLoader) -> None:
+    def __init__(self, rules_loader: LegalRulesLoader) -> None:
         self._rules_loader = rules_loader
         self._orchestrator = ValidationOrchestrator()
 

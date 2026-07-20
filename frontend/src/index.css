@@ -123,3 +123,19 @@ code {
   padding-inline: 1.35rem;
   font-size: 1rem;
 }
+
+.app-error-boundary {
+  max-width: 28rem;
+  margin: 3rem auto;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.app-error-boundary__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.app-route-fallback {
+  min-height: 8rem;
+}

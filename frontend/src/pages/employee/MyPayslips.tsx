@@ -5,15 +5,13 @@ import { PortalPage } from '../../components/PortalPage';
 import { useEmployeeWorkspace } from '../../features/employee/EmployeeWorkspaceContext';
 import { useWorkspacePageCopy } from '../../hooks/useWorkspacePageCopy';
 import { mapPresentationStatus } from '../../lib/employee/presentation-status';
+import { formatMonthName } from '../../lib/formatLocale';
+import { getDisplayError } from '../../lib/getDisplayError';
 import {
   type PayrollMonthsResponse,
 } from '../../services/employeePortal';
 import { useAppLocale } from '../../hooks/useAppLocale';
 import './MyPayslips.css';
-
-function monthLabel(month: number, locale: string): string {
-  return new Intl.DateTimeFormat(locale, { month: 'long' }).format(new Date(2020, month - 1, 1));
-}
 
 function StatusBadge({ code }: { code: string }) {
   const { t } = useTranslation();
@@ -54,7 +52,7 @@ export function MyPayslipsPage() {
       setData(response);
       setYear(response.year);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('common.error'));
+      setError(getDisplayError(err, t('common.error')));
       setData(null);
     } finally {
       setLoading(false);
@@ -117,7 +115,7 @@ export function MyPayslipsPage() {
                     onClick={() => navigate(`${basePath}/payslips/${year}/${month}`)}
                   >
                     <div className="employee-month-card__head">
-                      <strong>{monthLabel(month, locale)}</strong>
+                      <strong>{formatMonthName(month, locale)}</strong>
                       <StatusBadge code={status} />
                     </div>
                     <span className="employee-month-card__meta">

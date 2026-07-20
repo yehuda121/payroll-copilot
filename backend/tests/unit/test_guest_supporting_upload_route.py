@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from jose import jwt
 
 from payroll_copilot.application.services.guest_ephemeral_store import (
     GuestEphemeralSession,
     get_guest_ephemeral_store,
     reset_guest_ephemeral_store_for_tests,
 )
+from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.presentation.main import app
 
 
@@ -20,6 +23,21 @@ def _reset_ephemeral() -> None:
     reset_guest_ephemeral_store_for_tests()
     yield
     reset_guest_ephemeral_store_for_tests()
+
+
+def _guest_auth_headers() -> dict[str, str]:
+    settings = get_settings()
+    token = jwt.encode(
+        {
+            "sub": str(uuid4()),
+            "type": "guest",
+            "exp": datetime.now(UTC) + timedelta(hours=1),
+            "iat": datetime.now(UTC),
+        },
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+    return {"Authorization": f"Bearer {token}"}
 
 
 def _seed_payslip_session() -> GuestEphemeralSession:
@@ -53,6 +71,7 @@ async def test_guest_supporting_upload_attaches_to_payslip() -> None:
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/api/v1/extraction/guest/supporting-upload",
+            headers=_guest_auth_headers(),
             files={"file": ("id.png", b"fakepng", "image/png")},
             data={
                 "document_type": "national_id",
@@ -75,6 +94,7 @@ async def test_guest_supporting_upload_rejects_unknown_type() -> None:
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/api/v1/extraction/guest/supporting-upload",
+            headers=_guest_auth_headers(),
             files={"file": ("x.pdf", b"%PDF-1.4", "application/pdf")},
             data={"document_type": "attendance"},
         )

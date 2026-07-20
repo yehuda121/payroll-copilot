@@ -65,6 +65,7 @@ def sanitize_field(field: ExtractedField, *, ocr_text: str) -> ExtractedField:
             parser_method=field.parser_method,
             warnings=list(field.warnings or []),
             normalized_value=None,
+            trust_tier=field.trust_tier,
         )
 
     if status == FieldExtractionStatus.FOUND and (value is None or value == ""):
@@ -94,6 +95,7 @@ def sanitize_field(field: ExtractedField, *, ocr_text: str) -> ExtractedField:
         parser_method=field.parser_method,
         warnings=list(field.warnings or []),
         normalized_value=field.normalized_value,
+        trust_tier=field.trust_tier,
     )
 
 

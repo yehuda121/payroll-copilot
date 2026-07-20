@@ -16,11 +16,32 @@ from payroll_copilot.application.ports.employee_audit import (
 )
 from payroll_copilot.domain.entities import Employee
 from payroll_copilot.domain.enums import EmployeeStatus, EmploymentType, SalaryType
-from payroll_copilot.infrastructure.security.field_crypto import (
-    encrypt_national_id,
+from payroll_copilot.application.services.national_id_privacy import (
     hash_national_id,
     mask_national_id,
 )
+from payroll_copilot.infrastructure.security.field_crypto import encrypt_national_id
+
+# Identity fields must use dedicated columns/API fields — never via metadata patches.
+_RESERVED_EMPLOYEE_METADATA_KEYS = frozenset({
+    "email",
+    "national_id",
+    "national_id_hash",
+    "national_id_masked",
+    "organization_id",
+    "employee_id",
+    "employee_number",
+})
+
+
+def _sanitize_employee_metadata_patch(metadata: dict[str, Any] | None) -> dict[str, Any]:
+    if not metadata:
+        return {}
+    return {
+        key: value
+        for key, value in metadata.items()
+        if key not in _RESERVED_EMPLOYEE_METADATA_KEYS
+    }
 
 
 class EmployeeConflictError(Exception):
@@ -136,7 +157,7 @@ class ManageEmployeesUseCase:
         if existing is not None:
             raise EmployeeConflictError("Employee number already exists in this organization.")
 
-        metadata = dict(command.metadata or {})
+        metadata = _sanitize_employee_metadata_patch(command.metadata)
         if command.email:
             metadata["email"] = command.email.strip()
         metadata["profile_incomplete"] = bool(command.profile_incomplete)
@@ -223,7 +244,7 @@ class ManageEmployeesUseCase:
         if command.profile_incomplete is not None:
             metadata["profile_incomplete"] = command.profile_incomplete
         if command.metadata:
-            metadata.update(command.metadata)
+            metadata.update(_sanitize_employee_metadata_patch(command.metadata))
         if command.national_id is not None and command.national_id.strip():
             nid = command.national_id.strip()
             nid_hash = hash_national_id(nid)

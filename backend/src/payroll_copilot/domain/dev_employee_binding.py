@@ -8,12 +8,10 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from payroll_copilot.application.use_cases.seed_accountant_portal import (
+from payroll_copilot.domain.seed_ids import (
+    DEMO_ORGANIZATION_ID,
     SEED_NAMESPACE,
     deterministic_employee_id,
-)
-from payroll_copilot.application.validation.demo_validation_context_builder import (
-    DEMO_ORGANIZATION_ID,
 )
 
 # Fixed auth user id for local employee portal testing (Yehuda Shmulovitz / employee #5).

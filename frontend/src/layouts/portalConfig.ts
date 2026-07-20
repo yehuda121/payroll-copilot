@@ -1,4 +1,5 @@
 import type { PortalConfig } from '../types/navigation';
+import { env } from '../config/env';
 
 export const EMPLOYEE_PORTAL: PortalConfig = {
   portalNameKey: 'employee.navigation.portalName',
@@ -22,20 +23,29 @@ export const ACCOUNTANT_PORTAL: PortalConfig = {
   ],
 };
 
+const ADMIN_NAV_CORE = [
+  { label: 'System Dashboard', path: '/admin' },
+] as const;
+
+/** Unfinished / lab surfaces — available in Vite DEV only, never in production builds. */
+const ADMIN_NAV_DEV_ONLY = [
+  { label: 'Users & Roles', path: '/admin/users' },
+  { label: 'Rule Packs', path: '/admin/rule-packs' },
+  { label: 'Department Rules', path: '/admin/department-rules' },
+  { label: 'MCP Legal Sync', path: '/admin/mcp-sync' },
+  { label: 'AI Models', path: '/admin/ai-models' },
+  { label: 'RAG Management', path: '/admin/rag' },
+  { label: 'System Configuration', path: '/admin/configuration' },
+  { label: 'Audit Logs', path: '/admin/audit-logs' },
+  { label: 'Document Lab', path: '/admin/document-lab' },
+] as const;
+
 export const ADMIN_PORTAL: PortalConfig = {
   portalName: 'Admin Portal',
   portalSubtitle: 'System configuration & compliance',
   basePath: '/admin',
   navItems: [
-    { label: 'System Dashboard', path: '/admin' },
-    { label: 'Users & Roles', path: '/admin/users' },
-    { label: 'Rule Packs', path: '/admin/rule-packs' },
-    { label: 'Department Rules', path: '/admin/department-rules' },
-    { label: 'MCP Legal Sync', path: '/admin/mcp-sync' },
-    { label: 'AI Models', path: '/admin/ai-models' },
-    { label: 'RAG Management', path: '/admin/rag' },
-    { label: 'System Configuration', path: '/admin/configuration' },
-    { label: 'Audit Logs', path: '/admin/audit-logs' },
-    { label: 'Document Lab', path: '/admin/document-lab' },
+    ...ADMIN_NAV_CORE,
+    ...(env.isDevRuntime ? [...ADMIN_NAV_DEV_ONLY] : []),
   ],
 };

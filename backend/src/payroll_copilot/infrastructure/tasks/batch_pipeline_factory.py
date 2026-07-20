@@ -1,4 +1,11 @@
-"""Infrastructure composition for the reusable batch payslip pipeline."""
+"""Infrastructure composition for the reusable batch payslip pipeline.
+
+Single composition entry used by:
+- Celery ``BatchPayslipProcessor`` (async bulk jobs)
+- Batch review/edit routes that need the same pipeline synchronously
+
+Do not duplicate OCR/parser/validation wiring elsewhere.
+"""
 
 from payroll_copilot.application.services.batch_payslip_pipeline import (
     BatchPayslipPipelineService,

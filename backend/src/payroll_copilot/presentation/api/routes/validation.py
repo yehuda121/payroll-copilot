@@ -46,13 +46,20 @@ from payroll_copilot.presentation.api.dependencies import (
     get_run_persisted_validation_use_case,
     get_validation_run_use_case,
 )
+from payroll_copilot.presentation.api.rate_limit_deps import (
+    limit_validation_by_user,
+    limit_validation_guest_by_guest,
+    limit_validation_guest_by_ip,
+)
 from payroll_copilot.presentation.api.security import (
     AuthPrincipal,
     BoundEmployeeContext,
+    GuestPrincipal,
     bind_accountant_selected_employee,
     get_auth_principal,
     require_accountant,
     require_bound_employee,
+    require_guest,
 )
 
 router = APIRouter()
@@ -195,6 +202,9 @@ def _to_response(record: ValidationRunRecord, *, locale: str) -> ValidationRunRe
 @router.post("/run", response_model=ValidationRunResponse, status_code=202)
 async def run_validation(
     request: ValidationRunRequest,
+    _: None = Depends(limit_validation_guest_by_ip),
+    __: None = Depends(limit_validation_guest_by_guest),
+    ___: GuestPrincipal = Depends(require_guest),
     use_case: RunPersistedValidationUseCase = Depends(get_run_persisted_validation_use_case),
     accept_language: str | None = Header(default=None, alias="Accept-Language"),
 ) -> ValidationRunResponse:
@@ -260,6 +270,7 @@ async def run_validation(
 @router.post("/employee/run", response_model=ValidationRunResponse, status_code=202)
 async def run_employee_validation(
     request: ValidationRunRequest,
+    _: None = Depends(limit_validation_by_user),
     bound: BoundEmployeeContext = Depends(require_bound_employee),
     validation: RunPersistedValidationUseCase = Depends(get_run_persisted_validation_use_case),
     accept_language: str | None = Header(default=None, alias="Accept-Language"),
@@ -333,6 +344,7 @@ async def run_employee_validation(
 async def run_accountant_selected_employee_validation(
     employee_number: str,
     request: ValidationRunRequest,
+    _: None = Depends(limit_validation_by_user),
     principal: AuthPrincipal = Depends(require_accountant),
     validation: RunPersistedValidationUseCase = Depends(
         get_run_persisted_validation_use_case

@@ -121,11 +121,18 @@ class AIProviderRouter:
 
     def route(self, capability: AICapability) -> AIProviderRoute:
         provider_name = self.provider_name_for(capability)
-        model = self.model_for(capability, provider_name=provider_name)
-        key = (provider_name, model)
+        return self.route_provider(capability, provider_name)
+
+    def route_provider(
+        self, capability: AICapability, provider_name: str
+    ) -> AIProviderRoute:
+        """Resolve a concrete provider by explicit name (used for optional fallbacks)."""
+        normalized = (provider_name or "").strip().lower()
+        model = self.model_for(capability, provider_name=normalized)
+        key = (normalized, model)
         provider = self._provider_cache.get(key)
         if provider is None:
-            registration = self._registry.get(provider_name)
+            registration = self._registry.get(normalized)
             if registration is None:
                 supported = ", ".join(sorted(self._registry))
                 raise ValueError(
@@ -136,7 +143,7 @@ class AIProviderRouter:
             self._provider_cache[key] = provider
         return AIProviderRoute(
             capability=capability,
-            provider_name=provider_name,
+            provider_name=normalized,
             model=model,
             provider=provider,
         )

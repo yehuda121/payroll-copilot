@@ -34,7 +34,10 @@ from payroll_copilot.application.services.candidate_evidence_validator import (
 )
 from payroll_copilot.application.services.evidence_binder import bind_evidence_candidates
 from payroll_copilot.application.services.extraction_engine import is_embedded_text_engine
-from payroll_copilot.application.services.parser_evidence import validate_structured_payslip_evidence
+from payroll_copilot.application.services.parser_evidence import (
+    apply_plausibility_checks,
+    validate_structured_payslip_evidence,
+)
 from payroll_copilot.application.services.parser_layout_context import (
     BuiltParserContext,
     ParserLayoutConfig,
@@ -43,7 +46,7 @@ from payroll_copilot.application.services.parser_layout_context import (
 from payroll_copilot.application.services.payslip_field_sanitizer import (
     sanitize_structured_payslip,
 )
-from payroll_copilot.infrastructure.ocr.text_normalize import normalize_extracted_text
+from payroll_copilot.application.services.text_normalize import normalize_extracted_text
 
 logger = logging.getLogger(__name__)
 
@@ -233,9 +236,12 @@ class ParsePayslipFromOcrUseCase:
     ) -> StructuredPayslipParse:
         if evidence_bundle and evidence_bundle.get("candidate_index"):
             # Candidate hydration is authoritative — skip OCR-text sanitizer downgrades.
-            return hydrate_and_validate_candidate_fields(
-                fields,
-                candidate_index=dict(evidence_bundle.get("candidate_index") or {}),
+            # Still run lightweight plausibility (downgrade only; never invent values).
+            return apply_plausibility_checks(
+                hydrate_and_validate_candidate_fields(
+                    fields,
+                    candidate_index=dict(evidence_bundle.get("candidate_index") or {}),
+                )
             )
 
         sanitized = sanitize_structured_payslip(fields, ocr_text=ocr_text)

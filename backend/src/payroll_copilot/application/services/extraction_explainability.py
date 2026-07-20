@@ -8,6 +8,22 @@ from __future__ import annotations
 
 from typing import Any
 
+from payroll_copilot.application.services.confidence_normalize import (
+    normalize_unit_interval_confidence,
+)
+
+
+def _normalize_association_confidence(value: object) -> object:
+    """Keep band strings; coerce numeric 0–100 scales to unit interval."""
+    if isinstance(value, str):
+        band = value.strip().lower()
+        if band in {"high", "medium", "low", "unknown"}:
+            return band
+    normalized = normalize_unit_interval_confidence(value)
+    if normalized is not None:
+        return normalized
+    return value if value not in (None, "") else "unknown"
+
 
 def build_field_evidence_map(
     structured_data: dict[str, Any] | None,
@@ -238,7 +254,9 @@ def _candidate_details(
             "label": None,
             "value": value_cell.get("text"),
             "association_strategy": "unresolved_value",
-            "association_confidence": value_cell.get("confidence") or "unknown",
+            "association_confidence": _normalize_association_confidence(
+                value_cell.get("confidence") or "unknown"
+            ),
             "bbox": (
                 list(value_cell["bbox"])
                 if isinstance(value_cell.get("bbox"), list)
@@ -292,7 +310,9 @@ def _candidate_details(
         "label": association.get("label_text"),
         "value": candidate.get("value_text"),
         "association_strategy": candidate.get("relation"),
-        "association_confidence": candidate.get("confidence"),
+        "association_confidence": _normalize_association_confidence(
+            candidate.get("confidence")
+        ),
         "bbox": bbox,
         "conflict": bool(candidate.get("conflict") or association.get("conflict")),
         "conflict_group": association.get("conflict_group"),

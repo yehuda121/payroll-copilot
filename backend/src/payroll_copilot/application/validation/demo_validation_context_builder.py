@@ -15,10 +15,10 @@ from uuid import UUID, uuid4
 from payroll_copilot.application.use_cases.validation import RunValidationCommand
 from payroll_copilot.domain.entities import Department, Employee, PayslipData
 from payroll_copilot.domain.enums import EmploymentType, EmployeeStatus, SalaryType
+from payroll_copilot.domain.seed_ids import DEMO_ORGANIZATION_ID
 from payroll_copilot.domain.value_objects import Money, PayPeriod
 
-# Fixed demo organization used until real org resolution is wired.
-DEMO_ORGANIZATION_ID = UUID("00000000-0000-4000-8000-000000000001")
+# Re-export for historical imports from this module.
 
 
 @dataclass(frozen=True, slots=True)

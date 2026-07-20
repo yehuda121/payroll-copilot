@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from payroll_copilot.application.exceptions import DocumentUploadRejectedError
+from payroll_copilot.application.ports.upload_limits import UploadSizeLimits
 from payroll_copilot.application.use_cases.documents import UploadDocumentCommand
 from payroll_copilot.domain.enums import DocumentType
-from payroll_copilot.infrastructure.config.settings import Settings
 
 _ALLOWED_MIME_TYPES: dict[DocumentType, frozenset[str]] = {
     DocumentType.PAYSLIP: frozenset({"application/pdf", "image/png", "image/jpeg"}),
@@ -35,7 +35,7 @@ _INJECTION_PATTERNS = (
 
 
 class DocumentUploadGuardrailService:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: UploadSizeLimits) -> None:
         self._settings = settings
 
     def validate(self, command: UploadDocumentCommand) -> None:

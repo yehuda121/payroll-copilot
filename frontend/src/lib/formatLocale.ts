@@ -27,6 +27,12 @@ export function formatMonthYear(year: number, month: number, locale: AppLocale):
   );
 }
 
+export function formatMonthName(month: number, locale: AppLocale | string): string {
+  return new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(
+    new Date(Date.UTC(2020, month - 1, 1)),
+  );
+}
+
 export function formatNumber(value: number, locale: AppLocale, options?: Intl.NumberFormatOptions): string {
   return new Intl.NumberFormat(locale, options).format(value);
 }

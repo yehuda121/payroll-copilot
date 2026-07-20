@@ -6,7 +6,7 @@ Graph owns routing only. Business logic lives in injected services/use cases.
 from __future__ import annotations
 
 import logging
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from langgraph.checkpoint.memory import MemorySaver
@@ -32,8 +32,8 @@ from payroll_copilot.application.use_cases.correct_guest_extraction import (
     FieldCorrection,
 )
 from payroll_copilot.application.use_cases.extract_guest_payslip import (
-    ExtractGuestPayslipCommand,
     ExtractGuestPayslipUseCase,
+    GuestPayslipExtractionCommand,
 )
 from payroll_copilot.application.use_cases.payroll_assistant import (
     AssistantChatCommand,
@@ -44,6 +44,10 @@ from payroll_copilot.application.use_cases.persisted_validation import (
     RunPersistedValidationUseCase,
 )
 from payroll_copilot.domain.assistant.types import AssistantGuardrailStatus
+from payroll_copilot.infrastructure.ai.agents.landing_workflow_state import (
+    INSUFFICIENT_INFO,
+    LandingWorkflowState,
+)
 from payroll_copilot.infrastructure.ai.agents.validation_report_store import cache_validation_report
 from payroll_copilot.infrastructure.ai.guardrails.payroll_assistant_guardrails import (
     PayrollAssistantGuardrails,
@@ -51,37 +55,6 @@ from payroll_copilot.infrastructure.ai.guardrails.payroll_assistant_guardrails i
 from payroll_copilot.infrastructure.i18n import finding_explanation, finding_message
 
 logger = logging.getLogger(__name__)
-
-INSUFFICIENT_INFO = "I don't have enough verified information."
-
-
-class LandingWorkflowState(TypedDict, total=False):
-    session_id: str
-    locale: str
-    message: str
-    files: list[dict[str, Any]]
-    intent: str
-    route: str
-    guardrail_status: str
-    rejected: bool
-    reject_reason: str
-    document_id: str | None
-    extraction_id: str | None
-    document_ids: list[str]
-    extracted_fields: list[dict[str, Any]]
-    confirmed_fields: list[dict[str, Any]]
-    validation_run_id: str | None
-    validation_report: dict[str, Any] | None
-    field_statuses: list[dict[str, Any]]
-    answer: str
-    sources: list[dict[str, str | None]]
-    phase: str
-    used_nodes: list[str]
-    explain_finding_id: str | None
-    explain_rule_id: str | None
-    confidence: float
-    requires_human_review: bool
-    interrupt_payload: dict[str, Any] | None
 
 
 class LandingWorkflowGraph:
@@ -539,7 +512,7 @@ class LandingWorkflowGraph:
         primary = files[0]
         try:
             result = await self._extract_guest.execute(
-                ExtractGuestPayslipCommand(
+                GuestPayslipExtractionCommand(
                     content=bytes(primary["content"]),
                     original_filename=str(primary["filename"]),
                     mime_type=str(primary.get("mime_type") or "application/pdf"),

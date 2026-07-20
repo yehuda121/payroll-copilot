@@ -33,6 +33,12 @@ from payroll_copilot.presentation.api.dependencies import (
     get_object_storage,
     get_upload_document_use_case,
 )
+from payroll_copilot.presentation.api.rate_limit_deps import (
+    limit_accountant_upload,
+    limit_employee_upload,
+    limit_org_operator_upload,
+)
+from payroll_copilot.presentation.api.upload_limits import read_upload_with_size_limit
 from payroll_copilot.presentation.api.security import (
     AuthPrincipal,
     BoundEmployeeContext,
@@ -40,6 +46,7 @@ from payroll_copilot.presentation.api.security import (
     get_auth_principal,
     require_accountant,
     require_bound_employee,
+    require_org_operator,
 )
 from payroll_copilot.infrastructure.storage.s3_storage import S3ObjectStorage
 
@@ -110,6 +117,8 @@ async def upload_document(
     period_year: int | None = Form(None),
     period_month: int | None = Form(None),
     document_language: str = Form("auto"),
+    _: None = Depends(limit_org_operator_upload),
+    principal: AuthPrincipal = Depends(require_org_operator),
     upload_use_case: UploadDocumentUseCase = Depends(get_upload_document_use_case),
 ) -> DocumentUploadResponse:
     settings = get_settings()
@@ -124,13 +133,7 @@ async def upload_document(
             detail="Invalid document_language: must be one of he, en, ar, auto",
         )
 
-    content = await file.read()
-    if len(content) > max_size:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File exceeds maximum size of {max_size // (1024*1024)}MB",
-        )
-
+    content = await read_upload_with_size_limit(file, max_size)
     if not content:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
 
@@ -144,9 +147,10 @@ async def upload_document(
         mime_type=file.content_type or "application/octet-stream",
         document_type=document_type,
         employee_id=parsed_employee_id,
+        organization_id=principal.organization_id,
         period_year=period_year,
         period_month=period_month,
-        uploaded_by_user_id=None,
+        uploaded_by_user_id=principal.user_id,
         document_language=normalized_language,
     )
 
@@ -202,6 +206,7 @@ async def upload_employee_owned_document(
     period_year: int | None = Form(None),
     period_month: int | None = Form(None),
     document_language: str = Form("auto"),
+    _: None = Depends(limit_employee_upload),
     bound: BoundEmployeeContext = Depends(require_bound_employee),
     upload_use_case: UploadDocumentUseCase = Depends(get_upload_document_use_case),
 ) -> DocumentUploadResponse:
@@ -247,14 +252,9 @@ async def upload_employee_owned_document(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Invalid document_language: must be one of he, en, ar, auto",
         )
-    content = await file.read()
+    content = await read_upload_with_size_limit(file, max_size)
     if not content:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
-    if len(content) > max_size:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File exceeds maximum size of {settings.max_upload_size_mb}MB",
-        )
     upload_command = UploadDocumentCommand(
         content=content,
         original_filename=file.filename or "upload",
@@ -456,6 +456,7 @@ async def upload_accountant_selected_document(
     period_year: int | None = Form(None),
     period_month: int | None = Form(None),
     document_language: str = Form("auto"),
+    _: None = Depends(limit_accountant_upload),
     principal: AuthPrincipal = Depends(require_accountant),
     upload_use_case: UploadDocumentUseCase = Depends(get_upload_document_use_case),
 ) -> DocumentUploadResponse:

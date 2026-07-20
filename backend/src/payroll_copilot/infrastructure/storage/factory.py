@@ -48,4 +48,8 @@ def create_object_storage(settings: Settings) -> S3ObjectStorage:
         secret_key=settings.s3_secret_key or None,
         use_ssl=use_ssl,
         auto_create_bucket=auto_create,
+        server_side_encryption=(
+            getattr(settings, "s3_server_side_encryption", "") or ""
+        ).strip()
+        or None,
     )

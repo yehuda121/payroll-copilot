@@ -9,6 +9,10 @@ export type RequestOptions = RequestInit & {
   auth?: boolean;
   /** Attach portal/employee JWT when true. */
   portalAuth?: boolean;
+  /** Internal: skip automatic refresh-and-retry (prevents refresh loops). */
+  skipPortalAuthRefresh?: boolean;
+  /** Internal: set after one refresh retry to prevent loops. */
+  _portalAuthRetried?: boolean;
   signal?: AbortSignal;
 };
 
@@ -61,8 +65,47 @@ async function clearSessionAndRedirectToLogin(): Promise<void> {
   window.location.replace('/login');
 }
 
+async function parseErrorResponse(response: Response): Promise<{
+  message: string;
+  code?: string;
+  details?: unknown;
+}> {
+  let message = `API request failed: ${response.status} ${response.statusText}`;
+  let code: string | undefined;
+  let details: unknown;
+  try {
+    const body = (await response.json()) as {
+      detail?: string | { code?: string; message?: string; [key: string]: unknown };
+    };
+    if (typeof body.detail === 'string') {
+      message = body.detail;
+    } else if (body.detail && typeof body.detail === 'object') {
+      details = body.detail;
+      code = body.detail.code;
+      message = body.detail.message || message;
+    }
+  } catch {
+    // Keep default message when response is not JSON.
+  }
+  return { message, code, details };
+}
+
+async function executePortalAuthRefresh(): Promise<boolean> {
+  const { cognitoAuthProvider } = await import('../auth/authProvider');
+  const refreshed = await cognitoAuthProvider.refreshSession();
+  return refreshed !== null;
+}
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { rawBody, auth = false, portalAuth = false, headers, ...init } = options;
+  const {
+    rawBody,
+    auth = false,
+    portalAuth = false,
+    skipPortalAuthRefresh = false,
+    _portalAuthRetried = false,
+    headers,
+    ...init
+  } = options;
   const locale = readStoredLocale();
 
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
@@ -85,27 +128,27 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   });
 
   if (!response.ok) {
-    let message = `API request failed: ${response.status} ${response.statusText}`;
-    let code: string | undefined;
-    let details: unknown;
-    try {
-      const body = (await response.json()) as {
-        detail?: string | { code?: string; message?: string; [key: string]: unknown };
-      };
-      if (typeof body.detail === 'string') {
-        message = body.detail;
-      } else if (body.detail && typeof body.detail === 'object') {
-        details = body.detail;
-        code = body.detail.code;
-        message = body.detail.message || message;
+    const { message, code, details } = await parseErrorResponse(response);
+
+    if (
+      portalAuth &&
+      !skipPortalAuthRefresh &&
+      !_portalAuthRetried &&
+      isAuthenticationFailure(response.status, message, code)
+    ) {
+      const refreshed = await executePortalAuthRefresh();
+      if (refreshed) {
+        return apiRequest<T>(path, {
+          ...options,
+          _portalAuthRetried: true,
+        });
       }
-    } catch {
-      // Keep default message when response is not JSON.
+      await clearSessionAndRedirectToLogin();
+      return new Promise<T>(() => undefined);
     }
 
     if (portalAuth && isAuthenticationFailure(response.status, message, code)) {
       await clearSessionAndRedirectToLogin();
-      // Navigation replaces the page; avoid surfacing token errors in UI.
       return new Promise<T>(() => undefined);
     }
 

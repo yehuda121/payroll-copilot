@@ -38,7 +38,7 @@ from payroll_copilot.application.services.employee_document_lifecycle import (
 from payroll_copilot.domain.entities import Employee
 from payroll_copilot.domain.enums import FindingSeverity, ValidationResult
 from payroll_copilot.domain.value_objects import PayPeriod
-from payroll_copilot.infrastructure.security.field_crypto import (
+from payroll_copilot.application.services.national_id_privacy import (
     hash_national_id,
     mask_national_id,
 )

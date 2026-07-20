@@ -8,14 +8,12 @@ from uuid import UUID, uuid4
 
 from payroll_copilot.application.ports.object_storage import ObjectStoragePort
 from payroll_copilot.application.ports.organization_bootstrap import OrganizationBootstrapPort
+from payroll_copilot.application.ports.organization_id import OrganizationIdResolver
 from payroll_copilot.application.ports.repositories import DocumentRepository
 from payroll_copilot.application.services.employee_document_lifecycle import (
     LIFECYCLE_UPLOADED,
     PERSISTENT_TYPES,
     build_employee_storage_key,
-)
-from payroll_copilot.application.validation.demo_validation_context_builder import (
-    DEMO_ORGANIZATION_ID,
 )
 from payroll_copilot.domain.entities import Document
 from payroll_copilot.domain.enums import DocumentStatus, DocumentType
@@ -44,15 +42,17 @@ class UploadDocumentUseCase:
         document_repository: DocumentRepository,
         object_storage: ObjectStoragePort,
         organization_bootstrap: OrganizationBootstrapPort,
+        organization_id_resolver: OrganizationIdResolver,
     ) -> None:
         self._document_repository = document_repository
         self._object_storage = object_storage
         self._organization_bootstrap = organization_bootstrap
+        self._organization_id_resolver = organization_id_resolver
 
     async def execute(self, command: UploadDocumentCommand) -> Document:
         document_id = uuid4()
         checksum = hashlib.sha256(command.content).hexdigest()
-        organization_id = command.organization_id or DEMO_ORGANIZATION_ID
+        organization_id = self._organization_id_resolver.resolve(command.organization_id)
 
         if command.employee_id is not None:
             storage_key = build_employee_storage_key(

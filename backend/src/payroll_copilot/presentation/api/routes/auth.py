@@ -3,7 +3,7 @@
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from jose import jwt
 from pydantic import BaseModel, EmailStr, Field
 
@@ -24,6 +24,10 @@ from payroll_copilot.infrastructure.auth.cognito import (
 from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.infrastructure.persistence.dynamodb.factory import get_user_store
 from payroll_copilot.infrastructure.persistence.dynamodb.user_store import UserRecord
+from payroll_copilot.presentation.api.rate_limit_deps import (
+    limit_auth_by_ip,
+    limit_guest_session_by_ip,
+)
 from payroll_copilot.presentation.api.security import (
     ensure_dev_employee_user,
     upsert_user_from_cognito_claims,
@@ -111,7 +115,10 @@ def _user_payload_from_model(user, *, claims: dict | None = None) -> dict:
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(request: LoginRequest) -> TokenResponse:
+async def login(
+    request: LoginRequest,
+    _: None = Depends(limit_auth_by_ip),
+) -> TokenResponse:
     """Authenticate with Amazon Cognito and return API tokens (same contract as before)."""
     settings = get_settings()
     if not cognito_configured(settings):
@@ -154,7 +161,10 @@ async def login(request: LoginRequest) -> TokenResponse:
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_tokens(request: RefreshRequest) -> TokenResponse:
+async def refresh_tokens(
+    request: RefreshRequest,
+    _: None = Depends(limit_auth_by_ip),
+) -> TokenResponse:
     """Refresh Cognito tokens. Keeps the same TokenResponse contract."""
     settings = get_settings()
     if not cognito_configured(settings):
@@ -188,7 +198,9 @@ async def refresh_tokens(request: RefreshRequest) -> TokenResponse:
 
 
 @router.post("/guest/session", response_model=GuestSessionResponse, status_code=201)
-async def create_guest_session() -> GuestSessionResponse:
+async def create_guest_session(
+    _: None = Depends(limit_guest_session_by_ip),
+) -> GuestSessionResponse:
     """Issue a short-lived guest token for the public landing flow (unchanged contract)."""
     settings = get_settings()
     guest_id = str(uuid4())

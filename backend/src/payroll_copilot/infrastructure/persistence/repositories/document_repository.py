@@ -1,4 +1,4 @@
-"""SQLAlchemy document repository."""
+"""SQLAlchemy document repository (legacy — DynamoDB is the runtime store)."""
 
 from __future__ import annotations
 

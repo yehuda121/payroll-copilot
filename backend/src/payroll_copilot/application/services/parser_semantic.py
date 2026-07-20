@@ -81,6 +81,7 @@ _FIELD_CONTRACT_KEYS = frozenset(
         "normalized_value",
         "edited_by_user",
         "original_value",
+        "trust_tier",
     }
 )
 

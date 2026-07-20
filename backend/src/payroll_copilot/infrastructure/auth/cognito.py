@@ -15,6 +15,7 @@ import time
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
+from uuid import UUID
 
 import boto3
 import httpx
@@ -87,6 +88,38 @@ def role_from_cognito_claims(claims: dict[str, Any]) -> str | None:
         mapped = _COGNITO_GROUP_TO_ROLE.get(str(group).strip().lower())
         if mapped:
             return mapped
+    return None
+
+
+def organization_id_from_cognito_claims(claims: dict[str, Any]) -> UUID | None:
+    """Read organization binding from Cognito custom attributes."""
+    for key in ("custom:organization_id", "organization_id", "custom:org_id"):
+        raw = claims.get(key)
+        if raw is None:
+            continue
+        value = str(raw).strip()
+        if not value:
+            continue
+        try:
+            return UUID(value)
+        except ValueError:
+            continue
+    return None
+
+
+def employee_id_from_cognito_claims(claims: dict[str, Any]) -> UUID | None:
+    """Read employee binding from Cognito custom attributes."""
+    for key in ("custom:employee_id", "employee_id"):
+        raw = claims.get(key)
+        if raw is None:
+            continue
+        value = str(raw).strip()
+        if not value:
+            continue
+        try:
+            return UUID(value)
+        except ValueError:
+            continue
     return None
 
 

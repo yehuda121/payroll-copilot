@@ -30,32 +30,25 @@ async def test_guest_session_creation(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_validation_run(
-    client_with_storage: AsyncClient,
-    mock_document_processing: None,
-) -> None:
-    upload_response = await client_with_storage.post(
+async def test_document_upload_requires_auth(client: AsyncClient) -> None:
+    response = await client.post(
         "/api/v1/documents/upload",
         files={"file": ("payslip.pdf", b"%PDF-1.4 validation", "application/pdf")},
         data={"document_type": "payslip"},
     )
-    assert upload_response.status_code == 201
-    document_id = upload_response.json()["document_id"]
-
-    response = await client_with_storage.post(
-        "/api/v1/validation/run",
-        json={"document_id": document_id},
-    )
-    assert response.status_code == 202
-    data = response.json()
-    assert data["status"] == "completed"
-    assert "findings" in data
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_legal_rules_list(client: AsyncClient) -> None:
+async def test_validation_run_requires_guest_auth(client: AsyncClient) -> None:
+    response = await client.post(
+        "/api/v1/validation/run",
+        json={"document_id": "00000000-0000-4000-8000-000000000001"},
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_legal_rules_list_requires_auth(client: AsyncClient) -> None:
     response = await client.get("/api/v1/compliance/legal-rules")
-    assert response.status_code == 200
-    rules = response.json()
-    assert len(rules) > 0
-    assert any(r["filename"] == "overtime.yaml" for r in rules)
+    assert response.status_code == 401

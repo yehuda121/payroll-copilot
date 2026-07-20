@@ -8,6 +8,7 @@ from typing import Any
 from payroll_copilot.application.ports.payslip_parser import (
     ExtractedField,
     FieldExtractionStatus,
+    FieldTrustTier,
     StructuredPayslipParse,
 )
 from payroll_copilot.application.services.payslip_field_sanitizer import source_appears_in_ocr
@@ -16,6 +17,11 @@ _EVIDENCE_ID_RE = re.compile(r"^p\d+_l\d+(?:_w\d+)?$")
 _MONEY_RE = re.compile(
     r"^\s*[-+]?\s*(?:₪|NIS|ILS|\$|€|£)?\s*(\d{1,3}(?:,\d{3})*|\d+)(?:\.(\d+))?\s*$"
 )
+_PAY_PERIOD_RE = re.compile(
+    r"^\s*(?:(\d{1,2})[/\-.](\d{4})|(\d{4})[/\-.](\d{1,2}))\s*$"
+)
+_ABSURD_MONEY_CEILING = 50_000_000.0
+_MAX_MONTHLY_HOURS = 744.0
 
 
 def is_valid_evidence_id(evidence_id: str) -> bool:
@@ -239,18 +245,20 @@ def validate_extracted_field_evidence(
     for eid in evidence_ids:
         if not is_valid_evidence_id(eid) or eid not in evidence_index:
             return ExtractedField(
-                value=field.value,
+                value=None,
                 confidence=None,
-                source_text=source_text,
+                source_text=None,
                 status=FieldExtractionStatus.UNCERTAIN,
                 edited_by_user=field.edited_by_user,
                 original_value=field.original_value,
                 evidence_ids=[],
+                candidate_ids=list(field.candidate_ids or []),
                 source_bbox=None,
-                source_page=field.source_page,
+                source_page=None,
                 parser_method=field.parser_method or "layout_llm",
                 warnings=[*warnings, f"unknown_or_invalid_evidence_id:{eid}"],
-                normalized_value=field.normalized_value,
+                normalized_value=None,
+                trust_tier=field.trust_tier,
             )
 
     texts, boxes, pages, confidences = _evidence_texts_and_boxes(evidence_ids, evidence_index)
@@ -265,34 +273,38 @@ def validate_extracted_field_evidence(
         or source_appears_in_ocr(source_text, ocr_text)
     ):
         return ExtractedField(
-            value=field.value,
+            value=None,
             confidence=None,
-            source_text=source_text,
+            source_text=None,
             status=FieldExtractionStatus.UNCERTAIN,
             edited_by_user=field.edited_by_user,
             original_value=field.original_value,
-            evidence_ids=evidence_ids,
-            source_bbox=field.source_bbox,
-            source_page=field.source_page,
+            evidence_ids=[],
+            candidate_ids=list(field.candidate_ids or []),
+            source_bbox=None,
+            source_page=None,
             parser_method=field.parser_method or "layout_llm",
             warnings=[*warnings, "source_text_not_in_evidence"],
-            normalized_value=field.normalized_value,
+            normalized_value=None,
+            trust_tier=field.trust_tier,
         )
 
     if not _values_correspond(field.value, source_text):
         return ExtractedField(
-            value=field.value,
+            value=None,
             confidence=None,
-            source_text=source_text,
+            source_text=None,
             status=FieldExtractionStatus.UNCERTAIN,
             edited_by_user=field.edited_by_user,
             original_value=field.original_value,
-            evidence_ids=evidence_ids,
-            source_bbox=field.source_bbox,
-            source_page=field.source_page,
+            evidence_ids=[],
+            candidate_ids=list(field.candidate_ids or []),
+            source_bbox=None,
+            source_page=None,
             parser_method=field.parser_method or "layout_llm",
             warnings=[*warnings, "value_not_supported_by_source_text"],
-            normalized_value=field.normalized_value,
+            normalized_value=None,
+            trust_tier=field.trust_tier,
         )
 
     # Reject digit invention: numeric value digits must come from source_text.
@@ -413,6 +425,122 @@ def employee_name_implausible_reason(value: object) -> str | None:
     return None
 
 
+def employee_id_implausible_reason(value: object) -> str | None:
+    """Flag obviously invalid ID shapes — does not run checksum validation."""
+    if value is None or value == "":
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    digits = re.sub(r"\D", "", text)
+    if digits and digits == re.sub(r"\s+", "", text) and not (5 <= len(digits) <= 12):
+        return "implausible_employee_id_length"
+    return None
+
+
+def pay_period_implausible_reason(value: object) -> str | None:
+    if value is None or value == "":
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    match = _PAY_PERIOD_RE.match(text)
+    if match is None:
+        # Free-form periods (e.g. Hebrew month names) are left alone.
+        return None
+    if match.group(1) is not None:
+        month, year = int(match.group(1)), int(match.group(2))
+    else:
+        year, month = int(match.group(3)), int(match.group(4))
+    if month < 1 or month > 12:
+        return "implausible_pay_period_month"
+    if year < 1990 or year > 2100:
+        return "implausible_pay_period_year"
+    return None
+
+
+def derive_trust_tier(field: ExtractedField) -> FieldTrustTier:
+    """Assign transparency trust metadata from provenance — never mutates value."""
+    if field.value in (None, ""):
+        return FieldTrustTier.UNKNOWN
+
+    method = (field.parser_method or "").strip().lower()
+    if method in {
+        "deterministic",
+        "regex",
+        "embedded_text",
+        "layout_association",
+    } or method.startswith("deterministic"):
+        return FieldTrustTier.DETERMINISTIC
+
+    if field.candidate_ids or field.evidence_ids:
+        return FieldTrustTier.OCR_VERIFIED
+
+    if field.source_text and field.status in {
+        FieldExtractionStatus.FOUND,
+        FieldExtractionStatus.UNCERTAIN,
+    }:
+        return FieldTrustTier.OCR_VERIFIED
+
+    if field.status in {
+        FieldExtractionStatus.FOUND,
+        FieldExtractionStatus.UNCERTAIN,
+    }:
+        return FieldTrustTier.AI_INFERRED
+
+    return FieldTrustTier.UNKNOWN
+
+
+def annotate_trust_tiers(parsed: StructuredPayslipParse) -> StructuredPayslipParse:
+    """Fill trust_tier on every field. Transparency only — no value changes."""
+    data = parsed.model_dump()
+    for key, value in list(data.items()):
+        if key in {"additional_fields", "parser_notes", "language"}:
+            continue
+        field = ExtractedField.model_validate(value)
+        data[key] = field.model_copy(
+            update={"trust_tier": derive_trust_tier(field)}
+        ).model_dump()
+
+    additional: dict[str, dict[str, Any]] = {}
+    for name, field_data in (parsed.additional_fields or {}).items():
+        field = (
+            field_data
+            if isinstance(field_data, ExtractedField)
+            else ExtractedField.model_validate(field_data)
+        )
+        additional[name] = field.model_copy(
+            update={"trust_tier": derive_trust_tier(field)}
+        ).model_dump()
+    data["additional_fields"] = additional
+    return StructuredPayslipParse.model_validate(data)
+
+
+def _flag_uncertain(
+    data: dict[str, Any],
+    field_key: str,
+    warning: str,
+    *,
+    clear_confidence: bool = False,
+    max_confidence: float | None = None,
+) -> None:
+    field = ExtractedField.model_validate(data[field_key])
+    if field.status == FieldExtractionStatus.MISSING and field.value in (None, ""):
+        return
+    warnings = list(field.warnings or [])
+    if warning not in warnings:
+        warnings.append(warning)
+    updates: dict[str, Any] = {
+        "status": FieldExtractionStatus.UNCERTAIN,
+        "warnings": warnings,
+    }
+    if clear_confidence:
+        updates["confidence"] = None
+    elif max_confidence is not None and field.confidence is not None:
+        updates["confidence"] = min(field.confidence, max_confidence)
+    data[field_key] = field.model_copy(update=updates).model_dump()
+
+
 def apply_plausibility_checks(parsed: StructuredPayslipParse) -> StructuredPayslipParse:
     """Non-corrective sanity checks — may lower confidence or mark uncertain."""
     data = parsed.model_dump()
@@ -430,18 +558,14 @@ def apply_plausibility_checks(parsed: StructuredPayslipParse) -> StructuredPaysl
     gross = _money("gross_salary")
     net = _money("net_salary")
     if gross is not None and net is not None and net > gross + 1e-6:
-        field = ExtractedField.model_validate(data["net_salary"])
-        warnings = list(field.warnings or [])
-        warnings.append("net_exceeds_gross")
-        data["net_salary"] = field.model_copy(
-            update={
-                "status": FieldExtractionStatus.UNCERTAIN,
-                "confidence": min(field.confidence or 0.0, 0.4) if field.confidence is not None else None,
-                "warnings": warnings,
-            }
-        ).model_dump()
+        _flag_uncertain(
+            data,
+            "net_salary",
+            "net_exceeds_gross",
+            max_confidence=0.4,
+        )
 
-    for money_key in (
+    money_keys = (
         "base_salary",
         "travel_expenses",
         "gross_salary",
@@ -451,33 +575,61 @@ def apply_plausibility_checks(parsed: StructuredPayslipParse) -> StructuredPaysl
         "health_tax",
         "pension_employee",
         "pension_employer",
-    ):
+        "severance",
+        "training_fund",
+        "hourly_rate",
+    )
+    for money_key in money_keys:
         amount = _money(money_key)
         if amount is not None and amount < 0:
+            _flag_uncertain(data, money_key, "negative_money_flagged")
+        elif amount is not None and amount > _ABSURD_MONEY_CEILING:
+            _flag_uncertain(data, money_key, "absurd_money_amount", max_confidence=0.35)
+        else:
             field = ExtractedField.model_validate(data[money_key])
-            warnings = list(field.warnings or [])
-            warnings.append("negative_money_flagged")
-            data[money_key] = field.model_copy(
-                update={"status": FieldExtractionStatus.UNCERTAIN, "warnings": warnings}
-            ).model_dump()
+            if (
+                field.status == FieldExtractionStatus.FOUND
+                and isinstance(field.value, str)
+                and field.value.strip()
+                and field.normalized_value is None
+                and normalize_numeric_token(field.value) is None
+            ):
+                _flag_uncertain(
+                    data,
+                    money_key,
+                    "malformed_money_value",
+                    clear_confidence=True,
+                )
 
-    # Semantic quality gate for identity display fields — never invent/replace values.
+    for hours_key in ("regular_hours", "overtime_hours"):
+        hours = _money(hours_key)
+        if hours is not None and (hours < 0 or hours > _MAX_MONTHLY_HOURS):
+            _flag_uncertain(
+                data, hours_key, "implausible_hours_value", max_confidence=0.35
+            )
+
     name_field = ExtractedField.model_validate(data["employee_name"])
     if name_field.value not in (None, "") and name_field.status != FieldExtractionStatus.MISSING:
         reason = employee_name_implausible_reason(name_field.value)
         if reason is not None:
-            warnings = list(name_field.warnings or [])
-            if reason not in warnings:
-                warnings.append(reason)
-            data["employee_name"] = name_field.model_copy(
-                update={
-                    "status": FieldExtractionStatus.UNCERTAIN,
-                    "confidence": None,
-                    "warnings": warnings,
-                }
-            ).model_dump()
+            _flag_uncertain(data, "employee_name", reason, clear_confidence=True)
 
-    return StructuredPayslipParse.model_validate(data)
+    id_field = ExtractedField.model_validate(data["employee_id"])
+    if id_field.value not in (None, "") and id_field.status != FieldExtractionStatus.MISSING:
+        reason = employee_id_implausible_reason(id_field.value)
+        if reason is not None:
+            _flag_uncertain(data, "employee_id", reason, clear_confidence=True)
+
+    period_field = ExtractedField.model_validate(data["pay_period"])
+    if (
+        period_field.value not in (None, "")
+        and period_field.status != FieldExtractionStatus.MISSING
+    ):
+        reason = pay_period_implausible_reason(period_field.value)
+        if reason is not None:
+            _flag_uncertain(data, "pay_period", reason, clear_confidence=True)
+
+    return annotate_trust_tiers(StructuredPayslipParse.model_validate(data))
 
 
 def validate_structured_payslip_evidence(

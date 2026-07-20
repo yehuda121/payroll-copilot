@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from payroll_copilot.application.services.manual_review_queue import get_manual_review_queue
+from payroll_copilot.presentation.api.security import AuthPrincipal, require_accountant
 
 router = APIRouter()
 
@@ -19,14 +20,21 @@ class ResolveReviewRequest(BaseModel):
 
 
 @router.get("")
-async def list_manual_review(pending_only: bool = True) -> list[dict]:
+async def list_manual_review(
+    pending_only: bool = True,
+    _: AuthPrincipal = Depends(require_accountant),
+) -> list[dict]:
     queue = get_manual_review_queue()
     items = queue.list_pending() if pending_only else queue.list_all()
     return [item.to_dict() for item in items]
 
 
 @router.post("/{item_id}/resolve")
-async def resolve_manual_review(item_id: str, body: ResolveReviewRequest) -> dict:
+async def resolve_manual_review(
+    item_id: str,
+    body: ResolveReviewRequest,
+    _: AuthPrincipal = Depends(require_accountant),
+) -> dict:
     queue = get_manual_review_queue()
     item = queue.resolve(item_id, status=body.status, notes=body.notes)
     if item is None:

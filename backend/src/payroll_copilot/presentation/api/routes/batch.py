@@ -6,7 +6,6 @@ from dataclasses import replace
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
-from pydantic import BaseModel, Field
 
 from payroll_copilot.application.exceptions import (
     ConfirmationBlockedError,
@@ -61,106 +60,29 @@ from payroll_copilot.infrastructure.tasks.celery_app import process_bulk_payslip
 from payroll_copilot.presentation.api.dependencies import (
     get_run_persisted_validation_use_case,
 )
+from payroll_copilot.presentation.api.rate_limit_deps import limit_accountant_upload
+from payroll_copilot.presentation.api.upload_limits import read_upload_with_size_limit
 from payroll_copilot.presentation.api.security import (
     AuthPrincipal,
     bind_accountant_selected_employee,
     require_accountant,
 )
 
+from payroll_copilot.presentation.api.routes.batch_schemas import (
+    BatchExtractedItemResponse,
+    BatchItemResolutionRequest,
+    BatchItemReviewResponse,
+    BatchJobResponse,
+    BatchJobStatusResponse,
+    BatchPublishResponse,
+    BatchReportResponse,
+    BatchReviewCorrectionRequest,
+    StageProgressResponse,
+)
+
+
 router = APIRouter()
 
-
-class BatchJobResponse(BaseModel):
-    batch_job_id: str
-    status: str
-
-
-class StageProgressResponse(BaseModel):
-    key: str
-    label: str
-    status: str
-    detail: str | None = None
-
-
-class BatchExtractedItemResponse(BaseModel):
-    id: str
-    slip_index: int
-    status: str
-    employee_number: str | None = None
-    employee_name: str | None = None
-    document_id: str | None = None
-    national_id_masked: str | None = None
-    payroll_year: int | None = None
-    payroll_month: int | None = None
-    warnings: int = 0
-    critical_issues: int = 0
-    processing_stage: str = "queued"
-    validation_run_id: str | None = None
-    review_status: str = "pending_review"
-    publication_status: str = "draft"
-    error_message: str | None = None
-    resolution_status: str | None = None
-
-
-class BatchJobStatusResponse(BaseModel):
-    id: str
-    batch_job_id: str | None = None
-    status: str
-    current_stage: str = "upload"
-    total_slips: int = 0
-    processed_slips: int = 0
-    failed_slips: int = 0
-    progress_percent: float = 0.0
-    source_filename: str | None = None
-    error_message: str | None = None
-    report_summary: dict[str, int] = Field(default_factory=dict)
-    stages: list[StageProgressResponse] = Field(default_factory=list)
-    items: list[BatchExtractedItemResponse] = Field(default_factory=list)
-    updated_at: str | None = None
-    created_at: str | None = None
-
-
-class BatchReportResponse(BaseModel):
-    summary: dict[str, int]
-    items: list[BatchExtractedItemResponse] = Field(default_factory=list)
-
-
-class BatchItemResolutionRequest(BaseModel):
-    action: str = Field(pattern="^(ignore|edit_national_id|attach_employee)$")
-    national_id: str | None = Field(default=None, min_length=5, max_length=32)
-    employee_number: str | None = Field(default=None, min_length=1, max_length=50)
-
-
-class BatchPublishResponse(BaseModel):
-    document_id: str
-    employee_number: str
-    payroll_year: int
-    payroll_month: int
-    published_at: str
-    validation_run_id: str
-    publication_status: str = "published"
-
-
-class BatchReviewCorrection(BaseModel):
-    key: str = Field(min_length=1, max_length=200)
-    value: object | None = None
-    clear: bool = False
-
-
-class BatchReviewCorrectionRequest(BaseModel):
-    corrections: list[BatchReviewCorrection] = Field(default_factory=list)
-
-
-class BatchItemReviewResponse(BaseModel):
-    item: BatchExtractedItemResponse
-    document_id: str
-    original_filename: str
-    uploaded_at: str | None = None
-    fields: list[dict] = Field(default_factory=list)
-    extraction_id: str | None = None
-    extraction_version: int | None = None
-    validation_history: list[dict] = Field(default_factory=list)
-    explainability_enabled: bool = False
 
 
 def _require_batch_item(
@@ -187,15 +109,17 @@ def _require_batch_item(
 @router.post("/payslips", response_model=BatchJobResponse, status_code=202)
 async def upload_bulk_payslips(
     file: UploadFile = File(...),
+    _: None = Depends(limit_accountant_upload),
     principal: AuthPrincipal = Depends(require_accountant),
 ) -> BatchJobResponse:
     batch_job_id = str(uuid4())
     document_id = str(uuid4())
 
-    content = await file.read()
+    settings = get_settings()
+    max_size = settings.max_bulk_pdf_size_mb * 1024 * 1024
+    content = await read_upload_with_size_limit(file, max_size)
     from payroll_copilot.infrastructure.storage.factory import create_object_storage
 
-    settings = get_settings()
     try:
         DocumentUploadGuardrailService(settings).validate(
             UploadDocumentCommand(

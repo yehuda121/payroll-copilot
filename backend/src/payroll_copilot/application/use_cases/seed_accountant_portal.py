@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from typing import Any
-from uuid import UUID, uuid5, NAMESPACE_URL
+from uuid import UUID
 
 from payroll_copilot.application.ports.employee_audit import (
     AuditLogEntry,
@@ -23,9 +23,6 @@ from payroll_copilot.application.ports.repositories import (
     DocumentExtractionRepository,
     DocumentRepository,
 )
-from payroll_copilot.application.validation.demo_validation_context_builder import (
-    DEMO_ORGANIZATION_ID,
-)
 from payroll_copilot.domain.entities import Document, Employee
 from payroll_copilot.domain.enums import (
     DocumentStatus,
@@ -34,21 +31,26 @@ from payroll_copilot.domain.enums import (
     EmploymentType,
     SalaryType,
 )
-from payroll_copilot.domain.value_objects import PayPeriod
-from payroll_copilot.infrastructure.persistence.dynamodb.bootstrap import (
-    DynamoOrganizationWorkspaceBootstrap,
+from payroll_copilot.domain.seed_ids import (
+    DEMO_ORGANIZATION_ID,
+    SEED_NAMESPACE,
+    deterministic_document_id,
+    deterministic_employee_id,
 )
-from payroll_copilot.infrastructure.security.field_crypto import (
-    encrypt_national_id,
+from payroll_copilot.domain.value_objects import PayPeriod
+from payroll_copilot.application.services.national_id_privacy import (
     hash_national_id,
     mask_national_id,
 )
+from payroll_copilot.infrastructure.persistence.dynamodb.bootstrap import (
+    DynamoOrganizationWorkspaceBootstrap,
+)
+from payroll_copilot.infrastructure.security.field_crypto import encrypt_national_id
 
 logger = logging.getLogger(__name__)
 
 DATASET_ID = "accountant_portal_seed_v1"
 DATASET_VERSION = "1.0"
-SEED_NAMESPACE = uuid5(NAMESPACE_URL, "payroll-copilot:accountant-portal-seed")
 
 _DEFAULT_DATASET_CANDIDATES = (
     Path(__file__).resolve().parents[4] / "tests" / "fixtures" / "data" / "accountant_portal_seed.json",
@@ -96,14 +98,6 @@ def load_dataset(path: Path | None = None) -> dict[str, Any]:
             f"Unexpected dataset_id {payload.get('dataset_id')!r}; expected {DATASET_ID!r}."
         )
     return payload
-
-
-def deterministic_employee_id(national_id: str) -> UUID:
-    return uuid5(SEED_NAMESPACE, f"employee:{''.join(ch for ch in national_id if ch.isalnum())}")
-
-
-def deterministic_document_id(document_key: str) -> UUID:
-    return uuid5(SEED_NAMESPACE, f"document:{document_key}")
 
 
 def _repo_relative_fixture_path(fixture_path: str, *, repo_root: Path) -> Path:

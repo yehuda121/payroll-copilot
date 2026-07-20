@@ -62,6 +62,8 @@ class Settings(BaseSettings):
     s3_use_ssl: bool = True
     # Auto-create is honored only for custom endpoints (MinIO). Always false for Amazon S3.
     s3_auto_create_bucket: bool = False
+    # ServerSideEncryption on PutObject (AES256). Empty disables the header.
+    s3_server_side_encryption: str = "AES256"
 
     # Local-vs-Docker service resolution. When auto-fallback is enabled and the
     # configured host is unreachable (e.g. Docker hostname `redis`/`minio` while the
@@ -110,6 +112,8 @@ class Settings(BaseSettings):
     model_provider: str = "bedrock"
     # Capability-specific routes. Empty values preserve MODEL_PROVIDER behavior.
     payslip_extraction_provider: str = ""
+    # Optional secondary provider when primary is unavailable (empty = disabled).
+    payslip_extraction_fallback_provider: str = ""
     document_extraction_provider: str = ""
     assistant_provider: str = ""
     employee_chat_provider: str = ""
@@ -214,6 +218,24 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = 50
     max_bulk_pdf_size_mb: int = 200
 
+    # Rate limiting — enforced automatically in production (`APP_ENV=production|prod`).
+    # Set RATE_LIMIT_ENABLED=true/false to override. Dev defaults to disabled.
+    rate_limit_enabled: bool | None = None
+    rate_limit_guest_uploads_per_hour: int = 5
+    rate_limit_employee_uploads_per_hour: int = 20
+    rate_limit_accountant_uploads_per_hour: int = 100
+    rate_limit_auth_per_minute_per_ip: int = 20
+    rate_limit_guest_session_per_hour_per_ip: int = 30
+    rate_limit_guest_extract_per_hour_per_ip: int = 10
+    rate_limit_validation_per_hour_per_ip: int = 60
+    rate_limit_validation_per_hour_per_user: int = 60
+    rate_limit_ocr_per_hour_per_ip: int = 30
+    rate_limit_ocr_per_hour_per_user: int = 60
+    rate_limit_parser_per_hour_per_ip: int = 30
+    rate_limit_parser_per_hour_per_user: int = 60
+    rate_limit_chat_per_hour_per_ip: int = 30
+    rate_limit_chat_per_hour_per_user: int = 60
+
     rules_config_path: str = "config/rules"
     legal_rules_path: str = "config/rules/labor_law"
     department_rules_path: str = "config/rules/departments"
@@ -241,6 +263,12 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def rate_limit_enforced(self) -> bool:
+        if self.rate_limit_enabled is not None:
+            return self.rate_limit_enabled
+        return self.app_env.strip().lower() in {"production", "prod"}
 
     @property
     def database_url_str(self) -> str:

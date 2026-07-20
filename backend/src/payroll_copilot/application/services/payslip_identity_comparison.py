@@ -11,7 +11,7 @@ import unicodedata
 from dataclasses import dataclass, field
 from typing import Any
 
-from payroll_copilot.infrastructure.security.field_crypto import mask_national_id
+from payroll_copilot.application.services.national_id_privacy import mask_national_id
 
 # Below this confidence (when status is FOUND), treat as uncertain — never as mismatch alone.
 LOW_CONFIDENCE_THRESHOLD = 0.7

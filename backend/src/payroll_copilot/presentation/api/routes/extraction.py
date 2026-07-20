@@ -5,7 +5,6 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from pydantic import BaseModel, Field
 
 from payroll_copilot.infrastructure.persistence.dynamodb.factory import (
     get_audit_log_repository,
@@ -49,7 +48,6 @@ from payroll_copilot.application.use_cases.extract_employee_payslip import (
     ExtractEmployeePayslipUseCase,
 )
 from payroll_copilot.application.use_cases.extract_guest_payslip import (
-    ExtractedFieldView,
     ExtractGuestPayslipUseCase,
     GuestPayslipExtractionCommand,
 )
@@ -64,13 +62,43 @@ from payroll_copilot.presentation.api.dependencies import (
     get_employee_document_workspace_use_case,
     get_extract_guest_payslip_use_case,
 )
+from payroll_copilot.presentation.api.rate_limit_deps import (
+    limit_accountant_upload,
+    limit_employee_upload,
+    limit_guest_extract_by_guest,
+    limit_guest_extract_by_ip,
+    limit_guest_upload_by_ip,
+)
+from payroll_copilot.presentation.api.upload_limits import read_upload_with_size_limit
 from payroll_copilot.presentation.api.security import (
     AuthPrincipal,
     BoundEmployeeContext,
+    GuestPrincipal,
     bind_accountant_selected_employee,
     require_accountant,
     require_bound_employee,
+    require_guest,
 )
+
+from payroll_copilot.presentation.api.routes.extraction_schemas import (
+    ALLOWED_EXTRACTION_LANGUAGES,
+    ConfirmEmployeeExtractionRequest,
+    ConfirmGuestExtractionRequest,
+    ConfirmGuestExtractionResponse,
+    CorrectGuestExtractionRequest,
+    EmployeeDocumentFormResponse,
+    EmployeePayslipExtractionResponse,
+    FieldCorrectionRequest,
+    GuestPayslipExtractionResponse,
+    GuestSupportingUploadResponse,
+    SaveEmployeeDocumentFormRequest,
+    comparison_response,
+    employee_document_form_response,
+    field_from_payload,
+    field_response,
+    parse_uuid,
+)
+
 
 router = APIRouter()
 _upload_guardrail = DocumentUploadGuardrailService(get_settings())
@@ -90,162 +118,6 @@ async def _require_employee_visible_document(
             detail={"code": "document_not_found", "message": "Document not found"},
         )
 
-_ALLOWED_LANGUAGES = frozenset({"he", "en", "ar", "auto"})
-
-class ExtractedFieldResponse(BaseModel):
-    key: str
-    value: object | None = None
-    confidence: float | None = None
-    source_text: str | None = None
-    status: str
-    edited_by_user: bool = False
-    original_value: object | None = None
-
-class GuestPayslipExtractionResponse(BaseModel):
-    document_id: str
-    extraction_id: str
-    extraction_version: int | None = None
-    ocr_status: str
-    parser_status: str
-    language: str
-    ocr_engine: str | None = None
-    parser_model: str | None = None
-    warnings: list[str] = Field(default_factory=list)
-    fields: list[ExtractedFieldResponse] = Field(default_factory=list)
-    error_message: str | None = None
-
-class ComparisonFieldResponse(BaseModel):
-    key: str
-    status: str
-    extracted_display: str | None = None
-    expected_display: str | None = None
-    severity: str
-    blocks_confirmation: bool = False
-    explanation_code: str | None = None
-
-class IdentityCheckResponse(BaseModel):
-    overall: str
-    blocks_confirmation: bool
-    fields: list[ComparisonFieldResponse] = Field(default_factory=list)
-
-class PeriodCheckResponse(BaseModel):
-    status: str
-    blocks_confirmation: bool
-    selected_year: int
-    selected_month: int
-    extracted_year: int | None = None
-    extracted_month: int | None = None
-    explanation_code: str | None = None
-
-class EmployeePayslipExtractionResponse(GuestPayslipExtractionResponse):
-    identity_check: IdentityCheckResponse
-    period_check: PeriodCheckResponse
-    blocks_confirmation: bool = False
-    document_version: int | None = None
-
-class FieldCorrectionRequest(BaseModel):
-    key: str
-    value: object | None = None
-    clear: bool = False
-
-class CorrectGuestExtractionRequest(BaseModel):
-    corrections: list[FieldCorrectionRequest] = Field(default_factory=list)
-
-
-class EmployeeDocumentFormFieldRequest(BaseModel):
-    key: str
-    value: object | None = None
-    source_text: str | None = None
-    original_value: object | None = None
-
-
-class SaveEmployeeDocumentFormRequest(BaseModel):
-    fields: list[EmployeeDocumentFormFieldRequest] = Field(default_factory=list)
-
-
-class EmployeeDocumentFormResponse(BaseModel):
-    document_id: str
-    extraction_id: str
-    extraction_version: int
-    document_type: str
-    original_filename: str
-    uploaded_at: str | None = None
-    status: str
-    fields: list[ExtractedFieldResponse] = Field(default_factory=list)
-
-
-class DynamicDocumentEntryRequest(BaseModel):
-    """Document-first review row from the guest landing UI (optional on confirm)."""
-
-    id: str = ""
-    key: str = ""
-    value: object | None = None
-    confidence: float | None = None
-    page: int | None = None
-    source: str = "ocr"
-    source_text: str | None = None
-    section: str | None = None
-    kind: str | None = None
-    table_id: str | None = None
-    row_index: int | None = None
-    column: str | None = None
-
-
-class ConfirmGuestExtractionRequest(BaseModel):
-    """Guest confirm body — matches frontend `confirmGuestExtraction` contract."""
-
-    entries: list[DynamicDocumentEntryRequest] | None = None
-
-
-class ConfirmGuestExtractionResponse(BaseModel):
-    document_id: str
-    extraction_id: str
-    status: str
-
-def _field_response(field: ExtractedFieldView) -> ExtractedFieldResponse:
-    return ExtractedFieldResponse(
-        key=field.key,
-        value=field.value,
-        confidence=field.confidence,
-        source_text=field.source_text,
-        status=field.status,
-        edited_by_user=getattr(field, "edited_by_user", False),
-        original_value=getattr(field, "original_value", None),
-    )
-
-def _field_from_payload(key: str, payload: object) -> ExtractedFieldResponse:
-    if not isinstance(payload, dict):
-        return ExtractedFieldResponse(key=key, value=payload, status="MISSING")
-    status = str(payload.get("status") or "MISSING").upper()
-    conf = payload.get("confidence")
-    confidence: float | None
-    try:
-        confidence = float(conf) if conf is not None and conf != "" else None
-        if confidence is not None and (confidence < 0 or confidence > 1):
-            confidence = None
-    except (TypeError, ValueError):
-        confidence = None
-    if status == "MISSING":
-        confidence = None
-    return ExtractedFieldResponse(
-        key=key,
-        value=payload.get("value"),
-        confidence=confidence,
-        source_text=payload.get("source_text"),
-        status=status,
-        edited_by_user=bool(payload.get("edited_by_user", False)),
-        original_value=payload.get("original_value"),
-    )
-
-def _parse_uuid(value: str, field_name: str) -> UUID:
-    try:
-        return UUID(value)
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Invalid {field_name}: must be a valid UUID",
-        ) from exc
-
 @router.post(
     "/guest/payslip-extract",
     response_model=GuestPayslipExtractionResponse,
@@ -254,6 +126,9 @@ def _parse_uuid(value: str, field_name: str) -> UUID:
 async def extract_guest_payslip(
     file: UploadFile = File(...),
     language: str = Form("auto"),
+    _: None = Depends(limit_guest_extract_by_ip),
+    __: None = Depends(limit_guest_extract_by_guest),
+    ___: GuestPrincipal = Depends(require_guest),
     use_case: ExtractGuestPayslipUseCase = Depends(get_extract_guest_payslip_use_case),
 ) -> GuestPayslipExtractionResponse:
     """Upload a payslip, run OCR + AI parser, persist results, return fields.
@@ -263,7 +138,7 @@ async def extract_guest_payslip(
     settings = get_settings()
     max_size = settings.max_upload_size_mb * 1024 * 1024
     normalized_language = language.strip().lower()
-    if normalized_language not in _ALLOWED_LANGUAGES:
+    if normalized_language not in ALLOWED_EXTRACTION_LANGUAGES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
@@ -272,19 +147,11 @@ async def extract_guest_payslip(
             },
         )
 
-    content = await file.read()
+    content = await read_upload_with_size_limit(file, max_size)
     if not content:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "empty_document", "message": "Empty file"},
-        )
-    if len(content) > max_size:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail={
-                "code": "file_too_large",
-                "message": f"File exceeds maximum size of {settings.max_upload_size_mb}MB",
-            },
         )
 
     filename = file.filename or "payslip"
@@ -328,15 +195,10 @@ async def extract_guest_payslip(
         ocr_engine=result.ocr_engine,
         parser_model=result.parser_model,
         warnings=result.warnings,
-        fields=[_field_response(field) for field in result.fields],
+        fields=[field_response(field) for field in result.fields],
         error_message=result.error_message,
     )
 
-
-class GuestSupportingUploadResponse(BaseModel):
-    document_id: str
-    document_type: str
-    status: str
 
 
 @router.post(
@@ -348,6 +210,9 @@ async def upload_guest_supporting(
     file: UploadFile = File(...),
     document_type: str = Form(...),
     payslip_document_id: str | None = Form(None),
+    _: None = Depends(limit_guest_upload_by_ip),
+    __: None = Depends(limit_guest_extract_by_guest),
+    ___: GuestPrincipal = Depends(require_guest),
 ) -> GuestSupportingUploadResponse:
     """Store a guest supporting document (national ID / contract) ephemerally.
 
@@ -370,19 +235,11 @@ async def upload_guest_supporting(
 
     settings = get_settings()
     max_size = settings.max_upload_size_mb * 1024 * 1024
-    content = await file.read()
+    content = await read_upload_with_size_limit(file, max_size)
     if not content:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "empty_document", "message": "Empty file"},
-        )
-    if len(content) > max_size:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail={
-                "code": "file_too_large",
-                "message": f"File exceeds maximum size of {settings.max_upload_size_mb}MB",
-            },
         )
 
     filename = file.filename or "supporting"
@@ -404,7 +261,7 @@ async def upload_guest_supporting(
 
     payslip_id: UUID | None = None
     if payslip_document_id:
-        payslip_id = _parse_uuid(payslip_document_id, "payslip_document_id")
+        payslip_id = parse_uuid(payslip_document_id, "payslip_document_id")
 
     from payroll_copilot.application.services.guest_ephemeral_store import get_guest_ephemeral_store
 
@@ -439,6 +296,7 @@ async def upload_guest_supporting(
 async def confirm_guest_extraction(
     document_id: str,
     request: ConfirmGuestExtractionRequest | None = None,
+    _: GuestPrincipal = Depends(require_guest),
     use_case: ExtractGuestPayslipUseCase = Depends(get_extract_guest_payslip_use_case),
 ) -> ConfirmGuestExtractionResponse:
     """Confirm reviewed guest extraction fields for ephemeral validation.
@@ -447,7 +305,7 @@ async def confirm_guest_extraction(
     the Document Model, maps to canonical structured_data, and sets confirmation_status.
     Does not write permanent S3/DB (same rules as ``confirm_ephemeral_session``).
     """
-    parsed_id = _parse_uuid(document_id, "document_id")
+    parsed_id = parse_uuid(document_id, "document_id")
     body = request or ConfirmGuestExtractionRequest()
     entries_payload: list[dict] | None = None
     if body.entries is not None:
@@ -482,10 +340,11 @@ async def confirm_guest_extraction(
 async def correct_guest_extraction(
     document_id: str,
     request: CorrectGuestExtractionRequest,
+    _: GuestPrincipal = Depends(require_guest),
     use_case: CorrectGuestExtractionUseCase = Depends(get_correct_guest_extraction_use_case),
 ) -> GuestPayslipExtractionResponse:
     """Persist user review edits as a new extraction version (does not run validation)."""
-    parsed_id = _parse_uuid(document_id, "document_id")
+    parsed_id = parse_uuid(document_id, "document_id")
     if not request.corrections:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -514,49 +373,9 @@ async def correct_guest_extraction(
         language=result.language,
         ocr_engine=result.ocr_engine,
         parser_model=result.parser_model,
-        fields=[_field_from_payload(item["key"], item) for item in result.fields],
+        fields=[field_from_payload(item["key"], item) for item in result.fields],
         warnings=result.warnings,
         error_message=None,
-    )
-
-def _comparison_response(comparison) -> tuple[IdentityCheckResponse, PeriodCheckResponse]:
-    identity = IdentityCheckResponse(
-        overall=comparison.identity_check.overall,
-        blocks_confirmation=comparison.identity_check.blocks_confirmation,
-        fields=[
-            ComparisonFieldResponse(**field)
-            for field in comparison.identity_check.to_dict()["fields"]
-        ],
-    )
-    period = PeriodCheckResponse(**comparison.period_check.to_dict())
-    return identity, period
-
-
-def _employee_document_form_response(result) -> EmployeeDocumentFormResponse:
-    fields = []
-    for field in result.fields:
-        fields.append(
-            ExtractedFieldResponse(
-                key=str(field.get("key") or ""),
-                value=field.get("effective_value"),
-                confidence=field.get("confidence"),
-                source_text=field.get("source_text"),
-                status=str(field.get("extraction_status") or "MISSING"),
-                edited_by_user=bool(field.get("edited_by_employee")),
-                original_value=field.get("extracted_value"),
-            )
-        )
-    document = result.document
-    extraction = result.extraction
-    return EmployeeDocumentFormResponse(
-        document_id=str(document.id),
-        extraction_id=str(extraction.id),
-        extraction_version=extraction.extraction_version,
-        document_type=document.document_type.value,
-        original_filename=document.original_filename,
-        uploaded_at=document.created_at.isoformat() if document.created_at else None,
-        status=document.status.value,
-        fields=fields,
     )
 
 
@@ -569,6 +388,7 @@ async def extract_employee_document(
     file: UploadFile = File(...),
     document_type: DocumentType = Form(...),
     language: str = Form("auto"),
+    _: None = Depends(limit_employee_upload),
     bound: BoundEmployeeContext = Depends(require_bound_employee),
     use_case: EmployeeDocumentWorkspaceUseCase = Depends(
         get_employee_document_workspace_use_case
@@ -588,7 +408,7 @@ async def extract_employee_document(
             },
         )
     normalized_language = language.strip().lower()
-    if normalized_language not in _ALLOWED_LANGUAGES:
+    if normalized_language not in ALLOWED_EXTRACTION_LANGUAGES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
@@ -596,20 +416,13 @@ async def extract_employee_document(
                 "message": "Invalid document language.",
             },
         )
-    content = await file.read()
     settings = get_settings()
+    max_size = settings.max_upload_size_mb * 1024 * 1024
+    content = await read_upload_with_size_limit(file, max_size)
     if not content:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "empty_document", "message": "Empty file"},
-        )
-    if len(content) > settings.max_upload_size_mb * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail={
-                "code": "file_too_large",
-                "message": f"File exceeds maximum size of {settings.max_upload_size_mb}MB",
-            },
         )
     command = UploadDocumentCommand(
         content=content,
@@ -642,7 +455,7 @@ async def extract_employee_document(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": exc.code, "message": exc.message},
         ) from exc
-    return _employee_document_form_response(result)
+    return employee_document_form_response(result)
 
 
 @router.get(
@@ -658,7 +471,7 @@ async def get_employee_document_form(
 ) -> EmployeeDocumentFormResponse:
     try:
         result = await use_case.get_form(
-            document_id=_parse_uuid(document_id, "document_id"),
+            document_id=parse_uuid(document_id, "document_id"),
             organization_id=bound.employee.organization_id,
             employee_id=bound.employee.id,
         )
@@ -670,7 +483,7 @@ async def get_employee_document_form(
                 "message": "Digital Form not found.",
             },
         ) from exc
-    return _employee_document_form_response(result)
+    return employee_document_form_response(result)
 
 
 @router.put(
@@ -687,7 +500,7 @@ async def save_employee_document_form(
 ) -> EmployeeDocumentFormResponse:
     try:
         result = await use_case.save_form(
-            document_id=_parse_uuid(document_id, "document_id"),
+            document_id=parse_uuid(document_id, "document_id"),
             organization_id=bound.employee.organization_id,
             employee_id=bound.employee.id,
             user_id=bound.principal.user_id,
@@ -701,7 +514,7 @@ async def save_employee_document_form(
                 "message": "Digital Form not found.",
             },
         ) from exc
-    return _employee_document_form_response(result)
+    return employee_document_form_response(result)
 
 
 @router.put(
@@ -745,7 +558,7 @@ async def save_employee_document_form_by_type(
                 "message": "Digital Form not found.",
             },
         ) from tip_exc
-    return _employee_document_form_response(result)
+    return employee_document_form_response(result)
 
 
 @router.post(
@@ -760,6 +573,7 @@ async def extract_employee_payslip(
     period_year: int = Form(...),
     period_month: int = Form(...),
     confirm_new_version: bool = Form(False),
+    _: None = Depends(limit_employee_upload),
     bound: BoundEmployeeContext = Depends(require_bound_employee),
     guest_use_case: ExtractGuestPayslipUseCase = Depends(get_extract_guest_payslip_use_case),
 ) -> EmployeePayslipExtractionResponse:
@@ -772,7 +586,7 @@ async def extract_employee_payslip(
     settings = get_settings()
     max_size = settings.max_upload_size_mb * 1024 * 1024
     normalized_language = language.strip().lower()
-    if normalized_language not in _ALLOWED_LANGUAGES:
+    if normalized_language not in ALLOWED_EXTRACTION_LANGUAGES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
@@ -783,7 +597,7 @@ async def extract_employee_payslip(
 
     source_document_id: UUID | None = None
     if document_id:
-        source_document_id = _parse_uuid(document_id, "document_id")
+        source_document_id = parse_uuid(document_id, "document_id")
         existing_doc = await get_document_repository().get_by_id(source_document_id)
         if (
             existing_doc is None
@@ -818,19 +632,11 @@ async def extract_employee_payslip(
                     "message": "Provide a file or document_id.",
                 },
             )
-        content = await file.read()
+        content = await read_upload_with_size_limit(file, max_size)
         if not content:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail={"code": "empty_document", "message": "Empty file"},
-            )
-        if len(content) > max_size:
-            raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail={
-                    "code": "file_too_large",
-                    "message": f"File exceeds maximum size of {settings.max_upload_size_mb}MB",
-                },
             )
         filename = file.filename or "payslip"
         mime_type = file.content_type or "application/octet-stream"
@@ -889,7 +695,7 @@ async def extract_employee_payslip(
             detail={"code": tip_exc.code, "message": tip_exc.message},
         ) from tip_exc
 
-    identity, period = _comparison_response(result.comparison)
+    identity, period = comparison_response(result.comparison)
     return EmployeePayslipExtractionResponse(
         document_id=str(result.extraction.document_id),
         extraction_id=str(result.extraction.extraction_id),
@@ -900,7 +706,7 @@ async def extract_employee_payslip(
         ocr_engine=result.extraction.ocr_engine,
         parser_model=result.extraction.parser_model,
         warnings=result.extraction.warnings,
-        fields=[_field_response(field) for field in result.extraction.fields],
+        fields=[field_response(field) for field in result.extraction.fields],
         error_message=result.extraction.error_message,
         identity_check=identity,
         period_check=period,
@@ -919,7 +725,7 @@ async def correct_employee_extraction(
     bound: BoundEmployeeContext = Depends(require_bound_employee),
     guest_use_case: CorrectGuestExtractionUseCase = Depends(get_correct_guest_extraction_use_case),
 ) -> EmployeePayslipExtractionResponse:
-    parsed_id = _parse_uuid(document_id, "document_id")
+    parsed_id = parse_uuid(document_id, "document_id")
     await _require_employee_visible_document(parsed_id, bound)
     if not request.corrections:
         raise HTTPException(
@@ -959,7 +765,7 @@ async def correct_employee_extraction(
             detail={"code": tip_exc.code, "message": tip_exc.message},
         ) from tip_exc
 
-    identity, period = _comparison_response(result.comparison)
+    identity, period = comparison_response(result.comparison)
     return EmployeePayslipExtractionResponse(
         document_id=str(result.correction.document_id),
         extraction_id=str(result.correction.extraction_id),
@@ -969,7 +775,7 @@ async def correct_employee_extraction(
         language=result.correction.language,
         ocr_engine=result.correction.ocr_engine,
         parser_model=result.correction.parser_model,
-        fields=[_field_from_payload(item["key"], item) for item in result.correction.fields],
+        fields=[field_from_payload(item["key"], item) for item in result.correction.fields],
         warnings=result.correction.warnings,
         error_message=None,
         identity_check=identity,
@@ -978,8 +784,6 @@ async def correct_employee_extraction(
         document_version=result.correction.extraction_version,
     )
 
-class ConfirmEmployeeExtractionRequest(BaseModel):
-    acknowledgement: bool = False
 
 @router.post("/employee/{document_id}/confirm")
 async def confirm_employee_extraction(
@@ -988,7 +792,7 @@ async def confirm_employee_extraction(
     bound: BoundEmployeeContext = Depends(require_bound_employee),
 ) -> dict:
     """Persist employee confirmation of the latest extraction version."""
-    parsed_id = _parse_uuid(document_id, "document_id")
+    parsed_id = parse_uuid(document_id, "document_id")
     await _require_employee_visible_document(parsed_id, bound)
     use_case = ConfirmEmployeeExtractionUseCase(
         documents=get_document_repository(),
@@ -1041,6 +845,7 @@ async def accountant_extract_employee_document(
     file: UploadFile = File(...),
     document_type: DocumentType = Form(...),
     language: str = Form("auto"),
+    _: None = Depends(limit_accountant_upload),
     principal: AuthPrincipal = Depends(require_accountant),
     use_case: EmployeeDocumentWorkspaceUseCase = Depends(
         get_employee_document_workspace_use_case
@@ -1129,6 +934,7 @@ async def accountant_extract_employee_payslip(
     period_year: int = Form(...),
     period_month: int = Form(...),
     confirm_new_version: bool = Form(False),
+    _: None = Depends(limit_accountant_upload),
     principal: AuthPrincipal = Depends(require_accountant),
     guest_use_case: ExtractGuestPayslipUseCase = Depends(
         get_extract_guest_payslip_use_case

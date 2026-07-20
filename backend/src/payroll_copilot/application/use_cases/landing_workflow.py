@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from payroll_copilot.application.ports.landing_workflow import LandingWorkflowPort
 from payroll_copilot.application.services.landing_file_guardrail import LandingFilePayload
-from payroll_copilot.infrastructure.ai.agents.landing_workflow_graph import LandingWorkflowGraph
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,7 +27,7 @@ class LandingResumeCommand:
 
 
 class LandingWorkflowUseCase:
-    def __init__(self, graph: LandingWorkflowGraph) -> None:
+    def __init__(self, graph: LandingWorkflowPort) -> None:
         self._graph = graph
 
     async def turn(self, command: LandingTurnCommand) -> dict[str, Any]:

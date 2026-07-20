@@ -35,11 +35,11 @@ export const documentsService = {
       method: 'POST',
       body: formData,
       rawBody: true,
-      auth: true,
+      portalAuth: true,
     });
   },
 
   async getDocument(documentId: string): Promise<DocumentResponse> {
-    return apiRequest<DocumentResponse>(`/documents/${documentId}`, { auth: true });
+    return apiRequest<DocumentResponse>(`/documents/${documentId}`, { portalAuth: true });
   },
 };

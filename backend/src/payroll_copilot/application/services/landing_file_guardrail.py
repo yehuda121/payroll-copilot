@@ -6,7 +6,7 @@ import hashlib
 from dataclasses import dataclass
 
 from payroll_copilot.application.exceptions import DocumentUploadRejectedError
-from payroll_copilot.infrastructure.config.settings import Settings
+from payroll_copilot.application.ports.upload_limits import UploadSizeLimits
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,7 +28,7 @@ class LandingFileGuardrailService:
     ALLOWED_MIME = frozenset({"application/pdf"})
     ALLOWED_EXTENSIONS = frozenset({".pdf"})
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: UploadSizeLimits) -> None:
         self._settings = settings
 
     def validate(

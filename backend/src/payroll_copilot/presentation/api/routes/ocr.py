@@ -26,6 +26,9 @@ from payroll_copilot.application.use_cases.ocr_extract import (
 )
 from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.presentation.api.dependencies import get_extract_document_text_use_case
+from payroll_copilot.presentation.api.rate_limit_deps import limit_ocr_by_ip, limit_ocr_by_user
+from payroll_copilot.presentation.api.upload_limits import read_upload_with_size_limit
+from payroll_copilot.presentation.api.security import AuthPrincipal, require_org_operator
 
 router = APIRouter()
 
@@ -142,6 +145,9 @@ def _to_response(result: OCRResult) -> OcrExtractResponse:
 async def extract_document_text(
     file: UploadFile = File(...),
     language: str = Form("auto"),
+    _: None = Depends(limit_ocr_by_ip),
+    __: None = Depends(limit_ocr_by_user),
+    ___: AuthPrincipal = Depends(require_org_operator),
     use_case: ExtractDocumentTextUseCase = Depends(get_extract_document_text_use_case),
 ) -> OcrExtractResponse:
     """Extract text from PDF/PNG/JPG/JPEG via the configured OCR provider.
@@ -152,16 +158,7 @@ async def extract_document_text(
     """
     settings = get_settings()
     max_size = settings.max_upload_size_mb * 1024 * 1024
-    content = await file.read()
-
-    if len(content) > max_size:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail={
-                "code": "file_too_large",
-                "message": f"File exceeds maximum size of {settings.max_upload_size_mb}MB",
-            },
-        )
+    content = await read_upload_with_size_limit(file, max_size)
 
     command = ExtractDocumentTextCommand(
         content=content,

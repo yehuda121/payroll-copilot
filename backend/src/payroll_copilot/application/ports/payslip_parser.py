@@ -21,6 +21,15 @@ class FieldExtractionStatus(StrEnum):
     UNCERTAIN = "UNCERTAIN"
 
 
+class FieldTrustTier(StrEnum):
+    """Transparency-only trust metadata — does not change validation behaviour."""
+
+    DETERMINISTIC = "deterministic"
+    OCR_VERIFIED = "ocr_verified"
+    AI_INFERRED = "ai_inferred"
+    UNKNOWN = "unknown"
+
+
 class ExtractedField(BaseModel):
     """Single extracted payslip field — value + provenance + honesty flags."""
 
@@ -41,19 +50,26 @@ class ExtractedField(BaseModel):
     parser_method: str | None = None
     warnings: list[str] = Field(default_factory=list)
     normalized_value: float | None = None
+    # Transparency only — never used by the rule engine.
+    trust_tier: FieldTrustTier | None = None
 
     @field_validator("confidence", mode="before")
     @classmethod
     def coerce_confidence(cls, value: object) -> float | None:
+        from payroll_copilot.application.services.confidence_normalize import (
+            normalize_unit_interval_confidence,
+        )
+
+        return normalize_unit_interval_confidence(value)
+
+    @field_validator("trust_tier", mode="before")
+    @classmethod
+    def coerce_trust_tier(cls, value: object) -> object:
         if value is None or value == "":
             return None
-        try:
-            number = float(value)  # type: ignore[arg-type]
-        except (TypeError, ValueError):
-            return None
-        if number < 0.0 or number > 1.0:
-            return None
-        return number
+        if isinstance(value, str):
+            return value.strip().lower()
+        return value
 
     @field_validator("source_bbox", mode="before")
     @classmethod

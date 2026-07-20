@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from jose import jwt
 
 from payroll_copilot.application.services.guest_ephemeral_store import (
     GuestEphemeralSession,
@@ -14,6 +16,7 @@ from payroll_copilot.application.services.guest_ephemeral_store import (
     reset_guest_ephemeral_store_for_tests,
 )
 from payroll_copilot.application.use_cases.extract_guest_payslip import ExtractGuestPayslipUseCase
+from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.presentation.api.dependencies import get_extract_guest_payslip_use_case
 from payroll_copilot.presentation.main import app
 
@@ -23,6 +26,21 @@ def _reset_ephemeral() -> None:
     reset_guest_ephemeral_store_for_tests()
     yield
     reset_guest_ephemeral_store_for_tests()
+
+
+def _guest_auth_headers() -> dict[str, str]:
+    settings = get_settings()
+    token = jwt.encode(
+        {
+            "sub": str(uuid4()),
+            "type": "guest",
+            "exp": datetime.now(UTC) + timedelta(hours=1),
+            "iat": datetime.now(UTC),
+        },
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+    return {"Authorization": f"Bearer {token}"}
 
 
 def _seed_session() -> GuestEphemeralSession:
@@ -79,6 +97,7 @@ async def test_guest_confirm_route_freezes_session() -> None:
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
                 f"/api/v1/extraction/guest/{session.document_id}/confirm",
+                headers=_guest_auth_headers(),
                 json={
                     "entries": [
                         {
@@ -123,6 +142,7 @@ async def test_guest_confirm_route_missing_session_returns_404() -> None:
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
                 f"/api/v1/extraction/guest/{missing}/confirm",
+                headers=_guest_auth_headers(),
                 json={},
             )
         assert response.status_code == 404

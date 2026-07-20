@@ -1,5 +1,7 @@
 """External integration routes (n8n, webhooks)."""
 
+import hmac
+
 from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel
 
@@ -27,14 +29,32 @@ class ParsedLeaveResponse(BaseModel):
     action: str
 
 
+def _require_n8n_api_key(provided: str, expected: str) -> None:
+    """Fail closed when the integration key is unset or does not match."""
+    configured = (expected or "").strip()
+    if not configured:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "n8n_not_configured",
+                "message": "N8N integration is not configured.",
+            },
+        )
+    candidate = provided or ""
+    if len(candidate) != len(configured) or not hmac.compare_digest(candidate, configured):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "invalid_api_key", "message": "Invalid API key"},
+        )
+
+
 @router.post("/email/parse-leave", response_model=ParsedLeaveResponse)
 async def parse_leave_email(
     request: EmailParseLeaveRequest,
     x_api_key: str = Header(...),
 ) -> ParsedLeaveResponse:
     settings = get_settings()
-    if x_api_key != settings.n8n_api_key:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
+    _require_n8n_api_key(x_api_key, settings.n8n_api_key)
 
     provider = AIProviderRouter(settings).provider_for(AICapability.GENERAL)
     registry = AgentRegistry(provider)

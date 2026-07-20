@@ -26,8 +26,13 @@ from payroll_copilot.domain.enums import EmployeeStatus, EmploymentType, SalaryT
 from payroll_copilot.infrastructure.auth.cognito import (
     CognitoConfigurationError,
     cognito_configured,
+    employee_id_from_cognito_claims,
     get_cognito_token_verifier,
+    organization_id_from_cognito_claims,
     role_from_cognito_claims,
+)
+from payroll_copilot.infrastructure.config.org_resolution import (
+    allow_demo_organization_fallback,
 )
 from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.infrastructure.persistence.dynamodb.factory import (
@@ -57,6 +62,13 @@ class BoundEmployeeContext:
     principal: AuthPrincipal
     employee: Employee
     national_id_encrypted: bytes | None
+
+
+@dataclass(frozen=True, slots=True)
+class GuestPrincipal:
+    """Authenticated guest landing session (HS256 guest JWT)."""
+
+    guest_id: str
 
 
 def _extract_bearer(authorization: str | None) -> str:
@@ -124,18 +136,35 @@ async def upsert_user_from_cognito_claims(
     except ValueError:
         role = UserRole.EMPLOYEE
 
+    settings = get_settings()
+    claim_org_id = organization_id_from_cognito_claims(claims)
+    claim_employee_id = employee_id_from_cognito_claims(claims)
+    demo_allowed = allow_demo_organization_fallback(settings)
+
     store = get_user_store()
     user = await store.get_by_id(user_id)
     if user is None:
+        organization_id = claim_org_id
+        if organization_id is None:
+            if demo_allowed:
+                organization_id = DEMO_ORGANIZATION_ID
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={
+                        "code": "organization_binding_missing",
+                        "message": "Authenticated user is not bound to an organization.",
+                    },
+                )
         user = UserRecord(
             id=user_id,
-            organization_id=DEMO_ORGANIZATION_ID,
+            organization_id=organization_id,
             email=email or f"{user_id}@cognito.local",
             password_hash=None,
             role=role,
             preferred_locale="he",
             is_active=True,
-            employee_id=None,
+            employee_id=claim_employee_id,
         )
     else:
         if email:
@@ -144,8 +173,31 @@ async def upsert_user_from_cognito_claims(
         user.password_hash = None
         if role_from_cognito_claims(claims):
             user.role = role
-        if user.organization_id is None:
-            user.organization_id = DEMO_ORGANIZATION_ID
+        if claim_org_id is not None:
+            user.organization_id = claim_org_id
+        elif user.organization_id is None:
+            if demo_allowed:
+                user.organization_id = DEMO_ORGANIZATION_ID
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={
+                        "code": "organization_binding_missing",
+                        "message": "Authenticated user is not bound to an organization.",
+                    },
+                )
+        if claim_employee_id is not None:
+            user.employee_id = claim_employee_id
+
+    if cognito_configured(settings) and not demo_allowed:
+        if user.organization_id is None or user.organization_id == DEMO_ORGANIZATION_ID:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "organization_binding_missing",
+                    "message": "Authenticated user is not bound to an organization.",
+                },
+            )
 
     return await store.save(user)
 
@@ -210,6 +262,32 @@ async def get_auth_principal(
         employee_id=user.employee_id,
         email=user.email,
     )
+
+
+async def require_guest(
+    authorization: Annotated[str | None, Header()] = None,
+) -> GuestPrincipal:
+    """Require a valid guest landing JWT (not a Cognito / employee token)."""
+    token = _extract_bearer(authorization)
+    payload = _decode_guest_or_legacy_hs256(token)
+    if str(payload.get("type") or "") != "guest":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "code": "guest_token_required",
+                "message": "A valid guest session token is required.",
+            },
+        )
+    guest_id = str(payload.get("sub") or "").strip()
+    if not guest_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "code": "invalid_token",
+                "message": "Guest token subject is invalid.",
+            },
+        )
+    return GuestPrincipal(guest_id=guest_id)
 
 
 async def require_accountant(

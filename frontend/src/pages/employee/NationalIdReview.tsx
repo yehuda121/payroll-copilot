@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
+import { getDisplayError } from '../../lib/getDisplayError';
 import { employeePortalService } from '../../services/employeePortal';
 import { useAppLocale } from '../../hooks/useAppLocale';
 
@@ -16,7 +17,7 @@ export function NationalIdReviewPage() {
       try {
         setData(await employeePortalService.getNationalIdReview());
       } catch (err) {
-        setError(err instanceof Error ? err.message : t('common.error'));
+        setError(getDisplayError(err, t('common.error')));
       }
     })();
   }, [t]);

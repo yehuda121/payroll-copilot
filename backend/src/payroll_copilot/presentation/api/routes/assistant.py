@@ -49,6 +49,11 @@ from payroll_copilot.infrastructure.persistence.dynamodb.factory import (
     get_validation_finding_repository,
     get_validation_run_repository,
 )
+from payroll_copilot.presentation.api.rate_limit_deps import (
+    limit_chat_by_ip,
+    limit_chat_by_user,
+    limit_public_chat_by_ip,
+)
 from payroll_copilot.presentation.api.security import (
     AuthPrincipal,
     BoundEmployeeContext,
@@ -145,6 +150,7 @@ def _get_assistant_use_case(
 @router.post("/chat", response_model=AssistantChatResponse)
 async def assistant_chat(
     request: AssistantChatRequest,
+    _: None = Depends(limit_public_chat_by_ip),
     accept_language: str | None = Header(default=None, alias="Accept-Language"),
 ) -> AssistantChatResponse:
     """Public guest payroll assistant chat orchestrated by LangGraph."""
@@ -186,6 +192,8 @@ async def assistant_chat(
 @router.post("/employee/chat", response_model=EmployeeAssistantChatResponse)
 async def employee_assistant_chat(
     request: EmployeeAssistantChatRequest,
+    _: None = Depends(limit_chat_by_ip),
+    __: None = Depends(limit_chat_by_user),
     bound: BoundEmployeeContext = Depends(require_bound_employee),
     accept_language: str | None = Header(default=None, alias="Accept-Language"),
 ) -> EmployeeAssistantChatResponse:
@@ -278,6 +286,8 @@ async def _employee_assistant_chat_impl(
 )
 async def accountant_employee_assistant_chat(
     request: AccountantEmployeeAssistantChatRequest,
+    _: None = Depends(limit_chat_by_ip),
+    __: None = Depends(limit_chat_by_user),
     principal: AuthPrincipal = Depends(require_accountant),
     accept_language: str | None = Header(default=None, alias="Accept-Language"),
 ) -> EmployeeAssistantChatResponse:
@@ -305,6 +315,8 @@ async def accountant_employee_assistant_chat(
 @router.post("/accountant/batch-item/chat", response_model=AssistantChatResponse)
 async def accountant_batch_item_assistant_chat(
     request: BatchItemAssistantChatRequest,
+    _: None = Depends(limit_chat_by_ip),
+    __: None = Depends(limit_chat_by_user),
     principal: AuthPrincipal = Depends(require_accountant),
     accept_language: str | None = Header(default=None, alias="Accept-Language"),
 ) -> AssistantChatResponse:

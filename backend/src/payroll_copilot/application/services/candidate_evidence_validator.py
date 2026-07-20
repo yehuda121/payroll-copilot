@@ -217,7 +217,8 @@ def _looks_numeric_field_value(model_value: object, value_text: str) -> bool:
 
 
 def _confidence_from_band(band: object) -> float | None:
-    mapping = {"high": 0.9, "medium": 0.7, "low": 0.45, "unknown": None}
-    if isinstance(band, str):
-        return mapping.get(band.strip().lower())
-    return None
+    from payroll_copilot.application.services.confidence_normalize import (
+        normalize_unit_interval_confidence,
+    )
+
+    return normalize_unit_interval_confidence(band)

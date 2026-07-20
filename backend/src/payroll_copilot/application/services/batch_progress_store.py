@@ -25,6 +25,11 @@ PIPELINE_STAGES: tuple[tuple[str, str], ...] = (
 
 _REDIS_KEY_PREFIX = "payroll:batch_progress:"
 _REDIS_INDEX_KEY = "payroll:batch_progress:index"
+_REDIS_CLAIM_PREFIX = "payroll:batch_claim:"
+# Keep completed/failed jobs discoverable for accountant UX without unbounded growth.
+_BATCH_PROGRESS_TTL_SECONDS = 60 * 60 * 24 * 14  # 14 days
+_BATCH_CLAIM_TTL_SECONDS = 60 * 60 * 6  # 6 hours
+
 
 
 @dataclass
@@ -261,6 +266,15 @@ class BatchProgressStoreProtocol(Protocol):
         item: BatchExtractedItem,
     ) -> BatchJobProgress | None: ...
 
+    def try_claim_processing(
+        self,
+        batch_job_id: str,
+        *,
+        worker_id: str,
+    ) -> bool:
+        """Claim a job for processing. False if already claimed/completed/failed."""
+        ...
+
 
 class InMemoryBatchProgressStore:
     """Thread-safe process-local progress registry (tests / fallback)."""
@@ -355,6 +369,25 @@ class InMemoryBatchProgressStore:
             self._apply_item_update(job, item)
             return job
 
+    def try_claim_processing(
+        self,
+        batch_job_id: str,
+        *,
+        worker_id: str,
+    ) -> bool:
+        del worker_id  # in-memory claim is process-local only
+        with self._lock:
+            job = self._jobs.get(batch_job_id)
+            if job is None:
+                return False
+            if job.status in {"completed", "failed"}:
+                return False
+            if job.status == "running":
+                return False
+            job.status = "running"
+            job.updated_at = datetime.now(UTC).isoformat()
+            return True
+
     @staticmethod
     def _apply_stage_update(
         job: BatchJobProgress,
@@ -438,6 +471,7 @@ class RedisBatchProgressStore:
         job.current_stage = "split"
         self._save(job)
         self._redis.zadd(_REDIS_INDEX_KEY, {batch_job_id: datetime.now(UTC).timestamp()})
+        self._redis.expire(_REDIS_INDEX_KEY, _BATCH_PROGRESS_TTL_SECONDS)
         return job
 
     def get(self, batch_job_id: str) -> BatchJobProgress | None:
@@ -481,33 +515,105 @@ class RedisBatchProgressStore:
         report_summary: dict[str, int] | None = None,
         error_message: str | None = None,
     ) -> BatchJobProgress | None:
-        job = self.get(batch_job_id)
-        if job is None:
-            return None
-        InMemoryBatchProgressStore._apply_stage_update(
-            job,
-            stage_key,
-            status=status,
-            detail=detail,
-            job_status=job_status,
-            total_slips=total_slips,
-            processed_slips=processed_slips,
-            failed_slips=failed_slips,
-            report_summary=report_summary,
-            error_message=error_message,
+        return self._mutate(
+            batch_job_id,
+            lambda job: InMemoryBatchProgressStore._apply_stage_update(
+                job,
+                stage_key,
+                status=status,
+                detail=detail,
+                job_status=job_status,
+                total_slips=total_slips,
+                processed_slips=processed_slips,
+                failed_slips=failed_slips,
+                report_summary=report_summary,
+                error_message=error_message,
+            ),
         )
-        self._save(job)
-        return job
 
     def upsert_item(
         self,
         batch_job_id: str,
         item: BatchExtractedItem,
     ) -> BatchJobProgress | None:
+        return self._mutate(
+            batch_job_id,
+            lambda job: InMemoryBatchProgressStore._apply_item_update(job, item),
+        )
+
+    def try_claim_processing(
+        self,
+        batch_job_id: str,
+        *,
+        worker_id: str,
+    ) -> bool:
+        job = self.get(batch_job_id)
+        if job is None:
+            return False
+        if job.status in {"completed", "failed"}:
+            return False
+        claim_key = f"{_REDIS_CLAIM_PREFIX}{batch_job_id}"
+        claimed = bool(
+            self._redis.set(
+                claim_key,
+                worker_id,
+                nx=True,
+                ex=_BATCH_CLAIM_TTL_SECONDS,
+            )
+        )
+        if not claimed:
+            return False
+
+        def _mark_running(current: BatchJobProgress) -> None:
+            current.status = "running"
+
+        updated = self._mutate(batch_job_id, _mark_running)
+        if updated is None:
+            self._redis.delete(claim_key)
+            return False
+        return True
+
+    def _mutate(
+        self,
+        batch_job_id: str,
+        mutator: Any,
+    ) -> BatchJobProgress | None:
+        """Optimistic Redis lock (WATCH) to avoid lost concurrent updates."""
+        from redis.exceptions import WatchError
+
+        key = f"{_REDIS_KEY_PREFIX}{batch_job_id}"
+        for _ in range(8):
+            try:
+                with self._redis.pipeline() as pipe:
+                    pipe.watch(key)
+                    raw = pipe.get(key)
+                    if not raw:
+                        pipe.unwatch()
+                        return None
+                    job = BatchJobProgress.from_dict(json.loads(raw))
+                    mutator(job)
+                    job.updated_at = datetime.now(UTC).isoformat()
+                    pipe.multi()
+                    pipe.set(
+                        key,
+                        json.dumps(job.to_dict()),
+                        ex=_BATCH_PROGRESS_TTL_SECONDS,
+                    )
+                    pipe.zadd(
+                        _REDIS_INDEX_KEY,
+                        {batch_job_id: datetime.now(UTC).timestamp()},
+                    )
+                    pipe.expire(_REDIS_INDEX_KEY, _BATCH_PROGRESS_TTL_SECONDS)
+                    pipe.execute()
+                    return job
+            except WatchError:
+                continue
+
+        # Final non-atomic fallback after repeated contention.
         job = self.get(batch_job_id)
         if job is None:
             return None
-        InMemoryBatchProgressStore._apply_item_update(job, item)
+        mutator(job)
         self._save(job)
         return job
 
@@ -515,6 +621,7 @@ class RedisBatchProgressStore:
         self._redis.set(
             f"{_REDIS_KEY_PREFIX}{job.batch_job_id}",
             json.dumps(job.to_dict()),
+            ex=_BATCH_PROGRESS_TTL_SECONDS,
         )
 
 
@@ -531,7 +638,12 @@ def get_batch_progress_store() -> BatchProgressStoreProtocol:
         from payroll_copilot.infrastructure.config.service_resolver import get_resolved_redis_url
         from payroll_copilot.infrastructure.config.settings import get_settings
 
-        client = redis.Redis.from_url(get_resolved_redis_url(get_settings()), decode_responses=True)
+        client = redis.Redis.from_url(
+            get_resolved_redis_url(get_settings()),
+            decode_responses=True,
+            socket_connect_timeout=0.5,
+            socket_timeout=0.5,
+        )
         client.ping()
         _STORE = RedisBatchProgressStore(client)
     except Exception:  # noqa: BLE001 — fall back so API still boots without Redis

@@ -29,6 +29,7 @@ from payroll_copilot.infrastructure.ai.agents.payroll_assistant_tools import (
 from payroll_copilot.infrastructure.ai.agents.validation_report_store import InMemoryValidationReportStore
 from payroll_copilot.infrastructure.ai.provider_router import AIProviderRouter
 from payroll_copilot.infrastructure.config.settings import Settings, get_settings
+from payroll_copilot.presentation.api.upload_limits import read_upload_with_size_limit
 from payroll_copilot.presentation.api.dependencies import (
     get_extract_document_text_use_case,
     get_extract_guest_payslip_use_case,
@@ -57,7 +58,8 @@ class ParserRunRequest(BaseModel):
 
 
 def _require_dev_lab(settings: Settings = Depends(get_settings)) -> None:
-    if settings.app_env.lower() not in {"development", "dev", "local"} and not settings.debug:
+    # Production and staging must never expose Document Lab, even if DEBUG=true.
+    if settings.app_env.strip().lower() not in {"development", "dev", "local"}:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
 
 
@@ -144,17 +146,12 @@ async def _load_input(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "missing_input", "message": "fixture_id or file is required."},
         )
-    content = await upload.read()
+    max_size = settings.max_upload_size_mb * 1024 * 1024
+    content = await read_upload_with_size_limit(upload, max_size)
     if not content:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "empty_document", "message": "Uploaded file is empty."},
-        )
-    max_size = settings.max_upload_size_mb * 1024 * 1024
-    if len(content) > max_size:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail={"code": "file_too_large", "message": f"File exceeds {settings.max_upload_size_mb}MB."},
         )
     filename = upload.filename or "upload"
     media_type = upload.content_type or "application/octet-stream"

@@ -27,6 +27,8 @@ from payroll_copilot.application.use_cases.parse_payslip import (
     ParsePayslipFromOcrUseCase,
 )
 from payroll_copilot.presentation.api.dependencies import get_parse_payslip_use_case
+from payroll_copilot.presentation.api.rate_limit_deps import limit_parser_by_ip, limit_parser_by_user
+from payroll_copilot.presentation.api.security import AuthPrincipal, require_org_operator
 
 router = APIRouter()
 
@@ -157,6 +159,9 @@ def _to_response(result: PayslipParseResult) -> ParsePayslipResponse:
 @router.post("/payslip", response_model=ParsePayslipResponse)
 async def parse_payslip_from_ocr(
     body: ParsePayslipRequest,
+    _: None = Depends(limit_parser_by_ip),
+    __: None = Depends(limit_parser_by_user),
+    ___: AuthPrincipal = Depends(require_org_operator),
     use_case: ParsePayslipFromOcrUseCase = Depends(get_parse_payslip_use_case),
 ) -> ParsePayslipResponse:
     """Parse OCR text into structured payslip fields using the local LLM.

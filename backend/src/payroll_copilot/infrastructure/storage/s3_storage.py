@@ -31,6 +31,7 @@ class S3ObjectStorage:
         secret_key: str | None = None,
         use_ssl: bool = True,
         auto_create_bucket: bool = False,
+        server_side_encryption: str | None = "AES256",
     ) -> None:
         if not bucket or not bucket.strip():
             raise ValueError("S3 bucket name is required.")
@@ -38,6 +39,7 @@ class S3ObjectStorage:
         self._bucket = bucket.strip()
         self._region = region
         self._endpoint = (endpoint or "").strip() or None
+        self._server_side_encryption = (server_side_encryption or "").strip() or None
         self._client = self._build_client(
             region=region,
             endpoint=self._endpoint,
@@ -107,12 +109,16 @@ class S3ObjectStorage:
             ) from exc
 
     async def upload(self, key: str, data: bytes, content_type: str) -> str:
-        extra_args = {"ContentType": content_type} if content_type else None
+        extra_args: dict[str, str] = {}
+        if content_type:
+            extra_args["ContentType"] = content_type
+        if self._server_side_encryption:
+            extra_args["ServerSideEncryption"] = self._server_side_encryption
         self._client.upload_fileobj(
             io.BytesIO(data),
             self._bucket,
             key,
-            ExtraArgs=extra_args,
+            ExtraArgs=extra_args or None,
         )
         return key
 

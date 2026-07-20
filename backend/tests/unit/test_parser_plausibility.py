@@ -85,6 +85,7 @@ def test_plausible_employee_name_unchanged():
     assert result.employee_name.status == FieldExtractionStatus.FOUND
     assert result.employee_name.confidence == 0.91
     assert result.employee_name.warnings == []
+    assert result.employee_name.trust_tier is not None
 
 
 def test_semantic_gate_never_invents_replacement_name():
