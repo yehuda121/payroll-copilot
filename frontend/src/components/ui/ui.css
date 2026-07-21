@@ -1522,11 +1522,6 @@
   color: var(--color-warning, #c2410c);
 }
 
-.status-badge--incomplete {
-  background: var(--color-warning-soft, #ffedd5);
-  color: var(--color-warning, #c2410c);
-}
-
 .form-grid {
   display: grid;
   gap: 0.85rem;

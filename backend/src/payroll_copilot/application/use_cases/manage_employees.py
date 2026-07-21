@@ -31,6 +31,7 @@ _RESERVED_EMPLOYEE_METADATA_KEYS = frozenset({
     "organization_id",
     "employee_id",
     "employee_number",
+    "profile_incomplete",
 })
 
 
@@ -72,7 +73,6 @@ class CreateEmployeeCommand:
     hourly_rate: Decimal | None = None
     monthly_salary: Decimal | None = None
     contract_end_date: date | None = None
-    profile_incomplete: bool = False
     metadata: dict[str, Any] | None = None
 
 
@@ -92,12 +92,12 @@ class UpdateEmployeeCommand:
     monthly_salary: Decimal | None = None
     national_id: str | None = None
     status: EmployeeStatus | None = None
-    profile_incomplete: bool | None = None
     metadata: dict[str, Any] | None = None
 
 
 def serialize_employee(employee: Employee) -> dict[str, Any]:
     meta = dict(employee.metadata or {})
+    meta.pop("profile_incomplete", None)
     rate = employee.monthly_salary if employee.salary_type == SalaryType.MONTHLY else employee.hourly_rate
     display_name = meta.get("verified_display_name") or employee.full_name
     return {
@@ -118,12 +118,11 @@ def serialize_employee(employee: Employee) -> dict[str, Any]:
         "contract_start_date": employee.contract_start_date.isoformat(),
         "contract_end_date": employee.contract_end_date.isoformat() if employee.contract_end_date else None,
         "status": employee.status.value,
-        "profile_incomplete": bool(meta.get("profile_incomplete", False)),
         "national_id_masked": meta.get("national_id_masked"),
         "metadata": {
             key: value
             for key, value in meta.items()
-            if key not in {"national_id_hash"}
+            if key not in {"national_id_hash", "profile_incomplete"}
         },
     }
 
@@ -160,7 +159,6 @@ class ManageEmployeesUseCase:
         metadata = _sanitize_employee_metadata_patch(command.metadata)
         if command.email:
             metadata["email"] = command.email.strip()
-        metadata["profile_incomplete"] = bool(command.profile_incomplete)
 
         encrypted: bytes | None = None
         if command.national_id and command.national_id.strip():
@@ -205,7 +203,6 @@ class ManageEmployeesUseCase:
                 user_id=command.actor_user_id,
                 details={
                     "employee_number": employee.employee_number,
-                    "profile_incomplete": metadata.get("profile_incomplete", False),
                 },
             )
         )
@@ -219,6 +216,7 @@ class ManageEmployeesUseCase:
             raise EmployeeNotFoundError()
 
         metadata = dict(employee.metadata or {})
+        metadata.pop("profile_incomplete", None)
         encrypted: bytes | None = None
 
         if command.first_name is not None:
@@ -241,8 +239,6 @@ class ManageEmployeesUseCase:
             employee.monthly_salary = command.monthly_salary
         if command.status is not None:
             employee.status = command.status
-        if command.profile_incomplete is not None:
-            metadata["profile_incomplete"] = command.profile_incomplete
         if command.metadata:
             metadata.update(_sanitize_employee_metadata_patch(command.metadata))
         if command.national_id is not None and command.national_id.strip():

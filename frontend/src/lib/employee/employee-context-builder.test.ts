@@ -142,7 +142,6 @@ describe('buildEmployeeContext', () => {
           national_id_masked: null,
           organization_id: 'org',
           status: 'active',
-          profile_incomplete: false,
         },
         payrollMonthsByYear: [list],
         payrollMonthDetails: [monthDetail(2026, 5)],

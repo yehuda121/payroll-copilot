@@ -350,7 +350,6 @@ class EmployeeAIContextBuilder:
                 if hasattr(employee.status, "value")
                 else str(employee.status)
             ),
-            "profile_incomplete": bool(metadata.get("profile_incomplete", False)),
         }
 
     @staticmethod

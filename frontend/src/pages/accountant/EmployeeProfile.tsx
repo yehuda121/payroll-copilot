@@ -298,14 +298,9 @@ export function EmployeeProfilePage() {
                 <span className={`status-badge status-badge--${profile.employee.status}`}>
                   {getEmployeeStatusLabel(profile.employee.status, t)}
                 </span>
-                {profile.employee.profile_incomplete && (
-                  <span className="status-badge status-badge--incomplete">
-                    {t('accountant.employees.incomplete')}
-                  </span>
-                )}
               </div>
               <Link
-                to={`/accountant/employees/${profile.employee.employee_number}/edit`}
+                to={`/accountant/employees/${profile.employee.employee_number}/workspace/settings`}
                 className="btn btn--primary"
               >
                 {t('accountant.employeeProfile.editEmployee')}
@@ -318,16 +313,6 @@ export function EmployeeProfilePage() {
                   {t('accountant.employeeProfile.summaryStatus')}
                 </span>
                 <strong>{getEmployeeStatusLabel(profile.employee.status, t)}</strong>
-              </div>
-              <div className="employee-summary__item">
-                <span className="employee-summary__label">
-                  {t('accountant.employeeProfile.summaryCompleteness')}
-                </span>
-                <strong>
-                  {profile.employee.profile_incomplete
-                    ? t('accountant.employees.incomplete')
-                    : t('accountant.employeeProfile.summaryProfileComplete')}
-                </strong>
               </div>
               <div className="employee-summary__item">
                 <span className="employee-summary__label">

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
 import { DragDropZone } from '../../components/ui/DragDropZone';
@@ -41,68 +42,96 @@ export function DocumentCenterPage() {
     return match ? t(match.labelKey) : copy.documentsTitle;
   }, [copy.documentsTitle, documentType, t]);
 
-  return (
-    <PortalPage
-      title={copy.documentsTitle}
-      description={copy.documentsDescription}
-    >
-      <div className="employee-month-workspace">
-        <div
-          className="employee-review-tabs"
-          role="tablist"
-          aria-label={t('employee.documents.typeTabs')}
-        >
-          {DOCUMENT_TYPES.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={documentType === item.id}
-              className={`employee-review-tabs__tab ${documentType === item.id ? 'is-active' : ''}`}
-              onClick={() => setDocumentType(item.id)}
-              disabled={flow.isBusy}
-            >
-              {t(item.labelKey)}
-            </button>
-          ))}
-        </div>
+  const isAccountant = copy.isAccountant;
+  const transientStatus =
+    flow.statusMessage ||
+    (flow.refreshing && !flow.loading ? t('common.loading') : null);
+  const [statusHost, setStatusHost] = useState<HTMLElement | null>(null);
 
-        <div className="sr-only" aria-live="polite">
-          {flow.statusMessage || flow.error || ''}
-        </div>
-        {flow.error && (
+  useEffect(() => {
+    if (!isAccountant) {
+      setStatusHost(null);
+      return;
+    }
+    setStatusHost(document.getElementById('accountant-doc-page-status-host'));
+  }, [isAccountant, documentType, flow.loading, flow.refreshing, flow.statusMessage, flow.error]);
+
+  const statusNode =
+    isAccountant && (flow.error || transientStatus) ? (
+      <div className="accountant-doc-page__status" aria-live="polite">
+        {flow.error ? (
           <p className="chat-panel__error" role="alert">
             {flow.error}
           </p>
+        ) : (
+          <p role="status">{transientStatus}</p>
         )}
-        {flow.statusMessage && (
-          <p role="status">{flow.statusMessage}</p>
-        )}
-        {flow.refreshing && !flow.loading ? (
-          <p className="employee-payslips__refresh" role="status">
-            {t('common.loading')}
-          </p>
-        ) : null}
+      </div>
+    ) : null;
 
-        <div
-          className="employee-review-tabs"
-          role="tablist"
-          aria-label={t('employee.documents.workspaceTabs', { type: typeTitle })}
-          aria-busy={flow.loading || flow.refreshing}
-        >
-          {INNER_TABS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={flow.tab === item.id}
-              className={`employee-review-tabs__tab ${flow.tab === item.id ? 'is-active' : ''}`}
-              onClick={() => flow.setTab(item.id)}
-              disabled={flow.isBusy}
-            >
-              {t(item.labelKey)}
-            </button>
-          ))}
+  return (
+    <PortalPage
+      title={copy.documentsTitle}
+      description={isAccountant ? '' : copy.documentsDescription}
+      hideHeader={isAccountant}
+      status={isAccountant ? undefined : statusNode ?? undefined}
+    >
+      {isAccountant && statusHost && statusNode
+        ? createPortal(statusNode, statusHost)
+        : null}
+      <div
+        className={`employee-month-workspace${isAccountant ? ' accountant-doc-workspace' : ''}`}
+      >
+        <div className={isAccountant ? 'accountant-doc-workspace__panel' : undefined}>
+          <div
+            className={`employee-review-tabs${isAccountant ? ' accountant-doc-workspace__type-tabs' : ''}`}
+            role="tablist"
+            aria-label={t('employee.documents.typeTabs')}
+          >
+            {DOCUMENT_TYPES.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={documentType === item.id}
+                className={`employee-review-tabs__tab ${documentType === item.id ? 'is-active' : ''}`}
+                onClick={() => setDocumentType(item.id)}
+                disabled={flow.isBusy}
+              >
+                {t(item.labelKey)}
+              </button>
+            ))}
+          </div>
+
+          <div className="sr-only" aria-live="polite">
+            {flow.statusMessage || flow.error || ''}
+          </div>
+          {!isAccountant && flow.error ? (
+            <p className="chat-panel__error" role="alert">
+              {flow.error}
+            </p>
+          ) : null}
+
+          <div
+            className={`employee-review-tabs${isAccountant ? ' accountant-doc-workspace__inner-tabs' : ''}`}
+            role="tablist"
+            aria-label={t('employee.documents.workspaceTabs', { type: typeTitle })}
+            aria-busy={flow.loading || flow.refreshing}
+          >
+            {INNER_TABS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={flow.tab === item.id}
+                className={`employee-review-tabs__tab ${flow.tab === item.id ? 'is-active' : ''}`}
+                onClick={() => flow.setTab(item.id)}
+                disabled={flow.isBusy}
+              >
+                {t(item.labelKey)}
+              </button>
+            ))}
+          </div>
         </div>
 
         {flow.loading ? (

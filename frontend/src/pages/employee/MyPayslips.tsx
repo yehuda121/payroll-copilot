@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useEmployeeSession } from '../../auth/EmployeeSessionContext';
 import { PortalPage } from '../../components/PortalPage';
@@ -168,10 +168,6 @@ export function MyPayslipsPage() {
                 );
               })}
         </div>
-
-        <p className="employee-payslips__footnote">
-          <Link to={`${basePath}/documents`}>{t('employee.navigation.documents')}</Link>
-        </p>
       </div>
     </PortalPage>
   );

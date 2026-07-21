@@ -12,7 +12,6 @@ export type EmployeeFormValues = {
   salaryType: SalaryType;
   baseSalaryOrRate: string;
   contractStartDate: string;
-  profileIncomplete: boolean;
 };
 
 type EmployeeFormProps = {
@@ -35,7 +34,6 @@ const DEFAULTS: EmployeeFormValues = {
   salaryType: 'monthly',
   baseSalaryOrRate: '',
   contractStartDate: new Date().toISOString().slice(0, 10),
-  profileIncomplete: false,
 };
 
 export function toWritePayload(
@@ -52,7 +50,6 @@ export function toWritePayload(
     salary_type: values.salaryType,
     national_id: values.nationalId.trim() || undefined,
     contract_start_date: values.contractStartDate || undefined,
-    profile_incomplete: values.profileIncomplete,
     hourly_rate: values.salaryType === 'hourly' ? amount : null,
     monthly_salary: values.salaryType === 'monthly' ? amount : null,
   };
@@ -201,17 +198,6 @@ export function EmployeeForm({
           value={values.contractStartDate}
           onChange={(e) => update('contractStartDate', e.target.value)}
         />
-      </div>
-      <div className="form-field form-field--checkbox">
-        <label htmlFor="profileIncomplete">
-          <input
-            id="profileIncomplete"
-            type="checkbox"
-            checked={values.profileIncomplete}
-            onChange={(e) => update('profileIncomplete', e.target.checked)}
-          />
-          {t('accountant.employees.fieldProfileIncomplete')}
-        </label>
       </div>
       {error && <p className="chat-panel__error" style={{ gridColumn: '1 / -1' }}>{error}</p>}
       <div className="form-actions" style={{ gridColumn: '1 / -1' }}>

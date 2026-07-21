@@ -475,7 +475,6 @@ async def _ensure_dev_bound_employee_record(employee_id: UUID) -> Employee:
         "display_name_en": DEV_EMPLOYEE_DISPLAY_NAME_EN,
         "national_id_hash": nid_hash,
         "national_id_masked": mask_national_id(national_id),
-        "profile_incomplete": True,
         "dev_bootstrap": True,
     }
     employee = Employee(

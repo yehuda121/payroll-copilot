@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
 import { DataTable } from '../../components/ui/DataTable';
-import { EmptyState, LoadingOverlay, useConfirmDialog } from '../../components/ui/Dialog';
+import { EmptyState, LoadingOverlay } from '../../components/ui/Dialog';
 import {
   getAccountantErrorMessage,
   getEmployeeStatusLabel,
@@ -15,17 +15,19 @@ import { ApiClientError } from '../../services/api';
 import { employeesService } from '../../services/employees';
 import type { EmployeeRecord, EmployeeStatus } from '../../types';
 
-function StatusPill({
-  status,
-  incomplete,
-}: {
-  status: EmployeeStatus;
-  incomplete?: boolean;
-}) {
+/** In-memory list cache so the Employees page can remount without a blank reload. */
+const employeesListCache = new Map<string, EmployeeRecord[]>();
+
+export function invalidateEmployeesListCache(): void {
+  employeesListCache.clear();
+}
+
+function employeesListCacheKey(query: string, status: string): string {
+  return `${query}\u0000${status}`;
+}
+
+function StatusPill({ status }: { status: EmployeeStatus }) {
   const { t } = useTranslation();
-  if (incomplete) {
-    return <span className="status-badge status-badge--incomplete">{t('accountant.employees.incomplete')}</span>;
-  }
   return (
     <span className={`status-badge status-badge--${status}`}>
       {getEmployeeStatusLabel(status, t)}
@@ -37,26 +39,37 @@ export function EmployeeManagementPage() {
   const { t } = useTranslation();
   const { locale } = useAppLocale();
   const navigate = useNavigate();
-  const { confirm } = useConfirmDialog();
-  const [rows, setRows] = useState<EmployeeRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<string>('');
-  const [disablingNumber, setDisablingNumber] = useState<string | null>(null);
+  const initialCacheKey = employeesListCacheKey('', '');
+  const [rows, setRows] = useState<EmployeeRecord[]>(
+    () => employeesListCache.get(initialCacheKey) ?? [],
+  );
+  const [loading, setLoading] = useState(() => !employeesListCache.has(initialCacheKey));
+  const [error, setError] = useState<string | null>(null);
   const requestSequence = useRef(0);
 
   const load = useCallback(async (nextQuery: string, nextStatus: string) => {
+    const cacheKey = employeesListCacheKey(nextQuery, nextStatus);
+    const cached = employeesListCache.get(cacheKey);
+    if (cached) {
+      setRows(cached);
+    }
+
     const requestId = ++requestSequence.current;
     setError(null);
-    setLoading(true);
+    if (!cached) {
+      setLoading(true);
+    }
     try {
       const data = await employeesService.list({
         q: nextQuery || undefined,
         status: nextStatus || undefined,
-        includeDisabled: true,
+        // Default "all" hides disabled; explicit status=disabled still returns them.
+        includeDisabled: false,
       });
       if (requestId !== requestSequence.current) return;
+      employeesListCache.set(cacheKey, data);
       setRows(data);
     } catch (err) {
       if (requestId !== requestSequence.current) return;
@@ -77,32 +90,6 @@ export function EmployeeManagementPage() {
     if (!rows.length) return t('accountant.employees.noMatch');
     return undefined;
   }, [rows.length, t]);
-
-  const disableEmployee = async (employeeNumber: string) => {
-    const ok = await confirm({
-      title: t('accountant.employees.disableTitle'),
-      message: t('accountant.employees.disableMessage'),
-      confirmLabel: t('accountant.employees.disableConfirm'),
-      cancelLabel: t('common.cancel'),
-      variant: 'danger',
-    });
-    if (!ok) return;
-    setDisablingNumber(employeeNumber);
-    setError(null);
-    try {
-      await employeesService.disable(employeeNumber);
-      await load(query.trim(), status);
-    } catch (err) {
-      const message =
-        err instanceof ApiClientError
-          ? err.message
-          : getAccountantErrorMessage('disableFailed', t);
-      setError(message);
-      console.error('Disable employee failed', err);
-    } finally {
-      setDisablingNumber(null);
-    }
-  };
 
   return (
     <PortalPage
@@ -127,7 +114,6 @@ export function EmployeeManagementPage() {
             <option value="active">{getEmployeeStatusLabel('active', t)}</option>
             <option value="on_leave">{getEmployeeStatusLabel('on_leave', t)}</option>
             <option value="disabled">{getEmployeeStatusLabel('disabled', t)}</option>
-            <option value="terminated">{getEmployeeStatusLabel('terminated', t)}</option>
           </select>
           <button
             type="button"
@@ -196,40 +182,7 @@ export function EmployeeManagementPage() {
                 key: 'status',
                 header: t('accountant.employees.colStatus'),
                 sortValue: (row) => row.status,
-                render: (row) => (
-                  <StatusPill status={row.status} incomplete={row.profileIncomplete} />
-                ),
-              },
-              {
-                key: 'actions',
-                header: t('common.actions'),
-                sortable: false,
-                render: (row) => (
-                  <div className="table-actions">
-                    <Link
-                      to={`/accountant/employees/${row.employeeNumber}/edit`}
-                      className="btn btn--ghost"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      {t('common.edit')}
-                    </Link>
-                    {row.status !== 'disabled' && (
-                      <button
-                        type="button"
-                        className="btn btn--ghost"
-                        disabled={disablingNumber === row.employeeNumber}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void disableEmployee(row.employeeNumber);
-                        }}
-                      >
-                        {disablingNumber === row.employeeNumber
-                          ? t('common.saving')
-                          : t('common.disable')}
-                      </button>
-                    )}
-                  </div>
-                ),
+                render: (row) => <StatusPill status={row.status} />,
               },
             ]}
             data={rows as Array<EmployeeRecord & Record<string, unknown>>}

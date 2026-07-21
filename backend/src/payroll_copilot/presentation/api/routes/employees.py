@@ -56,7 +56,6 @@ class EmployeeCreateRequest(BaseModel):
     email: str | None = None
     national_id: str | None = None
     department_id: UUID | None = None
-    profile_incomplete: bool = False
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 class EmployeeUpdateRequest(BaseModel):
@@ -73,7 +72,6 @@ class EmployeeUpdateRequest(BaseModel):
     national_id: str | None = None
     department_id: UUID | None = None
     status: EmployeeStatus | None = None
-    profile_incomplete: bool | None = None
     metadata: dict[str, Any] | None = None
 
 class NationalIdMatchRequest(BaseModel):
@@ -148,8 +146,8 @@ async def get_my_employee(
         "status": employee.status.value
         if hasattr(employee.status, "value")
         else str(employee.status),
-        "profile_incomplete": bool(meta.get("profile_incomplete", False)),
     }
+
 
 @router.get("/me/documents")
 async def list_my_documents(
@@ -411,7 +409,6 @@ async def get_accountant_workspace_employee(
         "status": employee.status.value
         if hasattr(employee.status, "value")
         else str(employee.status),
-        "profile_incomplete": bool(meta.get("profile_incomplete", False)),
     }
 
 
@@ -587,7 +584,6 @@ async def create_employee(
                 hourly_rate=body.hourly_rate,
                 monthly_salary=body.monthly_salary,
                 contract_end_date=body.contract_end_date,
-                profile_incomplete=body.profile_incomplete,
                 metadata=body.metadata,
             )
         )
@@ -617,7 +613,6 @@ async def update_employee(
                 monthly_salary=body.monthly_salary,
                 national_id=body.national_id,
                 status=body.status,
-                profile_incomplete=body.profile_incomplete,
                 metadata=body.metadata,
             )
         )

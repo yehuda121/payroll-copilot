@@ -323,7 +323,6 @@ class SeedAccountantPortalUseCase:
                 "display_name_en": row.get("display_name_en"),
                 "national_id_hash": nid_hash,
                 "national_id_masked": mask_national_id(national_id),
-                "profile_incomplete": bool(defaults.get("profile_incomplete", True)),
                 "unverified_fields": [
                     key
                     for key in (

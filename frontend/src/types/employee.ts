@@ -16,7 +16,6 @@ export type EmployeeRecord = {
   salaryType: SalaryType;
   baseSalaryOrRate: number;
   status: EmployeeStatus;
-  profileIncomplete?: boolean;
   nationalIdMasked?: string | null;
   contractStartDate?: string;
   contractEndDate?: string | null;
@@ -35,7 +34,6 @@ export type EmployeeWritePayload = {
   monthly_salary?: number | null;
   contract_start_date?: string;
   contract_end_date?: string | null;
-  profile_incomplete?: boolean;
   status?: EmployeeStatus;
   metadata?: Record<string, unknown>;
 };

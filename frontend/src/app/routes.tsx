@@ -77,6 +77,10 @@ const EmployeeProfilePage = lazyPage(
   () => import('../pages/accountant/EmployeeProfile'),
   'EmployeeProfilePage',
 );
+const EmployeeSettingsPage = lazyPage(
+  () => import('../pages/accountant/EmployeeSettings'),
+  'EmployeeSettingsPage',
+);
 const PayrollRulesPage = lazyPage(
   () => import('../pages/accountant/PayrollRules'),
   'PayrollRulesPage',
@@ -221,6 +225,7 @@ export const appRouteElements = (
           <Route path="payslips" element={<L><MyPayslipsPage /></L>} />
           <Route path="payslips/:year/:month" element={<L><PayslipMonthWorkspacePage /></L>} />
           <Route path="chat" element={<L><PayrollChatPage /></L>} />
+          <Route path="settings" element={<L><EmployeeSettingsPage /></L>} />
         </Route>
         <Route path="/accountant/employees/:employeeNumber/edit" element={<L><EditEmployeePage /></L>} />
         <Route path="/accountant/bulk-upload" element={<L><BulkPayrollUploadPage /></L>} />

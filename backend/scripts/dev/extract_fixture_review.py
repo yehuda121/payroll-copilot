@@ -406,7 +406,6 @@ def build_schema_preview() -> dict[str, Any]:
                     "display_name",
                     "employee_number",
                     "aliases",
-                    "profile_incomplete",
                     "review_status",
                 ],
                 "note": "Employee is business data, separate from auth User.",

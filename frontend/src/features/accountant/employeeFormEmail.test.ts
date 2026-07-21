@@ -11,7 +11,6 @@ const base: EmployeeFormValues = {
   salaryType: 'monthly',
   baseSalaryOrRate: '10000',
   contractStartDate: '2024-01-01',
-  profileIncomplete: false,
 };
 
 describe('toWritePayload email immutability', () => {

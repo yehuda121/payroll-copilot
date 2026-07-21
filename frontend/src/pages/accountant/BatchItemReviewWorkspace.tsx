@@ -299,7 +299,6 @@ export function BatchItemReviewWorkspacePage() {
         email: createValues.email.trim() || undefined,
         employment_type: 'full_time',
         salary_type: 'monthly',
-        profile_incomplete: true,
         metadata: {
           company: createValues.company.trim(),
           department: createValues.department.trim(),

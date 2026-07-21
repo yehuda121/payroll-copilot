@@ -42,7 +42,6 @@ export type ProfilePayload = {
     employment_type: string;
     salary_type: string;
     status: string;
-    profile_incomplete?: boolean;
     national_id_masked?: string | null;
     contract_start_date?: string;
     base_salary_or_rate?: number | null;

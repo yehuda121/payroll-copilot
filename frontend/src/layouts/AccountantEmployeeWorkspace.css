@@ -68,12 +68,157 @@
   margin-inline-start: auto;
 }
 
+.employee-settings__stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.employee-settings__status {
+  margin: 0 0 0.75rem;
+}
+
+.employee-settings__hint {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
 .accountant-employee-workspace__tabs {
   margin-block: 0;
 }
 
+.accountant-employee-workspace__page-heading {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.15rem 0 0.35rem;
+}
+
+.accountant-employee-workspace__page-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.accountant-employee-workspace__section-nav {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+/* Level 1 — primary section navigation */
+.accountant-employee-workspace__tabs--primary {
+  gap: 0.15rem;
+  margin: 0;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.accountant-employee-workspace__tabs--primary .employee-review-tabs__tab {
+  padding: 0.75rem 1.05rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.accountant-employee-workspace__tabs--primary .employee-review-tabs__tab.is-active {
+  font-weight: 700;
+  border-bottom-width: 3px;
+  border-bottom-color: var(--color-accent, #175cd3);
+}
+
 .accountant-employee-workspace__tabs a {
   text-decoration: none;
+}
+
+/*
+ * Documents: nest Level 2 + Level 3 under Level 1 so the three rows
+ * read as one connected navigation tree.
+ */
+.accountant-employee-workspace__section-nav.is-documents {
+  gap: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 0.85rem;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.accountant-employee-workspace__section-nav.is-documents
+  .accountant-employee-workspace__tabs--primary {
+  padding-inline: 0.65rem;
+  background: #fff;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.accountant-employee-workspace__section-nav.is-documents .employee-month-workspace {
+  gap: 0.85rem;
+  padding: 0;
+}
+
+.accountant-employee-workspace__section-nav.is-documents .accountant-doc-workspace__panel {
+  margin: 0;
+  padding: 0.55rem 0.65rem 0.25rem;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  background: color-mix(in srgb, var(--color-surface-muted, #f1f5f9) 75%, #fff);
+}
+
+/* Level 2 — document type, secondary under Documents */
+.accountant-doc-workspace__type-tabs {
+  margin: 0 0 0.2rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+}
+
+.accountant-doc-workspace__type-tabs .employee-review-tabs__tab {
+  padding: 0.55rem 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.accountant-doc-workspace__type-tabs .employee-review-tabs__tab.is-active {
+  font-weight: 600;
+}
+
+/* Level 3 — workspace actions, tertiary under document type */
+.accountant-doc-workspace__inner-tabs {
+  margin: 0;
+  margin-inline-start: 1rem;
+  padding-inline-start: 0.15rem;
+  border-bottom-color: color-mix(in srgb, var(--color-border) 55%, transparent);
+}
+
+.accountant-doc-workspace__inner-tabs .employee-review-tabs__tab {
+  padding: 0.4rem 0.65rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.accountant-doc-workspace__inner-tabs .employee-review-tabs__tab.is-active {
+  color: var(--color-text);
+  font-weight: 600;
+  border-bottom-color: color-mix(in srgb, var(--color-accent, #175cd3) 75%, transparent);
+}
+
+.accountant-employee-workspace__section-nav.is-documents .accountant-doc-workspace {
+  padding-bottom: 0.75rem;
+}
+
+.accountant-employee-workspace__section-nav.is-documents
+  .accountant-doc-workspace
+  > :not(.accountant-doc-workspace__panel) {
+  padding-inline: 0.85rem;
+}
+
+/* Accountant Documents — status under page title */
+.accountant-doc-page__status {
+  margin: 0.15rem 0 0;
+}
+
+.accountant-doc-page__status > p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.35;
 }
 
 @media (max-width: 700px) {
@@ -88,5 +233,9 @@
 
   .accountant-employee-workspace__profile-actions {
     margin-inline-start: 0;
+  }
+
+  .accountant-doc-workspace__inner-tabs {
+    margin-inline-start: 0.45rem;
   }
 }

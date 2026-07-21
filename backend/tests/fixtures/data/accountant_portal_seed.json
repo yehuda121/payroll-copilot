@@ -447,7 +447,6 @@
     "note": "Employee rows require employment_type, salary_type, and contract_start_date in the current schema. These defaults are schema placeholders only — not verified from PDFs.",
     "employment_type": "full_time",
     "salary_type": "monthly",
-    "contract_start_date": "2026-01-01",
-    "profile_incomplete": true
+    "contract_start_date": "2026-01-01"
   }
 }

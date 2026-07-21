@@ -58,7 +58,6 @@ export type EmployeeMe = {
   national_id_masked: string | null;
   organization_id: string;
   status: string;
-  profile_incomplete: boolean;
 };
 
 export type EmployeePayslipListItem = {

@@ -20,7 +20,6 @@ type ApiEmployee = {
   salary_type: EmployeeRecord['salaryType'];
   base_salary_or_rate?: number | null;
   status: EmployeeRecord['status'];
-  profile_incomplete?: boolean;
   national_id_masked?: string | null;
   contract_start_date?: string;
   contract_end_date?: string | null;
@@ -41,7 +40,6 @@ function mapEmployee(row: ApiEmployee): EmployeeRecord {
     salaryType: row.salary_type,
     baseSalaryOrRate: row.base_salary_or_rate ?? 0,
     status: row.status,
-    profileIncomplete: Boolean(row.profile_incomplete),
     nationalIdMasked: row.national_id_masked,
     contractStartDate: row.contract_start_date,
     contractEndDate: row.contract_end_date,

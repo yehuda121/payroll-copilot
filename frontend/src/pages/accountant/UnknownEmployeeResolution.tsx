@@ -106,7 +106,6 @@ export function UnknownEmployeeResolutionPage() {
         email: createValues.email.trim(),
         employment_type: 'full_time',
         salary_type: 'monthly',
-        profile_incomplete: false,
         metadata: {
           company: createValues.company.trim(),
           department: createValues.department.trim(),
