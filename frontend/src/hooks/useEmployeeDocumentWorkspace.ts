@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEmployeeSession } from '../auth/EmployeeSessionContext';
 import {
@@ -61,7 +61,7 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [tab, setTab] = useState<DocumentWorkspaceTab>('upload');
+  const [tab, setTab] = useState<DocumentWorkspaceTab>('digital');
   const [busyPhase, setBusyPhase] = useState<DocumentBusyPhase>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -72,6 +72,10 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
     emptyFixedFieldValues(documentType),
   );
   const [formDirty, setFormDirty] = useState(false);
+  /** Apply default inner-tab once per document-type selection after load settles. */
+  const pendingDefaultTabRef = useRef(true);
+  const documentTypeRef = useRef(documentType);
+  documentTypeRef.current = documentType;
 
   const applyForm = useCallback(
     (form: EmployeeDocumentForm) => {
@@ -195,6 +199,17 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
     } finally {
       setLoading(false);
       setRefreshing(false);
+      // Only the in-flight refresh for the current document type may settle the default tab.
+      if (pendingDefaultTabRef.current && documentTypeRef.current === documentType) {
+        pendingDefaultTabRef.current = false;
+        const center = session.getDocumentCenter();
+        const resolved =
+          center?.persistent_documents.find((row) => row.document_type === documentType) ?? null;
+        const hasExistingDocument = Boolean(resolved?.exists && resolved.document_id);
+        if (!hasExistingDocument) {
+          setTab('upload');
+        }
+      }
     }
   }, [applyForm, documentType, resetFormState, session, t, usesFixedForm, workspaceApi]);
 
@@ -203,7 +218,8 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
   }, [refresh]);
 
   useEffect(() => {
-    setTab('upload');
+    setTab('digital');
+    pendingDefaultTabRef.current = true;
     setPendingFile(null);
     setFileError(null);
     setStatusMessage(null);
