@@ -6,7 +6,7 @@ import type {
 import { apiRequest } from './api';
 import { env } from '../config/env';
 import { getPortalAuthHeaders } from '../lib/auth/access-token';
-import type { ExtractedPayslipField } from '../types/api';
+import type { ExtractedPayslipField, DynamicDocumentEntry } from '../types/api';
 
 export type BatchValidationHistoryRun = {
   validation_run_id: string;
@@ -54,6 +54,7 @@ export type BatchItemReview = {
   original_filename: string;
   uploaded_at: string | null;
   fields: ExtractedPayslipField[];
+  entries?: DynamicDocumentEntry[];
   extraction_id: string | null;
   extraction_version: number | null;
   validation_history: BatchValidationHistoryRun[];

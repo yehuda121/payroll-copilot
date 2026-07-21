@@ -265,6 +265,7 @@ function PayslipMonthWorkspace({
                       busy={
                         flow.busyPhase === 'confirming' || flow.busyPhase === 'validating'
                       }
+                      loading={flow.loading || flow.busyPhase === 'extracting'}
                       validationMap={validationMap}
                       onChangeField={flow.updateFieldDraft}
                       onClearField={flow.clearFieldDraft}
@@ -712,6 +713,7 @@ function OriginalTab({ flow }: { flow: Flow }) {
           drafts={flow.fieldDrafts}
           editable
           busy={flow.isBusy}
+          loading={flow.loading}
           onChangeField={flow.updateFieldDraft}
           onClearField={flow.clearFieldDraft}
           onRemoveField={flow.removeField}

@@ -17,6 +17,7 @@ import {
 import { employeesService } from '../../services/employees';
 import type { EmployeeRecord } from '../../types/employee';
 import { buildEmployeeFieldValidationMap } from '../../lib/employee/field-validation-status';
+import { reviewFieldsFromExtractionPayload } from '../../lib/guest/extraction-review';
 import type { GuestValidationReport } from '../../types/validation-report';
 import './UnknownEmployeeResolution.css';
 import '../employee/PayslipMonthWorkspace.css';
@@ -91,6 +92,7 @@ export function BatchItemReviewWorkspacePage() {
   const { session } = useAuth();
   const { jobId = '', itemId = '' } = useParams<{ jobId: string; itemId: string }>();
   const [review, setReview] = useState<BatchItemReview | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(true);
   const [drafts, setDrafts] = useState<Record<string, FieldDraft>>({});
   const [tab, setTab] = useState<ReviewTab>('digital');
   const [resolutionMode, setResolutionMode] = useState<ResolutionMode>('search');
@@ -110,12 +112,19 @@ export function BatchItemReviewWorkspacePage() {
   });
 
   const applyReview = useCallback((next: BatchItemReview) => {
-    const extractedName = fieldText(next, 'employee_name', 'full_name').trim();
+    const reviewFields = reviewFieldsFromExtractionPayload(next);
+    const extractedName = fieldText(
+      { ...next, fields: reviewFields },
+      'employee_name',
+      'full_name',
+      'שם העובד',
+      'שם עובד',
+    ).trim();
     const [nameFirst = '', ...nameRest] = extractedName.split(/\s+/);
-    setReview(next);
+    setReview({ ...next, fields: reviewFields });
     setDrafts(
       Object.fromEntries(
-        next.fields.map((field) => [
+        reviewFields.map((field) => [
           field.key,
           {
             value: field.value == null ? '' : String(field.value),
@@ -127,27 +136,42 @@ export function BatchItemReviewWorkspacePage() {
     );
     setCreateValues((previous) => ({
       ...previous,
-      employeeNumber: previous.employeeNumber || fieldText(next, 'employee_number'),
+      employeeNumber:
+        previous.employeeNumber ||
+        fieldText({ ...next, fields: reviewFields }, 'employee_number', 'מספר עובד', 'מס עובד'),
       firstName:
         previous.firstName ||
-        fieldText(next, 'first_name', 'employee_first_name') ||
+        fieldText({ ...next, fields: reviewFields }, 'first_name', 'employee_first_name') ||
         nameFirst,
       lastName:
         previous.lastName ||
-        fieldText(next, 'last_name', 'employee_last_name') ||
+        fieldText({ ...next, fields: reviewFields }, 'last_name', 'employee_last_name') ||
         nameRest.join(' '),
-      nationalId: previous.nationalId || fieldText(next, 'national_id', 'employee_id'),
-      email: previous.email || fieldText(next, 'email', 'employee_email'),
-      department: previous.department || fieldText(next, 'department', 'department_name'),
+      nationalId:
+        previous.nationalId ||
+        fieldText(
+          { ...next, fields: reviewFields },
+          'national_id',
+          'employee_id',
+          'ת.ז.',
+          'תעודת זהות',
+        ),
+      email: previous.email || fieldText({ ...next, fields: reviewFields }, 'email', 'employee_email'),
+      department:
+        previous.department ||
+        fieldText({ ...next, fields: reviewFields }, 'department', 'department_name', 'מחלקה'),
     }));
   }, []);
 
   const refresh = useCallback(async () => {
     setError(null);
+    setReviewLoading(true);
     try {
       applyReview(await batchService.getItemReview(jobId, itemId));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t('common.error'));
+    } finally {
+      setReviewLoading(false);
     }
   }, [applyReview, itemId, jobId, t]);
 
@@ -454,6 +478,7 @@ export function BatchItemReviewWorkspacePage() {
               drafts={drafts}
               editable
               busy={busy}
+              loading={reviewLoading}
               validationMap={validationMap}
               onChangeField={(key, value) =>
                 setDrafts((previous) => ({
@@ -504,6 +529,7 @@ export function BatchItemReviewWorkspacePage() {
                 drafts={drafts}
                 editable
                 busy={busy}
+                loading={reviewLoading}
                 validationMap={validationMap}
                 onChangeField={(key, value) =>
                   setDrafts((previous) => ({

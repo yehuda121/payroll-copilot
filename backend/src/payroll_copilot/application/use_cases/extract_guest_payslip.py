@@ -1,4 +1,8 @@
-"""Guest payslip extraction orchestration (OCR → AI Parser → persist).
+"""Guest/Employee/Batch payslip extraction (OCR → Document Model → persist).
+
+Stage-1 reconstructs the document into DynamicDocumentEntry rows (shared).
+Stage-2 canonical mapping runs for durable paths so validation/matching work;
+Document Model is always preserved under structured_data.dynamic_entries.
 
 Does not run Rule Engine / deterministic validation.
 """
@@ -26,8 +30,11 @@ from payroll_copilot.application.ports.repositories import (
 )
 from payroll_copilot.application.services.dynamic_document import (
     DynamicDocumentEntry,
+    STRUCTURED_META_KEYS,
     entries_have_usable_values,
+    is_document_origin_entry,
     map_dynamic_entries_to_structured,
+    project_structured_from_entries,
 )
 from payroll_copilot.application.services.guest_dynamic_extractor import GuestDynamicDocumentExtractor
 from payroll_copilot.application.services.guest_ephemeral_store import (
@@ -41,11 +48,6 @@ from payroll_copilot.application.services.layout_analysis_pipeline import (
 from payroll_copilot.application.use_cases.ocr_extract import (
     ExtractDocumentTextCommand,
     ExtractDocumentTextUseCase,
-)
-from payroll_copilot.application.use_cases.parse_payslip import (
-    ParsePayslipFromOcrCommand,
-    ParsePayslipFromOcrUseCase,
-    command_from_ocr_result,
 )
 from payroll_copilot.domain.seed_ids import DEMO_ORGANIZATION_ID
 from payroll_copilot.domain.entities import Document, DocumentExtraction
@@ -114,7 +116,7 @@ class GuestPayslipExtractionCommand:
 
 
 class ExtractGuestPayslipUseCase:
-    """Upload payslip bytes, run OCR + parser, persist extraction, return fields."""
+    """Upload payslip bytes, run shared Document Model extraction, persist results."""
 
     def __init__(
         self,
@@ -124,14 +126,17 @@ class ExtractGuestPayslipUseCase:
         object_storage: ObjectStoragePort,
         organization_bootstrap: OrganizationBootstrapPort,
         ocr_use_case: ExtractDocumentTextUseCase,
-        parse_use_case: ParsePayslipFromOcrUseCase,
+        document_extractor: GuestDynamicDocumentExtractor | None = None,
+        parse_use_case: Any = None,
     ) -> None:
         self._documents = document_repository
         self._extractions = extraction_repository
         self._storage = object_storage
         self._org_bootstrap = organization_bootstrap
         self._ocr = ocr_use_case
-        self._parse = parse_use_case
+        self._document_extractor = document_extractor or GuestDynamicDocumentExtractor()
+        # parse_use_case retained as unused kwarg so older factories keep working.
+        _ = parse_use_case
 
     async def execute(self, command: GuestPayslipExtractionCommand) -> GuestPayslipExtractionResult:
         timer = ExtractionTimer(document_type="payslip")
@@ -220,86 +225,63 @@ class ExtractGuestPayslipUseCase:
             self._check_cancelled(command.cancel_check)
             try:
                 self._notify_progress(command.progress_callback, "extracting")
-                if use_ephemeral:
-                    # Landing page: document-first dynamic key/value extraction.
-                    extractor = GuestDynamicDocumentExtractor()
-                    pages_text = [page.text for page in ocr_result.pages] if ocr_result.pages else None
-                    dynamic_entries, model_name, dyn_warnings = await extractor.extract(
-                        ocr_text=raw_text,
-                        language=language,
-                        pages_text=pages_text,
+                # Shared Stage-1 for Guest / Employee / Batch: reconstruct Document Model.
+                pages_text = (
+                    [page.text for page in ocr_result.pages] if ocr_result.pages else None
+                )
+                dynamic_entries, model_name, dyn_warnings = await self._document_extractor.extract(
+                    ocr_text=raw_text,
+                    language=language,
+                    pages_text=pages_text,
+                )
+                parser_model = model_name
+                warnings.extend(dyn_warnings)
+
+                if not entries_have_usable_values(dynamic_entries):
+                    parser_status = "failed"
+                    error_message = "We could not extract usable information from this document."
+                    warnings.append("dynamic_extractor_no_usable_entries")
+                    fields = []
+                    field_confidences = {}
+                    structured = {
+                        "dynamic_entries": [e.to_dict() for e in dynamic_entries]
+                    }
+                    timer.log_stage(
+                        "document_reconstruction",
+                        page_count=len(ocr_result.pages),
+                        extracted_text_length=len(raw_text),
+                        extracted_field_count=0,
+                        error_code="dynamic_extractor_no_usable_entries",
                     )
-                    parser_model = model_name
-                    warnings.extend(dyn_warnings)
-                    if not entries_have_usable_values(dynamic_entries):
-                        parser_status = "failed"
-                        error_message = "We could not extract usable information from this document."
-                        warnings.append("dynamic_extractor_no_usable_entries")
-                        fields = []
-                        field_confidences = {}
-                        structured = {}
-                    else:
-                        parser_status = "completed"
-                        fields = [
-                            ExtractedFieldView(
-                                key=entry.key,
-                                value=entry.value,
-                                confidence=entry.confidence,
-                                source_text=entry.source_text,
-                                status="FOUND"
-                                if entry.value not in (None, "")
-                                else "MISSING",
-                            )
-                            for entry in dynamic_entries
-                        ]
+                else:
+                    parser_status = "completed"
+                    review_fields = _fields_from_entries(dynamic_entries)
+                    if use_ephemeral:
+                        # Guest: canonical mapping deferred until confirm.
+                        structured = {
+                            "dynamic_entries": [e.to_dict() for e in dynamic_entries]
+                        }
+                        fields = review_fields
                         field_confidences = {
                             entry.key: entry.confidence
                             for entry in dynamic_entries
-                            if entry.confidence is not None
+                            if entry.confidence is not None and entry.key
                         }
-                        # Canonical structured_data is filled only after confirm.
-                        structured = {"dynamic_entries": [e.to_dict() for e in dynamic_entries]}
+                    else:
+                        # Durable: Stage-2 projection for validation/matching.
+                        structured, map_warnings = project_structured_from_entries(
+                            dynamic_entries
+                        )
+                        warnings.extend(map_warnings)
+                        fields, field_confidences = _fields_from_structured(structured)
                     timer.log_stage(
-                        "dynamic_extraction",
+                        "document_reconstruction",
                         page_count=len(ocr_result.pages),
                         extracted_text_length=len(raw_text),
-                        extracted_field_count=len(fields),
+                        extracted_field_count=len(
+                            [e for e in dynamic_entries if is_document_origin_entry(e)]
+                        ),
                     )
-                else:
-                    parse_result = await self._parse.execute(
-                        command_from_ocr_result(
-                            ocr_result,
-                            cancel_check=command.cancel_check,
-                            simple_guest_fields=False,
-                            layout_analysis=layout_analysis,
-                        )
-                    )
-                    parser_status = "completed"
-                    parser_model = parse_result.model
-                    warnings.extend(list(parse_result.warnings))
-                    if parse_result.retry_used:
-                        warnings.append("Parser retried once after an invalid response.")
-                    structured = parse_result.fields.model_dump(mode="json")
-                    fields, field_confidences = _fields_from_structured(structured)
-                    usable_count = _count_usable_fields(fields)
-                    timer.log_stage(
-                        "semantic_mapping",
-                        page_count=len(ocr_result.pages),
-                        extracted_text_length=len(raw_text),
-                        extracted_field_count=usable_count,
-                    )
-                    if usable_count == 0:
-                        parser_status = "failed"
-                        error_message = "We could not extract usable information from this document."
-                        warnings.append("parser_no_usable_fields")
-                        timer.log_stage(
-                            "parser_empty_fields",
-                            page_count=len(ocr_result.pages),
-                            extracted_text_length=len(raw_text),
-                            extracted_field_count=0,
-                            error_code="parser_no_usable_fields",
-                        )
-                    dynamic_entries = []
             except PayslipParserError as exc:
                 parser_status = "failed"
                 error_message = exc.message
@@ -427,7 +409,7 @@ class ExtractGuestPayslipUseCase:
             fields=fields,
             raw_text=raw_text,
             error_message=error_message,
-            entries=dynamic_entries if use_ephemeral else None,
+            entries=dynamic_entries,
         )
 
     def confirm_ephemeral_session(
@@ -440,6 +422,7 @@ class ExtractGuestPayslipUseCase:
         """Map confirmed dynamic entries → canonical structured_data, then freeze.
 
         Never writes permanent S3/DB. Validation reads the mapped structured_data.
+        Document Model rows remain under structured_data.dynamic_entries.
         """
         store = get_guest_ephemeral_store()
         session = store.get(document_id)
@@ -452,9 +435,11 @@ class ExtractGuestPayslipUseCase:
             for item in entries_payload
             if isinstance(item, dict)
         ]
-        mapped, map_warnings = map_dynamic_entries_to_structured(entries)
+        mapped, map_warnings = project_structured_from_entries(entries)
         if structured_data is not None:
-            mapped = structured_data
+            # Caller-supplied structured must still retain Document Model SoT.
+            mapped = dict(structured_data)
+            mapped["dynamic_entries"] = [e.to_dict() for e in entries]
         if map_warnings:
             session.warnings = list(dict.fromkeys([*session.warnings, *map_warnings]))
 
@@ -679,14 +664,47 @@ def _build_layout_analysis(
     return build_layout_analysis(snapshot, config=structure_config)
 
 
+def _fields_from_entries(entries: list[DynamicDocumentEntry]) -> list[ExtractedFieldView]:
+    """Document Model → API field views for review (document-native labels)."""
+    fields: list[ExtractedFieldView] = []
+    for entry in entries:
+        if not is_document_origin_entry(entry):
+            continue
+        fields.append(
+            ExtractedFieldView(
+                key=entry.key,
+                value=entry.value,
+                confidence=entry.confidence,
+                source_text=entry.source_text,
+                status="FOUND" if entry.value not in (None, "") else "MISSING",
+                edited_by_user=entry.source == "user",
+            )
+        )
+    return fields
+
+
+def _count_usable_fields(fields: list[ExtractedFieldView]) -> int:
+    """Count fields with a non-empty value (FOUND or UNCERTAIN)."""
+    usable = 0
+    for field in fields:
+        if field.status not in {"FOUND", "UNCERTAIN"}:
+            continue
+        if field.value is None or field.value == "":
+            continue
+        usable += 1
+    return usable
+
+
 def _fields_from_structured(structured: dict[str, Any]) -> tuple[list[ExtractedFieldView], dict[str, float]]:
     fields: list[ExtractedFieldView] = []
     confidences: dict[str, float] = {}
 
     additional = structured.get("additional_fields") or {}
-    keys = [k for k in structured.keys() if k not in {"additional_fields", "parser_notes", "language"}]
+    keys = [k for k in structured.keys() if k not in STRUCTURED_META_KEYS]
     for key in keys:
         payload = structured.get(key)
+        if isinstance(payload, list):
+            continue
         view = _field_view(key, payload)
         fields.append(view)
         if view.confidence is not None and view.status in {"FOUND", "UNCERTAIN"}:
@@ -700,18 +718,6 @@ def _fields_from_structured(structured: dict[str, Any]) -> tuple[list[ExtractedF
                 confidences[str(key)] = view.confidence
 
     return fields, confidences
-
-
-def _count_usable_fields(fields: list[ExtractedFieldView]) -> int:
-    """Count fields with a non-empty value (FOUND or UNCERTAIN)."""
-    usable = 0
-    for field in fields:
-        if field.status not in {"FOUND", "UNCERTAIN"}:
-            continue
-        if field.value is None or field.value == "":
-            continue
-        usable += 1
-    return usable
 
 
 def _field_view(key: str, payload: Any) -> ExtractedFieldView:

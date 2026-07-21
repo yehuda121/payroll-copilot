@@ -21,6 +21,7 @@ import {
 import type { DocumentLanguage, ExtractedPayslipField } from '../types/api';
 import type { GuestValidationReport } from '../types/validation-report';
 import type { FieldDraft } from './useEmployeePayslipFlow';
+import { reviewFieldsFromExtractionPayload } from '../lib/guest/extraction-review';
 
 export type WorkspaceTab =
   | 'upload'
@@ -67,7 +68,7 @@ function toUserFacingError(err: unknown, fallback: string): string {
 
 function fieldsFromDetail(detail: PayrollMonthDetail): ExtractedPayslipField[] {
   const raw = detail.extraction?.fields ?? [];
-  return raw.map((row) => {
+  const mapped = raw.map((row) => {
     const record = row as Record<string, unknown>;
     const value =
       record.value !== undefined
@@ -84,6 +85,7 @@ function fieldsFromDetail(detail: PayrollMonthDetail): ExtractedPayslipField[] {
       edited_by_user: Boolean(record.edited_by_user ?? record.edited_by_employee),
     };
   });
+  return reviewFieldsFromExtractionPayload({ fields: mapped });
 }
 
 function extractionFromDetail(
@@ -200,7 +202,9 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
   const isBusy = busyPhase !== null;
   const documentId = extraction?.document_id || detail?.payslip.document_id || null;
   const hasPayslip = Boolean(detail?.payslip.exists || documentId);
-  const hasExtraction = fields.length > 0 || Boolean(detail?.extraction?.exists && detail.extraction.fields.length);
+  const hasExtraction =
+    fields.length > 0 ||
+    (busyPhase === 'extracting' && Boolean(detail?.extraction?.exists));
   const isConfirmed = confirmationStatus === 'confirmed';
   const blocksConfirmation = Boolean(extraction?.blocks_confirmation);
   const identityCheck: IdentityCheck | null = extraction?.identity_check ?? null;
@@ -226,8 +230,9 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
   const applyExtraction = useCallback(
     (response: EmployeePayslipExtraction) => {
       setExtraction(response);
-      setFields(response.fields);
-      initDrafts(response.fields);
+      const reviewFields = reviewFieldsFromExtractionPayload(response);
+      setFields(reviewFields);
+      initDrafts(reviewFields);
       setConfirmationStatus(null);
       setAcknowledgement(false);
       setValidationOutdated(true);

@@ -22,7 +22,9 @@ from payroll_copilot.application.services.document_upload_guardrail import (
 )
 from payroll_copilot.application.services.employee_document_lifecycle import (
     fields_from_structured,
+    review_fields_from_structured,
 )
+from payroll_copilot.application.services.dynamic_document import entries_from_structured
 from payroll_copilot.application.services.employee_workspace_snapshot import (
     fields_for_workspace_api,
 )
@@ -232,7 +234,12 @@ async def get_batch_item_review(
     extraction = await get_document_extraction_repository().get_latest_for_document(document_id)
     explainability_enabled = bool(get_settings().layout_explainability_enabled)
     fields = (
-        fields_for_workspace_api(fields_from_structured(extraction.structured_data))
+        fields_for_workspace_api(review_fields_from_structured(extraction.structured_data))
+        if extraction
+        else []
+    )
+    entries = (
+        [entry.to_dict() for entry in entries_from_structured(extraction.structured_data)]
         if extraction
         else []
     )
@@ -340,6 +347,7 @@ async def get_batch_item_review(
         original_filename=document.original_filename,
         uploaded_at=document.created_at.isoformat() if document.created_at else None,
         fields=fields,
+        entries=entries,
         extraction_id=str(extraction.id) if extraction else None,
         extraction_version=extraction.extraction_version if extraction else None,
         validation_history=validation_history,

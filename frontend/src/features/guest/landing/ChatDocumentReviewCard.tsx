@@ -3,6 +3,7 @@ import type { DynamicDocumentEntry } from '../../../types/api';
 import {
   getDynamicEntryDisplayKey,
   groupEntriesBySection,
+  isMeaningfulReviewEntry,
   serializeEntryValue,
 } from '../../../lib/guest/extraction-review';
 import './landing-chat.css';
@@ -18,6 +19,12 @@ type ChatDocumentReviewCardProps = {
   onAddEntry: () => void;
   onConfirm: () => void;
 };
+
+function isReviewVisibleEntry(entry: DynamicDocumentEntry): boolean {
+  // Keep in-progress user-added rows editable; document rows need label + value.
+  if (entry.source === 'user') return true;
+  return isMeaningfulReviewEntry(entry);
+}
 
 function EntryRow({
   entry,
@@ -99,11 +106,12 @@ export function ChatDocumentReviewCard({
   onConfirm,
 }: ChatDocumentReviewCardProps) {
   const { t } = useTranslation();
-  const usable = entries.some(
+  const visibleEntries = entries.filter(isReviewVisibleEntry);
+  const usable = visibleEntries.some(
     (entry) => entry.value !== null && String(entry.value).trim() !== '',
   );
   const canConfirm = !confirmed && usable && !busy;
-  const groups = groupEntriesBySection(entries);
+  const groups = groupEntriesBySection(visibleEntries);
   const hasNamedSections = groups.some((group) => Boolean(group.section));
 
   return (

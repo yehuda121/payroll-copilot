@@ -96,6 +96,7 @@ class BatchItemReviewResponse(BaseModel):
     original_filename: str
     uploaded_at: str | None = None
     fields: list[dict] = Field(default_factory=list)
+    entries: list[dict] = Field(default_factory=list)
     extraction_id: str | None = None
     extraction_version: int | None = None
     validation_history: list[dict] = Field(default_factory=list)

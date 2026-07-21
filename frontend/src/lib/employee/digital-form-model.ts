@@ -6,6 +6,7 @@
 
 import type { TFunction } from 'i18next';
 import type { ExtractedPayslipField } from '../../types/api';
+import { filterMeaningfulReviewFields } from '../guest/extraction-review';
 import { isCanonicalPayrollFieldKey } from '../guest/payroll-field-keys';
 import {
   detectEmployeeFieldType,
@@ -78,10 +79,14 @@ export function buildDigitalFormSections(
   t: TFunction,
   locale: string,
 ): DigitalFormSectionModel[] {
-  const models: DigitalFormFieldModel[] = (fields || []).map((field) => {
+  const models: DigitalFormFieldModel[] = filterMeaningfulReviewFields(fields).map((field) => {
     const draft = drafts[field.key];
-    const value = draft?.value ?? serializeFieldValue(field.value);
-    const type = detectEmployeeFieldType(field.key, draft ? value : field.value);
+    // Prefer live draft for editing, but do not keep empty drafts on screen.
+    const value = draft?.dirty ? draft.value : (draft?.value ?? serializeFieldValue(field.value));
+    if (!value.trim() && !draft?.dirty) {
+      return null;
+    }
+    const type = detectEmployeeFieldType(field.key, draft?.dirty ? value : field.value);
     return {
       key: field.key,
       label: fieldLabel(field.key, t),
@@ -92,7 +97,7 @@ export function buildDigitalFormSections(
       columnSpan: fieldSpansColumns(type, value),
       sectionId: inferSectionId(field.key),
     };
-  });
+  }).filter((model): model is DigitalFormFieldModel => model != null);
 
   // Continuous form today: one untitled section containing all fields.
   // Future: split by sectionId and set titleKey per group.

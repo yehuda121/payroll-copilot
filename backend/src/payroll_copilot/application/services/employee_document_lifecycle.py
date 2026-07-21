@@ -106,10 +106,15 @@ def field_view_from_payload(key: str, payload: Any) -> dict[str, Any]:
 
 
 def fields_from_structured(structured: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Canonical (+ additional) field views for identity/validation chrome.
+
+    Skips Document Model payload (``dynamic_entries``) so it is never treated
+    as a payroll field key.
+    """
     structured = structured or {}
     fields: list[dict[str, Any]] = []
     for key, payload in structured.items():
-        if key in {"additional_fields", "parser_notes", "language"}:
+        if key in {"additional_fields", "parser_notes", "language", "dynamic_entries"}:
             continue
         fields.append(field_view_from_payload(str(key), payload))
     additional = structured.get("additional_fields")
@@ -117,3 +122,49 @@ def fields_from_structured(structured: dict[str, Any] | None) -> list[dict[str, 
         for key, payload in additional.items():
             fields.append(field_view_from_payload(str(key), payload))
     return fields
+
+
+def review_fields_from_structured(structured: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Review SoT: Document Model entries when present, else non-empty canonical fields."""
+    from payroll_copilot.application.services.dynamic_document import (
+        entries_from_structured,
+        is_document_origin_entry,
+    )
+
+    entries = entries_from_structured(structured)
+    if entries:
+        out: list[dict[str, Any]] = []
+        for entry in entries:
+            if not is_document_origin_entry(entry):
+                continue
+            out.append(
+                {
+                    "key": entry.key,
+                    "extracted_value": entry.value,
+                    "corrected_value": None,
+                    "effective_value": entry.value,
+                    "confidence": entry.confidence,
+                    "extraction_status": (
+                        "FOUND" if entry.value not in (None, "") else "MISSING"
+                    ),
+                    "source_text": entry.source_text,
+                    "edited_by_employee": entry.source == "user",
+                    "confirmed": False,
+                    "section": entry.section,
+                    "kind": entry.kind,
+                    "table_id": entry.table_id,
+                    "row_index": entry.row_index,
+                    "column": entry.column,
+                    "entry_id": entry.id,
+                    "page": entry.page,
+                }
+            )
+        return out
+
+    # Legacy extractions without Document Model: omit empty MISSING placeholders.
+    return [
+        row
+        for row in fields_from_structured(structured)
+        if str(row.get("extraction_status") or "").upper() in {"FOUND", "UNCERTAIN"}
+        or row.get("effective_value") not in (None, "")
+    ]

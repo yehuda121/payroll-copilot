@@ -96,6 +96,7 @@ from payroll_copilot.presentation.api.routes.extraction_schemas import (
     employee_document_form_response,
     field_from_payload,
     field_response,
+    entry_response,
     parse_uuid,
 )
 
@@ -196,6 +197,7 @@ async def extract_guest_payslip(
         parser_model=result.parser_model,
         warnings=result.warnings,
         fields=[field_response(field) for field in result.fields],
+        entries=[entry_response(entry) for entry in (result.entries or [])],
         error_message=result.error_message,
     )
 
@@ -374,6 +376,7 @@ async def correct_guest_extraction(
         ocr_engine=result.ocr_engine,
         parser_model=result.parser_model,
         fields=[field_from_payload(item["key"], item) for item in result.fields],
+        entries=[entry_response(item) for item in (result.entries or [])],
         warnings=result.warnings,
         error_message=None,
     )
@@ -707,6 +710,7 @@ async def extract_employee_payslip(
         parser_model=result.extraction.parser_model,
         warnings=result.extraction.warnings,
         fields=[field_response(field) for field in result.extraction.fields],
+        entries=[entry_response(entry) for entry in (result.extraction.entries or [])],
         error_message=result.extraction.error_message,
         identity_check=identity,
         period_check=period,
@@ -776,6 +780,7 @@ async def correct_employee_extraction(
         ocr_engine=result.correction.ocr_engine,
         parser_model=result.correction.parser_model,
         fields=[field_from_payload(item["key"], item) for item in result.correction.fields],
+        entries=[entry_response(item) for item in (result.correction.entries or [])],
         warnings=result.correction.warnings,
         error_message=None,
         identity_check=identity,

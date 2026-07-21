@@ -170,4 +170,60 @@ describe('dynamic landing extraction helpers', () => {
       ]),
     ).toBe(true);
   });
+
+  it('hides unlabeled, empty, and internal entry_* keys from review payload', () => {
+    const response: GuestPayslipExtractionResponse = {
+      document_id: 'd1',
+      extraction_id: 'e1',
+      ocr_status: 'completed',
+      parser_status: 'completed',
+      language: 'en',
+      ocr_engine: 'tesseract',
+      parser_model: 'test',
+      warnings: [],
+      fields: [],
+      entries: [
+        {
+          id: '340c2f57-aaaa-bbbb-cccc-ddddeeeeffff',
+          key: '',
+          value: 'orphan',
+          confidence: 0.5,
+          page: 1,
+          source: 'ocr',
+          source_text: null,
+        },
+        {
+          id: 'e5cc6065-1111-2222-3333-444455556666',
+          key: 'entry_e5cc6065',
+          value: 'noise',
+          confidence: 0.5,
+          page: 1,
+          source: 'ocr',
+          source_text: null,
+        },
+        {
+          id: '3',
+          key: 'שכר יסוד',
+          value: '',
+          confidence: null,
+          page: 1,
+          source: 'ocr',
+          source_text: null,
+        },
+        {
+          id: '4',
+          key: 'שכר יסוד',
+          value: 12000,
+          confidence: 0.9,
+          page: 1,
+          source: 'ocr',
+          source_text: '12000',
+        },
+      ],
+    };
+    const entries = entriesFromExtractionResponse(response);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.key).toBe('שכר יסוד');
+    expect(entries[0]?.value).toBe(12000);
+  });
 });

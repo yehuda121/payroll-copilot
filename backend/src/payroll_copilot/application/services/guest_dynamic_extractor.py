@@ -1,7 +1,8 @@
-"""LLM complete-document extraction for guest landing documents.
+"""LLM complete-document extraction (shared Stage-1 for Guest / Employee / Batch).
 
 Reconstructs the uploaded document into a structured Document Model.
 Does not select a sparse payroll subset — completeness over filtering.
+Canonical payroll mapping happens only after this stage.
 """
 
 from __future__ import annotations

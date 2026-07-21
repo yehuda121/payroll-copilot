@@ -98,6 +98,8 @@ class CorrectGuestExtractionUseCase:
         return await self._apply_persisted(
             document_id=document_id,
             corrections=corrections or [],
+            entry_patches=entry_patches or [],
+            replace_entries=replace_entries,
         )
 
     def _apply_ephemeral(
@@ -258,7 +260,15 @@ class CorrectGuestExtractionUseCase:
         *,
         document_id: UUID,
         corrections: list[FieldCorrection],
+        entry_patches: list[DynamicEntryPatch] | None = None,
+        replace_entries: list[dict[str, Any]] | None = None,
     ) -> CorrectExtractionResult:
+        from payroll_copilot.application.services.dynamic_document import (
+            apply_corrections_to_entries,
+            entries_from_structured,
+            project_structured_from_entries,
+        )
+
         document = await self._documents.get_by_id(document_id)
         if document is None:
             raise DocumentNotFoundError(document_id)
@@ -268,10 +278,27 @@ class CorrectGuestExtractionUseCase:
             raise DocumentNotFoundError(document_id)
 
         structured = deepcopy(previous.structured_data or {})
-        structured = self._apply_corrections(structured, corrections)
+        entries = entries_from_structured(structured)
+
+        if replace_entries is not None:
+            entries = entries_from_payload(replace_entries)
+            structured, _ = project_structured_from_entries(entries)
+        elif entries:
+            if entry_patches:
+                entries = self._apply_entry_patches(entries, entry_patches)
+            if corrections:
+                entries = apply_corrections_to_entries(
+                    entries,
+                    [(c.key, c.value, c.clear) for c in corrections],
+                )
+            structured, _ = project_structured_from_entries(entries)
+        else:
+            # Legacy closed-schema extractions without Document Model.
+            structured = self._apply_corrections(structured, corrections)
 
         now = _utcnow()
         version = previous.extraction_version + 1
+        entry_payload = [e.to_dict() for e in entries_from_structured(structured)]
         extraction = DocumentExtraction(
             id=uuid4(),
             document_id=document_id,
@@ -310,14 +337,24 @@ class CorrectGuestExtractionUseCase:
             document_id=document_id,
             extraction_version=version,
             structured_data=structured,
-            fields=self._fields_out(structured),
+            fields=self._fields_out(structured) if not entry_payload else [
+                {
+                    "key": item["key"],
+                    "value": item.get("value"),
+                    "confidence": item.get("confidence"),
+                    "source_text": item.get("source_text"),
+                    "status": "FOUND" if item.get("value") not in (None, "") else "MISSING",
+                    "edited_by_user": item.get("source") == "user",
+                }
+                for item in entry_payload
+            ],
             language=previous.language,
             ocr_status=previous.ocr_status,
             parser_status=previous.parser_status,
             ocr_engine=previous.engine,
             parser_model=previous.parser_model,
             warnings=list(dict.fromkeys(list(previous.warnings) + ["User corrected extracted fields."])),
-            entries=[],
+            entries=entry_payload,
         )
 
     def _apply_corrections(
@@ -329,7 +366,7 @@ class CorrectGuestExtractionUseCase:
             key = correction.key.strip()
             if not key:
                 continue
-            if key in {"additional_fields", "parser_notes", "language"}:
+            if key in {"additional_fields", "parser_notes", "language", "dynamic_entries"}:
                 continue
 
             if key in PAYSLIP_FIELD_KEYS:

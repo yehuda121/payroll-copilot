@@ -1,4 +1,4 @@
-"""Unit tests for guest payslip extraction orchestration (fakes — no OCR/Ollama)."""
+"""Unit tests for shared Document Model payslip extraction (fakes — no OCR/LLM)."""
 
 from __future__ import annotations
 
@@ -8,19 +8,13 @@ import pytest
 
 from payroll_copilot.application.exceptions import OcrProviderError, PayslipParserJsonError
 from payroll_copilot.application.ports.ocr import OCRResult, OcrPage
-from payroll_copilot.application.ports.payslip_parser import (
-    ExtractedField,
-    FieldExtractionStatus,
-    PayslipParseResult,
-    StructuredPayslipParse,
-)
+from payroll_copilot.application.services.dynamic_document import DynamicDocumentEntry, new_entry
 from payroll_copilot.application.use_cases.extract_guest_payslip import (
     ExtractGuestPayslipUseCase,
     GuestPayslipExtractionCommand,
     _fields_from_structured,
 )
 from payroll_copilot.application.use_cases.ocr_extract import ExtractDocumentTextUseCase
-from payroll_copilot.application.use_cases.parse_payslip import ParsePayslipFromOcrUseCase
 from payroll_copilot.domain.entities import Document, DocumentExtraction
 
 
@@ -90,57 +84,73 @@ class _FailOcr:
         raise OcrProviderError("OCR broke")
 
 
-class _OkParser:
-    async def parse(self, **kwargs: Any) -> PayslipParseResult:
-        fields = StructuredPayslipParse(
-            employee_name=ExtractedField(
-                value="Dana Levi",
-                confidence=0.91,
-                source_text="Employee: Dana Levi",
-                status=FieldExtractionStatus.FOUND,
-                evidence_ids=["p1_l1"],
-                source_page=1,
-                parser_method="layout_llm",
-            ),
-            base_salary=ExtractedField(
-                value=12000,
-                confidence=None,
-                source_text="Base salary 12000",
-                status=FieldExtractionStatus.FOUND,
-                evidence_ids=["p1_l1"],
-                source_page=1,
-                parser_method="layout_llm",
-            ),
-        )
-        return PayslipParseResult(
-            model="fake-llm",
-            language="en",
-            fields=fields,
-            raw_model_response="{}",
-            warnings=[],
-            retry_used=False,
+class _OkDocumentExtractor:
+    async def extract(
+        self,
+        *,
+        ocr_text: str,
+        language: str = "auto",
+        pages_text: list[str] | None = None,
+    ) -> tuple[list[DynamicDocumentEntry], str, list[str]]:
+        _ = ocr_text, language, pages_text
+        return (
+            [
+                new_entry(
+                    key="Employee name",
+                    value="Dana Levi",
+                    confidence=0.91,
+                    source_text="Employee: Dana Levi",
+                ),
+                new_entry(
+                    key="Base salary",
+                    value=12000,
+                    confidence=None,
+                    source_text="Base salary 12000",
+                ),
+            ],
+            "fake-doc-model",
+            [],
         )
 
 
-class _FailParser:
-    async def parse(self, **kwargs: Any) -> PayslipParseResult:
+class _EmptyDocumentExtractor:
+    async def extract(
+        self,
+        *,
+        ocr_text: str,
+        language: str = "auto",
+        pages_text: list[str] | None = None,
+    ) -> tuple[list[DynamicDocumentEntry], str, list[str]]:
+        _ = ocr_text, language, pages_text
+        return ([], "fake-doc-model", [])
+
+
+class _FailDocumentExtractor:
+    async def extract(
+        self,
+        *,
+        ocr_text: str,
+        language: str = "auto",
+        pages_text: list[str] | None = None,
+    ) -> tuple[list[DynamicDocumentEntry], str, list[str]]:
+        _ = ocr_text, language, pages_text
         raise PayslipParserJsonError("bad json")
 
 
-def _use_case(*, ocr, parser) -> ExtractGuestPayslipUseCase:  # noqa: ANN001
+def _use_case(*, ocr, extractor) -> ExtractGuestPayslipUseCase:  # noqa: ANN001
     return ExtractGuestPayslipUseCase(
         document_repository=_FakeDocs(),
         extraction_repository=_FakeExtractions(),
         object_storage=_FakeStorage(),
         organization_bootstrap=_FakeBootstrap(),
         ocr_use_case=ExtractDocumentTextUseCase(ocr, timeout_seconds=5),
-        parse_use_case=ParsePayslipFromOcrUseCase(parser, timeout_seconds=5),
+        document_extractor=extractor,
     )
 
 
 @pytest.mark.asyncio
-async def test_orchestration_success_persists_fields() -> None:
-    use_case = _use_case(ocr=_OkOcr(), parser=_OkParser())
+async def test_orchestration_success_persists_document_model() -> None:
+    use_case = _use_case(ocr=_OkOcr(), extractor=_OkDocumentExtractor())
     result = await use_case.execute(
         GuestPayslipExtractionCommand(
             content=b"fake-png-bytes",
@@ -153,15 +163,20 @@ async def test_orchestration_success_persists_fields() -> None:
     assert result.ocr_status == "completed"
     assert result.parser_status == "completed"
     assert result.ocr_engine == "paddleocr"
-    assert result.parser_model == "fake-llm"
+    assert result.parser_model == "fake-doc-model"
+    assert result.entries is not None
+    assert any(e.key == "Employee name" and e.value == "Dana Levi" for e in result.entries)
+    assert any(e.key == "Base salary" for e in result.entries)
+    # Durable path projects canonical fields for matching/validation.
     assert any(f.key == "employee_name" and f.value == "Dana Levi" for f in result.fields)
-    null_conf = next(f for f in result.fields if f.key == "base_salary")
-    assert null_conf.confidence is None
+    saved = use_case._extractions.saved[-1]  # noqa: SLF001
+    assert "dynamic_entries" in (saved.structured_data or {})
+    assert len(saved.structured_data["dynamic_entries"]) >= 2
 
 
 @pytest.mark.asyncio
 async def test_orchestration_ocr_failure() -> None:
-    use_case = _use_case(ocr=_FailOcr(), parser=_OkParser())
+    use_case = _use_case(ocr=_FailOcr(), extractor=_OkDocumentExtractor())
     result = await use_case.execute(
         GuestPayslipExtractionCommand(
             content=b"x",
@@ -177,8 +192,8 @@ async def test_orchestration_ocr_failure() -> None:
 
 
 @pytest.mark.asyncio
-async def test_orchestration_parser_failure_still_persists() -> None:
-    use_case = _use_case(ocr=_OkOcr(), parser=_FailParser())
+async def test_orchestration_extractor_failure_still_persists() -> None:
+    use_case = _use_case(ocr=_OkOcr(), extractor=_FailDocumentExtractor())
     result = await use_case.execute(
         GuestPayslipExtractionCommand(
             content=b"x",
@@ -193,7 +208,23 @@ async def test_orchestration_parser_failure_still_persists() -> None:
     assert result.extraction_id is not None
 
 
-def test_fields_from_structured_missing_and_null_confidence() -> None:
+@pytest.mark.asyncio
+async def test_empty_document_model_is_failed() -> None:
+    use_case = _use_case(ocr=_OkOcr(), extractor=_EmptyDocumentExtractor())
+    result = await use_case.execute(
+        GuestPayslipExtractionCommand(
+            content=b"fake",
+            original_filename="slip.pdf",
+            mime_type="application/pdf",
+            language="auto",
+            ephemeral=False,
+        )
+    )
+    assert result.parser_status == "failed"
+    assert "dynamic_extractor_no_usable_entries" in result.warnings
+
+
+def test_fields_from_structured_skips_dynamic_entries() -> None:
     structured = {
         "employee_name": {
             "value": None,
@@ -207,11 +238,13 @@ def test_fields_from_structured_missing_and_null_confidence() -> None:
             "source_text": "100",
             "status": "FOUND",
         },
+        "dynamic_entries": [{"id": "1", "key": "x", "value": 1}],
         "additional_fields": {},
         "parser_notes": None,
         "language": "en",
     }
     fields, confidences = _fields_from_structured(structured)
+    assert all(f.key != "dynamic_entries" for f in fields)
     missing = next(f for f in fields if f.key == "employee_name")
     assert missing.status == "MISSING"
     assert "employee_name" not in confidences

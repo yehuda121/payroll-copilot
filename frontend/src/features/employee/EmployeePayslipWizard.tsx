@@ -40,6 +40,7 @@ export function EmployeePayslipWizard() {
     setDocumentLanguage,
     flowError,
     extraction,
+    reviewFields,
     fieldDrafts,
     report,
     duplicateConflict,
@@ -361,7 +362,7 @@ export function EmployeePayslipWizard() {
               aria-labelledby="employee-tab-digital"
             >
               <EmployeeDigitalForm
-                fields={extraction.fields}
+                fields={reviewFields}
                 drafts={fieldDrafts}
                 editable={!isConfirmed}
                 busy={busyPhase === 'confirming'}

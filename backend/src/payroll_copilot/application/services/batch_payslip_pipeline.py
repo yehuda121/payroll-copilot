@@ -1,8 +1,8 @@
 """Reusable one-payslip pipeline for bulk payroll processing.
 
-This service orchestrates the same OCR/parser, confirmation, and deterministic
-validation use cases used by the Employee Portal. It adds only batch-specific
-employee matching and incremental result projection.
+Orchestrates the shared Document Model extraction, confirmation, and
+deterministic validation use cases used by the Employee Portal. Adds only
+batch-specific employee matching and incremental result projection.
 """
 
 from __future__ import annotations

@@ -18,6 +18,7 @@ import {
 } from '../services/employeePortal';
 import type { DocumentLanguage, ExtractedPayslipField } from '../types/api';
 import type { GuestValidationReport } from '../types/validation-report';
+import { reviewFieldsFromExtractionPayload } from '../lib/guest/extraction-review';
 
 export type EmployeeFlowStep = 'upload' | 'prepare' | 'review' | 'validating' | 'report';
 
@@ -103,6 +104,11 @@ export function useEmployeePayslipFlow() {
   const dirty = useMemo(
     () => Object.values(fieldDrafts).some((draft) => draft.dirty),
     [fieldDrafts],
+  );
+
+  const reviewFields = useMemo(
+    () => (extraction ? reviewFieldsFromExtractionPayload(extraction) : []),
+    [extraction],
   );
 
   useEffect(() => {
@@ -248,14 +254,15 @@ export function useEmployeePayslipFlow() {
         setBusyPhase(null);
         setStatusMessage(null);
         setExtraction(response);
-        initDrafts(response.fields);
+        const reviewFields = reviewFieldsFromExtractionPayload(response);
+        initDrafts(reviewFields);
 
         if (response.ocr_status === 'failed') {
           setFlowError(response.error_message || t('validate.extractionOcrFailed'));
           setStep('upload');
           return;
         }
-        if (response.parser_status === 'failed' && response.fields.length === 0) {
+        if (response.parser_status === 'failed' && reviewFields.length === 0) {
           setFlowError(response.error_message || t('validate.extractionParserFailed'));
           setStep('upload');
           return;
@@ -330,7 +337,7 @@ export function useEmployeePayslipFlow() {
 
     const latest = await employeePortalService.correctExtraction(documentId, corrections);
     setExtraction(latest);
-    initDrafts(latest.fields);
+    initDrafts(reviewFieldsFromExtractionPayload(latest));
     setConfirmationStatus(null);
     setAcknowledgement(false);
     return latest;
@@ -500,6 +507,7 @@ export function useEmployeePayslipFlow() {
     setDocumentLanguage,
     flowError,
     extraction,
+    reviewFields,
     fieldDrafts,
     report,
     duplicateConflict,

@@ -26,6 +26,23 @@ class ExtractedFieldResponse(BaseModel):
     original_value: object | None = None
 
 
+class DynamicDocumentEntryRequest(BaseModel):
+    """Document Model review row (also used in extract responses)."""
+
+    id: str = ""
+    key: str = ""
+    value: object | None = None
+    confidence: float | None = None
+    page: int | None = None
+    source: str = "ocr"
+    source_text: str | None = None
+    section: str | None = None
+    kind: str | None = None
+    table_id: str | None = None
+    row_index: int | None = None
+    column: str | None = None
+
+
 class GuestPayslipExtractionResponse(BaseModel):
     document_id: str
     extraction_id: str
@@ -37,6 +54,8 @@ class GuestPayslipExtractionResponse(BaseModel):
     parser_model: str | None = None
     warnings: list[str] = Field(default_factory=list)
     fields: list[ExtractedFieldResponse] = Field(default_factory=list)
+    # Document Model SoT — complete reconstruction (sections/tables as entries).
+    entries: list[DynamicDocumentEntryRequest] = Field(default_factory=list)
     error_message: str | None = None
 
 
@@ -105,23 +124,6 @@ class EmployeeDocumentFormResponse(BaseModel):
     fields: list[ExtractedFieldResponse] = Field(default_factory=list)
 
 
-class DynamicDocumentEntryRequest(BaseModel):
-    """Document-first review row from the guest landing UI (optional on confirm)."""
-
-    id: str = ""
-    key: str = ""
-    value: object | None = None
-    confidence: float | None = None
-    page: int | None = None
-    source: str = "ocr"
-    source_text: str | None = None
-    section: str | None = None
-    kind: str | None = None
-    table_id: str | None = None
-    row_index: int | None = None
-    column: str | None = None
-
-
 class ConfirmGuestExtractionRequest(BaseModel):
     """Guest confirm body — matches frontend `confirmGuestExtraction` contract."""
 
@@ -142,6 +144,39 @@ class GuestSupportingUploadResponse(BaseModel):
 
 class ConfirmEmployeeExtractionRequest(BaseModel):
     acknowledgement: bool = False
+
+
+def entry_response(entry: object) -> DynamicDocumentEntryRequest:
+    """Serialize a DynamicDocumentEntry (dataclass or dict) for API responses."""
+    if isinstance(entry, dict):
+        return DynamicDocumentEntryRequest(
+            id=str(entry.get("id") or ""),
+            key=str(entry.get("key") or ""),
+            value=entry.get("value"),
+            confidence=entry.get("confidence"),
+            page=entry.get("page"),
+            source=str(entry.get("source") or "ocr"),
+            source_text=entry.get("source_text"),
+            section=entry.get("section"),
+            kind=entry.get("kind"),
+            table_id=entry.get("table_id"),
+            row_index=entry.get("row_index"),
+            column=entry.get("column"),
+        )
+    return DynamicDocumentEntryRequest(
+        id=str(getattr(entry, "id", "") or ""),
+        key=str(getattr(entry, "key", "") or ""),
+        value=getattr(entry, "value", None),
+        confidence=getattr(entry, "confidence", None),
+        page=getattr(entry, "page", None),
+        source=str(getattr(entry, "source", "ocr") or "ocr"),
+        source_text=getattr(entry, "source_text", None),
+        section=getattr(entry, "section", None),
+        kind=getattr(entry, "kind", None),
+        table_id=getattr(entry, "table_id", None),
+        row_index=getattr(entry, "row_index", None),
+        column=getattr(entry, "column", None),
+    )
 
 
 def field_response(field: ExtractedFieldView) -> ExtractedFieldResponse:

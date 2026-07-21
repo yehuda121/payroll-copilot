@@ -23,6 +23,37 @@ function hasNonEmptyValue(value: unknown): boolean {
   return String(value).trim() !== '';
 }
 
+/** Internal synthetic keys must never appear in Review UI. */
+const INTERNAL_ENTRY_KEY_RE = /^entry_[0-9a-f-]+$/i;
+
+export function isInternalReviewFieldKey(key: string | null | undefined): boolean {
+  const trimmed = (key || '').trim();
+  if (!trimmed) return true;
+  if (INTERNAL_ENTRY_KEY_RE.test(trimmed)) return true;
+  if (trimmed === 'field' || trimmed === 'unknown') return true;
+  return false;
+}
+
+/**
+ * Review display rule: meaningful document label AND non-empty value.
+ * Does not invent labels; unlabeled / empty rows are omitted.
+ */
+export function isMeaningfulReviewField(
+  key: string | null | undefined,
+  value: unknown,
+): boolean {
+  const label = (key || '').trim();
+  if (!label || isInternalReviewFieldKey(label)) return false;
+  return hasNonEmptyValue(value);
+}
+
+export function filterMeaningfulReviewFields(
+  fields: ExtractedPayslipField[] | null | undefined,
+): ExtractedPayslipField[] {
+  if (!fields?.length) return [];
+  return fields.filter((field) => isMeaningfulReviewField(field.key, field.value));
+}
+
 /** Entry is showable when it came from the document (has a label and/or a value). */
 export function isDocumentOriginEntry(entry: DynamicDocumentEntry): boolean {
   const hasKey = Boolean(entry.key?.trim());
@@ -32,6 +63,12 @@ export function isDocumentOriginEntry(entry: DynamicDocumentEntry): boolean {
     return false;
   }
   return true;
+}
+
+/** Review-list rows: document-origin + meaningful label + non-empty value. */
+export function isMeaningfulReviewEntry(entry: DynamicDocumentEntry): boolean {
+  if (!isDocumentOriginEntry(entry)) return false;
+  return isMeaningfulReviewField(entry.key, entry.value);
 }
 
 /**
@@ -124,8 +161,8 @@ export function groupEntriesBySection(
 export function entriesFromExtractionResponse(
   response: GuestPayslipExtractionResponse,
 ): DynamicDocumentEntry[] {
-  if (Array.isArray(response.entries)) {
-    return response.entries.filter(isDocumentOriginEntry).map((entry) => ({
+  if (Array.isArray(response.entries) && response.entries.length > 0) {
+    return response.entries.filter(isMeaningfulReviewEntry).map((entry) => ({
       ...entry,
       key: entry.key?.trim() ?? '',
     }));
@@ -134,11 +171,7 @@ export function entriesFromExtractionResponse(
   // Legacy/compat only: map schema fields that actually have document signal.
   // Never include MISSING empty placeholders from the full payroll schema.
   return (response.fields || [])
-    .filter((field) => {
-      const status = (field.status || '').toUpperCase();
-      if (status !== 'FOUND' && status !== 'UNCERTAIN') return false;
-      return hasNonEmptyValue(field.value) || Boolean(field.key?.trim());
-    })
+    .filter((field) => isMeaningfulReviewField(field.key, field.value))
     .map((field) => ({
       id: crypto.randomUUID(),
       key: field.key?.trim() ?? '',
@@ -148,6 +181,34 @@ export function entriesFromExtractionResponse(
       source: 'ocr',
       source_text: field.source_text ?? null,
     }));
+}
+
+/** Convert Document Model entries into digital-form field rows. */
+export function fieldsFromDynamicEntries(
+  entries: DynamicDocumentEntry[] | null | undefined,
+): ExtractedPayslipField[] {
+  if (!entries?.length) return [];
+  return entries.filter(isMeaningfulReviewEntry).map((entry) => ({
+    key: entry.key.trim(),
+    value: entry.value,
+    confidence: entry.confidence ?? null,
+    source_text: entry.source_text ?? null,
+    status: hasNonEmptyValue(entry.value) ? 'FOUND' : 'MISSING',
+    edited_by_user: entry.source === 'user',
+  }));
+}
+
+/**
+ * Review SoT for Employee/Batch/Guest extract payloads:
+ * prefer Document Model entries; fall back to meaningful fields only.
+ */
+export function reviewFieldsFromExtractionPayload(payload: {
+  entries?: DynamicDocumentEntry[] | null;
+  fields?: ExtractedPayslipField[] | null;
+}): ExtractedPayslipField[] {
+  const fromEntries = fieldsFromDynamicEntries(payload.entries);
+  if (fromEntries.length > 0) return fromEntries;
+  return filterMeaningfulReviewFields(payload.fields);
 }
 
 /** Legacy helper kept for employee/validation wizard imports. */

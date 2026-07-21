@@ -1,20 +1,13 @@
-"""Guest extraction must not present all-empty fields as a successful review."""
+"""Guest extraction must not present empty Document Model as a successful review."""
 
 from __future__ import annotations
 
 from typing import Any
-from uuid import uuid4
 
 import pytest
 
-from payroll_copilot.application.exceptions import OcrProviderError
 from payroll_copilot.application.ports.ocr import OCRResult, OcrPage
-from payroll_copilot.application.ports.payslip_parser import (
-    ExtractedField,
-    FieldExtractionStatus,
-    PayslipParseResult,
-    StructuredPayslipParse,
-)
+from payroll_copilot.application.services.dynamic_document import DynamicDocumentEntry
 from payroll_copilot.application.use_cases.extract_guest_payslip import (
     ExtractGuestPayslipUseCase,
     GuestPayslipExtractionCommand,
@@ -22,9 +15,7 @@ from payroll_copilot.application.use_cases.extract_guest_payslip import (
     _fields_from_structured,
 )
 from payroll_copilot.application.use_cases.ocr_extract import ExtractDocumentTextUseCase
-from payroll_copilot.application.use_cases.parse_payslip import ParsePayslipFromOcrUseCase
 from payroll_copilot.domain.entities import Document, DocumentExtraction
-from payroll_copilot.domain.enums import DocumentStatus, DocumentType
 
 
 class _FakeDocs:
@@ -71,32 +62,32 @@ class _OkOcr:
         )
 
 
-class _EmptyParser:
-    async def parse(self, **kwargs: Any) -> PayslipParseResult:
-        return PayslipParseResult(
-            model="unknown",
-            language="auto",
-            fields=StructuredPayslipParse(language="auto"),
-            raw_model_response=None,
-            warnings=["parser_semantic_retry_failed"],
-            retry_used=True,
-        )
+class _EmptyDocumentExtractor:
+    async def extract(
+        self,
+        *,
+        ocr_text: str,
+        language: str = "auto",
+        pages_text: list[str] | None = None,
+    ) -> tuple[list[DynamicDocumentEntry], str, list[str]]:
+        _ = ocr_text, language, pages_text
+        return ([], "fake", [])
 
 
-def _use_case(*, ocr, parser) -> ExtractGuestPayslipUseCase:  # noqa: ANN001
+def _use_case(*, ocr, extractor) -> ExtractGuestPayslipUseCase:  # noqa: ANN001
     return ExtractGuestPayslipUseCase(
         document_repository=_FakeDocs(),
         extraction_repository=_FakeExtractions(),
         object_storage=_FakeStorage(),
         organization_bootstrap=_FakeBootstrap(),
         ocr_use_case=ExtractDocumentTextUseCase(ocr, timeout_seconds=5),
-        parse_use_case=ParsePayslipFromOcrUseCase(parser, timeout_seconds=5),
+        document_extractor=extractor,
     )
 
 
 @pytest.mark.asyncio
-async def test_all_empty_parser_result_is_failed_not_reviewable() -> None:
-    use_case = _use_case(ocr=_OkOcr(), parser=_EmptyParser())
+async def test_all_empty_document_model_is_failed_not_reviewable() -> None:
+    use_case = _use_case(ocr=_OkOcr(), extractor=_EmptyDocumentExtractor())
     result = await use_case.execute(
         GuestPayslipExtractionCommand(
             content=b"fake",
@@ -109,7 +100,7 @@ async def test_all_empty_parser_result_is_failed_not_reviewable() -> None:
     assert result.ocr_status == "completed"
     assert result.parser_status == "failed"
     assert result.error_message
-    assert "parser_no_usable_fields" in result.warnings
+    assert "dynamic_extractor_no_usable_entries" in result.warnings
     assert _count_usable_fields(result.fields) == 0
 
 

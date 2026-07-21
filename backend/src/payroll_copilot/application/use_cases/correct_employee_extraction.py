@@ -79,6 +79,10 @@ class CorrectEmployeeExtractionUseCase:
                 "Document is missing a selected payroll period and cannot be corrected."
             )
 
+        from payroll_copilot.application.use_cases.extract_guest_payslip import (
+            _fields_from_structured,
+        )
+
         settings = get_settings()
         plaintext = decrypt_national_id(
             national_id_encrypted,
@@ -88,6 +92,7 @@ class CorrectEmployeeExtractionUseCase:
         display_name = (employee.metadata or {}).get("verified_display_name") or (
             f"{employee.first_name} {employee.last_name}"
         )
+        canonical_fields, _ = _fields_from_structured(correction.structured_data or {})
         comparison = self._comparison.compare(
             trusted_full_name=str(display_name),
             trusted_employee_number=employee.employee_number,
@@ -95,7 +100,7 @@ class CorrectEmployeeExtractionUseCase:
             trusted_national_id_masked=masked if isinstance(masked, str) else None,
             selected_year=selected_year,
             selected_month=selected_month,
-            extraction_fields=correction.fields,
+            extraction_fields=canonical_fields,
             period_resolution=str(meta.get("period_resolution") or "") or None,
         )
 

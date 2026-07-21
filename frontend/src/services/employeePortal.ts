@@ -1,5 +1,10 @@
 import { apiRequest } from './api';
-import type { DocumentLanguage, ExtractedPayslipField, ValidationRunResponse } from '../types';
+import type {
+  DocumentLanguage,
+  DynamicDocumentEntry,
+  ExtractedPayslipField,
+  ValidationRunResponse,
+} from '../types';
 
 export type ComparisonField = {
   key: string;
@@ -36,6 +41,8 @@ export type EmployeePayslipExtraction = {
   language: string;
   warnings: string[];
   fields: ExtractedPayslipField[];
+  /** Document Model SoT — prefer for Review UI when present. */
+  entries?: DynamicDocumentEntry[];
   error_message?: string | null;
   identity_check: IdentityCheck;
   period_check: PeriodCheck;

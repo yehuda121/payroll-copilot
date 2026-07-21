@@ -16,6 +16,7 @@ from payroll_copilot.application.ports.payslip_parser import (
     PayslipParseResult,
     StructuredPayslipParse,
 )
+from payroll_copilot.application.services.dynamic_document import new_entry
 from payroll_copilot.application.services.guest_ephemeral_store import get_guest_ephemeral_store
 from payroll_copilot.application.services.parser_evidence import validate_extracted_field_evidence
 from payroll_copilot.application.services.parser_semantic import (
@@ -233,17 +234,27 @@ class _OkOcr:
         )
 
 
-class _OkParser:
-    async def parse(self, **kwargs: Any) -> PayslipParseResult:
-        fields = StructuredPayslipParse(
-            base_salary=ExtractedField(
-                value=12000,
-                confidence=0.9,
-                source_text="12000",
-                status=FieldExtractionStatus.FOUND,
-            ),
+class _OkDocumentExtractor:
+    async def extract(
+        self,
+        *,
+        ocr_text: str,
+        language: str = "auto",
+        pages_text: list[str] | None = None,
+    ):
+        _ = ocr_text, language, pages_text
+        return (
+            [
+                new_entry(
+                    key="Base salary",
+                    value=12000,
+                    confidence=0.9,
+                    source_text="12000",
+                )
+            ],
+            "fake-doc-model",
+            [],
         )
-        return PayslipParseResult(model="fake", language="auto", fields=fields, warnings=[])
 
 
 @pytest.mark.asyncio
@@ -261,7 +272,7 @@ async def test_guest_ephemeral_not_persisted_to_db() -> None:
         object_storage=storage,
         organization_bootstrap=_FakeBootstrap(),
         ocr_use_case=ExtractDocumentTextUseCase(_OkOcr(), timeout_seconds=5),
-        parse_use_case=ParsePayslipFromOcrUseCase(_OkParser(), timeout_seconds=5),
+        document_extractor=_OkDocumentExtractor(),
     )
     result = await use_case.execute(
         GuestPayslipExtractionCommand(
@@ -293,7 +304,7 @@ async def test_guest_confirm_freezes_without_permanent_write() -> None:
         object_storage=storage,
         organization_bootstrap=_FakeBootstrap(),
         ocr_use_case=ExtractDocumentTextUseCase(_OkOcr(), timeout_seconds=5),
-        parse_use_case=ParsePayslipFromOcrUseCase(_OkParser(), timeout_seconds=5),
+        document_extractor=_OkDocumentExtractor(),
     )
     result = await use_case.execute(
         GuestPayslipExtractionCommand(
@@ -313,6 +324,8 @@ async def test_guest_confirm_freezes_without_permanent_write() -> None:
     assert docs.saved == []
     assert extractions.saved == []
     assert storage.uploads == []
+    assert "dynamic_entries" in (extraction.structured_data or {})
+    assert extraction.structured_data.get("base_salary", {}).get("value") == 12000
 
 
 @pytest.mark.asyncio
@@ -332,7 +345,7 @@ async def test_cancellation_before_ocr() -> None:
         object_storage=_FakeStorage(),
         organization_bootstrap=_FakeBootstrap(),
         ocr_use_case=ExtractDocumentTextUseCase(_OkOcr(), timeout_seconds=5),
-        parse_use_case=ParsePayslipFromOcrUseCase(_OkParser(), timeout_seconds=5),
+        document_extractor=_OkDocumentExtractor(),
     )
     from payroll_copilot.application.exceptions import ExtractionCancelledError
 

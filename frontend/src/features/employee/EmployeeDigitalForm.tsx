@@ -21,6 +21,8 @@ type EmployeeDigitalFormProps = {
   drafts: Record<string, FieldDraft>;
   editable: boolean;
   busy?: boolean;
+  /** True while extraction/review data is still being fetched. */
+  loading?: boolean;
   reviewNotice?: string | null;
   validationMap?: Record<string, EmployeeFieldValidationMeta>;
   onChangeField: (key: string, value: string) => void;
@@ -72,6 +74,7 @@ export function EmployeeDigitalForm({
   drafts,
   editable,
   busy = false,
+  loading = false,
   reviewNotice,
   validationMap,
   onChangeField,
@@ -100,7 +103,7 @@ export function EmployeeDigitalForm({
   const multiline = usesMultilineEditor(editingType) || draftValue.length > 72 || draftValue.includes('\n');
 
   const openEditor = (key: string, currentValue: string) => {
-    if (!editable || busy) return;
+    if (!editable || busy || loading) return;
     setEditingKey(key);
     setDraftValue(currentValue);
     setEditError(null);
@@ -124,7 +127,7 @@ export function EmployeeDigitalForm({
   };
 
   const requestDeleteField = async (key: string) => {
-    if (!onRemoveField || busy) return;
+    if (!onRemoveField || busy || loading) return;
     const ok = await confirm({
       title: t('employee.digitalForm.deleteFieldTitle'),
       message: t('employee.digitalForm.deleteFieldMessage'),
@@ -136,6 +139,29 @@ export function EmployeeDigitalForm({
     onRemoveField(key);
   };
 
+  if (loading) {
+    return (
+      <div
+        className="digital-form employee-digital-form"
+        role="status"
+        aria-busy="true"
+        aria-live="polite"
+        aria-label={t('employee.upload.digitalFormTitle')}
+      >
+        <div className="digital-form__empty employee-digital-form__loading">
+          <div className="chat-typing" aria-hidden="true">
+            <span className="chat-typing__dots">
+              <span />
+              <span />
+              <span />
+            </span>
+          </div>
+          <p>{t('common.loading')}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (allFields.length === 0) {
     return (
       <div
@@ -143,7 +169,7 @@ export function EmployeeDigitalForm({
         role="form"
         aria-label={t('employee.upload.digitalFormTitle')}
       >
-        <div className="digital-form__empty" role="alert">
+        <div className="digital-form__empty" role="status">
           <p>{t('employee.upload.noExtractedFields')}</p>
         </div>
         {editable && onAddField && (
@@ -209,18 +235,9 @@ export function EmployeeDigitalForm({
                         <span className="digital-form__edited">{t('validate.fieldEdited')}</span>
                       )}
                     </span>
-                    {visual && (
-                      <span
-                        className={`employee-field-status ${visual.css}`}
-                        title={explanation || visual.label}
-                      >
-                        <span aria-hidden="true">{visual.icon}</span>
-                        <span>{visual.label}</span>
-                        {explanation && (
-                          <FieldAiPopover label={field.label} explanation={explanation} />
-                        )}
-                      </span>
-                    )}
+                    {explanation ? (
+                      <FieldAiPopover label={field.label} explanation={explanation} />
+                    ) : null}
                     {fields?.find((item) => item.key === field.key)?.evidence_details && (
                       <button
                         type="button"

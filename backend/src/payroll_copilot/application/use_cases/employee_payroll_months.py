@@ -17,6 +17,7 @@ from payroll_copilot.application.services.employee_document_lifecycle import (
     LIFECYCLE_CONFIRMED,
     LIFECYCLE_REVIEW_REQUIRED,
     fields_from_structured,
+    review_fields_from_structured,
     is_employee_visible_document,
 )
 from payroll_copilot.application.services.employee_payroll_month_status import (
@@ -345,7 +346,7 @@ class BuildEmployeePayrollMonthsUseCase:
                 or "review_required"
             )
             raw_fields = (
-                fields_from_structured(latest_ext.structured_data) if latest_ext else []
+                review_fields_from_structured(latest_ext.structured_data) if latest_ext else []
             )
             api_fields = fields_for_workspace_api(raw_fields)
             explainability_enabled = bool(

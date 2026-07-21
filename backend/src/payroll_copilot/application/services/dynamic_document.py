@@ -360,3 +360,59 @@ def map_dynamic_entries_to_structured(
 
     structured["additional_fields"] = additional
     return structured, list(dict.fromkeys(warnings))
+
+
+# Reserved keys stored alongside canonical fields; never projected as review fields.
+STRUCTURED_META_KEYS = frozenset(
+    {"additional_fields", "parser_notes", "language", "dynamic_entries"}
+)
+
+
+def entries_from_structured(structured: dict[str, Any] | None) -> list[DynamicDocumentEntry]:
+    """Load Document Model rows preserved inside structured_data."""
+    if not isinstance(structured, dict):
+        return []
+    return entries_from_payload(structured.get("dynamic_entries"))
+
+
+def project_structured_from_entries(
+    entries: list[DynamicDocumentEntry],
+) -> tuple[dict[str, Any], list[str]]:
+    """Stage-2: map Document Model → Canonical while retaining full entries.
+
+    Document Model remains the source of truth under ``dynamic_entries``.
+    Canonical keys feed validation / identity matching only.
+    """
+    mapped, warnings = map_dynamic_entries_to_structured(entries)
+    mapped["dynamic_entries"] = [entry.to_dict() for entry in entries]
+    return mapped, warnings
+
+
+def apply_corrections_to_entries(
+    entries: list[DynamicDocumentEntry],
+    corrections: list[tuple[str, Any, bool]],
+) -> list[DynamicDocumentEntry]:
+    """Apply (key, value, clear) corrections onto document-origin entries.
+
+    Matching is by entry key (document label). Unknown keys append a user entry.
+    """
+    out = list(entries)
+    for key, value, clear in corrections:
+        label = (key or "").strip()
+        if not label:
+            continue
+        matched = next((entry for entry in out if entry.key == label), None)
+        if matched is None:
+            if clear:
+                continue
+            out.append(
+                new_entry(key=label, value=value, source="user", kind="field")
+            )
+            continue
+        if clear:
+            matched.value = None
+            matched.source = "user"
+        else:
+            matched.value = value
+            matched.source = "user"
+    return out
