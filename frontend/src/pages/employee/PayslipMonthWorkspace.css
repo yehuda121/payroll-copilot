@@ -3,6 +3,12 @@
   gap: 1rem;
 }
 
+.employee-workspace-skeleton {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.5rem 0 1rem;
+}
+
 .employee-month-workspace__top {
   display: flex;
   justify-content: space-between;

@@ -11,6 +11,11 @@
   justify-content: space-between;
 }
 
+.employee-payslips__refresh {
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #667085);
+}
+
 .employee-payslips__year {
   display: grid;
   gap: 0.35rem;

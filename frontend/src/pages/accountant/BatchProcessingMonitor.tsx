@@ -70,8 +70,10 @@ export function BatchProcessingMonitorPage() {
 
       {error && <p className="chat-panel__error">{error}</p>}
 
-      <div className="panel-relative">
-        {loading && <LoadingOverlay label={t('accountant.batches.loadingJobs')} />}
+      <div className="panel-relative" aria-busy={loading}>
+        {loading && jobs.length === 0 && (
+          <LoadingOverlay label={t('accountant.batches.loadingJobs')} />
+        )}
         {!loading && jobs.length === 0 ? (
           <EmptyState
             title={t('accountant.batches.emptyJobsTitle')}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Info, Pencil, Trash2 } from 'lucide-react';
 import { ModalDialog, useConfirmDialog } from '../../components/ui/Dialog';
+import { Skeleton, SkeletonText } from '../../components/ui/Skeleton';
 import type { FieldDraft } from '../../hooks/useEmployeePayslipFlow';
 import { buildDigitalFormSections } from '../../lib/employee/digital-form-model';
 import type { EmployeeFieldValidationMeta } from '../../lib/employee/field-validation-status';
@@ -148,16 +149,10 @@ export function EmployeeDigitalForm({
         aria-live="polite"
         aria-label={t('employee.upload.digitalFormTitle')}
       >
-        <div className="digital-form__empty employee-digital-form__loading">
-          <div className="chat-typing" aria-hidden="true">
-            <span className="chat-typing__dots">
-              <span />
-              <span />
-              <span />
-            </span>
-          </div>
-          <p>{t('common.loading')}</p>
-        </div>
+        <Skeleton height={16} width="30%" />
+        <SkeletonText lines={5} />
+        <Skeleton height={16} width="40%" />
+        <SkeletonText lines={4} />
       </div>
     );
   }

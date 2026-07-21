@@ -5,6 +5,7 @@ import { ProtectedRoute } from '../auth/ProtectedRoute';
 import { getRoleHomePath } from '../auth/authProvider';
 import { useAuth } from '../auth/AuthContext';
 import { DialogProvider } from '../components/ui/Dialog';
+import { Skeleton } from '../components/ui/Skeleton';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { UnsavedChangesProvider } from '../features/accountant/UnsavedChangesGuard';
 import { AccountantLayout } from '../layouts/AccountantLayout';
@@ -122,7 +123,16 @@ const UsersAndRolesPage = lazyPage(
 );
 
 function RouteFallback() {
-  return <div className="app-route-fallback" aria-busy="true" />;
+  return (
+    <div className="app-route-fallback" aria-busy="true" aria-live="polite">
+      <Skeleton className="app-route-fallback__title" label="Loading page" />
+      <div className="app-route-fallback__body">
+        <Skeleton className="app-route-fallback__card" />
+        <Skeleton className="app-route-fallback__card" />
+        <Skeleton className="app-route-fallback__card" />
+      </div>
+    </div>
+  );
 }
 
 function LazyRoute({ children }: { children: ReactNode }) {

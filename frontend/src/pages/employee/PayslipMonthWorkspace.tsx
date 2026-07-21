@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
 import { DragDropZone } from '../../components/ui/DragDropZone';
 import { useConfirmDialog } from '../../components/ui/Dialog';
+import { Skeleton, SkeletonText } from '../../components/ui/Skeleton';
 import { EmployeeDigitalForm } from '../../features/employee/EmployeeDigitalForm';
 import { useEmployeeWorkspace } from '../../features/employee/EmployeeWorkspaceContext';
 import { EmployeeValidationResults } from '../../features/employee/EmployeeValidationResults';
@@ -202,30 +203,35 @@ function PayslipMonthWorkspace({
           </p>
         )}
 
-        {flow.loading ? (
-          <p role="status">{t('common.loading')}</p>
+        <div
+          className="employee-review-tabs"
+          role="tablist"
+          aria-label={t('employee.workspace.tabs')}
+          aria-busy={flow.loading}
+        >
+          {workspaceTabs.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={flow.tab === item.id}
+              className={`employee-review-tabs__tab ${flow.tab === item.id ? 'is-active' : ''}`}
+              onClick={() => flow.setTab(item.id)}
+              disabled={flow.busyPhase === 'confirming'}
+            >
+              {t(item.labelKey)}
+            </button>
+          ))}
+        </div>
+
+        {flow.loading && !flow.detail ? (
+          <div className="employee-workspace-skeleton" aria-busy="true" role="status">
+            <Skeleton height={18} width="40%" />
+            <Skeleton height={120} width="100%" />
+            <SkeletonText lines={4} />
+          </div>
         ) : (
           <>
-            <div
-              className="employee-review-tabs"
-              role="tablist"
-              aria-label={t('employee.workspace.tabs')}
-            >
-              {workspaceTabs.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={flow.tab === item.id}
-                  className={`employee-review-tabs__tab ${flow.tab === item.id ? 'is-active' : ''}`}
-                  onClick={() => flow.setTab(item.id)}
-                  disabled={flow.busyPhase === 'confirming'}
-                >
-                  {t(item.labelKey)}
-                </button>
-              ))}
-            </div>
-
             {flow.tab === 'upload' && !batchReview && <UploadTab flow={flow} />}
 
             {flow.tab === 'digital' && (
@@ -265,7 +271,7 @@ function PayslipMonthWorkspace({
                       busy={
                         flow.busyPhase === 'confirming' || flow.busyPhase === 'validating'
                       }
-                      loading={flow.loading || flow.busyPhase === 'extracting'}
+                      loading={flow.busyPhase === 'extracting'}
                       validationMap={validationMap}
                       onChangeField={flow.updateFieldDraft}
                       onClearField={flow.clearFieldDraft}
@@ -713,7 +719,7 @@ function OriginalTab({ flow }: { flow: Flow }) {
           drafts={flow.fieldDrafts}
           editable
           busy={flow.isBusy}
-          loading={flow.loading}
+          loading={false}
           onChangeField={flow.updateFieldDraft}
           onClearField={flow.clearFieldDraft}
           onRemoveField={flow.removeField}

@@ -91,7 +91,9 @@ export function EditEmployeePage() {
       description={t('accountant.employees.editDescription')}
     >
       <div className="panel-relative">
-        {loading && <LoadingOverlay label={t('accountant.employees.loadingOne')} />}
+        {loading && !initial && (
+          <LoadingOverlay label={t('accountant.employees.loadingOne')} />
+        )}
         {!loading && !initial ? (
           <EmptyState
             title={t('accountant.employees.notFoundTitle')}
@@ -103,7 +105,6 @@ export function EditEmployeePage() {
             }
           />
         ) : (
-          !loading &&
           initial && (
             <Card>
               <EmployeeForm

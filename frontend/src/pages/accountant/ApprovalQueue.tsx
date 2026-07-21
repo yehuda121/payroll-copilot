@@ -69,8 +69,10 @@ export function ApprovalQueuePage() {
       description={t('accountant.reviewQueue.description')}
     >
       {error && <p className="chat-panel__error">{error}</p>}
-      <div className="panel-relative">
-        {loading && <LoadingOverlay label={t('accountant.reviewQueue.loading')} />}
+      <div className="panel-relative" aria-busy={loading}>
+        {loading && items.length === 0 && (
+          <LoadingOverlay label={t('accountant.reviewQueue.loading')} />
+        )}
         <h3>{t('accountant.reviewQueue.manualHeading')}</h3>
         {!loading && items.length === 0 ? (
           <EmptyState

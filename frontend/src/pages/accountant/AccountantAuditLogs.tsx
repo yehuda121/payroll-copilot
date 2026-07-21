@@ -36,8 +36,10 @@ export function AccountantAuditLogsPage() {
       description={t('accountant.auditLogs.description')}
     >
       {error && <p className="chat-panel__error">{error}</p>}
-      <div className="panel-relative">
-        {loading && <LoadingOverlay label={t('accountant.auditLogs.loading')} />}
+      <div className="panel-relative" aria-busy={loading}>
+        {loading && rows.length === 0 && (
+          <LoadingOverlay label={t('accountant.auditLogs.loading')} />
+        )}
         {!loading && rows.length === 0 ? (
           <EmptyState
             title={t('accountant.auditLogs.emptyTitle')}

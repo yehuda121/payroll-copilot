@@ -48,8 +48,8 @@ export function EmployeeManagementPage() {
 
   const load = useCallback(async (nextQuery: string, nextStatus: string) => {
     const requestId = ++requestSequence.current;
-    setLoading(true);
     setError(null);
+    setLoading(true);
     try {
       const data = await employeesService.list({
         q: nextQuery || undefined,
@@ -63,7 +63,6 @@ export function EmployeeManagementPage() {
       const message =
         err instanceof ApiClientError ? err.message : getAccountantErrorMessage('loadFailed', t);
       setError(message);
-      setRows([]);
     } finally {
       if (requestId === requestSequence.current) setLoading(false);
     }
@@ -149,8 +148,10 @@ export function EmployeeManagementPage() {
         </p>
       )}
 
-      <div className="panel-relative">
-        {loading && <LoadingOverlay label={t('accountant.employees.loading')} />}
+      <div className="panel-relative" aria-busy={loading}>
+        {loading && rows.length === 0 && (
+          <LoadingOverlay label={t('accountant.employees.loading')} />
+        )}
         {!loading && rows.length === 0 ? (
           <EmptyState
             title={t('accountant.employees.emptyTitle')}

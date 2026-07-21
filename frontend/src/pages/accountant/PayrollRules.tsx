@@ -140,8 +140,10 @@ export function PayrollRulesPage() {
       description={t('accountant.rules.description')}
     >
       {error && <p className="chat-panel__error">{error}</p>}
-      <div className="panel-relative">
-        {loading && <LoadingOverlay label={t('accountant.rules.loading')} />}
+      <div className="panel-relative" aria-busy={loading}>
+        {loading && rules.length === 0 && (
+          <LoadingOverlay label={t('accountant.rules.loading')} />
+        )}
         <DataTable<LegalRuleSummary & Record<string, unknown>>
           columns={[
             { key: 'filename', header: t('accountant.rules.colFile') },

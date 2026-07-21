@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
 import { DragDropZone } from '../../components/ui/DragDropZone';
 import { useConfirmDialog } from '../../components/ui/Dialog';
+import { Skeleton, SkeletonText } from '../../components/ui/Skeleton';
 import { EmployeeDigitalForm } from '../../features/employee/EmployeeDigitalForm';
 import { EmployeeFixedDocumentForm } from '../../features/employee/EmployeeFixedDocumentForm';
 import {
@@ -77,31 +78,41 @@ export function DocumentCenterPage() {
         {flow.statusMessage && (
           <p role="status">{flow.statusMessage}</p>
         )}
+        {flow.refreshing && !flow.loading ? (
+          <p className="employee-payslips__refresh" role="status">
+            {t('common.loading')}
+          </p>
+        ) : null}
+
+        <div
+          className="employee-review-tabs"
+          role="tablist"
+          aria-label={t('employee.documents.workspaceTabs', { type: typeTitle })}
+          aria-busy={flow.loading || flow.refreshing}
+        >
+          {INNER_TABS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={flow.tab === item.id}
+              className={`employee-review-tabs__tab ${flow.tab === item.id ? 'is-active' : ''}`}
+              onClick={() => flow.setTab(item.id)}
+              disabled={flow.isBusy}
+            >
+              {t(item.labelKey)}
+            </button>
+          ))}
+        </div>
 
         {flow.loading ? (
-          <p role="status">{t('common.loading')}</p>
+          <div className="employee-workspace-skeleton" aria-busy="true" role="status">
+            <Skeleton height={18} width="35%" />
+            <Skeleton height={100} width="100%" />
+            <SkeletonText lines={3} />
+          </div>
         ) : (
           <>
-            <div
-              className="employee-review-tabs"
-              role="tablist"
-              aria-label={t('employee.documents.workspaceTabs', { type: typeTitle })}
-            >
-              {INNER_TABS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={flow.tab === item.id}
-                  className={`employee-review-tabs__tab ${flow.tab === item.id ? 'is-active' : ''}`}
-                  onClick={() => flow.setTab(item.id)}
-                  disabled={flow.isBusy}
-                >
-                  {t(item.labelKey)}
-                </button>
-              ))}
-            </div>
-
             {flow.tab === 'upload' && (
               <UploadTab flow={flow} documentType={documentType} typeTitle={typeTitle} />
             )}

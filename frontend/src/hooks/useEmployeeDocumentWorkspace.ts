@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useEmployeeSession } from '../auth/EmployeeSessionContext';
 import {
   emptyFixedFieldValues,
   fixedFieldKeysFor,
@@ -46,12 +47,18 @@ function fieldsFromFixedValues(values: Record<string, string>): ExtractedPayslip
  */
 export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentType) {
   const { api: workspaceApi } = useEmployeeWorkspace();
+  const session = useEmployeeSession();
   const { t } = useTranslation();
   const fixedKeys = fixedFieldKeysFor(documentType);
   const usesFixedForm = fixedKeys !== null;
 
-  const [item, setItem] = useState<EmployeeDocumentCenterItem | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [item, setItem] = useState<EmployeeDocumentCenterItem | null>(() => {
+    const center = session.getDocumentCenter();
+    return center?.persistent_documents.find((row) => row.document_type === documentType) ?? null;
+  });
+  /** True only when there is nothing yet to paint for this document type. */
+  const [loading, setLoading] = useState(() => session.getDocumentCenter() == null);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [tab, setTab] = useState<DocumentWorkspaceTab>('upload');
@@ -112,20 +119,56 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
   }, [documentType, usesFixedForm]);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
     setError(null);
-    try {
-      const center = await workspaceApi.listDocuments();
+
+    const paintFromCenter = (center: Awaited<ReturnType<typeof workspaceApi.listDocuments>>) => {
+      session.setDocumentCenter(center);
       const next =
         center.persistent_documents.find((row) => row.document_type === documentType) ?? null;
       setItem(next);
+      return next;
+    };
+
+    const applyCachedOrEmptyForm = async (next: EmployeeDocumentCenterItem | null) => {
+      if (next?.document_id) {
+        const cachedForm = session.getDocumentForm(next.document_id);
+        if (cachedForm) {
+          applyForm(cachedForm);
+          return;
+        }
+      } else {
+        const byType = session.getDocumentFormByType(documentType);
+        if (byType) {
+          applyForm(byType);
+          return;
+        }
+      }
+    };
+
+    const cachedCenter = session.getDocumentCenter();
+    if (cachedCenter) {
+      const next = paintFromCenter(cachedCenter);
+      await applyCachedOrEmptyForm(next);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    setRefreshing(true);
+    try {
+      const center = await workspaceApi.listDocuments();
+      const next = paintFromCenter(center);
+
       if (next?.document_id) {
         try {
-          applyForm(await workspaceApi.getEmployeeDocumentForm(next.document_id));
+          const form = await workspaceApi.getEmployeeDocumentForm(next.document_id);
+          session.setDocumentForm(form);
+          applyForm(form);
         } catch (formError) {
           if (!(formError instanceof ApiClientError && formError.status === 404)) {
             throw formError;
           }
+          session.invalidateDocumentForm(next.document_id);
           if (usesFixedForm) {
             resetFormState();
           } else {
@@ -134,20 +177,26 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
             setFormDirty(false);
           }
         }
-      } else if (usesFixedForm) {
-        resetFormState();
       } else {
-        setFields([]);
-        setFieldDrafts({});
-        setFormDirty(false);
+        const byType = session.getDocumentFormByType(documentType);
+        if (byType) {
+          applyForm(byType);
+        } else if (usesFixedForm) {
+          resetFormState();
+        } else {
+          setFields([]);
+          setFieldDrafts({});
+          setFormDirty(false);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'));
-      setItem(null);
+      if (!cachedCenter) setItem(null);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, [applyForm, documentType, resetFormState, t, usesFixedForm, workspaceApi]);
+  }, [applyForm, documentType, resetFormState, session, t, usesFixedForm, workspaceApi]);
 
   useEffect(() => {
     void refresh();
@@ -205,6 +254,9 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
         documentType,
         language: documentLanguage,
       });
+      session.setDocumentForm(form);
+      session.setDocumentFormByType(documentType, form);
+      session.invalidateDocumentCenter();
       applyForm(form);
       setPendingFile(null);
       await refresh();
@@ -217,7 +269,7 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
       setBusyPhase(null);
       setStatusMessage(null);
     }
-  }, [applyForm, pendingFile, documentType, documentLanguage, refresh, t, workspaceApi]);
+  }, [applyForm, pendingFile, documentType, documentLanguage, refresh, session, t, workspaceApi]);
 
   const deleteOwnedDocument = useCallback(async () => {
     if (!item?.document_id) return;
@@ -225,6 +277,9 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
     setError(null);
     try {
       await workspaceApi.deleteOwnedDocument(item.document_id);
+      session.invalidateDocumentForm(item.document_id);
+      session.invalidateDocumentFormByType(documentType);
+      session.invalidateDocumentCenter();
       setPendingFile(null);
       resetFormState();
       await refresh();
@@ -236,7 +291,7 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
     } finally {
       setBusyPhase(null);
     }
-  }, [item?.document_id, refresh, resetFormState, t, workspaceApi]);
+  }, [documentType, item?.document_id, refresh, resetFormState, session, t, workspaceApi]);
 
   const updateFieldDraft = useCallback(
     (key: string, value: string) => {
@@ -356,6 +411,9 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
         ? await workspaceApi.saveEmployeeDocumentForm(item.document_id, payload)
         : await workspaceApi.saveEmployeeDocumentFormByType(documentType, payload);
 
+      session.setDocumentForm(form);
+      session.setDocumentFormByType(documentType, form);
+      session.invalidateDocumentCenter();
       applyForm(form);
       await refresh();
       setStatusMessage(t('employee.documents.digitalFormSaved'));
@@ -374,6 +432,7 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
     fixedValues,
     item?.document_id,
     refresh,
+    session,
     t,
     usesFixedForm,
     workspaceApi,
@@ -408,6 +467,7 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
   return {
     item,
     loading,
+    refreshing,
     error,
     statusMessage,
     tab,

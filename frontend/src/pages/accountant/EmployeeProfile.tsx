@@ -104,11 +104,13 @@ export function EmployeeProfilePage() {
 
   useEffect(() => {
     if (!employeeNumber) return;
+    let cancelled = false;
     void (async () => {
       setLoading(true);
       setError(null);
       try {
         const data = (await employeesService.getProfile(employeeNumber)) as ProfilePayload;
+        if (cancelled) return;
         setProfile(data);
         const years = Array.from(new Set(data.monthly_history.map((row) => row.year))).sort(
           (a, b) => b - a,
@@ -116,16 +118,22 @@ export function EmployeeProfilePage() {
         setSelectedYear(years[0] ?? new Date().getFullYear());
         setSelectedMonth(null);
       } catch (err) {
+        if (cancelled) return;
         const message =
           err instanceof ApiClientError
             ? err.message
             : getAccountantErrorMessage('loadFailed', t);
         setError(message);
-        setProfile(null);
+        setProfile((prev) =>
+          prev && prev.employee.employee_number === employeeNumber ? prev : null,
+        );
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [employeeNumber, t]);
 
   const docCards = useMemo(
@@ -258,8 +266,10 @@ export function EmployeeProfilePage() {
         onChange={(event) => void onFileSelected(event.target.files?.[0] ?? null)}
       />
 
-      <div className="panel-relative employee-profile">
-        {loading && <LoadingOverlay label={t('accountant.employeeProfile.loading')} />}
+      <div className="panel-relative employee-profile" aria-busy={loading}>
+        {loading && !profile && (
+          <LoadingOverlay label={t('accountant.employeeProfile.loading')} />
+        )}
         {error && (
           <p className="chat-panel__error" role="alert">
             {error}

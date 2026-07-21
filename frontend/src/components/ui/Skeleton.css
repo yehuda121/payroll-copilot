@@ -1,0 +1,63 @@
+.ui-skeleton {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-border, #d8dde6) 55%, transparent) 0%,
+    color-mix(in srgb, var(--color-surface-muted, #eef1f6) 80%, transparent) 50%,
+    color-mix(in srgb, var(--color-border, #d8dde6) 55%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  animation: ui-skeleton-shimmer 1.2s ease-in-out infinite;
+  border-radius: 6px;
+  min-height: 0.75rem;
+}
+
+.ui-skeleton--rounded {
+  border-radius: 999px;
+}
+
+.ui-skeleton--line {
+  margin-block: 0.35rem;
+}
+
+.ui-skeleton-stack {
+  display: grid;
+  gap: 0.15rem;
+}
+
+@keyframes ui-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-skeleton {
+    animation: none;
+  }
+}
+
+.app-route-fallback {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  min-height: 12rem;
+}
+
+.app-route-fallback__title {
+  height: 1.5rem;
+  width: min(16rem, 55%);
+}
+
+.app-route-fallback__body {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.app-route-fallback__card {
+  height: 4.5rem;
+  width: 100%;
+}

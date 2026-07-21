@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useEmployeeSession } from '../auth/EmployeeSessionContext';
@@ -176,8 +176,12 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
   const extractSubmission = useRef(new GuestExtractionSubmission());
   const validateSubmission = useRef(new GuestExtractionSubmission());
 
-  const [detail, setDetail] = useState<PayrollMonthDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [detail, setDetail] = useState<PayrollMonthDetail | null>(() =>
+    session.getPayrollMonthDetail(year, month) ?? null,
+  );
+  const detailRef = useRef<PayrollMonthDetail | null>(detail);
+  detailRef.current = detail;
+  const [loading, setLoading] = useState(() => !session.getPayrollMonthDetail(year, month));
   const [error, setError] = useState<string | null>(null);
   const [busyPhase, setBusyPhase] = useState<BusyPhase>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -295,18 +299,18 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     async (opts?: { force?: boolean }) => {
       setError(null);
 
-      if (!opts?.force) {
-        const cached = session.getPayrollMonthDetail(year, month);
-        if (cached) {
-          applyMonthDetail(cached);
-          setLoading(false);
-          return;
-        }
-      } else {
+      if (opts?.force) {
         session.invalidatePayrollMonth(year, month);
       }
 
-      setLoading(true);
+      const cached = opts?.force ? undefined : session.getPayrollMonthDetail(year, month);
+      if (cached) {
+        applyMonthDetail(cached);
+        setLoading(false);
+      } else if (!detailRef.current) {
+        setLoading(true);
+      }
+
       try {
         const row = await workspaceApi.getPayrollMonthDetail(year, month);
         session.setPayrollMonthDetail(row);
@@ -319,6 +323,14 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     },
     [year, month, applyMonthDetail, session, t, workspaceApi],
   );
+
+  useLayoutEffect(() => {
+    const cached = session.getPayrollMonthDetail(year, month);
+    if (cached) {
+      applyMonthDetail(cached);
+      setLoading(false);
+    }
+  }, [year, month, applyMonthDetail, session]);
 
   useEffect(() => {
     void refresh();
