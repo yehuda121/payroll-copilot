@@ -53,6 +53,25 @@ async function fetchDevAccountantAccessToken(): Promise<string | null> {
   }
 }
 
+async function fetchDevAdminAccessToken(): Promise<string | null> {
+  try {
+    const result = await apiRequest<{ access_token: string }>('/auth/dev/admin-session', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    return result.access_token;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchDevAccessTokenForRole(role: UserRole): Promise<string | null> {
+  if (role === 'employee') return fetchDevEmployeeAccessToken();
+  if (role === 'payroll_accountant') return fetchDevAccountantAccessToken();
+  if (role === 'developer_admin') return fetchDevAdminAccessToken();
+  return null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(() => initialSession());
 
@@ -62,38 +81,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     clearCognitoSession();
     const next = devLoginAsRole(role);
-    if (role === 'employee' || role === 'payroll_accountant') {
-      const token =
-        role === 'employee'
-          ? await fetchDevEmployeeAccessToken()
-          : await fetchDevAccountantAccessToken();
-      if (!token) {
-        clearAccessToken();
-        throw new Error(
-          'Portal token could not be issued. Cognito may be enabled, or seed data is missing.',
-        );
-      }
-      saveAccessToken(token);
-      next.accessToken = token;
-      if (role === 'employee') {
-        try {
-          const me = await employeePortalService.me();
-          next.user = {
-            ...next.user,
-            id: me.employee_id,
-            fullName: me.full_name,
-            localizedFullName: me.full_name_localized || me.full_name,
-            organizationId: me.organization_id,
-          };
-        } catch {
-          // Keep seeded display name if /me is temporarily unavailable.
-        }
-      }
-      saveDevSession(next);
-    } else {
+    const token = await fetchDevAccessTokenForRole(role);
+    if (!token) {
       clearAccessToken();
-      saveDevSession(next);
+      throw new Error(
+        'Portal token could not be issued. Cognito may be enabled, or seed data is missing.',
+      );
     }
+    saveAccessToken(token);
+    next.accessToken = token;
+    if (role === 'employee') {
+      try {
+        const me = await employeePortalService.me();
+        next.user = {
+          ...next.user,
+          id: me.employee_id,
+          fullName: me.full_name,
+          localizedFullName: me.full_name_localized || me.full_name,
+          organizationId: me.organization_id,
+        };
+      } catch {
+        // Keep seeded display name if /me is temporarily unavailable.
+      }
+    }
+    saveDevSession(next);
     setSession(next);
   }, []);
 

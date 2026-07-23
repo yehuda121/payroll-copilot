@@ -16,6 +16,9 @@ from payroll_copilot.infrastructure.persistence.dynamodb.employees import Dynamo
 from payroll_copilot.infrastructure.persistence.dynamodb.extractions import (
     DynamoDocumentExtractionRepository,
 )
+from payroll_copilot.infrastructure.persistence.dynamodb.organization_directory import (
+    DynamoOrganizationDirectory,
+)
 from payroll_copilot.infrastructure.persistence.dynamodb.user_store import DynamoUserStore
 from payroll_copilot.infrastructure.persistence.dynamodb.validation import (
     DynamoValidationFindingRepository,
@@ -69,6 +72,11 @@ def get_user_store() -> DynamoUserStore:
 
 
 @lru_cache
+def get_organization_directory() -> DynamoOrganizationDirectory:
+    return DynamoOrganizationDirectory(get_dynamo_table())
+
+
+@lru_cache
 def get_popular_question_repository():  # -> DynamoPopularQuestionRepository
     from payroll_copilot.infrastructure.persistence.dynamodb.popular_questions import (
         DynamoPopularQuestionRepository,
@@ -89,6 +97,7 @@ def reset_persistence_caches() -> None:
     get_organization_bootstrap.cache_clear()
     get_workspace_bootstrap.cache_clear()
     get_user_store.cache_clear()
+    get_organization_directory.cache_clear()
     get_popular_question_repository.cache_clear()
     create_dynamo_table  # keep import used
     get_settings.cache_clear()

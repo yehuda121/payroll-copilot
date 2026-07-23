@@ -19,6 +19,8 @@ export type EmployeeRecord = {
   nationalIdMasked?: string | null;
   contractStartDate?: string;
   contractEndDate?: string | null;
+  /** Optional assigned payroll accountant user id (nullable). */
+  payrollAccountantId?: string | null;
   metadata?: Record<string, unknown>;
 };
 

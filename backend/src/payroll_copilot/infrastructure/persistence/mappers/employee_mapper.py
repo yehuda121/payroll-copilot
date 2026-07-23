@@ -22,6 +22,7 @@ def employee_to_entity(model: EmployeeModel) -> Employee:
         monthly_salary=model.monthly_salary,
         contract_end_date=model.contract_end_date,
         manager_id=model.manager_id,
+        payroll_accountant_id=getattr(model, "payroll_accountant_id", None),
         metadata=dict(model.metadata_ or {}),
     )
 
@@ -42,6 +43,7 @@ def employee_to_model(employee: Employee, *, national_id_encrypted: bytes | None
         contract_start_date=employee.contract_start_date,
         contract_end_date=employee.contract_end_date,
         manager_id=employee.manager_id,
+        payroll_accountant_id=employee.payroll_accountant_id,
         status=employee.status,
         metadata_=dict(employee.metadata or {}),
     )

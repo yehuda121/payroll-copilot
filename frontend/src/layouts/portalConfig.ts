@@ -20,11 +20,13 @@ export const ACCOUNTANT_PORTAL: PortalConfig = {
   navItems: [
     { labelKey: 'accountant.navigation.employees', path: '/accountant/employees' },
     { labelKey: 'accountant.navigation.bulkUpload', path: '/accountant/bulk-upload' },
+    { labelKey: 'accountant.navigation.analytics', path: '/accountant/analytics' },
   ],
 };
 
 const ADMIN_NAV_CORE = [
   { label: 'System Dashboard', path: '/admin' },
+  { label: 'Organization Analytics', path: '/admin/analytics' },
   { label: 'AI Models', path: '/admin/ai-models' },
 ] as const;
 

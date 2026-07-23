@@ -120,7 +120,10 @@ export function useGuestValidationFlow() {
     setEntries((prev) => [...prev, createBlankEntry()]);
   }, []);
 
-  const startExtraction = useCallback(async (payslipOverride?: File): Promise<string | null> => {
+  const startExtraction = useCallback(async (
+    payslipOverride?: File,
+    modelProviderOverride?: string,
+  ): Promise<string | null> => {
     const payslip = payslipOverride ?? slotsRef.current.payslip?.file;
     if (!payslip) {
       setFlowError(t('validate.payslipRequired'));
@@ -150,6 +153,7 @@ export function useGuestValidationFlow() {
         payslip,
         documentLanguage,
         signal,
+        modelProviderOverride,
       );
       if (signal.aborted) {
         throw new DOMException('Extraction cancelled.', 'AbortError');

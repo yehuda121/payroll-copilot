@@ -44,6 +44,7 @@ class EmployeePayslipExtractionCommand:
     national_id_encrypted: bytes | None
     confirm_new_version: bool = False
     source_document_id: UUID | None = None
+    model_provider_override: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,6 +127,7 @@ class ExtractEmployeePayslipUseCase:
                 metadata_extra=metadata_extra,
                 ephemeral=False,
                 reuse_document_id=reuse_id,
+                model_provider_override=command.model_provider_override,
             )
         )
 

@@ -68,6 +68,8 @@ class DevEmployeeSessionResponse(BaseModel):
 
 DEV_ACCOUNTANT_USER_ID = UUID("00000000-0000-4000-8000-000000000201")
 DEV_ACCOUNTANT_EMAIL = "david.levy@dev.payroll-copilot.local"
+DEV_ADMIN_USER_ID = UUID("00000000-0000-4000-8000-000000000301")
+DEV_ADMIN_EMAIL = "yael.admin@dev.payroll-copilot.local"
 
 
 def _create_guest_token(subject: str, expires_delta: timedelta) -> str:
@@ -287,6 +289,56 @@ async def create_dev_accountant_session() -> DevEmployeeSessionResponse:
             "id": str(user.id),
             "email": user.email,
             "role": "payroll_accountant",
+            "organization_id": str(user.organization_id),
+            "employee_id": None,
+        },
+    )
+
+
+@router.post(
+    "/dev/admin-session",
+    response_model=DevEmployeeSessionResponse,
+    status_code=201,
+)
+async def create_dev_admin_session() -> DevEmployeeSessionResponse:
+    """Issue a local-only developer-admin token (HS256 when Cognito is off)."""
+    settings = get_settings()
+    if settings.app_env.lower() in {"production", "prod"} or cognito_configured(settings):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "not_available", "message": "Dev admin session is not available."},
+        )
+    store = get_user_store()
+    user = await store.get_by_id(DEV_ADMIN_USER_ID)
+    if user is None:
+        user = UserRecord(
+            id=DEV_ADMIN_USER_ID,
+            organization_id=DEMO_ORGANIZATION_ID,
+            email=DEV_ADMIN_EMAIL,
+            password_hash=None,
+            role=UserRole.ADMIN,
+            preferred_locale="he",
+            is_active=True,
+            employee_id=None,
+        )
+    else:
+        user.organization_id = DEMO_ORGANIZATION_ID
+        user.email = DEV_ADMIN_EMAIL
+        user.role = UserRole.ADMIN
+        user.is_active = True
+        user.employee_id = None
+    user = await store.save(user)
+    access_token = _create_local_access_token(
+        str(user.id),
+        timedelta(minutes=settings.jwt_access_token_expire_minutes),
+    )
+    return DevEmployeeSessionResponse(
+        access_token=access_token,
+        expires_in=settings.jwt_access_token_expire_minutes * 60,
+        user={
+            "id": str(user.id),
+            "email": user.email,
+            "role": api_role_from_domain(UserRole.ADMIN.value),
             "organization_id": str(user.organization_id),
             "employee_id": None,
         },

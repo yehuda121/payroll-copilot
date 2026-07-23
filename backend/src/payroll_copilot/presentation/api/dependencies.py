@@ -6,7 +6,9 @@ from functools import lru_cache
 
 from fastapi import Depends
 
+from payroll_copilot.application.ports.employee_audit import EmployeeRepository
 from payroll_copilot.application.ports.organization_bootstrap import OrganizationBootstrapPort
+from payroll_copilot.application.ports.organization_directory import OrganizationDirectoryPort
 from payroll_copilot.application.ports.repositories import (
     DocumentExtractionRepository,
     DocumentRepository,
@@ -15,6 +17,12 @@ from payroll_copilot.application.ports.repositories import (
 )
 from payroll_copilot.application.ports.ocr import OCRProvider
 from payroll_copilot.application.ports.payslip_parser import PayslipParser
+from payroll_copilot.application.services.analytics_service import AnalyticsService
+from payroll_copilot.application.use_cases.analytics_admin_census import GetAdminOrgCensusUseCase
+from payroll_copilot.application.use_cases.analytics_employee_salary import (
+    GetEmployeeSalaryAnalyticsUseCase,
+)
+from payroll_copilot.application.use_cases.analytics_org_payroll import GetOrgPayrollAnalyticsUseCase
 from payroll_copilot.application.use_cases.documents import GetDocumentUseCase, UploadDocumentUseCase
 from payroll_copilot.application.use_cases.employee_document_workspace import (
     EmployeeDocumentWorkspaceUseCase,
@@ -60,8 +68,50 @@ def get_validation_finding_repository() -> ValidationFindingRepository:
     return dynamo_persistence.get_validation_finding_repository()
 
 
+def get_employee_repository() -> EmployeeRepository:
+    return dynamo_persistence.get_employee_repository()
+
+
+def get_organization_directory() -> OrganizationDirectoryPort:
+    return dynamo_persistence.get_organization_directory()
+
+
 def get_organization_bootstrap() -> OrganizationBootstrapPort:
     return dynamo_persistence.get_organization_bootstrap()
+
+
+def get_analytics_service(
+    documents: DocumentRepository = Depends(get_document_repository),
+    extractions: DocumentExtractionRepository = Depends(get_document_extraction_repository),
+    validation_runs: ValidationRunRepository = Depends(get_validation_run_repository),
+    validation_findings: ValidationFindingRepository = Depends(
+        get_validation_finding_repository
+    ),
+    employees: EmployeeRepository = Depends(get_employee_repository),
+    organizations: OrganizationDirectoryPort = Depends(get_organization_directory),
+) -> AnalyticsService:
+    users = dynamo_persistence.get_user_store()
+    employee_salary = GetEmployeeSalaryAnalyticsUseCase(
+        documents=documents,
+        extractions=extractions,
+    )
+    org_payroll = GetOrgPayrollAnalyticsUseCase(
+        employees=employees,
+        documents=documents,
+        extractions=extractions,
+        validation_runs=validation_runs,
+        validation_findings=validation_findings,
+    )
+    admin_census = GetAdminOrgCensusUseCase(
+        employees=employees,
+        users=users,
+        organizations=organizations,
+    )
+    return AnalyticsService(
+        employee_salary=employee_salary,
+        org_payroll=org_payroll,
+        admin_census=admin_census,
+    )
 
 
 @lru_cache

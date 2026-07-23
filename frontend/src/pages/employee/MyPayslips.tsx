@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useEmployeeSession } from '../../auth/EmployeeSessionContext';
 import { PortalPage } from '../../components/PortalPage';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { EmployeeSalaryAnalyticsPanel } from '../../features/analytics';
 import { useEmployeeWorkspace } from '../../features/employee/EmployeeWorkspaceContext';
 import { useWorkspacePageCopy } from '../../hooks/useWorkspacePageCopy';
 import { mapPresentationStatus } from '../../lib/employee/presentation-status';
@@ -12,6 +13,9 @@ import { getDisplayError } from '../../lib/getDisplayError';
 import { type PayrollMonthsResponse } from '../../services/employeePortal';
 import { useAppLocale } from '../../hooks/useAppLocale';
 import './MyPayslips.css';
+import '../../features/analytics/analytics.css';
+
+type PayslipViewTab = 'months' | 'salaryAnalytics';
 
 function StatusBadge({ code }: { code: string }) {
   const { t } = useTranslation();
@@ -47,6 +51,7 @@ export function MyPayslipsPage() {
   const session = useEmployeeSession();
   const currentYear = new Date().getFullYear();
 
+  const [tab, setTab] = useState<PayslipViewTab>('months');
   const [year, setYear] = useState(currentYear);
   const [data, setData] = useState<PayrollMonthsResponse | null>(
     () => session.getPayrollMonths(currentYear) ?? null,
@@ -66,7 +71,6 @@ export function MyPayslipsPage() {
         setData(cached);
         setYear(cached.year);
       }
-      // Keep previous grid visible while refreshing; skeletons only when nothing to show.
       setRefreshing(true);
       setError(null);
       try {
@@ -77,7 +81,6 @@ export function MyPayslipsPage() {
       } catch (err) {
         setError(getDisplayError(err, t('common.error')));
         if (!cached && !session.getPayrollMonths(nextYear)) {
-          // Only clear when we never had anything for this year.
           setData((prev) => (prev?.year === nextYear ? null : prev));
         }
       } finally {
@@ -103,71 +106,110 @@ export function MyPayslipsPage() {
   return (
     <PortalPage title={copy.payslipsTitle} description={copy.payslipsDescription}>
       <div className="employee-payslips">
-        <div className="employee-payslips__toolbar">
-          <label>
-            <span>{t('employee.payslips.yearLabel')}</span>
-            <select
-              value={year}
-              onChange={(event) => {
-                const next = Number(event.target.value);
-                setYear(next);
-                const cached = session.getPayrollMonths(next);
-                if (cached) setData(cached);
-                void loadYear(next);
-              }}
+        <div className="analytics-tabs" role="tablist" aria-label={t('employee.analytics.tabsLabel')}>
+          <button
+            type="button"
+            role="tab"
+            id="payslips-tab-months"
+            aria-selected={tab === 'months'}
+            aria-controls="payslips-panel-months"
+            onClick={() => setTab('months')}
+          >
+            {t('employee.analytics.tabMonths')}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="payslips-tab-salary"
+            aria-selected={tab === 'salaryAnalytics'}
+            aria-controls="payslips-panel-salary"
+            onClick={() => setTab('salaryAnalytics')}
+          >
+            {t('employee.analytics.tabSalary')}
+          </button>
+        </div>
+
+        {tab === 'months' ? (
+          <div
+            id="payslips-panel-months"
+            role="tabpanel"
+            aria-labelledby="payslips-tab-months"
+          >
+            <div className="employee-payslips__toolbar">
+              <label>
+                <span>{t('employee.payslips.yearLabel')}</span>
+                <select
+                  value={year}
+                  onChange={(event) => {
+                    const next = Number(event.target.value);
+                    setYear(next);
+                    const cached = session.getPayrollMonths(next);
+                    if (cached) setData(cached);
+                    void loadYear(next);
+                  }}
+                >
+                  {years.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {refreshing && data ? (
+                <span className="employee-payslips__refresh" role="status">
+                  {t('common.loading')}
+                </span>
+              ) : null}
+            </div>
+
+            {error && (
+              <p className="chat-panel__error" role="alert">
+                {error}
+              </p>
+            )}
+
+            <div
+              className={`employee-payslips__grid${showSkeletons ? ' employee-payslips__skeleton' : ''}`}
+              role="list"
+              aria-busy={refreshing}
             >
-              {years.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
-          {refreshing && data ? (
-            <span className="employee-payslips__refresh" role="status">
-              {t('common.loading')}
-            </span>
-          ) : null}
-        </div>
-
-        {error && (
-          <p className="chat-panel__error" role="alert">
-            {error}
-          </p>
+              {showSkeletons
+                ? Array.from({ length: 12 }, (_, index) => <MonthCardSkeleton key={index} />)
+                : months.map((row) => {
+                    const month = row.month;
+                    const status =
+                      'presentation_status' in row
+                        ? String(row.presentation_status)
+                        : 'missing';
+                    return (
+                      <button
+                        key={month}
+                        type="button"
+                        role="listitem"
+                        className="employee-month-card"
+                        onClick={() => navigate(`${basePath}/payslips/${year}/${month}`)}
+                      >
+                        <div className="employee-month-card__head">
+                          <strong>{formatMonthName(month, locale)}</strong>
+                          <StatusBadge code={status} />
+                        </div>
+                        <span className="employee-month-card__meta">
+                          {t('employee.workspace.openMonth')}
+                        </span>
+                      </button>
+                    );
+                  })}
+            </div>
+          </div>
+        ) : (
+          <div
+            id="payslips-panel-salary"
+            role="tabpanel"
+            aria-labelledby="payslips-tab-salary"
+          >
+            <EmployeeSalaryAnalyticsPanel initialYear={year} />
+          </div>
         )}
-
-        <div
-          className={`employee-payslips__grid${showSkeletons ? ' employee-payslips__skeleton' : ''}`}
-          role="list"
-          aria-busy={refreshing}
-        >
-          {showSkeletons
-            ? Array.from({ length: 12 }, (_, index) => <MonthCardSkeleton key={index} />)
-            : months.map((row) => {
-                const month = row.month;
-                const status =
-                  'presentation_status' in row
-                    ? String(row.presentation_status)
-                    : 'missing';
-                return (
-                  <button
-                    key={month}
-                    type="button"
-                    role="listitem"
-                    className="employee-month-card"
-                    onClick={() => navigate(`${basePath}/payslips/${year}/${month}`)}
-                  >
-                    <div className="employee-month-card__head">
-                      <strong>{formatMonthName(month, locale)}</strong>
-                      <StatusBadge code={status} />
-                    </div>
-                    <span className="employee-month-card__meta">
-                      {t('employee.workspace.openMonth')}
-                    </span>
-                  </button>
-                );
-              })}
-        </div>
       </div>
     </PortalPage>
   );

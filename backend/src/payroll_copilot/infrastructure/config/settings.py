@@ -121,6 +121,10 @@ class Settings(BaseSettings):
     rag_provider: str = ""
     embeddings_provider: str = ""
     general_provider: str = ""
+    # Comma-separated provider allowlists for optional per-request overrides.
+    # Empty option in UI still uses capability defaults (chat=ollama, extraction=openai).
+    chat_model_choices: str = "ollama,openai"
+    extraction_model_choices: str = "openai,ollama"
 
     ollama_base_url: str = ""
     ollama_local_url: str = "http://127.0.0.1:11434"

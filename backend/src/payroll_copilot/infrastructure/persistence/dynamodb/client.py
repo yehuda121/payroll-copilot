@@ -143,6 +143,37 @@ class DynamoTable:
             filter_expression=filter_expression,
         )
 
+    async def scan(
+        self,
+        *,
+        filter_expression: Any = None,
+        expression_attribute_values: dict[str, Any] | None = None,
+        expression_attribute_names: dict[str, str] | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Full-table scan helper (admin census / rare read paths only)."""
+        kwargs: dict[str, Any] = {}
+        if filter_expression is not None:
+            kwargs["FilterExpression"] = filter_expression
+        if expression_attribute_values:
+            kwargs["ExpressionAttributeValues"] = expression_attribute_values
+        if expression_attribute_names:
+            kwargs["ExpressionAttributeNames"] = expression_attribute_names
+
+        items: list[dict[str, Any]] = []
+        exclusive_start_key = None
+        while True:
+            if exclusive_start_key:
+                kwargs["ExclusiveStartKey"] = exclusive_start_key
+            response = await asyncio.to_thread(self._table.scan, **kwargs)
+            items.extend(response.get("Items", []))
+            exclusive_start_key = response.get("LastEvaluatedKey")
+            if not exclusive_start_key:
+                break
+            if limit is not None and len(items) >= limit:
+                break
+        return items[:limit] if limit is not None else items
+
     async def batch_delete(self, keys: list[dict[str, Any]]) -> int:
         if not keys:
             return 0

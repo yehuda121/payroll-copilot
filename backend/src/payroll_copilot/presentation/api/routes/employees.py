@@ -223,7 +223,7 @@ async def explain_my_finding(
         from payroll_copilot.presentation.api.routes.assistant import _get_assistant_use_case
         from payroll_copilot.application.use_cases.payroll_assistant import AssistantChatCommand
 
-        chat_uc = _get_assistant_use_case()
+        chat_uc = _get_assistant_use_case()[0]
 
         class _AssistantAdapter:
             async def run(self, **kwargs):  # noqa: ANN003

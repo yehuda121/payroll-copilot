@@ -46,6 +46,7 @@ class GuestEphemeralSupportingDoc:
     content: bytes
     original_filename: str
     mime_type: str
+    owner_guest_id: str | None = None
     created_at: datetime = field(default_factory=_utcnow)
     expires_at: datetime | None = None
 
@@ -59,18 +60,21 @@ class GuestEphemeralSupportingDoc:
             "content_b64": _encode_bytes(self.content),
             "original_filename": self.original_filename,
             "mime_type": self.mime_type,
+            "owner_guest_id": self.owner_guest_id,
             "created_at": self.created_at.isoformat(),
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
         }
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> GuestEphemeralSupportingDoc:
+        owner = payload.get("owner_guest_id")
         return cls(
             document_id=UUID(str(payload["document_id"])),
             document_type=DocumentType(str(payload["document_type"])),
             content=_decode_bytes(str(payload["content_b64"])),
             original_filename=str(payload.get("original_filename") or "supporting"),
             mime_type=str(payload.get("mime_type") or "application/octet-stream"),
+            owner_guest_id=str(owner).strip() if owner else None,
             created_at=datetime.fromisoformat(str(payload["created_at"]))
             if payload.get("created_at")
             else _utcnow(),
@@ -102,6 +106,7 @@ class GuestEphemeralSession:
     confirmation_status: str = "review_required"
     confirmed_at: datetime | None = None
     supporting_document_ids: list[UUID] = field(default_factory=list)
+    owner_guest_id: str | None = None
     created_at: datetime = field(default_factory=_utcnow)
     expires_at: datetime | None = None
 
@@ -130,12 +135,14 @@ class GuestEphemeralSession:
             "confirmation_status": self.confirmation_status,
             "confirmed_at": self.confirmed_at.isoformat() if self.confirmed_at else None,
             "supporting_document_ids": [str(value) for value in self.supporting_document_ids],
+            "owner_guest_id": self.owner_guest_id,
             "created_at": self.created_at.isoformat(),
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
         }
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> GuestEphemeralSession:
+        owner = payload.get("owner_guest_id")
         return cls(
             document_id=UUID(str(payload["document_id"])),
             extraction_id=UUID(str(payload["extraction_id"])),
@@ -164,6 +171,7 @@ class GuestEphemeralSession:
             supporting_document_ids=[
                 UUID(str(value)) for value in payload.get("supporting_document_ids") or []
             ],
+            owner_guest_id=str(owner).strip() if owner else None,
             created_at=datetime.fromisoformat(str(payload["created_at"]))
             if payload.get("created_at")
             else _utcnow(),
@@ -171,6 +179,15 @@ class GuestEphemeralSession:
             if payload.get("expires_at")
             else None,
         )
+
+
+def guest_owns_ephemeral(
+    record: GuestEphemeralSession | GuestEphemeralSupportingDoc,
+    guest_id: str,
+) -> bool:
+    """Fail closed: missing owner or mismatch means inaccessible."""
+    owner = (record.owner_guest_id or "").strip()
+    return bool(owner) and owner == guest_id.strip()
 
 
 class GuestEphemeralStoreProtocol(Protocol):
@@ -214,6 +231,7 @@ class GuestEphemeralStoreProtocol(Protocol):
         original_filename: str,
         mime_type: str,
         payslip_document_id: UUID | None = None,
+        owner_guest_id: str | None = None,
     ) -> GuestEphemeralSupportingDoc: ...
 
     def get_supporting(self, document_id: UUID) -> GuestEphemeralSupportingDoc | None: ...
@@ -337,6 +355,7 @@ class GuestEphemeralStore:
         original_filename: str,
         mime_type: str,
         payslip_document_id: UUID | None = None,
+        owner_guest_id: str | None = None,
     ) -> GuestEphemeralSupportingDoc:
         with self._lock:
             self._purge_expired()
@@ -346,6 +365,7 @@ class GuestEphemeralStore:
                 content=content,
                 original_filename=original_filename,
                 mime_type=mime_type,
+                owner_guest_id=(owner_guest_id or "").strip() or None,
                 expires_at=_utcnow() + self._ttl,
             )
             self._supporting[doc.document_id] = doc
@@ -559,6 +579,7 @@ class RedisGuestEphemeralStore:
         original_filename: str,
         mime_type: str,
         payslip_document_id: UUID | None = None,
+        owner_guest_id: str | None = None,
     ) -> GuestEphemeralSupportingDoc:
         doc = GuestEphemeralSupportingDoc(
             document_id=uuid4(),
@@ -566,6 +587,7 @@ class RedisGuestEphemeralStore:
             content=content,
             original_filename=original_filename,
             mime_type=mime_type,
+            owner_guest_id=(owner_guest_id or "").strip() or None,
             expires_at=_utcnow() + self._ttl,
         )
         self._save_support(doc)

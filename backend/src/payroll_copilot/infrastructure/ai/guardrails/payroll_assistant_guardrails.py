@@ -5,8 +5,9 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from payroll_copilot.application.services.assistant_intent import is_payroll_domain_message
+from payroll_copilot.application.services.assistant_response_templates import response_text
 from payroll_copilot.domain.assistant.types import AssistantGuardrailStatus
-from payroll_copilot.infrastructure.i18n import assistant_text
 
 _INJECTION_PATTERNS = (
     r"ignore\s+(all\s+)?(previous|prior)\s+instructions",
@@ -18,82 +19,6 @@ _INJECTION_PATTERNS = (
     r"you\s+are\s+now\s+",
     r"pretend\s+you\s+are",
     r"bypass\s+(guardrails|safety|rules)",
-)
-
-# Broad in-domain payroll / employee-rights intent (EN/HE/AR).
-_PAYROLL_TOPIC_KEYWORDS = (
-    "payroll",
-    "payslip",
-    "pay slip",
-    "paystub",
-    "pay stub",
-    "salary",
-    "wage",
-    "wages",
-    "minimum wage",
-    "overtime",
-    "vacation",
-    "holiday",
-    "sick",
-    "leave",
-    "pension",
-    "tax",
-    "taxes",
-    "deduction",
-    "deductions",
-    "travel",
-    "transportation",
-    "expense",
-    "expenses",
-    "attendance",
-    "contract",
-    "employment",
-    "labor",
-    "labour",
-    "employee",
-    "employer",
-    "employee-rights",
-    "employee rights",
-    "validation",
-    "validate",
-    "warning",
-    "critical",
-    "finding",
-    "findings",
-    "issue",
-    "upload",
-    "document",
-    "documents",
-    "nis",
-    "ils",
-    "שכר",
-    "תלוש",
-    "שעות נוספות",
-    "חופשה",
-    "מחלה",
-    "פנסיה",
-    "מס",
-    "ניכוי",
-    "ניכויים",
-    "נסיעות",
-    "בדיקה",
-    "אזהרה",
-    "קריטי",
-    "מסמך",
-    "מסמכים",
-    "راتب",
-    "رواتب",
-    "كشف راتب",
-    "ساعات إضافية",
-    "إجازة",
-    "مرض",
-    "تقاعد",
-    "ضريبة",
-    "خصم",
-    "مستند",
-    "مستندات",
-    "تحذير",
-    "حرج",
 )
 
 _LEGAL_RIGHTS_KEYWORDS = (
@@ -208,7 +133,7 @@ class PayrollAssistantGuardrails:
         locale: str = "en",
         intent: str | None = None,
     ) -> OutputGuardrailResult:
-        """Helpful in-domain guidance when no exact approved source is available."""
+        """Helpful in-domain guidance when precise information is unavailable."""
         key = {
             "documents_needed": "limited_documents_needed",
             "overtime_payslip": "limited_overtime_payslip",
@@ -216,7 +141,7 @@ class PayrollAssistantGuardrails:
         }.get(intent or "", "limited_full")
         return OutputGuardrailResult(
             status=AssistantGuardrailStatus.LIMITED_IN_DOMAIN,
-            answer=assistant_text(key, locale),
+            answer=response_text(key, locale),
             requires_human_review=True,
         )
 
@@ -230,7 +155,7 @@ class PayrollAssistantGuardrails:
             status = AssistantGuardrailStatus.BLOCKED_OFF_TOPIC
         else:
             status = AssistantGuardrailStatus.BLOCKED_SAFETY
-        answer = assistant_text(key_by_reason.get(reason, "blocked_generic"), locale)
+        answer = response_text(key_by_reason.get(reason, "blocked_generic"), locale)
         return OutputGuardrailResult(
             status=status,
             answer=answer,
@@ -251,7 +176,7 @@ class PayrollAssistantGuardrails:
             return self.build_limited_legal_response(locale=locale, intent=intent)
 
         if sources:
-            disclaimer = assistant_text("disclaimer", locale)
+            disclaimer = response_text("disclaimer", locale)
             final_answer = answer if disclaimer.strip() in answer else f"{answer}{disclaimer}"
             return OutputGuardrailResult(
                 status=AssistantGuardrailStatus.ANSWERED_FROM_SOURCE,
@@ -259,7 +184,7 @@ class PayrollAssistantGuardrails:
                 requires_human_review=False,
             )
 
-        disclaimer = assistant_text("disclaimer", locale)
+        disclaimer = response_text("disclaimer", locale)
         final_answer = answer if disclaimer.strip() in answer else f"{answer}{disclaimer}"
         return OutputGuardrailResult(
             status=AssistantGuardrailStatus.PASSED,
@@ -269,7 +194,7 @@ class PayrollAssistantGuardrails:
 
     @staticmethod
     def _is_payroll_related(normalized: str) -> bool:
-        return any(keyword in normalized for keyword in _PAYROLL_TOPIC_KEYWORDS)
+        return is_payroll_domain_message(normalized)
 
     @staticmethod
     def _is_greeting(normalized: str) -> bool:

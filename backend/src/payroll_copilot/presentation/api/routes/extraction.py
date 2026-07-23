@@ -35,6 +35,10 @@ from payroll_copilot.application.services.document_upload_guardrail import (
 from payroll_copilot.application.services.employee_document_lifecycle import (
     is_employee_visible_document,
 )
+from payroll_copilot.application.services.guest_ephemeral_store import (
+    guest_owns_ephemeral,
+    get_guest_ephemeral_store,
+)
 from payroll_copilot.application.use_cases.correct_guest_extraction import (
     CorrectGuestExtractionUseCase,
     FieldCorrection,
@@ -127,9 +131,10 @@ async def _require_employee_visible_document(
 async def extract_guest_payslip(
     file: UploadFile = File(...),
     language: str = Form("auto"),
+    model_provider_override: str | None = Form(None),
     _: None = Depends(limit_guest_extract_by_ip),
     __: None = Depends(limit_guest_extract_by_guest),
-    ___: GuestPrincipal = Depends(require_guest),
+    guest: GuestPrincipal = Depends(require_guest),
     use_case: ExtractGuestPayslipUseCase = Depends(get_extract_guest_payslip_use_case),
 ) -> GuestPayslipExtractionResponse:
     """Upload a payslip, run OCR + AI parser, persist results, return fields.
@@ -179,9 +184,16 @@ async def extract_guest_payslip(
                 original_filename=filename,
                 mime_type=mime_type,
                 language=normalized_language,
+                owner_guest_id=guest.guest_id,
+                model_provider_override=model_provider_override,
             )
         )
-    except OcrError as exc:
+    except DocumentUploadRejectedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "upload_rejected", "message": exc.message},
+        ) from exc
+    except (OcrError, PayslipParserError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": exc.code, "message": exc.message},
@@ -214,7 +226,7 @@ async def upload_guest_supporting(
     payslip_document_id: str | None = Form(None),
     _: None = Depends(limit_guest_upload_by_ip),
     __: None = Depends(limit_guest_extract_by_guest),
-    ___: GuestPrincipal = Depends(require_guest),
+    guest: GuestPrincipal = Depends(require_guest),
 ) -> GuestSupportingUploadResponse:
     """Store a guest supporting document (national ID / contract) ephemerally.
 
@@ -265,17 +277,17 @@ async def upload_guest_supporting(
     if payslip_document_id:
         payslip_id = parse_uuid(payslip_document_id, "payslip_document_id")
 
-    from payroll_copilot.application.services.guest_ephemeral_store import get_guest_ephemeral_store
-
     store = get_guest_ephemeral_store(ttl_hours=settings.guest_ephemeral_ttl_hours)
-    if payslip_id is not None and store.get(payslip_id) is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "code": "payslip_session_not_found",
-                "message": "Payslip guest session not found for payslip_document_id",
-            },
-        )
+    if payslip_id is not None:
+        payslip_session = store.get(payslip_id)
+        if payslip_session is None or not guest_owns_ephemeral(payslip_session, guest.guest_id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "code": "payslip_session_not_found",
+                    "message": "Payslip guest session not found for payslip_document_id",
+                },
+            )
 
     doc = store.save_supporting(
         document_type=allowed[normalized_type],
@@ -283,6 +295,7 @@ async def upload_guest_supporting(
         original_filename=filename,
         mime_type=mime_type,
         payslip_document_id=payslip_id,
+        owner_guest_id=guest.guest_id,
     )
     return GuestSupportingUploadResponse(
         document_id=str(doc.document_id),
@@ -298,7 +311,7 @@ async def upload_guest_supporting(
 async def confirm_guest_extraction(
     document_id: str,
     request: ConfirmGuestExtractionRequest | None = None,
-    _: GuestPrincipal = Depends(require_guest),
+    guest: GuestPrincipal = Depends(require_guest),
     use_case: ExtractGuestPayslipUseCase = Depends(get_extract_guest_payslip_use_case),
 ) -> ConfirmGuestExtractionResponse:
     """Confirm reviewed guest extraction fields for ephemeral validation.
@@ -308,6 +321,16 @@ async def confirm_guest_extraction(
     Does not write permanent S3/DB (same rules as ``confirm_ephemeral_session``).
     """
     parsed_id = parse_uuid(document_id, "document_id")
+    store = get_guest_ephemeral_store()
+    session = store.get(parsed_id)
+    if session is None or not guest_owns_ephemeral(session, guest.guest_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "code": "document_not_found",
+                "message": f"Guest extraction session not found for document {parsed_id}",
+            },
+        )
     body = request or ConfirmGuestExtractionRequest()
     entries_payload: list[dict] | None = None
     if body.entries is not None:
@@ -318,14 +341,14 @@ async def confirm_guest_extraction(
             parsed_id,
             dynamic_entries=entries_payload,
         )
-    except ValueError as exc:
+    except ValueError as tip_exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={
                 "code": "document_not_found",
                 "message": f"Guest extraction session not found for document {parsed_id}",
             },
-        ) from exc
+        ) from tip_exc
 
     return ConfirmGuestExtractionResponse(
         document_id=str(parsed_id),
@@ -342,11 +365,18 @@ async def confirm_guest_extraction(
 async def correct_guest_extraction(
     document_id: str,
     request: CorrectGuestExtractionRequest,
-    _: GuestPrincipal = Depends(require_guest),
+    guest: GuestPrincipal = Depends(require_guest),
     use_case: CorrectGuestExtractionUseCase = Depends(get_correct_guest_extraction_use_case),
 ) -> GuestPayslipExtractionResponse:
     """Persist user review edits as a new extraction version (does not run validation)."""
     parsed_id = parse_uuid(document_id, "document_id")
+    store = get_guest_ephemeral_store()
+    session = store.get(parsed_id)
+    if session is None or not guest_owns_ephemeral(session, guest.guest_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "document_not_found", "message": f"Document {parsed_id} not found"},
+        )
     if not request.corrections:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -360,11 +390,11 @@ async def correct_guest_extraction(
                 for item in request.corrections
             ],
         )
-    except DocumentNotFoundError as exc:
+    except DocumentNotFoundError as tip_exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Document {exc.document_id} not found",
-        ) from exc
+            detail=f"Document {tip_exc.document_id} not found",
+        ) from tip_exc
 
     return GuestPayslipExtractionResponse(
         document_id=str(result.document_id),
@@ -576,6 +606,7 @@ async def extract_employee_payslip(
     period_year: int = Form(...),
     period_month: int = Form(...),
     confirm_new_version: bool = Form(False),
+    model_provider_override: str | None = Form(None),
     _: None = Depends(limit_employee_upload),
     bound: BoundEmployeeContext = Depends(require_bound_employee),
     guest_use_case: ExtractGuestPayslipUseCase = Depends(get_extract_guest_payslip_use_case),
@@ -679,6 +710,7 @@ async def extract_employee_payslip(
                 national_id_encrypted=bound.national_id_encrypted,
                 confirm_new_version=confirm_new_version,
                 source_document_id=source_document_id,
+                model_provider_override=model_provider_override,
             )
         )
     except DuplicatePayslipPeriodError as tip_exc:
@@ -692,7 +724,12 @@ async def extract_employee_payslip(
                 "uploaded_at": tip_exc.uploaded_at,
             },
         ) from tip_exc
-    except OcrError as tip_exc:
+    except DocumentUploadRejectedError as tip_exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "upload_rejected", "message": tip_exc.message},
+        ) from tip_exc
+    except (OcrError, PayslipParserError) as tip_exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": tip_exc.code, "message": tip_exc.message},
@@ -939,6 +976,7 @@ async def accountant_extract_employee_payslip(
     period_year: int = Form(...),
     period_month: int = Form(...),
     confirm_new_version: bool = Form(False),
+    model_provider_override: str | None = Form(None),
     _: None = Depends(limit_accountant_upload),
     principal: AuthPrincipal = Depends(require_accountant),
     guest_use_case: ExtractGuestPayslipUseCase = Depends(
@@ -952,6 +990,7 @@ async def accountant_extract_employee_payslip(
         period_year=period_year,
         period_month=period_month,
         confirm_new_version=confirm_new_version,
+        model_provider_override=model_provider_override,
         bound=await _accountant_selected_context(employee_number, principal),
         guest_use_case=guest_use_case,
     )

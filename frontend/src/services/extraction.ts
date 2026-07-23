@@ -11,10 +11,14 @@ export const extractionService = {
     file: File,
     language: DocumentLanguage = 'auto',
     signal?: AbortSignal,
+    modelProviderOverride?: string,
   ): Promise<GuestPayslipExtractionResponse> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('language', language);
+    if (modelProviderOverride) {
+      formData.append('model_provider_override', modelProviderOverride);
+    }
 
     return apiRequest<GuestPayslipExtractionResponse>('/extraction/guest/payslip-extract', {
       method: 'POST',

@@ -9,6 +9,9 @@ import {
 import { useTranslation } from 'react-i18next';
 import { AssistantMarkdown } from '../../../components/guest/AssistantMarkdown';
 import { AssistantUsageFooter } from '../../../components/guest/AssistantUsageFooter';
+import { ChatComposer } from '../../../components/guest/ChatComposer';
+import { PopularQuestionsPanel } from '../../../components/guest/PopularQuestionsPanel';
+import { env } from '../../../config/env';
 import { useAppLocale } from '../../../hooks/useAppLocale';
 import { useGuestValidationFlow } from '../../../hooks/useGuestValidationFlow';
 import {
@@ -17,7 +20,7 @@ import {
 } from '../../../lib/guest/document-slots';
 import { detectSlotFromFile } from '../../../lib/guest/detectDocumentSlot';
 import { assistantService } from '../../../services/assistant';
-import type { AssistantGuardrailStatus, ChatMessage, PopularQuestion } from '../../../types/assistant';
+import type { AssistantGuardrailStatus, ChatMessage } from '../../../types/assistant';
 import { ChatDocumentReviewCard } from './ChatDocumentReviewCard';
 import { ChatValidationSummaryCard } from './ChatValidationSummaryCard';
 import './landing-chat.css';
@@ -33,7 +36,7 @@ type PendingAttachment = {
 };
 
 const ACCEPT =
-  '.pdf,.png,.jpg,.jpeg,.xlsx,.csv,application/pdf,image/png,image/jpeg,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv';
+  'image/*,.pdf,.png,.jpg,.jpeg,.xlsx,.csv,application/pdf,image/png,image/jpeg,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv';
 
 function looksLikeValidationRequest(text: string): boolean {
   const normalized = text.toLowerCase();
@@ -79,7 +82,8 @@ export function GuestLandingChat() {
   const [reviewMessageId, setReviewMessageId] = useState<string | null>(null);
   const [reportMessageId, setReportMessageId] = useState<string | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
-  const [popularQuestions, setPopularQuestions] = useState<PopularQuestion[]>([]);
+  const [chatModel, setChatModel] = useState('');
+  const [chatModelChoices, setChatModelChoices] = useState<string[]>([]);
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -92,30 +96,22 @@ export function GuestLandingChat() {
   const payslipName = flow.slots.payslip?.file.name ?? null;
   const hasPayslip = Boolean(flow.slots.payslip?.file);
 
-  const suggestedQuestions = [
-    t('assistant.suggested1'),
-    t('assistant.suggested2'),
-    t('assistant.suggested3'),
-  ];
-
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages, isLoading, flow.step, flow.report]);
 
   useEffect(() => {
     let cancelled = false;
-    void assistantService
-      .popularQuestions(10)
-      .then((response) => {
-        if (!cancelled) setPopularQuestions(response.items ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setPopularQuestions([]);
-      });
+    void assistantService.modelChoices().then((choices) => {
+      if (cancelled) return;
+      setChatModelChoices(choices.chat);
+    }).catch(() => {
+      /* allowlist endpoint is optional; defaults remain */
+    });
     return () => {
       cancelled = true;
     };
-  }, [messages.length]);
+  }, []);
 
   const pushMessage = useCallback((msg: LandingMessage) => {
     setMessages((prev) => [...prev, msg]);
@@ -138,37 +134,33 @@ export function GuestLandingChat() {
 
   const askAssistant = useCallback(
     async (text: string) => {
-      const contextBits: string[] = [];
-      if (payslipName) contextBits.push(`Uploaded payslip file in session: ${payslipName}`);
-      if (documentConfirmed) contextBits.push('Payslip extraction was confirmed by the user.');
-      if (flow.report) contextBits.push(`Validation overall: ${flow.report.overallStatus}`);
-      if (typedFacts.length > 0) {
-        contextBits.push(`User-provided session facts: ${typedFacts.join('; ')}`);
-      }
-      const enriched =
-        contextBits.length > 0
-          ? `${text}\n\n[Session context — do not invent documents]\n${contextBits.join('\n')}`
-          : text;
+      const hasPrivateIds = documentIds.length > 0 || Boolean(flow.report?.runId);
+      const conversation_turns = messages
+        .filter(
+          (msg) =>
+            (msg.kind === 'text' || !msg.kind) &&
+            (msg.role === 'user' || msg.role === 'assistant') &&
+            msg.content.trim(),
+        )
+        .slice(-12)
+        .map((msg) => ({ role: msg.role, content: msg.content }));
 
-      const response = await assistantService.chat({
-        message: enriched,
-        session_id: sessionId,
-        document_ids: documentIds,
-        validation_run_id: flow.report?.runId,
-        locale,
-      });
+      const response = await assistantService.chat(
+        {
+          message: text,
+          session_id: sessionId,
+          document_ids: documentIds,
+          validation_run_id: flow.report?.runId,
+          conversation_turns,
+          locale,
+          model_provider_override: chatModel || undefined,
+        },
+        { auth: hasPrivateIds },
+      );
       setSessionId(response.session_id);
       return response;
     },
-    [
-      payslipName,
-      documentConfirmed,
-      flow.report,
-      typedFacts,
-      sessionId,
-      documentIds,
-      locale,
-    ],
+    [messages, flow.report, sessionId, documentIds, locale, chatModel],
   );
 
   /** Attach files to composer only — never starts extraction until Send. */
@@ -499,26 +491,17 @@ export function GuestLandingChat() {
       </header>
 
       <div className="landing-chat__layout">
+      <PopularQuestionsPanel
+        disabled={composerBusy}
+        onSelect={(question) => {
+          void submitComposer(question);
+        }}
+      />
       <div className="landing-chat__shell" aria-label={t('landing.chatHeading')}>
         <div className="landing-chat__messages" aria-live="polite">
           {messages.length === 0 && (
             <div className="landing-chat__empty">
               <p>{t('landingChat.empty')}</p>
-              <div className="chat-shell__suggestions">
-                {suggestedQuestions.map((question) => (
-                  <button
-                    key={question}
-                    type="button"
-                    className="btn btn--secondary"
-                    disabled={composerBusy}
-                    onClick={() => {
-                      void submitComposer(question);
-                    }}
-                  >
-                    {question}
-                  </button>
-                ))}
-              </div>
             </div>
           )}
 
@@ -563,7 +546,7 @@ export function GuestLandingChat() {
                   </div>
                 )}
 
-              {msg.sources && msg.sources.length > 0 && (
+              {msg.sources && msg.sources.length > 0 && env.isDevRuntime && (
                 <ul className="chat-message__sources">
                   {msg.sources.map((source) => (
                     <li key={`${source.title}-${source.reference ?? 'na'}`}>
@@ -645,7 +628,7 @@ export function GuestLandingChat() {
           </div>
         )}
 
-        <form className="landing-chat__composer" onSubmit={handleSubmit}>
+        <div className="landing-chat__composer">
           <input
             ref={fileInputRef}
             type="file"
@@ -679,58 +662,34 @@ export function GuestLandingChat() {
               ))}
             </ul>
           )}
-          <div className="landing-chat__composer-row">
-            <button
-              type="button"
-              className="landing-chat__attach"
-              aria-label={t('landingChat.attachAria')}
-              title={t('landingChat.attachAria')}
-              onClick={() => fileInputRef.current?.click()}
-              disabled={composerBusy}
-            >
-              +
-            </button>
-            <input
-              type="text"
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              placeholder={t('landingChat.placeholder')}
-              aria-label={t('assistant.ariaMessage')}
-              disabled={composerBusy}
-            />
-            <button type="submit" className="btn btn--primary" disabled={!canSend}>
-              {composerBusy ? t('common.sending') : t('common.send')}
-            </button>
-          </div>
-        </form>
+          <ChatComposer
+            value={message}
+            onChange={setMessage}
+            onSubmit={handleSubmit}
+            disabled={composerBusy}
+            canSend={canSend}
+            placeholder={t('landingChat.placeholder')}
+            ariaMessage={t('assistant.ariaMessage')}
+            onAttach={() => fileInputRef.current?.click()}
+            attachAria={t('landingChat.attachAria')}
+            modelChoices={chatModelChoices}
+            modelValue={chatModel}
+            onModelChange={setChatModel}
+            sendingLabel={
+              composerBusy ? (
+                <span className="chat-composer__send-icon" aria-hidden="true">
+                  …
+                </span>
+              ) : undefined
+            }
+          />
+        </div>
 
         <p className="landing-chat__session-note">{t('landingChat.sessionNote')}</p>
         <p className="landing-chat__formats">
           {GUEST_ACTIVE_DOCUMENT_SLOTS.map((slot) => t(slot.labelKey)).join(' · ')}
         </p>
       </div>
-
-      {popularQuestions.length > 0 && (
-        <aside className="landing-chat__popular" aria-label={t('landingChat.popularHeading')}>
-          <h2>{t('landingChat.popularHeading')}</h2>
-          <ul>
-            {popularQuestions.map((item) => (
-              <li key={item.question}>
-                <button
-                  type="button"
-                  className="landing-chat__popular-item"
-                  disabled={composerBusy}
-                  onClick={() => {
-                    void submitComposer(item.question);
-                  }}
-                >
-                  {item.question}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </aside>
-      )}
       </div>
     </div>
   );

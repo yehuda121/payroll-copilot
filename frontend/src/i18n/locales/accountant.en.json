@@ -55,7 +55,29 @@
       "rules": "Payroll Rules",
       "findings": "Findings",
       "manualReview": "Manual Review",
-      "auditLogs": "Audit Logs"
+      "auditLogs": "Audit Logs",
+      "analytics": "Analytics"
+    },
+    "analytics": {
+      "pageTitle": "Payroll Analytics",
+      "pageDescription": "Documents, validation outcomes, and confidence by payroll month for your organization.",
+      "yearLabel": "Payroll year",
+      "errorTitle": "Unable to load payroll analytics",
+      "emptyTitle": "No payroll analytics yet",
+      "emptyDescription": "Process payslips with a payroll period to populate these charts.",
+      "documentsProcessed": "Documents processed",
+      "outcomeSuccess": "Success",
+      "outcomeReview": "Review required",
+      "outcomeFailed": "Failed",
+      "documentsByMonthTitle": "Documents processed by payroll month",
+      "outcomesByMonthTitle": "Success / review / failed by payroll month",
+      "outcomeDistributionTitle": "Outcome distribution",
+      "validationFailuresTitle": "Validation failures by payroll month",
+      "validationFailures": "Failures",
+      "errorTypesTitle": "Error type distribution",
+      "topFailuresTitle": "Top validation failures",
+      "confidenceTitle": "Average confidence by payroll month",
+      "confidenceSeries": "Avg confidence %"
     },
     "dashboard": {
       "title": "Accountant Dashboard",

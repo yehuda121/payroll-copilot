@@ -33,6 +33,7 @@ from payroll_copilot.application.services.employee_document_lifecycle import (
 )
 from payroll_copilot.application.services.guest_ephemeral_store import (
     get_guest_ephemeral_store,
+    guest_owns_ephemeral,
 )
 from payroll_copilot.application.use_cases.validate_employee_payslip import ValidateEmployeePayslipUseCase
 from payroll_copilot.application.validation.guest_extraction_context_builder import (
@@ -189,14 +190,6 @@ def _to_response(record: ValidationRunRecord, *, locale: str) -> ValidationRunRe
         ],
     )
 
-    cache_validation_report(
-        response.id,
-        {
-            "status": response.status,
-            "overall_result": response.overall_result,
-            "findings": [finding.model_dump() for finding in response.findings],
-        },
-    )
     return response
 
 @router.post("/run", response_model=ValidationRunResponse, status_code=202)
@@ -204,7 +197,7 @@ async def run_validation(
     request: ValidationRunRequest,
     _: None = Depends(limit_validation_guest_by_ip),
     __: None = Depends(limit_validation_guest_by_guest),
-    ___: GuestPrincipal = Depends(require_guest),
+    guest: GuestPrincipal = Depends(require_guest),
     use_case: RunPersistedValidationUseCase = Depends(get_run_persisted_validation_use_case),
     accept_language: str | None = Header(default=None, alias="Accept-Language"),
 ) -> ValidationRunResponse:
@@ -223,7 +216,7 @@ async def run_validation(
     document_id = _parse_uuid(request.document_id, "document_id")
     store = get_guest_ephemeral_store()
     ephemeral = store.get(document_id)
-    if ephemeral is None:
+    if ephemeral is None or not guest_owns_ephemeral(ephemeral, guest.guest_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={
@@ -235,7 +228,8 @@ async def run_validation(
         _parse_uuid(value, "supporting_document_id") for value in request.supporting_document_ids
     )
     for support_id in supporting_document_ids:
-        if store.get_supporting(support_id) is None:
+        support = store.get_supporting(support_id)
+        if support is None or not guest_owns_ephemeral(support, guest.guest_id):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail={
@@ -265,7 +259,17 @@ async def run_validation(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"code": "extraction_required", "message": exc.message},
         ) from exc
-    return _to_response(record, locale=locale)
+    response = _to_response(record, locale=locale)
+    cache_validation_report(
+        response.id,
+        {
+            "status": response.status,
+            "overall_result": response.overall_result,
+            "findings": [finding.model_dump() for finding in response.findings],
+        },
+        owner_guest_id=guest.guest_id,
+    )
+    return response
 
 @router.post("/employee/run", response_model=ValidationRunResponse, status_code=202)
 async def run_employee_validation(

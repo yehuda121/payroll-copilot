@@ -99,7 +99,7 @@ async def test_assistant_suggested_warning_vs_critical_is_in_domain(client: Asyn
 @pytest.mark.parametrize(
     ("locale", "needle"),
     [
-        ("en", "deterministic"),
+        ("en", "payslip upload"),
         ("he", "תלוש"),
         ("ar", "كشف"),
     ],

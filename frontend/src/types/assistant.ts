@@ -40,6 +40,8 @@ export type AssistantChatRequest = {
   document_ids?: string[];
   validation_run_id?: string;
   locale?: 'he' | 'en' | 'ar';
+  conversation_turns?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  model_provider_override?: string;
 };
 
 export type AssistantChatResponse = {
@@ -60,6 +62,7 @@ export type EmployeeAssistantChatRequest = {
   locale?: 'he' | 'en' | 'ar';
   /** Availability hints only; the backend remains authoritative. */
   available_resource_keys?: string[];
+  model_provider_override?: string;
 };
 
 export type EmployeeAssistantChatResponse = AssistantChatResponse & {

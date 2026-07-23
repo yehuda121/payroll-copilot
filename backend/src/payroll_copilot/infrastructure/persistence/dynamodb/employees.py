@@ -55,6 +55,7 @@ class DynamoEmployeeRepository(EmployeeRepository):
             "contract_start_date": dumps_value(employee.contract_start_date),
             "contract_end_date": dumps_value(employee.contract_end_date),
             "manager_id": dumps_value(employee.manager_id),
+            "payroll_accountant_id": dumps_value(employee.payroll_accountant_id),
             "status": dumps_value(employee.status),
             "metadata": dumps_value(meta),
             "national_id_encrypted_b64": bytes_to_b64(national_id_encrypted),
@@ -100,6 +101,7 @@ class DynamoEmployeeRepository(EmployeeRepository):
             monthly_salary=loads_decimal(item.get("monthly_salary")),
             contract_end_date=loads_date(item.get("contract_end_date")),
             manager_id=loads_uuid(item.get("manager_id")),
+            payroll_accountant_id=loads_uuid(item.get("payroll_accountant_id")),
             metadata=dict(item.get("metadata") or {}),
         )
 

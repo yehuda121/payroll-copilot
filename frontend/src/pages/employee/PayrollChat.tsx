@@ -1,14 +1,24 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useEmployeeSession } from '../../auth/EmployeeSessionContext';
 import { PortalPage } from '../../components/PortalPage';
 import { GuestChatPanel } from '../../components/guest/GuestChatPanel';
+import { PopularQuestionsPanel } from '../../components/guest/PopularQuestionsPanel';
 import { useEmployeeWorkspace } from '../../features/employee/EmployeeWorkspaceContext';
+import '../../features/guest/guest.css';
 import { useEmployeeContextBuilder } from '../../hooks/useEmployeeContextBuilder';
 import { useWorkspacePageCopy } from '../../hooks/useWorkspacePageCopy';
 import { employeeAssistantService } from '../../services/assistant';
 import type { AssistantChatRequest, AssistantChatResponse } from '../../types/assistant';
 
-export function PayrollChatPanel() {
+type PayrollChatPanelProps = {
+  pendingQuestion?: string | null;
+  onPendingQuestionConsumed?: () => void;
+};
+
+export function PayrollChatPanel({
+  pendingQuestion = null,
+  onPendingQuestionConsumed,
+}: PayrollChatPanelProps = {}) {
   const session = useEmployeeSession();
   const { build } = useEmployeeContextBuilder();
   const workspace = useEmployeeWorkspace();
@@ -24,6 +34,7 @@ export function PayrollChatPanel() {
         available_resource_keys: before.resources
           .filter((resource) => resource.status === 'available')
           .map((resource) => resource.key),
+        model_provider_override: payload.model_provider_override,
       };
       const response =
         workspace.mode === 'accountant' && workspace.employeeNumber
@@ -59,18 +70,38 @@ export function PayrollChatPanel() {
     ],
   );
 
-  return <GuestChatPanel chatHandler={employeeChat} />;
+  return (
+    <GuestChatPanel
+      chatHandler={employeeChat}
+      pendingQuestion={pendingQuestion}
+      onPendingQuestionConsumed={onPendingQuestionConsumed}
+    />
+  );
 }
 
 export function PayrollChatPage() {
   const copy = useWorkspacePageCopy();
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
+
   return (
     <PortalPage
       title={copy.chatTitle}
       description={copy.chatDescription}
       integrationNote="@integration-point EMPLOYEE_AI_CHAT"
     >
-      <PayrollChatPanel />
+      <div className="chat-with-popular">
+        <PopularQuestionsPanel
+          onSelect={(question) => {
+            setPendingQuestion(question);
+          }}
+        />
+        <PayrollChatPanel
+          pendingQuestion={pendingQuestion}
+          onPendingQuestionConsumed={() => {
+            setPendingQuestion(null);
+          }}
+        />
+      </div>
     </PortalPage>
   );
 }

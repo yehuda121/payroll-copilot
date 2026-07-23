@@ -1,7 +1,9 @@
 import { AssistantMarkdown } from './AssistantMarkdown';
 import { AssistantUsageFooter } from './AssistantUsageFooter';
+import { ChatComposer } from './ChatComposer';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { env } from '../../config/env';
 import { useAppLocale } from '../../hooks/useAppLocale';
 import { assistantService } from '../../services/assistant';
 import type {
@@ -15,11 +17,12 @@ import '../../features/guest/guest.css';
 
 type GuestChatPanelProps = {
   compact?: boolean;
-  showSuggestionsInline?: boolean;
   validationRunId?: string;
   documentIds?: string[];
   pendingQuestion?: string | null;
   onPendingQuestionConsumed?: () => void;
+  /** Opens existing upload flow when provided (Landing). */
+  onAttach?: () => void;
   /**
    * Employee chat supplies its authenticated handler. Public callers omit it
    * and keep using the existing public assistant service unchanged.
@@ -40,11 +43,11 @@ function formatTimestamp(iso: string, locale: string): string {
 
 export function GuestChatPanel({
   compact = false,
-  showSuggestionsInline = true,
   validationRunId,
   documentIds = [],
   pendingQuestion = null,
   onPendingQuestionConsumed,
+  onAttach,
   chatHandler = assistantService.chat,
 }: GuestChatPanelProps) {
   const { t, i18n } = useTranslation();
@@ -55,20 +58,29 @@ export function GuestChatPanel({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [chatModel, setChatModel] = useState('');
+  const [chatModelChoices, setChatModelChoices] = useState<string[]>([]);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const isLoadingRef = useRef(false);
-
-  const suggestedQuestions = [
-    t('assistant.suggested1'),
-    t('assistant.suggested2'),
-    t('assistant.suggested3'),
-  ];
-
-  const followUps = [t('assistant.followUp1'), t('assistant.followUp2'), t('assistant.followUp3')];
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void assistantService
+      .modelChoices()
+      .then((choices) => {
+        if (!cancelled) setChatModelChoices(choices.chat);
+      })
+      .catch(() => {
+        /* optional allowlist endpoint */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const guardrailLabel = (status: AssistantGuardrailStatus): string => {
     switch (status) {
@@ -106,12 +118,18 @@ export function GuestChatPanel({
       setIsLoading(true);
 
       try {
+        const conversation_turns = messages
+          .filter((msg) => (msg.role === 'user' || msg.role === 'assistant') && msg.content.trim())
+          .slice(-12)
+          .map((msg) => ({ role: msg.role, content: msg.content }));
         const response = await chatHandler({
           message: trimmed,
           session_id: sessionId,
           document_ids: documentIds,
           validation_run_id: validationRunId,
+          conversation_turns,
           locale,
+          model_provider_override: chatModel || undefined,
         });
         setSessionId(response.session_id);
         const assistantMessage: ChatMessage = {
@@ -138,7 +156,7 @@ export function GuestChatPanel({
         setIsLoading(false);
       }
     },
-    [chatHandler, documentIds, locale, sessionId, t, validationRunId],
+    [chatHandler, chatModel, documentIds, locale, messages, sessionId, t, validationRunId],
   );
 
   useEffect(() => {
@@ -170,38 +188,12 @@ export function GuestChatPanel({
     await submitMessage(msg.prompt, { replaceAssistantId: msg.id });
   };
 
-  const showFollowUps =
-    !isLoading && messages.some((msg) => msg.role === 'assistant') && messages.length > 0;
-
   return (
     <div className={`chat-shell ${compact ? 'chat-shell--compact' : ''}`}>
-      {!compact && (
-        <div className="chat-shell__heading">
-          <h2>{t('landing.chatHeading')}</h2>
-          <p>{t('assistant.intro')}</p>
-        </div>
-      )}
-
       <div className="chat-shell__messages" aria-live="polite">
         {messages.length === 0 && (
           <div className="chat-shell__empty">
             <p>{t('assistant.empty')}</p>
-            {showSuggestionsInline && (
-              <div className="chat-shell__suggestions">
-                {suggestedQuestions.map((question) => (
-                  <button
-                    key={question}
-                    type="button"
-                    className="btn btn--secondary"
-                    onClick={() => {
-                      void submitMessage(question);
-                    }}
-                  >
-                    {question}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
@@ -227,7 +219,7 @@ export function GuestChatPanel({
                   {guardrailLabel(msg.guardrailStatus)}
                 </div>
               )}
-            {msg.sources && msg.sources.length > 0 ? (
+            {msg.sources && msg.sources.length > 0 && env.isDevRuntime ? (
               <ul className="chat-message__sources">
                 {msg.sources.map((source) => (
                   <li key={`${source.title}-${source.reference ?? 'na'}`}>
@@ -236,12 +228,12 @@ export function GuestChatPanel({
                   </li>
                 ))}
               </ul>
-            ) : (
-              msg.role === 'assistant' &&
-              (msg.guardrailStatus === 'limited' || msg.guardrailStatus === 'limited_in_domain') && (
-                <p className="chat-message__guardrail">{t('assistant.noSource')}</p>
-              )
-            )}
+            ) : null}
+            {msg.role === 'assistant' &&
+            (!msg.sources || msg.sources.length === 0) &&
+            (msg.guardrailStatus === 'limited' || msg.guardrailStatus === 'limited_in_domain') ? (
+              <p className="chat-message__guardrail">{t('assistant.noSource')}</p>
+            ) : null}
             <div className="chat-bubble__meta">
               <time dateTime={msg.createdAt}>{formatTimestamp(msg.createdAt, i18n.language)}</time>
               {msg.role === 'assistant' && (
@@ -262,7 +254,9 @@ export function GuestChatPanel({
                 </div>
               )}
             </div>
-            {msg.role === 'assistant' ? <AssistantUsageFooter usage={msg.usage} /> : null}
+            {msg.role === 'assistant' ? (
+              <AssistantUsageFooter usage={msg.usage} />
+            ) : null}
           </div>
         ))}
 
@@ -281,41 +275,28 @@ export function GuestChatPanel({
         <div ref={bottomRef} />
       </div>
 
-      {showFollowUps && (
-        <div className="chat-shell__followups">
-          <p>{t('assistant.followUpHeading')}</p>
-          <div className="chat-shell__suggestions">
-            {followUps.map((question) => (
-              <button
-                key={question}
-                type="button"
-                className="btn btn--secondary"
-                onClick={() => {
-                  void submitMessage(question);
-                }}
-              >
-                {question}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {error && <p className="chat-panel__error">{error}</p>}
 
-      <form className="chat-panel__input-row" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder={t('assistant.placeholder')}
-          aria-label={t('assistant.ariaMessage')}
-          disabled={isLoading}
-        />
-        <button type="submit" className="btn btn--primary" disabled={isLoading || !message.trim()}>
-          {isLoading ? t('common.sending') : t('common.send')}
-        </button>
-      </form>
+      <ChatComposer
+        value={message}
+        onChange={setMessage}
+        onSubmit={handleSubmit}
+        disabled={isLoading}
+        canSend={Boolean(message.trim())}
+        placeholder={t('assistant.placeholder')}
+        ariaMessage={t('assistant.ariaMessage')}
+        onAttach={onAttach}
+        modelChoices={chatModelChoices}
+        modelValue={chatModel}
+        onModelChange={setChatModel}
+        sendingLabel={
+          isLoading ? (
+            <span className="chat-composer__send-icon" aria-hidden="true">
+              …
+            </span>
+          ) : undefined
+        }
+      />
     </div>
   );
 }

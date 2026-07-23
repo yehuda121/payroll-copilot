@@ -518,6 +518,10 @@ class LandingWorkflowGraph:
                     mime_type=str(primary.get("mime_type") or "application/pdf"),
                     language="auto",
                     ephemeral=True,
+                    owner_guest_id=str(
+                        state.get("guest_id") or state.get("session_id") or ""
+                    ).strip()
+                    or None,
                 )
             )
         except (OcrError, PayslipParserError) as exc:
@@ -674,16 +678,19 @@ class LandingWorkflowGraph:
             extracted_fields=state.get("confirmed_fields") or state.get("extracted_fields") or [],
             report=report,
         )
-        cache_validation_report(
-            str(record.id),
-            {
-                "status": record.status.value
-                if hasattr(record.status, "value")
-                else str(record.status),
-                "overall_result": report.get("overall_result"),
-                "findings": report.get("findings") or [],
-            },
-        )
+        owner = str(state.get("guest_id") or state.get("session_id") or "").strip()
+        if owner:
+            cache_validation_report(
+                str(record.id),
+                {
+                    "status": record.status.value
+                    if hasattr(record.status, "value")
+                    else str(record.status),
+                    "overall_result": report.get("overall_result"),
+                    "findings": report.get("findings") or [],
+                },
+                owner_guest_id=owner,
+            )
 
         return {
             **state,

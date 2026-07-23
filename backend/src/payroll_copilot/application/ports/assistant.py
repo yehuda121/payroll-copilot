@@ -29,7 +29,12 @@ class ApprovedLaborLawSearchPort(Protocol):
 class ValidationReportPort(Protocol):
     """Reads deterministic validation reports produced by the backend rule engine."""
 
-    def get_report(self, validation_run_id: str) -> dict[str, object] | None: ...
+    def get_report(
+        self,
+        validation_run_id: str,
+        *,
+        owner_guest_id: str | None = None,
+    ) -> dict[str, object] | None: ...
 
 
 @runtime_checkable
@@ -90,4 +95,6 @@ class PayrollAssistantRunnerPort(Protocol):
         validation_run_id: str | None,
         locale: str,
         prepared_employee_context: str | None = None,
+        answer_strategy: str | None = None,
+        period_label: str | None = None,
     ) -> dict[str, object]: ...

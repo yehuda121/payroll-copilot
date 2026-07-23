@@ -77,6 +77,18 @@ class DynamoUserStore:
             return None
         return self._record_from_item(items[0])
 
+    async def list_for_organization(self, organization_id: UUID) -> list[UserRecord]:
+        """List user bindings under an organization partition (USER# SK prefix)."""
+        items = await self._table.query_eq_pk(
+            keys.org_pk(organization_id),
+            sk_begins_with="USER#",
+        )
+        return [
+            self._record_from_item(item)
+            for item in items
+            if item.get("entity_type") == "user_binding" and item.get("id")
+        ]
+
     async def save(self, user: UserRecord) -> UserRecord:
         existing = await self.get_by_id(user.id)
         if existing is not None and existing.organization_id != user.organization_id:

@@ -19,6 +19,8 @@ class AssistantChatCommand:
     locale: str = "en"
     prepared_employee_context: str | None = None
     capability: str = "assistant"
+    answer_strategy: str | None = None
+    period_label: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,6 +55,10 @@ class PayrollAssistantChatUseCase:
         # that supplies this argument.
         if command.prepared_employee_context:
             runner_args["prepared_employee_context"] = command.prepared_employee_context
+        if command.answer_strategy:
+            runner_args["answer_strategy"] = command.answer_strategy
+        if command.period_label:
+            runner_args["period_label"] = command.period_label
         with ai_call_context(capability=command.capability) as ctx:
             payload = await self._runner.run(**runner_args)
             usage = ctx.aggregated_usage()

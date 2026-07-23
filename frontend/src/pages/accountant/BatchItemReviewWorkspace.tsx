@@ -556,6 +556,7 @@ export function BatchItemReviewWorkspacePage() {
                 locale: payload.locale,
                 batch_job_id: jobId,
                 batch_item_id: itemId,
+                model_provider_override: payload.model_provider_override,
               })
             }
           />

@@ -444,3 +444,10 @@ Real-time batch progress. Optional v1.1 enhancement; v1 uses polling.
 ## OpenAPI
 
 Full spec auto-generated at `/api/v1/openapi.json` and Swagger UI at `/docs`.
+
+---
+
+## Analytics
+
+See [analytics.md](./analytics.md) for Phase 1A endpoints, DTOs, and service responsibilities.
+

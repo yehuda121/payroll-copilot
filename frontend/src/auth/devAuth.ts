@@ -25,7 +25,7 @@ export const DEV_IDENTITIES: Record<UserRole, AuthUser> = {
     organizationId: 'dev-org-001',
   },
   developer_admin: {
-    id: 'dev-admin-001',
+    id: '00000000-0000-4000-8000-000000000301',
     email: 'yael.admin@dev.payroll-copilot.local',
     fullName: 'Yael Administrator',
     role: 'developer_admin',

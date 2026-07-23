@@ -55,7 +55,29 @@
       "rules": "قواعد الرواتب",
       "findings": "النتائج",
       "manualReview": "مراجعة يدوية",
-      "auditLogs": "سجلات التدقيق"
+      "auditLogs": "سجلات التدقيق",
+      "analytics": "التحليلات"
+    },
+    "analytics": {
+      "pageTitle": "تحليلات الرواتب",
+      "pageDescription": "المستندات ونتائج التحقق والثقة حسب شهر الرواتب لمؤسستك.",
+      "yearLabel": "سنة الرواتب",
+      "errorTitle": "تعذر تحميل تحليلات الرواتب",
+      "emptyTitle": "لا توجد تحليلات رواتب بعد",
+      "emptyDescription": "عالج قسائم بفترة رواتب لملء هذه الرسوم.",
+      "documentsProcessed": "المستندات المعالجة",
+      "outcomeSuccess": "نجاح",
+      "outcomeReview": "مراجعة مطلوبة",
+      "outcomeFailed": "فشل",
+      "documentsByMonthTitle": "المستندات المعالجة حسب شهر الرواتب",
+      "outcomesByMonthTitle": "نجاح / مراجعة / فشل حسب شهر الرواتب",
+      "outcomeDistributionTitle": "توزيع النتائج",
+      "validationFailuresTitle": "إخفاقات التحقق حسب شهر الرواتب",
+      "validationFailures": "الإخفاقات",
+      "errorTypesTitle": "توزيع أنواع الأخطاء",
+      "topFailuresTitle": "أبرز إخفاقات التحقق",
+      "confidenceTitle": "متوسط الثقة حسب شهر الرواتب",
+      "confidenceSeries": "متوسط الثقة %"
     },
     "dashboard": {
       "title": "لوحة محاسب الرواتب",

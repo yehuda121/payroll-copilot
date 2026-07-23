@@ -7,20 +7,38 @@ import type {
 } from '../types/assistant';
 import { apiRequest } from './api';
 
+export type AssistantModelChoices = {
+  chat: string[];
+  extraction: string[];
+};
+
 /**
  * Public payroll assistant chat service.
  * @integration-point ASSISTANT_SERVICE — POST /assistant/chat
  */
 export const assistantService = {
-  async chat(payload: AssistantChatRequest): Promise<AssistantChatResponse> {
+  async chat(
+    payload: AssistantChatRequest,
+    options?: { auth?: boolean },
+  ): Promise<AssistantChatResponse> {
+    const hasPrivateIds =
+      Boolean(payload.validation_run_id) ||
+      Boolean(payload.document_ids && payload.document_ids.length > 0);
     return apiRequest<AssistantChatResponse>('/assistant/chat', {
       method: 'POST',
       body: JSON.stringify(payload),
+      auth: options?.auth ?? hasPrivateIds,
     });
   },
 
   async popularQuestions(limit = 10): Promise<{ items: { question: string; count: number }[] }> {
     return apiRequest(`/assistant/popular-questions?limit=${limit}`, {
+      method: 'GET',
+    });
+  },
+
+  async modelChoices(): Promise<AssistantModelChoices> {
+    return apiRequest<AssistantModelChoices>('/assistant/model-choices', {
       method: 'GET',
     });
   },

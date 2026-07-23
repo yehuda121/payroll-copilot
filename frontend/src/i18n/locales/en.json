@@ -16,7 +16,7 @@
     "selectFile": "Browse files",
     "copy": "Copy",
     "copied": "Copied",
-    "regenerate": "Regenerate",
+    "regenerate": "Ask again",
     "expand": "Show details",
     "collapse": "Hide details",
     "back": "Back",
@@ -96,7 +96,7 @@
     "validateCtaHint": "Upload a payslip and get a clear checklist of what looks fine and what needs attention."
   },
   "landingChat": {
-    "lead": "One conversation for questions, document upload, review, and validation. Attach files, then send — validation waits until you confirm.",
+    "lead": "Answers are based on your uploaded documents and current labor laws. The assistant may make mistakes and is not a substitute for professional or legal advice.",
     "empty": "Ask a question, attach a document, then press Send.",
     "popularHeading": "Popular questions",
     "placeholder": "Ask anything, or attach a document…",
@@ -201,7 +201,11 @@
     "suggested1": "What documents are needed to validate a payslip?",
     "suggested2": "How should overtime be reflected on a payslip?",
     "suggested3": "What is the difference between a validation warning and a critical issue?",
-    "justNow": "Just now"
+    "justNow": "Just now",
+    "chatModel": "Chat model",
+    "extractionModel": "Extraction model",
+    "modelDefault": "Default model",
+    "modelLocal": "Local"
   },
   "validate": {
     "title": "Validate My Payslip",
@@ -650,6 +654,21 @@
         "status": "Status",
         "uploadedAt": "Uploaded"
       }
+    },
+    "analytics": {
+      "tabsLabel": "Payslip views",
+      "tabMonths": "Months",
+      "tabSalary": "Salary Analytics",
+      "errorTitle": "Unable to load salary analytics",
+      "emptyTitle": "No salary data for this year",
+      "emptyDescription": "Upload and extract payslips with a payroll period to see net and gross trends.",
+      "monthsWithNet": "Months with net salary",
+      "monthsWithGross": "Months with gross salary",
+      "currency": "Currency",
+      "netLineTitle": "Net salary by payroll month",
+      "grossVsNetTitle": "Gross vs net by payroll month",
+      "netSeries": "Net",
+      "grossSeries": "Gross"
     },
     "status": {
       "passed": "Passed",

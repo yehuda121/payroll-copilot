@@ -55,7 +55,29 @@
       "rules": "כללי שכר",
       "findings": "ממצאים",
       "manualReview": "בדיקה ידנית",
-      "auditLogs": "יומן ביקורת"
+      "auditLogs": "יומן ביקורת",
+      "analytics": "אנליטיקה"
+    },
+    "analytics": {
+      "pageTitle": "אנליטיקת שכר",
+      "pageDescription": "מסמכים, תוצאות אימות ורמת ביטחון לפי חודש שכר בארגון שלכם.",
+      "yearLabel": "שנת שכר",
+      "errorTitle": "לא ניתן לטעון אנליטיקת שכר",
+      "emptyTitle": "אין עדיין אנליטיקת שכר",
+      "emptyDescription": "עבדו תלושים עם תקופת שכר כדי למלא את הגרפים.",
+      "documentsProcessed": "מסמכים שעובדו",
+      "outcomeSuccess": "הצלחה",
+      "outcomeReview": "נדרשת סקירה",
+      "outcomeFailed": "נכשל",
+      "documentsByMonthTitle": "מסמכים שעובדו לפי חודש שכר",
+      "outcomesByMonthTitle": "הצלחה / סקירה / כשל לפי חודש שכר",
+      "outcomeDistributionTitle": "התפלגות תוצאות",
+      "validationFailuresTitle": "כשלי אימות לפי חודש שכר",
+      "validationFailures": "כשלים",
+      "errorTypesTitle": "התפלגות סוגי שגיאה",
+      "topFailuresTitle": "כשלי אימות נפוצים",
+      "confidenceTitle": "ממוצע ביטחון לפי חודש שכר",
+      "confidenceSeries": "ממוצע ביטחון %"
     },
     "dashboard": {
       "title": "לוח בקרה לרואה חשבון",

@@ -198,14 +198,14 @@ ASSISTANT_STRINGS: dict[str, dict[str, str]] = {
         ),
     },
     "template_prefix": {
-        "he": "על בסיס מקורות מאושרים של Payroll Copilot",
-        "en": "Based on approved Payroll Copilot sources",
-        "ar": "استنادًا إلى مصادر Payroll Copilot المعتمدة",
+        "he": "על סמך המידע הזמין ב-Payroll Copilot",
+        "en": "Based on the information available in Payroll Copilot",
+        "ar": "استنادًا إلى المعلومات المتوفرة في Payroll Copilot",
     },
     "limited_no_source": {
-        "he": "לא נמצא מקור מאושר לשאלה זו בבסיס הידע של עוזר השכר.",
-        "en": "No approved source was found for this question in the Payroll Assistant knowledge base.",
-        "ar": "لم يتم العثور على مصدر معتمد لهذا السؤال في قاعدة معرفة مساعد الرواتب.",
+        "he": "לא מצאתי מידע מדויק מספיק לשאלה זו כרגע.",
+        "en": "I could not find precise enough information for this question right now.",
+        "ar": "لم أجد معلومات دقيقة بما يكفي لهذا السؤال حاليًا.",
     },
     "blocked": {
         "he": "לא ניתן לעבד את הבקשה הזו.",
@@ -214,38 +214,38 @@ ASSISTANT_STRINGS: dict[str, dict[str, str]] = {
     },
     "disclaimer": {
         "he": (
-            "\n\nהערה: עוזר זה מספק הסברים מידעיים בלבד ואינו קובע עמידה בחוק. "
-            "הבדיקה הסופית מתבצעת במנוע הכללים הדטרמיניסטי של Payroll Copilot."
+            "\n\nהערה: עוזר זה מספק הסברים מידעיים בלבד ואינו מהווה ייעוץ משפטי או מקצועי. "
+            "הכרעה סופית לגבי עמידה בכללים מתבצעת בבדיקת Payroll Copilot."
         ),
         "en": (
-            "\n\nThis assistant provides informational explanations only and does not "
-            "determine legal compliance. Final validation is performed by the "
-            "deterministic Payroll Copilot rule engine."
+            "\n\nNote: This assistant provides informational explanations only and is not "
+            "legal or professional advice. Final compliance decisions are made by "
+            "Payroll Copilot validation."
         ),
         "ar": (
-            "\n\nيقدم هذا المساعد تفسيرات معلوماتية فقط ولا يحدد الامتثال القانوني. "
-            "يتم التحقق النهائي بواسطة محرك القواعد الحتمي في Payroll Copilot."
+            "\n\nملاحظة: يقدم هذا المساعد تفسيرات معلوماتية فقط وليس استشارة قانونية أو مهنية. "
+            "تُتخذ قرارات الامتثال النهائية عبر تحقق Payroll Copilot."
         ),
     },
     "limited_full": {
         "he": (
-            "לא מצאתי מקור מאושר מדויק לשאלה זו. אוכל לתת הכוונה כללית בלבד: "
-            "Payroll Copilot בודק תלושי שכר ומסמכים תומכים באופן דטרמיניסטי, "
+            "לא מצאתי מידע מדויק מספיק לשאלה זו כרגע. אוכל לתת הכוונה כללית בלבד: "
+            "Payroll Copilot עוזר לבדוק תלושי שכר ומסמכים תומכים, "
             "והעוזר מסביר ומנווט בלי לקבוע עמידה בחוק. "
             "העלו תלוש והריצו בדיקה כדי לקבל תוצאה סופית. "
             "לא אמציא סכומים, תעריפים, תאריכים או נוסחאות חוקיות."
         ),
         "en": (
-            "I could not find an exact approved source for this question. "
-            "I can only give general guidance: Payroll Copilot validates payslips and "
-            "supporting documents with a deterministic rule engine, while this assistant "
-            "explains and guides without deciding legal compliance. "
+            "I could not find precise enough information for this question right now. "
+            "I can only give general guidance: Payroll Copilot helps review payslips and "
+            "supporting documents, while this assistant explains and guides without "
+            "deciding legal compliance. "
             "Upload a payslip and run validation for a final outcome. "
             "I will not invent exact legal amounts, rates, dates, or formulas."
         ),
         "ar": (
-            "لم أجد مصدرًا معتمدًا دقيقًا لهذا السؤال. يمكنني تقديم إرشاد عام فقط: "
-            "يتحقق Payroll Copilot من كشوف الرواتب والمستندات الداعمة عبر محرك قواعد حتمي، "
+            "لم أجد معلومات دقيقة بما يكفي لهذا السؤال حاليًا. يمكنني تقديم إرشاد عام فقط: "
+            "يساعد Payroll Copilot في مراجعة كشوف الرواتب والمستندات الداعمة، "
             "وهذا المساعد يشرح ويوجّه دون تحديد الامتثال القانوني. "
             "ارفع كشف راتب وشغّل التحقق للحصول على نتيجة نهائية. "
             "لن أخترع مبالغ أو نسبًا أو تواريخ أو صيغًا قانونية دقيقة."
@@ -255,66 +255,62 @@ ASSISTANT_STRINGS: dict[str, dict[str, str]] = {
         "he": (
             "לבדיקת תלוש ב-Payroll Copilot נדרש תלוש שכר. "
             "אפשר להוסיף אופציונלית דוח נוכחות, הסכם העסקה ותעודת זהות. "
-            "הבדיקה הסופית מתבצעת במנוע הכללים הדטרמיניסטי לאחר ההעלאה — "
-            "לא על ידי עוזר זה. חילוץ OCR רב־לשוני עדיין לא מחובר."
+            "הבדיקה הסופית מתבצעת לאחר ההעלאה — לא על ידי עוזר זה."
         ),
         "en": (
             "To validate a payslip in Payroll Copilot you need a payslip upload. "
             "Optionally add an attendance report, employment agreement, and Israeli ID. "
-            "Final validation is performed by the deterministic rule engine after upload — "
-            "not by this assistant. Multilingual OCR extraction is not connected yet."
+            "Final validation runs after upload — not by this assistant."
         ),
         "ar": (
             "للتحقق من كشف راتب في Payroll Copilot يلزم رفع كشف الراتب. "
             "يمكن اختياريًا إضافة تقرير حضور وعقد عمل وبطاقة هوية إسرائيلية. "
-            "يتم التحقق النهائي بواسطة محرك القواعد الحتمي بعد الرفع — "
-            "وليس بواسطة هذا المساعد. استخراج OCR متعدد اللغات غير متصل بعد."
+            "يتم التحقق النهائي بعد الرفع — وليس بواسطة هذا المساعد."
         ),
     },
     "limited_overtime_payslip": {
         "he": (
             "באופן כללי, שעות נוספות אמורות להופיע בתלוש כפריט נפרד (שעות/סכום) לפי מדיניות השכר. "
-            "לא אציין כאן תעריפים או מגבלות חוקיות מדויקות בלי מקור מאושר. "
-            "להכרעה סופית העלו תלוש והריצו את הבדיקה הדטרמיניסטית."
+            "לא אציין כאן תעריפים או מגבלות חוקיות מדויקות בלי מידע מספיק. "
+            "להכרעה סופית העלו תלוש והריצו בדיקה ב-Payroll Copilot."
         ),
         "en": (
             "In general, overtime should appear on a payslip as a distinct line item "
             "(hours and/or amount) according to payroll policy. "
-            "I will not state exact legal rates or limits without an approved source. "
-            "For a final decision, upload a payslip and run deterministic validation."
+            "I will not state exact legal rates or limits without sufficient information. "
+            "For a final decision, upload a payslip and run Payroll Copilot validation."
         ),
         "ar": (
             "عمومًا، يجب أن تظهر ساعات العمل الإضافية في كشف الراتب كبند مستقل "
             "(ساعات و/أو مبلغ) وفق سياسة الرواتب. "
-            "لن أذكر نسبًا أو حدودًا قانونية دقيقة دون مصدر معتمد. "
-            "للحسم النهائي، ارفع كشف راتب وشغّل التحقق الحتمي."
+            "لن أذكر نسبًا أو حدودًا قانونية دقيقة دون معلومات كافية. "
+            "للحسم النهائي، ارفع كشف راتب وشغّل تحقق Payroll Copilot."
         ),
     },
     "limited_warning_vs_critical": {
         "he": (
-            "ב-Payroll Copilot, אזהרה (warning) מסמנת סטטוס שדורש בדיקה אך אינו חוסם בהכרח. "
-            "ממצא קריטי (critical) מסמן סיכון גבוה יותר הדורש טיפול לפני אישור תשלום. "
-            "הסיווג נקבע במנוע הבדיקה הדטרמיניסטי על סמך הכללים — לא על ידי עוזר זה."
+            "ב-Payroll Copilot, אזהרה מסמנת סטטוס שדורש בדיקה אך אינו חוסם בהכרח. "
+            "ממצא קריטי מסמן סיכון גבוה יותר הדורש טיפול לפני אישור תשלום. "
+            "הסיווג נקבע בבדיקת המערכת על סמך הכללים — לא על ידי עוזר זה."
         ),
         "en": (
             "In Payroll Copilot, a warning means an item needs review but is not necessarily blocking. "
             "A critical finding marks higher risk that should be addressed before approving payment. "
-            "Severity is assigned by the deterministic validation engine from rule results — "
-            "not by this assistant."
+            "Severity is assigned by system validation from rule results — not by this assistant."
         ),
         "ar": (
             "في Payroll Copilot، التحذير يعني أن البند يحتاج مراجعة لكنه ليس بالضرورة حاجبًا. "
             "النتيجة الحرجة تشير إلى خطر أعلى يجب معالجته قبل الموافقة على الدفع. "
-            "تُحدد الخطورة بواسطة محرك التحقق الحتمي من نتائج القواعد — وليس بواسطة هذا المساعد."
+            "تُحدد الخطورة بواسطة تحقق النظام من نتائج القواعد — وليس بواسطة هذا المساعد."
         ),
     },
     "blocked_prompt_injection": {
-        "he": "לא אוכל לעבד בקשה זו. אני מוגבל לסיוע בשכר, תלושים ודיני עבודה ממקורות מאושרים.",
+        "he": "לא אוכל לעבד בקשה זו. אני מוגבל לסיוע בשכר, תלושים ודיני עבודה.",
         "en": (
             "I cannot process that request. I am limited to payroll, payslip, and "
-            "labor-law assistance using approved sources."
+            "labor-law assistance."
         ),
-        "ar": "لا يمكنني معالجة هذا الطلب. أنا محدود بالمساعدة في الرواتب وكشوف الرواتب وقانون العمل باستخدام مصادر معتمدة.",
+        "ar": "لا يمكنني معالجة هذا الطلب. أنا محدود بالمساعدة في الرواتب وكشوف الرواتب وقانون العمل.",
     },
     "blocked_off_topic": {
         "he": "אני יכול לעזור רק בשכר, תלושים, נוכחות, חוזים, דיני עבודה ושימוש ב-Payroll Copilot.",
@@ -333,6 +329,41 @@ ASSISTANT_STRINGS: dict[str, dict[str, str]] = {
         "he": "לא אוכל לעבד בקשה זו.",
         "en": "I cannot process that request.",
         "ar": "لا يمكنني معالجة هذا الطلب.",
+    },
+    "opening_labor_law": {
+        "he": "על פי דיני העבודה בישראל:",
+        "en": "According to Israeli labor law:",
+        "ar": "وفقًا لقانون العمل الإسرائيلي:",
+    },
+    "opening_personal_payslip": {
+        "he": "על פי התלוש שלך לתקופה {period}:",
+        "en": "According to your payslip for {period}:",
+        "ar": "وفقًا لكشف راتبك لفترة {period}:",
+    },
+    "opening_payroll_calculation": {
+        "he": "על בסיס התלושים הרלוונטיים:",
+        "en": "Based on the following payslips:",
+        "ar": "بناءً على كشوف الرواتب التالية:",
+    },
+    "opening_validation": {
+        "he": "על פי תוצאות הבדיקה הזמינות:",
+        "en": "Based on the available validation results:",
+        "ar": "بناءً على نتائج التحقق المتوفرة:",
+    },
+    "opening_conversation_history": {
+        "he": "על בסיס השיחה שלנו עד כה:",
+        "en": "Based on our previous conversation:",
+        "ar": "بناءً على محادثتنا السابقة:",
+    },
+    "opening_document_explanation": {
+        "he": "על פי המסמך הרלוונטי:",
+        "en": "Based on the relevant document:",
+        "ar": "بناءً على المستند ذي الصلة:",
+    },
+    "opening_general_payroll": {
+        "he": "בנושא השכר:",
+        "en": "Regarding payroll:",
+        "ar": "بخصوص الرواتب:",
     },
 }
 

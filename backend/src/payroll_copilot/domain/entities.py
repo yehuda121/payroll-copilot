@@ -53,6 +53,9 @@ class Employee:
     monthly_salary: Decimal | None = None
     contract_end_date: date | None = None
     manager_id: UUID | None = None
+    # Optional link to the org user who acts as this employee's payroll accountant.
+    # Nullable for backward compatibility; never auto-assigned by the domain layer.
+    payroll_accountant_id: UUID | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
     @property

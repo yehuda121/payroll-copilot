@@ -57,6 +57,11 @@ class PayrollAssistantTools(PayrollAssistantToolsPort):
         self._labor_law_search = labor_law_search
         self._validation_reports = validation_reports
         self._document_summaries = document_summaries
+        # Set per request by the guest chat route when private IDs are present.
+        self.request_owner_guest_id: str | None = None
+
+    def set_request_owner(self, owner_guest_id: str | None) -> None:
+        self.request_owner_guest_id = (owner_guest_id or "").strip() or None
 
     def search_approved_labor_law(self, query: str, *, locale: str = "en") -> AssistantToolResult:
         hits = self._labor_law_search.search(query, locale=locale)
@@ -64,7 +69,7 @@ class PayrollAssistantTools(PayrollAssistantToolsPort):
             return AssistantToolResult(
                 tool_name="search_approved_labor_law",
                 success=False,
-                content="No approved local legal rule content matched the query.",
+                content="No matching labor-law reference was found for this question.",
                 sources=[],
             )
 
@@ -92,7 +97,10 @@ class PayrollAssistantTools(PayrollAssistantToolsPort):
                 content="Validation report unavailable. No validation_run_id was provided.",
             )
 
-        report = self._validation_reports.get_report(validation_run_id)
+        report = self._validation_reports.get_report(
+            validation_run_id,
+            owner_guest_id=self.request_owner_guest_id,
+        )
         if report is None:
             return AssistantToolResult(
                 tool_name="get_validation_report",
@@ -174,7 +182,10 @@ class PayrollAssistantTools(PayrollAssistantToolsPort):
                 content=report_result.content,
             )
 
-        report = self._validation_reports.get_report(validation_run_id or "")
+        report = self._validation_reports.get_report(
+            validation_run_id or "",
+            owner_guest_id=self.request_owner_guest_id,
+        )
         findings = report.get("findings", []) if report else []
         if finding_rule_id:
             findings = [f for f in findings if f.get("rule_id") == finding_rule_id]

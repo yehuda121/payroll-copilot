@@ -53,6 +53,11 @@ from payroll_copilot.domain.seed_ids import DEMO_ORGANIZATION_ID
 from payroll_copilot.domain.entities import Document, DocumentExtraction
 from payroll_copilot.domain.enums import DocumentStatus, DocumentType
 from payroll_copilot.application.services.text_normalize import normalize_extracted_text
+from payroll_copilot.application.ports import AICapability
+from payroll_copilot.infrastructure.ai.guardrails.ocr_text_guardrail import (
+    reject_ocr_injection,
+)
+from payroll_copilot.infrastructure.ai.provider_router import AIProviderRouter
 from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.infrastructure.layout.hybrid_layout_provider import (
     HybridLayoutProvider,
@@ -113,6 +118,8 @@ class GuestPayslipExtractionCommand:
     cancel_check: CancelCheck = None
     reuse_document_id: UUID | None = None
     progress_callback: ProgressCallback = None
+    owner_guest_id: str | None = None
+    model_provider_override: str | None = None
 
 
 class ExtractGuestPayslipUseCase:
@@ -222,6 +229,9 @@ class ExtractGuestPayslipUseCase:
             )
             timer.log_stage("text_normalization", extracted_text_length=len(raw_text))
 
+            # Reject prompt-injection-like OCR text before any LLM extraction call.
+            reject_ocr_injection(raw_text)
+
             self._check_cancelled(command.cancel_check)
             try:
                 self._notify_progress(command.progress_callback, "extracting")
@@ -229,7 +239,8 @@ class ExtractGuestPayslipUseCase:
                 pages_text = (
                     [page.text for page in ocr_result.pages] if ocr_result.pages else None
                 )
-                dynamic_entries, model_name, dyn_warnings = await self._document_extractor.extract(
+                document_extractor = self._resolve_document_extractor(command)
+                dynamic_entries, model_name, dyn_warnings = await document_extractor.extract(
                     ocr_text=raw_text,
                     language=language,
                     pages_text=pages_text,
@@ -323,6 +334,7 @@ class ExtractGuestPayslipUseCase:
                 warnings=list(dict.fromkeys(warnings)),
                 error_message=error_message,
                 field_confidences=field_confidences,
+                owner_guest_id=(command.owner_guest_id or "").strip() or None,
             )
             get_guest_ephemeral_store(ttl_hours=get_settings().guest_ephemeral_ttl_hours).save(session)
             timer.log_stage("persistence_ephemeral")
@@ -451,6 +463,30 @@ class ExtractGuestPayslipUseCase:
         if confirmed is None:
             raise ValueError(f"Guest ephemeral session not found: {document_id}")
         return store.build_document(confirmed), store.build_extraction(confirmed)
+
+    def _resolve_document_extractor(
+        self, command: GuestPayslipExtractionCommand
+    ) -> GuestDynamicDocumentExtractor:
+        """Use the injected extractor unless an allowlisted override is requested."""
+        override = (command.model_provider_override or "").strip().lower()
+        if not override:
+            return self._document_extractor
+        settings = get_settings()
+        allowed = {
+            part.strip().lower()
+            for part in str(getattr(settings, "extraction_model_choices", "") or "").split(",")
+            if part.strip()
+        }
+        if override not in allowed:
+            return self._document_extractor
+        route = AIProviderRouter(settings).route_provider(
+            AICapability.DOCUMENT_EXTRACTION,
+            override,
+        )
+        return GuestDynamicDocumentExtractor(
+            model_provider=route.provider,
+            model=route.model,
+        )
 
     @staticmethod
     def _check_cancelled(cancel_check: CancelCheck) -> None:

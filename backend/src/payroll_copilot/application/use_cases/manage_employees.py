@@ -118,6 +118,9 @@ def serialize_employee(employee: Employee) -> dict[str, Any]:
         "contract_start_date": employee.contract_start_date.isoformat(),
         "contract_end_date": employee.contract_end_date.isoformat() if employee.contract_end_date else None,
         "status": employee.status.value,
+        "payroll_accountant_id": (
+            str(employee.payroll_accountant_id) if employee.payroll_accountant_id else None
+        ),
         "national_id_masked": meta.get("national_id_masked"),
         "metadata": {
             key: value

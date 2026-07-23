@@ -93,6 +93,10 @@ const BatchItemReviewWorkspacePage = lazyPage(
   () => import('../pages/accountant/BatchItemReviewWorkspace'),
   'BatchItemReviewWorkspacePage',
 );
+const OrgAnalyticsPage = lazyPage(
+  () => import('../pages/accountant/OrgAnalytics'),
+  'OrgAnalyticsPage',
+);
 
 const AdminAuditLogsPage = lazyPage(
   () => import('../pages/admin/AdminAuditLogs'),
@@ -120,6 +124,10 @@ const SystemConfigurationPage = lazyPage(
 const SystemDashboardPage = lazyPage(
   () => import('../pages/admin/SystemDashboard'),
   'SystemDashboardPage',
+);
+const OrgCensusAnalyticsPage = lazyPage(
+  () => import('../pages/admin/OrgCensusAnalytics'),
+  'OrgCensusAnalyticsPage',
 );
 const UsersAndRolesPage = lazyPage(
   () => import('../pages/admin/UsersAndRoles'),
@@ -233,6 +241,7 @@ export const appRouteElements = (
           path="/accountant/bulk-upload/jobs/:jobId/items/:itemId/resolve"
           element={<L><BatchItemReviewWorkspacePage /></L>}
         />
+        <Route path="/accountant/analytics" element={<L><OrgAnalyticsPage /></L>} />
         <Route path="/accountant/batch-monitor" element={<L><BatchProcessingMonitorPage /></L>} />
         <Route path="/accountant/rules" element={<L><PayrollRulesPage /></L>} />
         <Route path="/accountant/findings" element={<L><ValidationFindingsPage /></L>} />
@@ -250,6 +259,7 @@ export const appRouteElements = (
         }
       >
         <Route path="/admin" element={<L><SystemDashboardPage /></L>} />
+        <Route path="/admin/analytics" element={<L><OrgCensusAnalyticsPage /></L>} />
         {import.meta.env.DEV ? (
           <>
             <Route path="/admin/users" element={<L><UsersAndRolesPage /></L>} />
