@@ -6,7 +6,7 @@ export function LanguageSelector() {
 
   return (
     <label className="language-selector">
-      <span className="language-selector__label">{t('common.language')}</span>
+      <span className="language-selector__label visually-hidden">{t('common.language')}</span>
       <select
         className="language-selector__select"
         value={locale}

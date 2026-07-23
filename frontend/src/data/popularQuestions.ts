@@ -1,27 +1,27 @@
 export const POPULAR_QUESTIONS = [
   {
     id: 'pq-1',
-    question: 'למה ירד לי מס הכנסה?',
+    questionKey: 'landingChat.popular.pq1',
     count: 842,
   },
   {
     id: 'pq-2',
-    question: 'איך מחשבים שעות נוספות?',
+    questionKey: 'landingChat.popular.pq2',
     count: 731,
   },
   {
     id: 'pq-3',
-    question: 'כמה ימי חופשה נשארו לי?',
+    questionKey: 'landingChat.popular.pq3',
     count: 615,
   },
   {
     id: 'pq-4',
-    question: 'למה לא קיבלתי נסיעות?',
+    questionKey: 'landingChat.popular.pq4',
     count: 504,
   },
   {
     id: 'pq-5',
-    question: 'מה המשמעות של רכיב בתלוש השכר?',
+    questionKey: 'landingChat.popular.pq5',
     count: 389,
   },
 ] as const;

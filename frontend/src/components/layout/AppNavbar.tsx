@@ -1,0 +1,106 @@
+import { useEffect, useId, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { APP_NAME, APP_NAME_SHORT } from '../../config/brand';
+import { LanguageSelector } from '../ui/LanguageSelector';
+import { ThemeToggle } from '../ui/ThemeToggle';
+import { CloseIcon, MenuIcon } from '../ui/icons';
+import { PageContainer } from './PageContainer';
+
+type AppNavbarProps = {
+  /** Show login/signup (public). Portal shells can hide these. */
+  showAuthLinks?: boolean;
+};
+
+/**
+ * Application navbar with a fixed visual layout.
+ * `dir="ltr"` keeps logo left and actions right in every language;
+ * only page content follows document RTL/LTR.
+ */
+export function AppNavbar({ showAuthLinks = true }: AppNavbarProps) {
+  const { t } = useTranslation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuId = useId();
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
+  useEffect(() => {
+    document.body.classList.toggle('nav-menu-open', menuOpen);
+    return () => document.body.classList.remove('nav-menu-open');
+  }, [menuOpen]);
+
+  return (
+    <header className="app-navbar" dir="ltr">
+      <PageContainer className="app-navbar__inner" width="wide">
+        <Link to="/" className="app-navbar__brand" onClick={() => setMenuOpen(false)}>
+          <span className="app-navbar__mark" aria-hidden="true">
+            {APP_NAME_SHORT}
+          </span>
+          <span className="app-navbar__name">{APP_NAME}</span>
+        </Link>
+
+        <nav className="app-navbar__desktop" aria-label={t('common.primaryNav')}>
+          <LanguageSelector />
+          <ThemeToggle />
+          {showAuthLinks ? (
+            <>
+              <Link to="/login" className="btn btn--ghost">
+                {t('common.login')}
+              </Link>
+              <Link to="/signup" className="btn btn--primary">
+                {t('common.signup')}
+              </Link>
+            </>
+          ) : null}
+        </nav>
+
+        <button
+          type="button"
+          className="btn btn--ghost btn--icon app-navbar__menu-btn"
+          aria-expanded={menuOpen}
+          aria-controls={menuId}
+          aria-label={menuOpen ? t('common.closeMenu') : t('common.openMenu')}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          {menuOpen ? <CloseIcon aria-hidden="true" /> : <MenuIcon aria-hidden="true" />}
+        </button>
+      </PageContainer>
+
+      <div
+        id={menuId}
+        className={`app-navbar__drawer ${menuOpen ? 'is-open' : ''}`}
+        hidden={!menuOpen}
+      >
+        <PageContainer className="app-navbar__drawer-inner" width="wide">
+          <LanguageSelector />
+          <ThemeToggle />
+          {showAuthLinks ? (
+            <div className="app-navbar__drawer-auth">
+              <Link
+                to="/login"
+                className="btn btn--secondary"
+                onClick={() => setMenuOpen(false)}
+              >
+                {t('common.login')}
+              </Link>
+              <Link
+                to="/signup"
+                className="btn btn--primary"
+                onClick={() => setMenuOpen(false)}
+              >
+                {t('common.signup')}
+              </Link>
+            </div>
+          ) : null}
+        </PageContainer>
+      </div>
+    </header>
+  );
+}

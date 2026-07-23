@@ -6,11 +6,14 @@ import {
   type DragEvent,
   type FormEvent,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { AssistantMarkdown } from '../../../components/guest/AssistantMarkdown';
 import { AssistantUsageFooter } from '../../../components/guest/AssistantUsageFooter';
 import { ChatComposer } from '../../../components/guest/ChatComposer';
 import { PopularQuestionsPanel } from '../../../components/guest/PopularQuestionsPanel';
+import { ChatWelcome } from '../../../components/chat/ChatWelcome';
+import { APP_NAME } from '../../../config/brand';
 import { env } from '../../../config/env';
 import { useAppLocale } from '../../../hooks/useAppLocale';
 import { useGuestValidationFlow } from '../../../hooks/useGuestValidationFlow';
@@ -66,7 +69,14 @@ function formatTimestamp(iso: string, locale: string): string {
   }
 }
 
-export function GuestLandingChat() {
+export function GuestLandingChat({
+  showWelcome = false,
+  popularQuestionsHost = null,
+}: {
+  showWelcome?: boolean;
+  /** When provided, popular questions render into this left-column host. */
+  popularQuestionsHost?: HTMLElement | null;
+}) {
   const { t, i18n } = useTranslation();
   const { locale } = useAppLocale();
   const flow = useGuestValidationFlow();
@@ -484,213 +494,222 @@ export function GuestLandingChat() {
         void onDrop(event);
       }}
     >
-      <header className="landing-chat__hero">
-        <p className="landing__eyebrow">{t('landing.eyebrow')}</p>
+      <header className="landing-chat__hero landing-chat__hero--compact visually-hidden">
         <h1>{t('landing.title')}</h1>
         <p className="landing-chat__lead">{t('landingChat.lead')}</p>
       </header>
 
       <div className="landing-chat__layout">
-      <PopularQuestionsPanel
-        disabled={composerBusy}
-        onSelect={(question) => {
-          void submitComposer(question);
-        }}
-      />
-      <div className="landing-chat__shell" aria-label={t('landing.chatHeading')}>
-        <div className="landing-chat__messages" aria-live="polite">
-          {messages.length === 0 && (
-            <div className="landing-chat__empty">
-              <p>{t('landingChat.empty')}</p>
-            </div>
-          )}
+        <div className="landing-chat__shell" aria-label={t('landing.chatHeading', { appName: APP_NAME })}>
+          <div className="landing-chat__messages" aria-live="polite">
+            {messages.length === 0 && (
+              <div className="landing-chat__empty">
+                {showWelcome ? (
+                  <ChatWelcome />
+                ) : (
+                  <p>{t('landingChat.empty')}</p>
+                )}
+              </div>
+            )}
 
-          {messages.map((msg) => (
-            <div key={msg.id} className={`chat-bubble chat-bubble--${msg.role}`}>
-              {msg.kind === 'document_review' && flow.extraction ? (
-                <>
+            {messages.map((msg) => (
+              <div key={msg.id} className={`chat-bubble chat-bubble--${msg.role}`}>
+                {msg.kind === 'document_review' && flow.extraction ? (
+                  <>
+                    <AssistantMarkdown content={msg.content} />
+                    <ChatDocumentReviewCard
+                      fileName={payslipName || t('slots.payslip')}
+                      entries={flow.entries}
+                      confirmed={documentConfirmed}
+                      busy={flow.step === 'validating'}
+                      onChangeEntry={flow.updateEntry}
+                      onDeleteEntry={flow.deleteEntry}
+                      onAddEntry={flow.addEntry}
+                      onConfirm={() => {
+                        void confirmDocument();
+                      }}
+                    />
+                  </>
+                ) : msg.kind === 'validation_summary' && flow.report ? (
+                  <>
+                    <AssistantMarkdown content={msg.content} />
+                    <ChatValidationSummaryCard report={flow.report} fileName={payslipName} />
+                  </>
+                ) : msg.role === 'assistant' ? (
                   <AssistantMarkdown content={msg.content} />
-                  <ChatDocumentReviewCard
-                    fileName={payslipName || t('slots.payslip')}
-                    entries={flow.entries}
-                    confirmed={documentConfirmed}
-                    busy={flow.step === 'validating'}
-                    onChangeEntry={flow.updateEntry}
-                    onDeleteEntry={flow.deleteEntry}
-                    onAddEntry={flow.addEntry}
-                    onConfirm={() => {
-                      void confirmDocument();
-                    }}
-                  />
-                </>
-              ) : msg.kind === 'validation_summary' && flow.report ? (
-                <>
-                  <AssistantMarkdown content={msg.content} />
-                  <ChatValidationSummaryCard report={flow.report} fileName={payslipName} />
-                </>
-              ) : msg.role === 'assistant' ? (
-                <AssistantMarkdown content={msg.content} />
-              ) : (
-                <p className="chat-bubble__plain">{msg.content}</p>
-              )}
-
-              {msg.guardrailStatus &&
-                msg.guardrailStatus !== 'passed' &&
-                msg.guardrailStatus !== 'answered_from_source' && (
-                  <div
-                    className={`assistant-banner assistant-banner--${
-                      msg.guardrailStatus.startsWith('blocked') ? 'blocked' : 'limited'
-                    }`}
-                  >
-                    {guardrailLabel(msg.guardrailStatus)}
-                  </div>
+                ) : (
+                  <p className="chat-bubble__plain">{msg.content}</p>
                 )}
 
-              {msg.sources && msg.sources.length > 0 && env.isDevRuntime && (
-                <ul className="chat-message__sources">
-                  {msg.sources.map((source) => (
-                    <li key={`${source.title}-${source.reference ?? 'na'}`}>
-                      {source.title}
-                      {source.reference ? ` (${source.reference})` : ''}
-                    </li>
-                  ))}
-                </ul>
-              )}
+                {msg.guardrailStatus &&
+                  msg.guardrailStatus !== 'passed' &&
+                  msg.guardrailStatus !== 'answered_from_source' && (
+                    <div
+                      className={`assistant-banner assistant-banner--${
+                        msg.guardrailStatus.startsWith('blocked') ? 'blocked' : 'limited'
+                      }`}
+                    >
+                      {guardrailLabel(msg.guardrailStatus)}
+                    </div>
+                  )}
 
-              <div className="chat-bubble__meta">
-                <time dateTime={msg.createdAt}>{formatTimestamp(msg.createdAt, i18n.language)}</time>
+                {msg.sources && msg.sources.length > 0 && env.isDevRuntime && (
+                  <ul className="chat-message__sources">
+                    {msg.sources.map((source) => (
+                      <li key={`${source.title}-${source.reference ?? 'na'}`}>
+                        {source.title}
+                        {source.reference ? ` (${source.reference})` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="chat-bubble__meta">
+                  <time dateTime={msg.createdAt}>{formatTimestamp(msg.createdAt, i18n.language)}</time>
+                </div>
+                {msg.role === 'assistant' && msg.kind === 'text' ? (
+                  <AssistantUsageFooter usage={msg.usage} />
+                ) : null}
               </div>
-              {msg.role === 'assistant' && msg.kind === 'text' ? (
-                <AssistantUsageFooter usage={msg.usage} />
-              ) : null}
-            </div>
-          ))}
+            ))}
 
-          {(isLoading || flow.step === 'prepare' || flow.step === 'validating') && (
-            <div className="chat-bubble chat-bubble--assistant" aria-label={t('assistant.typing')}>
-              <div className="chat-typing">
-                <span>
-                  {flow.step === 'prepare'
-                    ? flow.processingStage === 'reading_pdf'
-                      ? t('landingChat.stages.readingPdf')
-                      : flow.processingStage === 'running_ocr'
-                        ? t('landingChat.stages.runningOcr')
-                        : flow.processingStage === 'structuring_fields'
-                          ? t('landingChat.stages.structuringFields')
-                          : flow.processingStage === 'preparing_review'
-                            ? t('landingChat.stages.preparingReview')
-                            : t('landingChat.extracting')
-                    : flow.step === 'validating'
-                      ? t('landingChat.confirming', { defaultValue: 'Saving your confirmed fields…' })
-                      : t('assistant.typing')}
-                </span>
-                <span className="chat-typing__dots" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                </span>
-              </div>
-              {flow.step === 'prepare' && (
-                <button type="button" className="chat-cancel-btn" onClick={() => flow.cancelExtraction()}>
-                  {t('common.cancel')}
-                </button>
-              )}
-            </div>
-          )}
-          <div ref={bottomRef} />
-        </div>
-
-        {error && <p className="chat-panel__error">{error}</p>}
-        {flow.flowError && (
-          <div className="landing-chat__extract-error" role="alert">
-            <p>{flow.flowError}</p>
-            <ul className="landing-chat__extract-hints">
-              {flow.extraction?.ocr_status === 'failed' && (
-                <li>{t('landingChat.errors.ocrFailed')}</li>
-              )}
-              {flow.extraction?.parser_status === 'failed' && (
-                <li>{t('landingChat.errors.parserFailed')}</li>
-              )}
-              <li>{t('landingChat.errors.retryHint')}</li>
-            </ul>
-            <button
-              type="button"
-              className="btn btn--secondary"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {t('landingChat.retryUpload')}
-            </button>
-          </div>
-        )}
-        {dragOver && (
-          <div className="landing-chat__drop-hint" role="status">
-            {t('landingChat.dropHint')}
-          </div>
-        )}
-
-        <div className="landing-chat__composer">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={ACCEPT}
-            multiple
-            hidden
-            onChange={(event) => {
-              if (event.target.files) {
-                void handleFiles(event.target.files);
-              }
-              event.target.value = '';
-            }}
-          />
-          {pendingAttachments.length > 0 && (
-            <ul className="landing-chat__pending" aria-label={t('landingChat.pendingAttachments')}>
-              {pendingAttachments.map((item) => (
-                <li key={item.id} className="landing-chat__pending-item">
+            {(isLoading || flow.step === 'prepare' || flow.step === 'validating') && (
+              <div className="chat-bubble chat-bubble--assistant" aria-label={t('assistant.typing')}>
+                <div className="chat-typing">
                   <span>
-                    {t(`slots.${item.slotId}`)} · {item.file.name}
+                    {flow.step === 'prepare'
+                      ? flow.processingStage === 'reading_pdf'
+                        ? t('landingChat.stages.readingPdf')
+                        : flow.processingStage === 'running_ocr'
+                          ? t('landingChat.stages.runningOcr')
+                          : flow.processingStage === 'structuring_fields'
+                            ? t('landingChat.stages.structuringFields')
+                            : flow.processingStage === 'preparing_review'
+                              ? t('landingChat.stages.preparingReview')
+                              : t('landingChat.extracting')
+                      : flow.step === 'validating'
+                        ? t('landingChat.confirming', { defaultValue: 'Saving your confirmed fields…' })
+                        : t('assistant.typing')}
                   </span>
-                  <button
-                    type="button"
-                    className="landing-chat__pending-remove"
-                    onClick={() => removePendingAttachment(item.id)}
-                    disabled={composerBusy}
-                    aria-label={t('landingChat.removeAttachment')}
-                  >
-                    ×
+                  <span className="chat-typing__dots" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                </div>
+                {flow.step === 'prepare' && (
+                  <button type="button" className="chat-cancel-btn" onClick={() => flow.cancelExtraction()}>
+                    {t('common.cancel')}
                   </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <ChatComposer
-            value={message}
-            onChange={setMessage}
-            onSubmit={handleSubmit}
-            disabled={composerBusy}
-            canSend={canSend}
-            placeholder={t('landingChat.placeholder')}
-            ariaMessage={t('assistant.ariaMessage')}
-            onAttach={() => fileInputRef.current?.click()}
-            attachAria={t('landingChat.attachAria')}
-            modelChoices={chatModelChoices}
-            modelValue={chatModel}
-            onModelChange={setChatModel}
-            sendingLabel={
-              composerBusy ? (
-                <span className="chat-composer__send-icon" aria-hidden="true">
-                  …
-                </span>
-              ) : undefined
-            }
-          />
-        </div>
+                )}
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
 
-        <p className="landing-chat__session-note">{t('landingChat.sessionNote')}</p>
-        <p className="landing-chat__formats">
-          {GUEST_ACTIVE_DOCUMENT_SLOTS.map((slot) => t(slot.labelKey)).join(' · ')}
-        </p>
+          {error && <p className="chat-panel__error">{error}</p>}
+          {flow.flowError && (
+            <div className="landing-chat__extract-error" role="alert">
+              <p>{flow.flowError}</p>
+              <ul className="landing-chat__extract-hints">
+                {flow.extraction?.ocr_status === 'failed' && (
+                  <li>{t('landingChat.errors.ocrFailed')}</li>
+                )}
+                {flow.extraction?.parser_status === 'failed' && (
+                  <li>{t('landingChat.errors.parserFailed')}</li>
+                )}
+                <li>{t('landingChat.errors.retryHint')}</li>
+              </ul>
+              <button
+                type="button"
+                className="btn btn--secondary"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {t('landingChat.retryUpload')}
+              </button>
+            </div>
+          )}
+          {dragOver && (
+            <div className="landing-chat__drop-hint" role="status">
+              {t('landingChat.dropHint')}
+            </div>
+          )}
+
+          <div className="landing-chat__composer">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPT}
+              multiple
+              hidden
+              onChange={(event) => {
+                if (event.target.files) {
+                  void handleFiles(event.target.files);
+                }
+                event.target.value = '';
+              }}
+            />
+            {pendingAttachments.length > 0 && (
+              <ul className="landing-chat__pending" aria-label={t('landingChat.pendingAttachments')}>
+                {pendingAttachments.map((item) => (
+                  <li key={item.id} className="landing-chat__pending-item">
+                    <span>
+                      {t(`slots.${item.slotId}`)} · {item.file.name}
+                    </span>
+                    <button
+                      type="button"
+                      className="landing-chat__pending-remove"
+                      onClick={() => removePendingAttachment(item.id)}
+                      disabled={composerBusy}
+                      aria-label={t('landingChat.removeAttachment')}
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <ChatComposer
+              value={message}
+              onChange={setMessage}
+              onSubmit={handleSubmit}
+              disabled={composerBusy}
+              canSend={canSend}
+              placeholder={t('landingChat.placeholder')}
+              ariaMessage={t('assistant.ariaMessage')}
+              onAttach={() => fileInputRef.current?.click()}
+              attachAria={t('landingChat.attachAria')}
+              modelChoices={chatModelChoices}
+              modelValue={chatModel}
+              onModelChange={setChatModel}
+              toolbarControls
+              sendingLabel={
+                composerBusy ? (
+                  <span className="chat-composer__send-icon" aria-hidden="true">
+                    …
+                  </span>
+                ) : undefined
+              }
+            />
+          </div>
+
+          <p className="landing-chat__session-note">{t('landingChat.sessionNote')}</p>
+          <p className="landing-chat__formats">
+            {GUEST_ACTIVE_DOCUMENT_SLOTS.map((slot) => t(slot.labelKey)).join(' · ')}
+          </p>
+        </div>
       </div>
-      </div>
+      {popularQuestionsHost
+        ? createPortal(
+            <PopularQuestionsPanel
+              disabled={composerBusy}
+              onSelect={(question) => {
+                void submitComposer(question);
+              }}
+            />,
+            popularQuestionsHost,
+          )
+        : null}
     </div>
   );
 }

@@ -546,7 +546,8 @@
   align-self: auto;
   margin-right: auto;
   margin-left: 0;
-  background: #fff;
+  background: var(--color-surface);
+  color: var(--color-text);
   border: 1px solid var(--color-border);
   border-end-start-radius: 0.35rem;
 }
@@ -558,6 +559,7 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;
+  color: inherit;
 }
 
 .assistant-markdown {
@@ -566,6 +568,7 @@
   overflow-wrap: anywhere;
   word-break: break-word;
   max-width: 100%;
+  color: var(--color-text);
 }
 
 .assistant-markdown > :first-child {
@@ -578,6 +581,7 @@
 
 .assistant-markdown p {
   margin: 0 0 0.75rem;
+  color: var(--color-text);
 }
 
 .assistant-markdown h1,
@@ -614,10 +618,12 @@
 .assistant-markdown ol {
   margin: 0 0 0.75rem;
   padding-inline-start: 1.35rem;
+  color: var(--color-text);
 }
 
 .assistant-markdown li {
   margin: 0.25rem 0;
+  color: var(--color-text);
 }
 
 .assistant-markdown li > ul,
@@ -652,7 +658,8 @@
   font-size: 0.86em;
   padding: 0.1em 0.35em;
   border-radius: 0.3rem;
-  background: var(--color-neutral-soft);
+  background: var(--color-surface-muted);
+  color: var(--color-text);
   direction: ltr;
   unicode-bidi: isolate;
 }
@@ -661,8 +668,9 @@
   margin: 0 0 0.75rem;
   padding: 0.75rem 0.85rem;
   border-radius: var(--radius-sm);
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   overflow-x: auto;
   max-width: 100%;
   direction: ltr;
@@ -684,7 +692,7 @@
   align-items: center;
   margin-top: 0.55rem;
   font-size: 0.75rem;
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
 }
 
 .assistant-usage-footer {
@@ -693,8 +701,7 @@
   gap: 0.45rem 0.75rem;
   margin-top: 0.45rem;
   font-size: 0.72rem;
-  color: var(--color-text-subtle);
-  opacity: 0.92;
+  color: var(--color-text-muted);
 }
 
 .assistant-usage-footer__badge {
@@ -702,6 +709,7 @@
   border-radius: 999px;
   padding: 0.05rem 0.4rem;
   text-transform: lowercase;
+  color: var(--color-text-muted);
 }
 
 .chat-bubble--user .chat-bubble__meta {
@@ -726,7 +734,7 @@
   width: 0.35rem;
   height: 0.35rem;
   border-radius: 50%;
-  background: var(--color-text-subtle);
+  background: var(--color-text-muted);
   animation: chat-dot 1s infinite ease-in-out;
 }
 

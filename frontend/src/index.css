@@ -1,15 +1,25 @@
-:root {
-  --color-bg: #f7f8fb;
+/* =============================================================================
+   Design tokens — shared foundation for landing + future portal redesigns.
+   Theme via html[data-theme="light"|"dark"]. Prefer tokens over hardcoded colors.
+   ============================================================================= */
+
+:root,
+html[data-theme='light'] {
+  --color-bg: #f8fafc;
+  --color-bg-elevated: #ffffff;
   --color-surface: #ffffff;
-  --color-surface-hover: #f1f4f9;
+  --color-surface-hover: #f1f5f9;
+  --color-surface-muted: #f1f5f9;
   --color-sidebar: #ffffff;
   --color-text: #0f172a;
-  --color-text-muted: #5b6475;
-  --color-text-subtle: #8b95a7;
-  --color-border: #e6eaf0;
+  --color-text-muted: #64748b;
+  --color-text-subtle: #94a3b8;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
   --color-accent: #2563eb;
   --color-accent-hover: #1d4ed8;
   --color-accent-soft: #eff6ff;
+  --color-accent-contrast: #ffffff;
   --color-success: #15803d;
   --color-success-soft: #ecfdf3;
   --color-warning: #c2410c;
@@ -18,20 +28,78 @@
   --color-danger-soft: #fef2f2;
   --color-neutral: #64748b;
   --color-neutral-soft: #f1f5f9;
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 22px;
+  --color-focus-ring: color-mix(in srgb, var(--color-accent) 45%, transparent);
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 10px 30px rgba(15, 23, 42, 0.06);
-  --space-section: 1.5rem;
-  font-family: 'Segoe UI', 'Helvetica Neue', system-ui, -apple-system, sans-serif;
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 16px 48px rgba(15, 23, 42, 0.08);
+  --navbar-height: 3.75rem;
+  color-scheme: light;
+}
+
+html[data-theme='dark'] {
+  --color-bg: #0b1220;
+  --color-bg-elevated: #111827;
+  --color-surface: #111827;
+  --color-surface-hover: #1e293b;
+  --color-surface-muted: #1e293b;
+  --color-sidebar: #111827;
+  --color-text: #f1f5f9;
+  --color-text-muted: #94a3b8;
+  --color-text-subtle: #64748b;
+  --color-border: #1f2a3d;
+  --color-border-strong: #334155;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #60a5fa;
+  --color-accent-soft: rgba(59, 130, 246, 0.14);
+  --color-accent-contrast: #ffffff;
+  --color-success: #4ade80;
+  --color-success-soft: rgba(74, 222, 128, 0.12);
+  --color-warning: #fb923c;
+  --color-warning-soft: rgba(251, 146, 60, 0.12);
+  --color-danger: #f87171;
+  --color-danger-soft: rgba(248, 113, 113, 0.12);
+  --color-neutral: #94a3b8;
+  --color-neutral-soft: #1e293b;
+  --color-focus-ring: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+:root {
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-section: var(--space-5);
+  --font-sans: 'Segoe UI', 'Helvetica Neue', system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.35rem;
+  --text-2xl: clamp(1.75rem, 3.2vw, 2.5rem);
+  --text-3xl: clamp(2rem, 4vw, 3rem);
+  --container-narrow: 40rem;
+  --container-default: 72rem;
+  --container-wide: 80rem;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  font-family: var(--font-sans);
   line-height: 1.5;
   font-weight: 400;
   color: var(--color-text);
-  background:
-    radial-gradient(circle at top left, #e8eefc 0%, transparent 36%),
-    radial-gradient(circle at top right, #f3e9ff 0%, transparent 28%),
-    var(--color-bg);
+  background: var(--color-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -48,6 +116,12 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+body.nav-menu-open {
+  overflow: hidden;
 }
 
 #root {
@@ -61,13 +135,24 @@ textarea {
   font: inherit;
 }
 
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 code {
-  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-family: var(--font-mono);
   font-size: 0.85em;
   padding: 0.1em 0.35em;
-  background: var(--color-bg);
+  background: var(--color-surface-muted);
   border-radius: 4px;
 }
+
+/* ---- Buttons ---- */
 
 .btn {
   display: inline-flex;
@@ -76,12 +161,16 @@ code {
   gap: 0.4rem;
   min-height: 2.5rem;
   padding: 0.55rem 1rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid transparent;
   cursor: pointer;
   font-weight: 600;
   text-decoration: none;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .btn:disabled {
@@ -91,7 +180,7 @@ code {
 
 .btn--primary {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-accent-contrast);
 }
 
 .btn--primary:hover:not(:disabled) {
@@ -121,7 +210,246 @@ code {
 .btn--large {
   min-height: 3rem;
   padding-inline: 1.35rem;
-  font-size: 1rem;
+  font-size: var(--text-md);
+}
+
+.btn--icon {
+  width: 2.5rem;
+  min-width: 2.5rem;
+  padding: 0;
+}
+
+/* ---- Layout primitives ---- */
+
+.page-container {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: var(--space-5);
+}
+
+.page-container--narrow {
+  max-width: var(--container-narrow);
+}
+
+.page-container--default {
+  max-width: var(--container-default);
+}
+
+.page-container--wide {
+  max-width: var(--container-wide);
+}
+
+.surface-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.surface-card--padded {
+  padding: var(--space-5);
+}
+
+.hero-split {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr);
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  align-items: stretch;
+  padding-block: clamp(1.5rem, 4vw, 3rem);
+}
+
+.hero-split__copy {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 34rem;
+  align-content: start;
+}
+
+.hero-split__media {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-brand {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.hero-title {
+  margin: 0;
+  font-size: var(--text-3xl);
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.hero-subtitle {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: 1.55;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.hero-disclaimer {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--color-text-subtle);
+}
+
+/* ---- App navbar (fixed LTR chrome) ---- */
+
+.app-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app-navbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: var(--navbar-height);
+}
+
+.app-navbar__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.app-navbar__mark {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.app-navbar__name {
+  font-size: var(--text-md);
+}
+
+.app-navbar__desktop {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-navbar__menu-btn {
+  display: none;
+}
+
+.app-navbar__drawer {
+  display: none;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.app-navbar__drawer.is-open {
+  display: block;
+}
+
+.app-navbar__drawer-inner {
+  display: grid;
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+}
+
+.app-navbar__drawer-auth {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* ---- Chat welcome ---- */
+
+.chat-welcome {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-4);
+  text-align: start;
+}
+
+.chat-welcome__greeting {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.chat-welcome__title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.chat-welcome__intro {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.chat-welcome__list {
+  margin: 0;
+  padding-inline-start: 1.25rem;
+  display: grid;
+  gap: 0.35rem;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.chat-welcome__hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+}
+
+/* ---- Landing page shell ---- */
+
+.landing-page {
+  padding-bottom: var(--space-7);
+}
+
+.landing-page__chat-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 100%;
+  height: 100%;
+}
+
+/* ---- Utility / app chrome leftovers ---- */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .app-error-boundary {
@@ -138,4 +466,39 @@ code {
 
 .app-route-fallback {
   min-height: 8rem;
+}
+
+@media (max-width: 1024px) {
+  .hero-split {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .hero-split__copy {
+    max-width: none;
+    text-align: start;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding-inline: var(--space-4);
+  }
+
+  .app-navbar__desktop {
+    display: none;
+  }
+
+  .app-navbar__menu-btn {
+    display: inline-flex;
+  }
+
+  .hero-split {
+    padding-block: var(--space-5);
+    gap: var(--space-5);
+  }
+
+  .chat-welcome {
+    padding: var(--space-4);
+  }
 }
