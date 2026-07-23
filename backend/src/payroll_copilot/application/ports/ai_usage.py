@@ -18,6 +18,7 @@ class AIUsageStats:
     latency_ms: float = 0.0
     retry_count: int = 0
     fallback_used: bool = False
+    prompt_version: str = ""
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -42,4 +43,5 @@ class AIUsageStats:
             latency_ms=self.latency_ms + other.latency_ms,
             retry_count=max(self.retry_count, other.retry_count),
             fallback_used=self.fallback_used or other.fallback_used,
+            prompt_version=self.prompt_version or other.prompt_version,
         )

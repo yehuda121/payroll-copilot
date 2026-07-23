@@ -115,3 +115,56 @@ class AdminOrgCensus:
     employees_per_payroll_accountant: list[AccountantCaseload] = field(default_factory=list)
     organizations: list[OrganizationCensusSlice] = field(default_factory=list)
     extras: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class ConfidenceBucket:
+    """Inclusive lower bound, exclusive upper bound (last bucket includes 1.0)."""
+
+    label: str
+    min_inclusive: float
+    max_exclusive: float
+    count: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class QualityMonthPoint:
+    period_year: int
+    period_month: int
+    documents_processed: int = 0
+    extraction_attempted: int = 0
+    extraction_success: int = 0
+    extraction_success_rate: float | None = None
+    ocr_attempted: int = 0
+    ocr_success: int = 0
+    ocr_failed: int = 0
+    validation_runs: int = 0
+    validation_pass: int = 0
+    validation_success_rate: float | None = None
+    average_confidence: float | None = None
+    confidence_sample_count: int = 0
+    manual_review: int = 0
+    manual_review_rate: float | None = None
+    failed_documents: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class OrgQualityAnalytics:
+    organization_id: UUID
+    year: int
+    months: list[QualityMonthPoint] = field(default_factory=list)
+    confidence_distribution: list[ConfidenceBucket] = field(default_factory=list)
+    totals: QualityMonthPoint | None = None
+    documents_missing_period: int = 0
+    available_years: list[int] = field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
+class AdminQualityAnalytics:
+    year: int
+    organizations_count: int = 0
+    months: list[QualityMonthPoint] = field(default_factory=list)
+    confidence_distribution: list[ConfidenceBucket] = field(default_factory=list)
+    totals: QualityMonthPoint | None = None
+    organizations: list[OrgQualityAnalytics] = field(default_factory=list)
+    available_years: list[int] = field(default_factory=list)

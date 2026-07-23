@@ -81,3 +81,50 @@ export type AdminOrgCensus = {
   employees_per_payroll_accountant: AccountantCaseload[];
   organizations: OrganizationCensusSlice[];
 };
+
+export type ConfidenceBucket = {
+  label: string;
+  min_inclusive: number;
+  max_exclusive: number;
+  count: number;
+};
+
+export type QualityMonthPoint = {
+  period_year: number;
+  period_month: number;
+  documents_processed: number;
+  extraction_attempted: number;
+  extraction_success: number;
+  extraction_success_rate: number | null;
+  ocr_attempted: number;
+  ocr_success: number;
+  ocr_failed: number;
+  validation_runs: number;
+  validation_pass: number;
+  validation_success_rate: number | null;
+  average_confidence: number | null;
+  confidence_sample_count: number;
+  manual_review: number;
+  manual_review_rate: number | null;
+  failed_documents: number;
+};
+
+export type OrgQualityAnalytics = {
+  organization_id: string;
+  year: number;
+  months: QualityMonthPoint[];
+  confidence_distribution: ConfidenceBucket[];
+  totals: QualityMonthPoint | null;
+  documents_missing_period: number;
+  available_years: number[];
+};
+
+export type AdminQualityAnalytics = {
+  year: number;
+  organizations_count: number;
+  months: QualityMonthPoint[];
+  confidence_distribution: ConfidenceBucket[];
+  totals: QualityMonthPoint | null;
+  organizations: OrgQualityAnalytics[];
+  available_years: number[];
+};

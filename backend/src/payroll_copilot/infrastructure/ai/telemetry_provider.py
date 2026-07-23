@@ -180,6 +180,7 @@ class TelemetryModelProvider:
             latency_ms=(time.perf_counter() - started) * 1000.0,
             retry_count=ctx.retry_count if ctx else 0,
             fallback_used=ctx.fallback_used if ctx else False,
+            prompt_version=(ctx.prompt_version if ctx else "") or "",
         )
 
     def _record_failure(self, *, started: float, model: str) -> None:
@@ -190,6 +191,7 @@ class TelemetryModelProvider:
             latency_ms=(time.perf_counter() - started) * 1000.0,
             retry_count=ctx.retry_count if ctx else 0,
             fallback_used=ctx.fallback_used if ctx else False,
+            prompt_version=(ctx.prompt_version if ctx else "") or "",
         )
         self._publish(stats, success=False)
 
@@ -207,4 +209,6 @@ class TelemetryModelProvider:
             success=success,
             retry_count=usage.retry_count,
             fallback_used=usage.fallback_used,
+            prompt_version=usage.prompt_version
+            or ((ctx.prompt_version if ctx else "") or ""),
         )

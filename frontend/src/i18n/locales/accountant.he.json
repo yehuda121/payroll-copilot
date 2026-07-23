@@ -60,11 +60,15 @@
     },
     "analytics": {
       "pageTitle": "אנליטיקת שכר",
-      "pageDescription": "מסמכים, תוצאות אימות ורמת ביטחון לפי חודש שכר בארגון שלכם.",
+      "pageDescription": "מסמכים, תוצאות אימות, רמת ביטחון ואיכות AI לפי חודש שכר בארגון שלכם.",
       "yearLabel": "שנת שכר",
       "errorTitle": "לא ניתן לטעון אנליטיקת שכר",
       "emptyTitle": "אין עדיין אנליטיקת שכר",
       "emptyDescription": "עבדו תלושים עם תקופת שכר כדי למלא את הגרפים.",
+      "tabs": {
+        "payroll": "תוצאות שכר",
+        "quality": "איכות AI"
+      },
       "documentsProcessed": "מסמכים שעובדו",
       "outcomeSuccess": "הצלחה",
       "outcomeReview": "נדרשת סקירה",
@@ -77,7 +81,28 @@
       "errorTypesTitle": "התפלגות סוגי שגיאה",
       "topFailuresTitle": "כשלי אימות נפוצים",
       "confidenceTitle": "ממוצע ביטחון לפי חודש שכר",
-      "confidenceSeries": "ממוצע ביטחון %"
+      "confidenceSeries": "ממוצע ביטחון %",
+      "quality": {
+        "errorTitle": "לא ניתן לטעון אנליטיקת איכות",
+        "emptyTitle": "אין עדיין אנליטיקת איכות",
+        "emptyDescription": "חלצו תלושים עם תקופת שכר כדי למלא מדדי איכות AI.",
+        "documentsProcessed": "מסמכים שעובדו",
+        "extractionSuccessRate": "שיעור הצלחת חילוץ",
+        "validationSuccessRate": "שיעור הצלחת אימות",
+        "averageConfidence": "ממוצע ביטחון",
+        "manualReviewRate": "שיעור סקירה ידנית",
+        "failedDocuments": "מסמכים שנכשלו",
+        "ratesByMonthTitle": "שיעורי איכות לפי חודש שכר",
+        "volumesByMonthTitle": "OCR / סקירה / כשלים לפי חודש שכר",
+        "confidenceDistributionTitle": "התפלגות ביטחון",
+        "ocrSuccess": "הצלחת OCR",
+        "ocrFailed": "כשל OCR",
+        "manualReview": "סקירה ידנית",
+        "extractionRateSeries": "הצלחת חילוץ %",
+        "validationRateSeries": "הצלחת אימות %",
+        "manualReviewRateSeries": "סקירה ידנית %",
+        "confidenceSeries": "ממוצע ביטחון %"
+      }
     },
     "dashboard": {
       "title": "לוח בקרה לרואה חשבון",

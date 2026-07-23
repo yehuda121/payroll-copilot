@@ -1,8 +1,10 @@
 import { apiRequest } from './api';
 import type {
   AdminOrgCensus,
+  AdminQualityAnalytics,
   EmployeeSalaryAnalytics,
   OrgPayrollAnalytics,
+  OrgQualityAnalytics,
 } from '../types/analytics';
 
 export const analyticsService = {
@@ -24,8 +26,26 @@ export const analyticsService = {
     });
   },
 
+  async orgQuality(year?: number, signal?: AbortSignal): Promise<OrgQualityAnalytics> {
+    const query = year != null ? `?year=${year}` : '';
+    return apiRequest<OrgQualityAnalytics>(`/analytics/org/quality${query}`, {
+      method: 'GET',
+      portalAuth: true,
+      signal,
+    });
+  },
+
   async adminCensus(signal?: AbortSignal): Promise<AdminOrgCensus> {
     return apiRequest<AdminOrgCensus>('/analytics/admin/census', {
+      method: 'GET',
+      portalAuth: true,
+      signal,
+    });
+  },
+
+  async adminQuality(year?: number, signal?: AbortSignal): Promise<AdminQualityAnalytics> {
+    const query = year != null ? `?year=${year}` : '';
+    return apiRequest<AdminQualityAnalytics>(`/analytics/admin/quality${query}`, {
       method: 'GET',
       portalAuth: true,
       signal,

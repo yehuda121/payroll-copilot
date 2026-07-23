@@ -90,3 +90,50 @@ class AdminOrgCensusResponse(BaseModel):
     employees_without_payroll_accountant: int
     employees_per_payroll_accountant: list[AccountantCaseloadSchema] = Field(default_factory=list)
     organizations: list[OrganizationCensusSliceSchema] = Field(default_factory=list)
+
+
+class ConfidenceBucketSchema(BaseModel):
+    label: str
+    min_inclusive: float
+    max_exclusive: float
+    count: int = 0
+
+
+class QualityMonthPointSchema(BaseModel):
+    period_year: int
+    period_month: int
+    documents_processed: int = 0
+    extraction_attempted: int = 0
+    extraction_success: int = 0
+    extraction_success_rate: float | None = None
+    ocr_attempted: int = 0
+    ocr_success: int = 0
+    ocr_failed: int = 0
+    validation_runs: int = 0
+    validation_pass: int = 0
+    validation_success_rate: float | None = None
+    average_confidence: float | None = None
+    confidence_sample_count: int = 0
+    manual_review: int = 0
+    manual_review_rate: float | None = None
+    failed_documents: int = 0
+
+
+class OrgQualityAnalyticsResponse(BaseModel):
+    organization_id: UUID
+    year: int
+    months: list[QualityMonthPointSchema] = Field(default_factory=list)
+    confidence_distribution: list[ConfidenceBucketSchema] = Field(default_factory=list)
+    totals: QualityMonthPointSchema | None = None
+    documents_missing_period: int = 0
+    available_years: list[int] = Field(default_factory=list)
+
+
+class AdminQualityAnalyticsResponse(BaseModel):
+    year: int
+    organizations_count: int = 0
+    months: list[QualityMonthPointSchema] = Field(default_factory=list)
+    confidence_distribution: list[ConfidenceBucketSchema] = Field(default_factory=list)
+    totals: QualityMonthPointSchema | None = None
+    organizations: list[OrgQualityAnalyticsResponse] = Field(default_factory=list)
+    available_years: list[int] = Field(default_factory=list)

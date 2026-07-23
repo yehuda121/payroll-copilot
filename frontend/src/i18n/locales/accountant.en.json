@@ -60,11 +60,15 @@
     },
     "analytics": {
       "pageTitle": "Payroll Analytics",
-      "pageDescription": "Documents, validation outcomes, and confidence by payroll month for your organization.",
+      "pageDescription": "Documents, validation outcomes, confidence, and AI quality by payroll month for your organization.",
       "yearLabel": "Payroll year",
       "errorTitle": "Unable to load payroll analytics",
       "emptyTitle": "No payroll analytics yet",
       "emptyDescription": "Process payslips with a payroll period to populate these charts.",
+      "tabs": {
+        "payroll": "Payroll outcomes",
+        "quality": "AI quality"
+      },
       "documentsProcessed": "Documents processed",
       "outcomeSuccess": "Success",
       "outcomeReview": "Review required",
@@ -77,7 +81,28 @@
       "errorTypesTitle": "Error type distribution",
       "topFailuresTitle": "Top validation failures",
       "confidenceTitle": "Average confidence by payroll month",
-      "confidenceSeries": "Avg confidence %"
+      "confidenceSeries": "Avg confidence %",
+      "quality": {
+        "errorTitle": "Unable to load quality analytics",
+        "emptyTitle": "No quality analytics yet",
+        "emptyDescription": "Extract payslips with a payroll period to populate AI quality metrics.",
+        "documentsProcessed": "Documents processed",
+        "extractionSuccessRate": "Extraction success rate",
+        "validationSuccessRate": "Validation success rate",
+        "averageConfidence": "Average confidence",
+        "manualReviewRate": "Manual review rate",
+        "failedDocuments": "Failed documents",
+        "ratesByMonthTitle": "Quality rates by payroll month",
+        "volumesByMonthTitle": "OCR / review / failures by payroll month",
+        "confidenceDistributionTitle": "Confidence distribution",
+        "ocrSuccess": "OCR success",
+        "ocrFailed": "OCR failed",
+        "manualReview": "Manual review",
+        "extractionRateSeries": "Extraction success %",
+        "validationRateSeries": "Validation success %",
+        "manualReviewRateSeries": "Manual review %",
+        "confidenceSeries": "Avg confidence %"
+      }
     },
     "dashboard": {
       "title": "Accountant Dashboard",

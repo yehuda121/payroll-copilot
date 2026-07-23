@@ -19,10 +19,14 @@ from payroll_copilot.application.ports.ocr import OCRProvider
 from payroll_copilot.application.ports.payslip_parser import PayslipParser
 from payroll_copilot.application.services.analytics_service import AnalyticsService
 from payroll_copilot.application.use_cases.analytics_admin_census import GetAdminOrgCensusUseCase
+from payroll_copilot.application.use_cases.analytics_admin_quality import (
+    GetAdminQualityAnalyticsUseCase,
+)
 from payroll_copilot.application.use_cases.analytics_employee_salary import (
     GetEmployeeSalaryAnalyticsUseCase,
 )
 from payroll_copilot.application.use_cases.analytics_org_payroll import GetOrgPayrollAnalyticsUseCase
+from payroll_copilot.application.use_cases.analytics_org_quality import GetOrgQualityAnalyticsUseCase
 from payroll_copilot.application.use_cases.documents import GetDocumentUseCase, UploadDocumentUseCase
 from payroll_copilot.application.use_cases.employee_document_workspace import (
     EmployeeDocumentWorkspaceUseCase,
@@ -102,15 +106,27 @@ def get_analytics_service(
         validation_runs=validation_runs,
         validation_findings=validation_findings,
     )
+    org_quality = GetOrgQualityAnalyticsUseCase(
+        employees=employees,
+        documents=documents,
+        extractions=extractions,
+        validation_runs=validation_runs,
+    )
     admin_census = GetAdminOrgCensusUseCase(
         employees=employees,
         users=users,
         organizations=organizations,
     )
+    admin_quality = GetAdminQualityAnalyticsUseCase(
+        organizations=organizations,
+        org_quality=org_quality,
+    )
     return AnalyticsService(
         employee_salary=employee_salary,
         org_payroll=org_payroll,
         admin_census=admin_census,
+        org_quality=org_quality,
+        admin_quality=admin_quality,
     )
 
 

@@ -14,8 +14,10 @@ from payroll_copilot.domain.enums import UserRole
 from payroll_copilot.presentation.api.dependencies import get_analytics_service
 from payroll_copilot.presentation.api.routes.analytics_schemas import (
     AdminOrgCensusResponse,
+    AdminQualityAnalyticsResponse,
     EmployeeSalaryAnalyticsResponse,
     OrgPayrollAnalyticsResponse,
+    OrgQualityAnalyticsResponse,
 )
 from payroll_copilot.presentation.api.security import (
     AuthPrincipal,
@@ -71,6 +73,20 @@ async def org_payroll_analytics(
     return OrgPayrollAnalyticsResponse.model_validate(result, from_attributes=True)
 
 
+@router.get("/org/quality", response_model=OrgQualityAnalyticsResponse)
+async def org_quality_analytics(
+    year: int | None = Query(default=None, ge=2000, le=2100),
+    principal: AuthPrincipal = Depends(require_accountant),  # noqa: B008
+    service: AnalyticsService = Depends(get_analytics_service),  # noqa: B008
+) -> OrgQualityAnalyticsResponse:
+    assert principal.organization_id is not None
+    result = await service.org_quality(
+        organization_id=principal.organization_id,
+        year=year or datetime.utcnow().year,
+    )
+    return OrgQualityAnalyticsResponse.model_validate(result, from_attributes=True)
+
+
 @router.get("/admin/census", response_model=AdminOrgCensusResponse)
 async def admin_org_census(
     _: AuthPrincipal = Depends(require_developer_admin),  # noqa: B008
@@ -78,3 +94,13 @@ async def admin_org_census(
 ) -> AdminOrgCensusResponse:
     result = await service.admin_census()
     return AdminOrgCensusResponse.model_validate(result, from_attributes=True)
+
+
+@router.get("/admin/quality", response_model=AdminQualityAnalyticsResponse)
+async def admin_quality_analytics(
+    year: int | None = Query(default=None, ge=2000, le=2100),
+    _: AuthPrincipal = Depends(require_developer_admin),  # noqa: B008
+    service: AnalyticsService = Depends(get_analytics_service),  # noqa: B008
+) -> AdminQualityAnalyticsResponse:
+    result = await service.admin_quality(year=year or datetime.utcnow().year)
+    return AdminQualityAnalyticsResponse.model_validate(result, from_attributes=True)

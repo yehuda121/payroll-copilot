@@ -129,6 +129,10 @@ const OrgCensusAnalyticsPage = lazyPage(
   () => import('../pages/admin/OrgCensusAnalytics'),
   'OrgCensusAnalyticsPage',
 );
+const AdminQualityAnalyticsPage = lazyPage(
+  () => import('../pages/admin/AdminQualityAnalytics'),
+  'AdminQualityAnalyticsPage',
+);
 const UsersAndRolesPage = lazyPage(
   () => import('../pages/admin/UsersAndRoles'),
   'UsersAndRolesPage',
@@ -260,13 +264,14 @@ export const appRouteElements = (
       >
         <Route path="/admin" element={<L><SystemDashboardPage /></L>} />
         <Route path="/admin/analytics" element={<L><OrgCensusAnalyticsPage /></L>} />
+        <Route path="/admin/analytics/quality" element={<L><AdminQualityAnalyticsPage /></L>} />
+        <Route path="/admin/ai-models" element={<L><AiModelsPage /></L>} />
         {import.meta.env.DEV ? (
           <>
             <Route path="/admin/users" element={<L><UsersAndRolesPage /></L>} />
             <Route path="/admin/rule-packs" element={<L><RulePacksPage /></L>} />
             <Route path="/admin/department-rules" element={<L><DepartmentRulesPage /></L>} />
             <Route path="/admin/mcp-sync" element={<L><McpLegalSyncPage /></L>} />
-            <Route path="/admin/ai-models" element={<L><AiModelsPage /></L>} />
             <Route path="/admin/rag" element={<L><RagManagementPage /></L>} />
             <Route path="/admin/configuration" element={<L><SystemConfigurationPage /></L>} />
             <Route path="/admin/audit-logs" element={<L><AdminAuditLogsPage /></L>} />

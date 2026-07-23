@@ -60,11 +60,15 @@
     },
     "analytics": {
       "pageTitle": "تحليلات الرواتب",
-      "pageDescription": "المستندات ونتائج التحقق والثقة حسب شهر الرواتب لمؤسستك.",
+      "pageDescription": "المستندات ونتائج التحقق والثقة وجودة الذكاء الاصطناعي حسب شهر الرواتب لمؤسستك.",
       "yearLabel": "سنة الرواتب",
       "errorTitle": "تعذر تحميل تحليلات الرواتب",
       "emptyTitle": "لا توجد تحليلات رواتب بعد",
       "emptyDescription": "عالج قسائم بفترة رواتب لملء هذه الرسوم.",
+      "tabs": {
+        "payroll": "نتائج الرواتب",
+        "quality": "جودة الذكاء الاصطناعي"
+      },
       "documentsProcessed": "المستندات المعالجة",
       "outcomeSuccess": "نجاح",
       "outcomeReview": "مراجعة مطلوبة",
@@ -77,7 +81,28 @@
       "errorTypesTitle": "توزيع أنواع الأخطاء",
       "topFailuresTitle": "أبرز إخفاقات التحقق",
       "confidenceTitle": "متوسط الثقة حسب شهر الرواتب",
-      "confidenceSeries": "متوسط الثقة %"
+      "confidenceSeries": "متوسط الثقة %",
+      "quality": {
+        "errorTitle": "تعذر تحميل تحليلات الجودة",
+        "emptyTitle": "لا توجد تحليلات جودة بعد",
+        "emptyDescription": "استخرج قسائم بفترة رواتب لملء مقاييس جودة الذكاء الاصطناعي.",
+        "documentsProcessed": "المستندات المعالجة",
+        "extractionSuccessRate": "معدل نجاح الاستخراج",
+        "validationSuccessRate": "معدل نجاح التحقق",
+        "averageConfidence": "متوسط الثقة",
+        "manualReviewRate": "معدل المراجعة اليدوية",
+        "failedDocuments": "مستندات فاشلة",
+        "ratesByMonthTitle": "معدلات الجودة حسب شهر الرواتب",
+        "volumesByMonthTitle": "OCR / مراجعة / إخفاقات حسب شهر الرواتب",
+        "confidenceDistributionTitle": "توزيع الثقة",
+        "ocrSuccess": "نجاح OCR",
+        "ocrFailed": "فشل OCR",
+        "manualReview": "مراجعة يدوية",
+        "extractionRateSeries": "نجاح الاستخراج %",
+        "validationRateSeries": "نجاح التحقق %",
+        "manualReviewRateSeries": "مراجعة يدوية %",
+        "confidenceSeries": "متوسط الثقة %"
+      }
     },
     "dashboard": {
       "title": "لوحة محاسب الرواتب",

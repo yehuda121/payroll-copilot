@@ -34,4 +34,21 @@ describe('analyticsService', () => {
       signal: undefined,
     });
   });
+
+  it('calls org and admin quality endpoints', async () => {
+    vi.mocked(apiRequest).mockResolvedValue({});
+    await analyticsService.orgQuality(2026);
+    expect(apiRequest).toHaveBeenCalledWith('/analytics/org/quality?year=2026', {
+      method: 'GET',
+      portalAuth: true,
+      signal: undefined,
+    });
+
+    await analyticsService.adminQuality(2026);
+    expect(apiRequest).toHaveBeenCalledWith('/analytics/admin/quality?year=2026', {
+      method: 'GET',
+      portalAuth: true,
+      signal: undefined,
+    });
+  });
 });

@@ -20,10 +20,14 @@ from payroll_copilot.application.services.analytics.document_outcomes import (
 from payroll_copilot.application.services.analytics.salary_values import salary_amounts_from_sources
 from payroll_copilot.application.services.analytics_service import AnalyticsService
 from payroll_copilot.application.use_cases.analytics_admin_census import GetAdminOrgCensusUseCase
+from payroll_copilot.application.use_cases.analytics_admin_quality import (
+    GetAdminQualityAnalyticsUseCase,
+)
 from payroll_copilot.application.use_cases.analytics_employee_salary import (
     GetEmployeeSalaryAnalyticsUseCase,
 )
 from payroll_copilot.application.use_cases.analytics_org_payroll import GetOrgPayrollAnalyticsUseCase
+from payroll_copilot.application.use_cases.analytics_org_quality import GetOrgQualityAnalyticsUseCase
 from payroll_copilot.domain.entities import Document, DocumentExtraction, Employee
 from payroll_copilot.domain.enums import (
     DocumentStatus,
@@ -337,6 +341,12 @@ async def test_admin_census_uses_payroll_accountant_id() -> None:
 async def test_analytics_service_registry_exposes_metric_names() -> None:
     org_id = uuid4()
     emp = _employee(org_id)
+    org_quality = GetOrgQualityAnalyticsUseCase(
+        employees=_EmpRepo([emp]),
+        documents=_DocRepo([]),
+        extractions=_ExtRepo({}),
+        validation_runs=_RunRepo({}),
+    )
     service = AnalyticsService(
         employee_salary=GetEmployeeSalaryAnalyticsUseCase(
             documents=_DocRepo([]),
@@ -354,8 +364,15 @@ async def test_analytics_service_registry_exposes_metric_names() -> None:
             users=_UserStore([]),
             organizations=_OrgDir([]),
         ),
+        org_quality=org_quality,
+        admin_quality=GetAdminQualityAnalyticsUseCase(
+            organizations=_OrgDir([]),
+            org_quality=org_quality,
+        ),
     )
     names = service.registry.names()
     assert "employee.salary" in names
     assert "org.payroll" in names
     assert "admin.census" in names
+    assert "org.quality" in names
+    assert "admin.quality" in names

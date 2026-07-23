@@ -27,6 +27,7 @@ export const ACCOUNTANT_PORTAL: PortalConfig = {
 const ADMIN_NAV_CORE = [
   { label: 'System Dashboard', path: '/admin' },
   { label: 'Organization Analytics', path: '/admin/analytics' },
+  { label: 'AI Quality Analytics', path: '/admin/analytics/quality' },
   { label: 'AI Models', path: '/admin/ai-models' },
 ] as const;
 

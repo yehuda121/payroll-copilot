@@ -5,6 +5,7 @@ export { AnalyticsLoadingState } from './AnalyticsLoadingState';
 export { AnalyticsEmptyState } from './AnalyticsEmptyState';
 export { AnalyticsErrorState } from './AnalyticsErrorState';
 export { EmployeeSalaryAnalyticsPanel } from './EmployeeSalaryAnalyticsPanel';
+export { QualityAnalyticsPanel } from './QualityAnalyticsPanel';
 export { LineChartCard } from './charts/LineChartCard';
 export { BarChartCard } from './charts/BarChartCard';
 export { DonutChartCard } from './charts/DonutChartCard';

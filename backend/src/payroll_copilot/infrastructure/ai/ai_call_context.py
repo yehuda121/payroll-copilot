@@ -19,6 +19,7 @@ class AICallContext:
     """Mutable bag attached to one chat turn / extraction attempt."""
 
     capability: str = ""
+    prompt_version: str = ""
     retry_count: int = 0
     fallback_used: bool = False
     fallback_from: str = ""
@@ -36,6 +37,7 @@ class AICallContext:
             latency_ms=usage.latency_ms,
             retry_count=max(usage.retry_count, self.retry_count),
             fallback_used=usage.fallback_used or self.fallback_used,
+            prompt_version=usage.prompt_version or self.prompt_version,
         )
         self.usages.append(enriched)
 
@@ -55,6 +57,7 @@ class AICallContext:
             latency_ms=merged.latency_ms,
             retry_count=max(merged.retry_count, self.retry_count),
             fallback_used=merged.fallback_used or self.fallback_used,
+            prompt_version=merged.prompt_version or self.prompt_version,
         )
 
 
@@ -66,11 +69,13 @@ def get_ai_call_context() -> AICallContext | None:
 def ai_call_context(
     *,
     capability: str = "",
+    prompt_version: str = "",
     retry_count: int = 0,
     fallback_used: bool = False,
 ) -> Iterator[AICallContext]:
     ctx = AICallContext(
         capability=capability,
+        prompt_version=prompt_version,
         retry_count=retry_count,
         fallback_used=fallback_used,
     )

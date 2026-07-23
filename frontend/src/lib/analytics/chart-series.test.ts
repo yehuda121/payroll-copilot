@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  confidenceBucketsToChartRows,
   confidenceToChartRows,
   errorBucketsToChartRows,
+  hasQualityChartData,
   hasSalaryChartData,
   outcomesToChartRows,
   periodLabel,
+  qualityRatesToChartRows,
+  qualityVolumesToChartRows,
   salaryMonthsToChartRows,
   toNumberOrNull,
   validationFailuresToChartRows,
@@ -86,5 +90,50 @@ describe('analytics chart-series mappers', () => {
         },
       ]),
     ).toEqual([{ period: '2026-04', confidence: 80, samples: 2 }]);
+  });
+
+  it('maps quality rates, volumes, and confidence buckets', () => {
+    const point = {
+      period_year: 2026,
+      period_month: 5,
+      documents_processed: 10,
+      extraction_attempted: 10,
+      extraction_success: 8,
+      extraction_success_rate: 0.8,
+      ocr_attempted: 10,
+      ocr_success: 9,
+      ocr_failed: 1,
+      validation_runs: 8,
+      validation_pass: 6,
+      validation_success_rate: 0.75,
+      average_confidence: 0.88,
+      confidence_sample_count: 8,
+      manual_review: 2,
+      manual_review_rate: 0.2,
+      failed_documents: 1,
+    };
+    expect(qualityRatesToChartRows([point])).toEqual([
+      {
+        period: '2026-05',
+        extractionSuccessRate: 80,
+        validationSuccessRate: 75,
+        manualReviewRate: 20,
+        averageConfidence: 88,
+      },
+    ]);
+    expect(qualityVolumesToChartRows([point])[0]).toMatchObject({
+      period: '2026-05',
+      ocrSuccess: 9,
+      ocrFailed: 1,
+      manualReview: 2,
+      failedDocuments: 1,
+    });
+    expect(
+      confidenceBucketsToChartRows([
+        { label: '0.85-1.00', min_inclusive: 0.85, max_exclusive: 1.0001, count: 4 },
+      ]),
+    ).toEqual([{ name: '0.85-1.00', value: 4, category: null }]);
+    expect(hasQualityChartData([point])).toBe(true);
+    expect(hasQualityChartData([])).toBe(false);
   });
 });

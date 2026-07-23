@@ -112,6 +112,8 @@ describe('accountant i18n', () => {
     expect(keys.has('accountant.navigation.dashboard')).toBe(true);
     expect(keys.has('accountant.navigation.analytics')).toBe(true);
     expect(keys.has('accountant.analytics.pageTitle')).toBe(true);
+    expect(keys.has('accountant.analytics.tabs.quality')).toBe(true);
+    expect(keys.has('accountant.analytics.quality.extractionSuccessRate')).toBe(true);
     expect(keys.has('common.save')).toBe(true);
     expect(keys.has('common.cancel')).toBe(true);
   });

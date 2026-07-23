@@ -3,6 +3,30 @@
   gap: 1.25rem;
 }
 
+.admin-ai-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.admin-ai-window {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 8rem;
+}
+
+.admin-ai-window span {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.admin-ai-window select {
+  min-height: 2.4rem;
+  padding: 0.35rem 0.55rem;
+}
+
 .admin-ai-kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
