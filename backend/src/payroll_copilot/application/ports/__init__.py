@@ -10,6 +10,7 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from payroll_copilot.application.ports.ai_capabilities import AICapability
+from payroll_copilot.application.ports.ai_usage import AIUsageStats
 from payroll_copilot.application.ports.ocr import OCRProvider, OCRResult, OcrLine, OcrPage
 from payroll_copilot.application.ports.email import (
     EmailAddress,
@@ -21,6 +22,7 @@ from payroll_copilot.application.ports.email import (
 
 __all__ = [
     "AICapability",
+    "AIUsageStats",
     "CompletionResult",
     "EmailAddress",
     "EmailDeliveryError",
@@ -53,6 +55,13 @@ class CompletionResult:
     confidence: float
     model: str
     tokens_used: int = 0
+    provider: str = ""
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    estimated_cost_usd: float = 0.0
+    latency_ms: float = 0.0
+    usage: AIUsageStats | None = None
 
 
 @dataclass
@@ -60,6 +69,13 @@ class StructuredResult:
     data: BaseModel
     confidence: float
     model: str
+    provider: str = ""
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    estimated_cost_usd: float = 0.0
+    latency_ms: float = 0.0
+    usage: AIUsageStats | None = None
 
 
 @runtime_checkable

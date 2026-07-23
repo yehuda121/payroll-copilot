@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AssistantMarkdown } from '../../../components/guest/AssistantMarkdown';
+import { AssistantUsageFooter } from '../../../components/guest/AssistantUsageFooter';
 import { useAppLocale } from '../../../hooks/useAppLocale';
 import { useGuestValidationFlow } from '../../../hooks/useGuestValidationFlow';
 import {
@@ -16,7 +17,7 @@ import {
 } from '../../../lib/guest/document-slots';
 import { detectSlotFromFile } from '../../../lib/guest/detectDocumentSlot';
 import { assistantService } from '../../../services/assistant';
-import type { AssistantGuardrailStatus, ChatMessage } from '../../../types/assistant';
+import type { AssistantGuardrailStatus, ChatMessage, PopularQuestion } from '../../../types/assistant';
 import { ChatDocumentReviewCard } from './ChatDocumentReviewCard';
 import { ChatValidationSummaryCard } from './ChatValidationSummaryCard';
 import './landing-chat.css';
@@ -78,6 +79,7 @@ export function GuestLandingChat() {
   const [reviewMessageId, setReviewMessageId] = useState<string | null>(null);
   const [reportMessageId, setReportMessageId] = useState<string | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [popularQuestions, setPopularQuestions] = useState<PopularQuestion[]>([]);
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -99,6 +101,21 @@ export function GuestLandingChat() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages, isLoading, flow.step, flow.report]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void assistantService
+      .popularQuestions(10)
+      .then((response) => {
+        if (!cancelled) setPopularQuestions(response.items ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setPopularQuestions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [messages.length]);
 
   const pushMessage = useCallback((msg: LandingMessage) => {
     setMessages((prev) => [...prev, msg]);
@@ -324,6 +341,7 @@ export function GuestLandingChat() {
               prompt: trimmed,
               sources: response.sources,
               guardrailStatus: response.guardrail_status,
+              usage: response.usage ?? null,
               kind: 'text',
             });
           } else if (payslip && trimmed && !looksLikeValidationRequest(trimmed)) {
@@ -336,6 +354,7 @@ export function GuestLandingChat() {
               prompt: trimmed,
               sources: response.sources,
               guardrailStatus: response.guardrail_status,
+              usage: response.usage ?? null,
               kind: 'text',
             });
           }
@@ -479,6 +498,7 @@ export function GuestLandingChat() {
         <p className="landing-chat__lead">{t('landingChat.lead')}</p>
       </header>
 
+      <div className="landing-chat__layout">
       <div className="landing-chat__shell" aria-label={t('landing.chatHeading')}>
         <div className="landing-chat__messages" aria-live="polite">
           {messages.length === 0 && (
@@ -557,6 +577,9 @@ export function GuestLandingChat() {
               <div className="chat-bubble__meta">
                 <time dateTime={msg.createdAt}>{formatTimestamp(msg.createdAt, i18n.language)}</time>
               </div>
+              {msg.role === 'assistant' && msg.kind === 'text' ? (
+                <AssistantUsageFooter usage={msg.usage} />
+              ) : null}
             </div>
           ))}
 
@@ -685,6 +708,29 @@ export function GuestLandingChat() {
         <p className="landing-chat__formats">
           {GUEST_ACTIVE_DOCUMENT_SLOTS.map((slot) => t(slot.labelKey)).join(' · ')}
         </p>
+      </div>
+
+      {popularQuestions.length > 0 && (
+        <aside className="landing-chat__popular" aria-label={t('landingChat.popularHeading')}>
+          <h2>{t('landingChat.popularHeading')}</h2>
+          <ul>
+            {popularQuestions.map((item) => (
+              <li key={item.question}>
+                <button
+                  type="button"
+                  className="landing-chat__popular-item"
+                  disabled={composerBusy}
+                  onClick={() => {
+                    void submitComposer(item.question);
+                  }}
+                >
+                  {item.question}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )}
       </div>
     </div>
   );

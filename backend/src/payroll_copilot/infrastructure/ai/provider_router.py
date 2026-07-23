@@ -140,6 +140,15 @@ class AIProviderRouter:
                     f"Supported providers: {supported}."
                 )
             provider = registration.builder(self._settings, model)
+            from payroll_copilot.infrastructure.ai.telemetry_provider import (
+                TelemetryModelProvider,
+            )
+
+            provider = TelemetryModelProvider(
+                provider,
+                provider_name=normalized,
+                default_model=model,
+            )
             self._provider_cache[key] = provider
         return AIProviderRoute(
             capability=capability,
@@ -202,7 +211,14 @@ def create_provider_by_name(
             f"Unsupported model provider: {provider_name}. "
             f"Supported providers: {supported}."
         )
-    return registration.builder(settings, resolved_model)
+    from payroll_copilot.infrastructure.ai.telemetry_provider import TelemetryModelProvider
+
+    raw = registration.builder(settings, resolved_model)
+    return TelemetryModelProvider(
+        raw,
+        provider_name=normalized,
+        default_model=resolved_model,
+    )
 
 
 @lru_cache

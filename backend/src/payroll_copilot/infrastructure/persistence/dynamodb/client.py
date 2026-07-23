@@ -43,6 +43,30 @@ class DynamoTable:
     async def put_item(self, item: dict[str, Any]) -> None:
         await asyncio.to_thread(self._table.put_item, Item=item)
 
+    async def update_item(
+        self,
+        key: dict[str, Any],
+        *,
+        update_expression: str,
+        expression_attribute_values: dict[str, Any] | None = None,
+        expression_attribute_names: dict[str, str] | None = None,
+        condition_expression: Any = None,
+        return_values: str = "ALL_NEW",
+    ) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {
+            "Key": key,
+            "UpdateExpression": update_expression,
+            "ReturnValues": return_values,
+        }
+        if expression_attribute_values:
+            kwargs["ExpressionAttributeValues"] = expression_attribute_values
+        if expression_attribute_names:
+            kwargs["ExpressionAttributeNames"] = expression_attribute_names
+        if condition_expression is not None:
+            kwargs["ConditionExpression"] = condition_expression
+        response = await asyncio.to_thread(self._table.update_item, **kwargs)
+        return response.get("Attributes") or {}
+
     async def delete_item(self, key: dict[str, Any]) -> None:
         await asyncio.to_thread(self._table.delete_item, Key=key)
 

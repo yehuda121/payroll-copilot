@@ -25,13 +25,13 @@ class _FakeSettings:
 
 def test_create_model_provider_bedrock() -> None:
     provider = create_model_provider("bedrock", _FakeSettings())
-    assert isinstance(provider, BedrockProvider)
-    assert provider.model_id.startswith("anthropic.")
+    assert isinstance(provider.inner, BedrockProvider)
+    assert provider.inner.model_id.startswith("anthropic.")
 
 
 def test_create_model_provider_ollama() -> None:
     provider = create_model_provider("ollama", _FakeSettings())
-    assert isinstance(provider, OllamaProvider)
+    assert isinstance(provider.inner, OllamaProvider)
 
 
 def test_create_payslip_parser_uses_model_provider() -> None:

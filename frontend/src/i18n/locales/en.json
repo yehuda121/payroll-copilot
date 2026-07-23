@@ -98,6 +98,7 @@
   "landingChat": {
     "lead": "One conversation for questions, document upload, review, and validation. Attach files, then send — validation waits until you confirm.",
     "empty": "Ask a question, attach a document, then press Send.",
+    "popularHeading": "Popular questions",
     "placeholder": "Ask anything, or attach a document…",
     "attachAria": "Attach a document",
     "dropHint": "Drop files here — they will attach until you send",

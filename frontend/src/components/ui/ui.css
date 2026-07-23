@@ -672,6 +672,23 @@
   color: var(--color-text-subtle);
 }
 
+.assistant-usage-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.75rem;
+  margin-top: 0.45rem;
+  font-size: 0.72rem;
+  color: var(--color-text-subtle);
+  opacity: 0.92;
+}
+
+.assistant-usage-footer__badge {
+  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
+  text-transform: lowercase;
+}
+
 .chat-bubble--user .chat-bubble__meta {
   color: rgba(255, 255, 255, 0.8);
 }

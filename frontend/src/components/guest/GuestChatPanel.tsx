@@ -1,4 +1,5 @@
 import { AssistantMarkdown } from './AssistantMarkdown';
+import { AssistantUsageFooter } from './AssistantUsageFooter';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppLocale } from '../../hooks/useAppLocale';
@@ -121,6 +122,7 @@ export function GuestChatPanel({
           prompt: trimmed,
           sources: response.sources,
           guardrailStatus: response.guardrail_status,
+          usage: response.usage ?? null,
         };
 
         setMessages((prev) => {
@@ -260,6 +262,7 @@ export function GuestChatPanel({
                 </div>
               )}
             </div>
+            {msg.role === 'assistant' ? <AssistantUsageFooter usage={msg.usage} /> : null}
           </div>
         ))}
 

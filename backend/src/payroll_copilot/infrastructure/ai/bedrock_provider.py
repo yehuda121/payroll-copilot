@@ -115,14 +115,20 @@ class BedrockProvider:
 
         content = self._extract_text(response)
         usage = response.get("usage") or {}
-        tokens = int(usage.get("totalTokens") or 0)
-        if not tokens:
-            tokens = int(usage.get("inputTokens") or 0) + int(usage.get("outputTokens") or 0)
+        prompt_tokens = int(usage.get("inputTokens") or 0)
+        completion_tokens = int(usage.get("outputTokens") or 0)
+        total_tokens = int(usage.get("totalTokens") or 0)
+        if total_tokens <= 0:
+            total_tokens = prompt_tokens + completion_tokens
         return CompletionResult(
             content=content,
             confidence=0.85 if content else 0.0,
             model=self._model_id,
-            tokens_used=tokens,
+            tokens_used=total_tokens,
+            provider="bedrock",
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
         )
 
     async def complete_structured(
@@ -149,7 +155,15 @@ class BedrockProvider:
         parsed = self._parse_json_response(result.content)
         validated = response_schema.model_validate(parsed)
         confidence = 0.9 if parsed else 0.0
-        return StructuredResult(data=validated, confidence=confidence, model=result.model)
+        return StructuredResult(
+            data=validated,
+            confidence=confidence,
+            model=result.model,
+            provider=result.provider or "bedrock",
+            prompt_tokens=result.prompt_tokens,
+            completion_tokens=result.completion_tokens,
+            total_tokens=result.total_tokens or result.tokens_used,
+        )
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         embeddings: list[list[float]] = []

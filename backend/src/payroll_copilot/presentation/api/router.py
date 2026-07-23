@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from payroll_copilot.presentation.api.routes import (
+    ai_monitoring,
     assistant,
     audit,
     auth,
@@ -38,4 +39,5 @@ api_router.include_router(batch.router, prefix="/batch", tags=["Batch Processing
 api_router.include_router(manual_review.router, prefix="/manual-review", tags=["Manual Review"])
 api_router.include_router(compliance.router, prefix="/compliance", tags=["Compliance"])
 api_router.include_router(assistant.router, prefix="/assistant", tags=["Assistant"])
+api_router.include_router(ai_monitoring.router, prefix="/admin/ai", tags=["AI Monitoring"])
 api_router.include_router(integrations.router, prefix="/integrations", tags=["Integrations"])

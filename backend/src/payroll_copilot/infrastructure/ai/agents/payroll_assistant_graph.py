@@ -47,6 +47,7 @@ class AssistantGraphState(TypedDict):
     is_greeting: bool
     in_domain_intent: str | None
     prepared_employee_context: str
+    usage: dict[str, object] | None
 
 
 class PayrollAssistantGraph:
@@ -90,6 +91,7 @@ class PayrollAssistantGraph:
             "is_greeting": False,
             "in_domain_intent": None,
             "prepared_employee_context": prepared_employee_context or "",
+            "usage": None,
         }
         final_state = await self._graph.ainvoke(initial_state)
         return {
@@ -100,6 +102,7 @@ class PayrollAssistantGraph:
             "confidence": final_state["confidence"],
             "requires_human_review": final_state["requires_human_review"],
             "guardrail_status": final_state["guardrail_status"],
+            "usage": final_state.get("usage"),
         }
 
     def _build_graph(self) -> Any:
@@ -316,12 +319,29 @@ class PayrollAssistantGraph:
                 "requires_human_review": bool(state["made_legal_claim"]),
             }
 
+        usage_payload = None
+        if getattr(result, "usage", None) is not None:
+            usage_payload = result.usage.to_dict()  # type: ignore[union-attr]
+        elif result.total_tokens or result.tokens_used:
+            usage_payload = {
+                "provider": result.provider,
+                "model": result.model,
+                "prompt_tokens": result.prompt_tokens,
+                "completion_tokens": result.completion_tokens,
+                "total_tokens": result.total_tokens or result.tokens_used,
+                "estimated_cost_usd": result.estimated_cost_usd,
+                "latency_ms": result.latency_ms,
+                "retry_count": 0,
+                "fallback_used": False,
+            }
+
         return {
             **state,
             "guardrail_status": AssistantGuardrailStatus.ANSWERED_FROM_SOURCE.value,
             "answer": result.content.strip() or self._template_answer_from_context(state),
             "confidence": result.confidence,
             "requires_human_review": bool(state["made_legal_claim"]),
+            "usage": usage_payload,
         }
 
     def _node_finalize(self, state: AssistantGraphState) -> AssistantGraphState:

@@ -51,6 +51,13 @@ class FallbackPayslipParser:
             )
             if warning not in warnings:
                 warnings.append(warning)
+            from payroll_copilot.infrastructure.ai.ai_call_context import get_ai_call_context
+
+            ctx = get_ai_call_context()
+            if ctx is not None:
+                ctx.fallback_used = True
+                ctx.fallback_from = self._primary_name
+                ctx.fallback_to = self._fallback_name
             return result.model_copy(update={"warnings": warnings})
 
 

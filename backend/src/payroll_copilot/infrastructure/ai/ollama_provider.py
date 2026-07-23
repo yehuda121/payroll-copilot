@@ -55,12 +55,18 @@ class OllamaProvider:
             data = response.json()
 
         content = data.get("message", {}).get("content", "")
-        eval_count = data.get("eval_count", 0)
+        prompt_tokens = int(data.get("prompt_eval_count") or 0)
+        completion_tokens = int(data.get("eval_count") or 0)
+        total_tokens = prompt_tokens + completion_tokens
         return CompletionResult(
             content=content,
             confidence=0.85 if content else 0.0,
             model=self._default_model,
-            tokens_used=eval_count,
+            tokens_used=total_tokens,
+            provider="ollama",
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
         )
 
     async def complete_structured(
@@ -85,7 +91,15 @@ class OllamaProvider:
         parsed = self._parse_json_response(result.content)
         validated = response_schema.model_validate(parsed)
         confidence = 0.9 if parsed else 0.0
-        return StructuredResult(data=validated, confidence=confidence, model=result.model)
+        return StructuredResult(
+            data=validated,
+            confidence=confidence,
+            model=result.model,
+            provider=result.provider or "ollama",
+            prompt_tokens=result.prompt_tokens,
+            completion_tokens=result.completion_tokens,
+            total_tokens=result.total_tokens or result.tokens_used,
+        )
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         embeddings: list[list[float]] = []

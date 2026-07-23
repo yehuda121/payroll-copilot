@@ -22,6 +22,18 @@ export type AssistantSource = {
   reference?: string;
 };
 
+export type AssistantUsage = {
+  provider: string;
+  model: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  estimated_cost_usd: number;
+  latency_ms: number;
+  retry_count: number;
+  fallback_used: boolean;
+};
+
 export type AssistantChatRequest = {
   message: string;
   session_id?: string;
@@ -39,6 +51,7 @@ export type AssistantChatResponse = {
   requires_human_review: boolean;
   guardrail_status: AssistantGuardrailStatus;
   locale?: 'he' | 'en' | 'ar';
+  usage?: AssistantUsage | null;
 };
 
 export type EmployeeAssistantChatRequest = {
@@ -73,4 +86,11 @@ export type ChatMessage = {
   prompt?: string;
   sources?: AssistantSource[];
   guardrailStatus?: AssistantGuardrailStatus;
+  usage?: AssistantUsage | null;
+};
+
+export type PopularQuestion = {
+  question: string;
+  count: number;
+  last_asked_at?: string;
 };

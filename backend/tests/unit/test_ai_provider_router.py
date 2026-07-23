@@ -185,9 +185,9 @@ def test_chat_capabilities_can_resolve_to_distinct_providers() -> None:
     assert assistant.provider_name == "ollama"
     assert employee.provider_name == "openai"
     assert accountant.provider_name == "bedrock"
-    assert assistant.provider is built["ollama"]
-    assert employee.provider is built["openai"]
-    assert accountant.provider is built["bedrock"]
+    assert assistant.provider.inner is built["ollama"]
+    assert employee.provider.inner is built["openai"]
+    assert accountant.provider.inner is built["bedrock"]
     assert len({id(assistant.provider), id(employee.provider), id(accountant.provider)}) == 3
 
 

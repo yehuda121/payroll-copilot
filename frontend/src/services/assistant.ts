@@ -18,6 +18,12 @@ export const assistantService = {
       body: JSON.stringify(payload),
     });
   },
+
+  async popularQuestions(limit = 10): Promise<{ items: { question: string; count: number }[] }> {
+    return apiRequest(`/assistant/popular-questions?limit=${limit}`, {
+      method: 'GET',
+    });
+  },
 };
 
 /**

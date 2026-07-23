@@ -68,6 +68,15 @@ def get_user_store() -> DynamoUserStore:
     return DynamoUserStore(get_dynamo_table())
 
 
+@lru_cache
+def get_popular_question_repository():  # -> DynamoPopularQuestionRepository
+    from payroll_copilot.infrastructure.persistence.dynamodb.popular_questions import (
+        DynamoPopularQuestionRepository,
+    )
+
+    return DynamoPopularQuestionRepository(get_dynamo_table())
+
+
 def reset_persistence_caches() -> None:
     """Clear cached table/repos (tests)."""
     get_dynamo_table.cache_clear()
@@ -80,5 +89,6 @@ def reset_persistence_caches() -> None:
     get_organization_bootstrap.cache_clear()
     get_workspace_bootstrap.cache_clear()
     get_user_store.cache_clear()
+    get_popular_question_repository.cache_clear()
     create_dynamo_table  # keep import used
     get_settings.cache_clear()

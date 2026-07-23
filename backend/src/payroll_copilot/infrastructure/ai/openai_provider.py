@@ -81,11 +81,22 @@ class OpenAIProvider:
         choice = response.choices[0] if response.choices else None
         content = choice.message.content if choice is not None else ""
         usage = response.usage
+        prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0) if usage else 0
+        completion_tokens = (
+            int(getattr(usage, "completion_tokens", 0) or 0) if usage else 0
+        )
+        total_tokens = int(getattr(usage, "total_tokens", 0) or 0) if usage else 0
+        if total_tokens <= 0:
+            total_tokens = prompt_tokens + completion_tokens
         return CompletionResult(
             content=content or "",
             confidence=0.85 if content else 0.0,
             model=str(response.model or self._model),
-            tokens_used=int(usage.total_tokens if usage is not None else 0),
+            tokens_used=total_tokens,
+            provider="openai",
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
         )
 
     async def complete_structured(
@@ -117,6 +128,10 @@ class OpenAIProvider:
             data=validated,
             confidence=0.9 if payload else 0.0,
             model=result.model,
+            provider=result.provider or "openai",
+            prompt_tokens=result.prompt_tokens,
+            completion_tokens=result.completion_tokens,
+            total_tokens=result.total_tokens or result.tokens_used,
         )
 
     async def embed(self, texts: list[str]) -> list[list[float]]:

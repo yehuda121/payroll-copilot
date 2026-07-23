@@ -4,7 +4,7 @@
 
 Payroll Copilot helps guests and employees upload payslips, reconstruct them as editable digital documents, and receive structured validation from a **deterministic backend rule engine**. AI assists with OCR, document reconstruction, explanations, and a source-bound payroll assistant — it never decides pass/fail.
 
-> **Status: work in progress.** Guest landing, Employee monthly workspace, Accountant portal foundation, DynamoDB/S3 persistence, Cognito adapters, and local Docker development are in place. Several capabilities remain partial or planned. See [Project status](#project-status).
+> **Status: work in progress.** Guest landing, Employee monthly workspace, Accountant portal foundation, DynamoDB/S3 persistence, Cognito adapters, local Docker development, and developer AI monitoring (telemetry, dashboard, popular questions) are in place. Several capabilities remain partial or planned. See [Project status](#project-status).
 
 ---
 
@@ -49,7 +49,7 @@ Payroll Copilot validates payroll against:
 | **Guest** | Upload a payslip without registration; review a Document Model; confirm; receive deterministic validation; chat with the Payroll Assistant |
 | **Employee** | Authenticated monthly workspace: upload → extract → edit Digital Payslip → confirm → validate → history; Document Center for supporting files |
 | **Payroll accountant** | Employee master data, profile, bulk upload UI, batch monitor, rules browse/edit, review queue, audit logs (pipeline wiring still incremental) |
-| **Admin / developer** | System dashboards, Document Lab, rule-pack and config screens (many still foundational) |
+| **Admin / developer** | AI monitoring dashboard, model comparison, Document Lab, rule-pack and config screens |
 
 ### Document types
 
@@ -83,7 +83,7 @@ Modular monolith with Clean Architecture and Domain-Driven Design.
 | Primary DB | Amazon DynamoDB (single-table) |
 | Objects | Amazon S3 (MinIO locally) |
 | Identity | Amazon Cognito (dev role picker when Cognito unset) |
-| LLM | Local Ollama pipeline (current); Bedrock prepared for a later phase |
+| LLM | Capability-routed OpenAI / Ollama / Bedrock behind `ModelProvider` + telemetry wrapper |
 | Workers | Celery + Redis |
 | i18n | Hebrew / English / Arabic (RTL-aware) |
 
@@ -169,6 +169,8 @@ payroll-copilot/
 - Employee monthly payslip workspace (primary employee flow)
 - Accountant portal foundation
 - Admin / Document Lab for developers
+- Developer AI monitoring (usage footer, dashboard, model comparison)
+- Global popular questions sidebar on landing chat (counters only; answers always live)
 
 ### Auth
 
@@ -345,10 +347,22 @@ contract does not depend on polling and can later move to push events.
 
 | Provider | Status |
 |----------|--------|
-| **Ollama** | **Active** development and local runtime AI pipeline (`MODEL_PROVIDER=ollama` in Docker / local env) |
-| **Amazon Bedrock** | **Prepared / on hold** — architecture and provider adapter support Bedrock; integration is deferred to the next implementation phase |
+| **Ollama** | Supported — local / Docker development |
+| **OpenAI** | Supported — cloud chat/embeddings when configured |
+| **Amazon Bedrock** | Supported — managed inference when configured |
 
-AWS infrastructure (including `us-east-1` for future Bedrock availability) is already prepared. The application is designed to swap model providers behind a port. The **current** AI workflow for extraction, assistant synthesis, and related LLM calls uses the existing **local Ollama pipeline**. Bedrock is not the active runtime today.
+Providers are selected per AI capability (`PAYSLIP_EXTRACTION_PROVIDER`, `ASSISTANT_PROVIDER`, …) with fallback to `MODEL_PROVIDER`. Every completion passes through a **telemetry wrapper** that normalizes prompt/completion/total tokens, estimates cost, measures latency, and records retry/fallback flags for the developer UI.
+
+### AI monitoring (developer)
+
+| Surface | What it shows |
+|---------|----------------|
+| Conversation usage footer | Provider, model, tokens, estimated cost, latency, retry, fallback under each Q→A |
+| `/admin` System Dashboard | Total tokens, tokens by provider/model, cost, average latency, error/retry/fallback rates |
+| `/admin/ai-models` | Operational model comparison (requests, latency, tokens, cost, success rate) |
+| Landing popular questions | Top 10 global questions by ask count (no answer cache; click re-asks the LLM) |
+
+Aggregates for the dashboard and comparison page are process-local counters plus optional CloudWatch metric emission (`CLOUDWATCH_ENABLED`). **AI call event history is not stored in DynamoDB.** Popular questions store only normalized text, display text, counter, and last-asked time.
 
 ### OCR
 
@@ -375,6 +389,8 @@ AWS infrastructure (including `us-east-1` for future Bedrock availability) is al
 - Orchestrator only; source-bound answers from approved YAML
 - No vector RAG yet
 - Graceful degradation if the LLM is unreachable
+- Optional usage footer on chat responses (same contract for all providers)
+- Global popular-question counters for the landing sidebar
 
 ---
 
@@ -394,9 +410,9 @@ AWS foundations were prepared **before** full application cutover: region, priva
 | **Amazon DynamoDB** | Primary business database (single-table) | In use (DynamoDB Local in Compose) |
 | **Amazon S3** | Private document object storage | In use (MinIO locally) |
 | **IAM** | Least-privilege roles; development user / access keys for local AWS access | In use |
-| **Amazon Bedrock** | Managed LLM inference (future provider) | Prepared / on hold — not the active AI runtime |
+| **Amazon Bedrock** | Managed LLM inference | In use when a capability routes to `bedrock` |
 | **Amazon SES** | Outbound email | Adapter present; console fallback when unset |
-| **CloudWatch** | Logs / metrics hooks | Config prepared; shipping depends on deployment |
+| **CloudWatch** | Logs + optional AI custom metrics | Configured; AI telemetry emits metrics when `CLOUDWATCH_ENABLED=true` |
 
 ### Storage posture (S3)
 
@@ -600,6 +616,13 @@ ollama pull mistral-nemo:12b
 
 Admin-only debugger (`/admin/document-lab`) for OCR → parser → validation on fixtures. Enabled only when `APP_ENV` is development-like or `DEBUG=true`.
 
+### Developer AI monitoring
+
+- System Dashboard (`/admin`) — token/cost/latency/reliability KPIs for the API process
+- AI Models (`/admin/ai-models`) — operational comparison table
+- APIs: `GET /admin/ai/dashboard`, `GET /admin/ai/models/comparison` (developer admin role)
+- Popular questions: `GET /assistant/popular-questions`
+
 ---
 
 ## Configuration
@@ -640,7 +663,8 @@ Selected endpoints:
 | Documents | `POST /documents/upload`, `POST /documents/employee/upload` |
 | Extraction | Guest + employee payslip-extract / corrections / confirm |
 | Validation | `POST /validation/run`, `POST /validation/employee/run`, run fetch |
-| Assistant | `POST /assistant/chat` |
+| Assistant | `POST /assistant/chat`, `GET /assistant/popular-questions` |
+| AI monitoring | `GET /admin/ai/dashboard`, `GET /admin/ai/models/comparison` |
 | OCR / parser | `POST /ocr/extract`, `POST /parser/payslip` |
 | Batch / compliance | Bulk payslip jobs, MCP diff proposals (foundation) |
 
@@ -684,6 +708,8 @@ Smoke: `GET /health`, guest assistant chat, document upload, guest/employee extr
 - DynamoDB single-table repositories (org, employee, documents, extractions, validation, audit, bindings)
 - i18n (he / en / ar) with RTL
 - Docker Compose development stack
+- AI telemetry wrapper (normalized tokens/cost/latency) and developer monitoring UI
+- Global popular questions (DynamoDB counters + landing sidebar)
 
 ### In progress / partial
 
@@ -691,11 +717,10 @@ Smoke: `GET /health`, guest assistant chat, document upload, guest/employee extr
 - Full RBAC enforcement on every accountant/guest mutation route
 - SES delivery in real environments (console fallback when unset)
 - Background Celery OCR on generic upload (interactive flows use sync extraction)
-- Admin portal depth beyond Document Lab / foundations
+- Multi-instance CloudWatch-backed dashboard aggregation (process-local aggregates today)
 
 ### Planned
 
-- Amazon Bedrock as the managed LLM runtime (AWS prepared; integration on hold for the next phase)
 - Vector RAG over legal rules and contracts
 - Historical payroll comparison / richer employee trends
 - Absolute uniqueness constraints beyond application-level period gates
