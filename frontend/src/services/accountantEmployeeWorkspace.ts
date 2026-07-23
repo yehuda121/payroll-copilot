@@ -181,8 +181,12 @@ export function createAccountantEmployeeWorkspaceApi(
       return response.blob();
     },
 
-    async deleteOwnedDocument(documentId: string) {
-      return apiRequest(`${documentsPath}/${encodeURIComponent(documentId)}`, {
+    async deleteOwnedDocument(
+      documentId: string,
+      scope: 'original' | 'digital' | 'both' = 'both',
+    ) {
+      const params = new URLSearchParams({ scope });
+      return apiRequest(`${documentsPath}/${encodeURIComponent(documentId)}?${params}`, {
         method: 'DELETE',
         portalAuth: true,
       });

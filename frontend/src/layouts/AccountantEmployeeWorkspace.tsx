@@ -15,6 +15,7 @@ import {
   EmployeeWorkspaceProvider,
   type EmployeeWorkspaceScope,
 } from '../features/employee/EmployeeWorkspaceContext';
+import { useAppLocale } from '../hooks/useAppLocale';
 import { createAccountantEmployeeWorkspaceApi } from '../services/accountantEmployeeWorkspace';
 import { employeesService } from '../services/employees';
 import type { EmployeeMe } from '../services/employeePortal';
@@ -23,6 +24,7 @@ import './AccountantEmployeeWorkspace.css';
 
 export function AccountantEmployeeWorkspaceLayout() {
   const { t } = useTranslation();
+  const { dir } = useAppLocale();
   const { employeeNumber = '' } = useParams<{ employeeNumber: string }>();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -116,7 +118,7 @@ export function AccountantEmployeeWorkspaceLayout() {
     >
       <EmployeeWorkspaceProvider value={scope}>
         <section className="accountant-employee-workspace">
-          <header className="accountant-employee-workspace__header">
+          <header className="accountant-employee-workspace__header" dir="rtl">
             <IconBackButton to={backPath} ariaLabel={backAria} title={backAria} />
             <div className="accountant-employee-workspace__identity">
               <div>
@@ -152,7 +154,7 @@ export function AccountantEmployeeWorkspaceLayout() {
           )}
 
           {!batchReview && isDocumentsSection ? (
-            <div className="accountant-employee-workspace__page-heading">
+            <div className="accountant-employee-workspace__page-heading" dir="rtl">
               <h2 className="accountant-employee-workspace__page-title">
                 {t('accountant.workspace.documentsTitle', {
                   name: displayName || t('common.emDash'),
@@ -171,6 +173,7 @@ export function AccountantEmployeeWorkspaceLayout() {
               <nav
                 className="employee-review-tabs accountant-employee-workspace__tabs accountant-employee-workspace__tabs--primary"
                 aria-label={t('accountant.workspace.tabsLabel')}
+                dir="rtl"
               >
                 <NavLink
                   to={`${basePath}/documents${reviewQuery}`}
@@ -198,11 +201,17 @@ export function AccountantEmployeeWorkspaceLayout() {
                 </NavLink>
               </nav>
 
-              <Outlet />
+              <div dir={dir}>
+                <Outlet />
+              </div>
             </div>
           )}
 
-          {batchReview ? <Outlet /> : null}
+          {batchReview ? (
+            <div dir={dir}>
+              <Outlet />
+            </div>
+          ) : null}
         </section>
       </EmployeeWorkspaceProvider>
     </EmployeeSessionProvider>

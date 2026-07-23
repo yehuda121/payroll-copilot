@@ -195,6 +195,7 @@ export type PayrollMonthDetail = {
 export type EmployeeDocumentCenterItem = {
   document_type: string;
   exists: boolean;
+  has_original_file?: boolean;
   document_id: string | null;
   original_filename: string | null;
   uploaded_at: string | null;
@@ -454,8 +455,19 @@ export const employeePortalService = {
     return response.blob();
   },
 
-  async deleteOwnedDocument(documentId: string): Promise<{ document_id: string; deleted: boolean }> {
-    return apiRequest(`/documents/employee/${encodeURIComponent(documentId)}`, {
+  async deleteOwnedDocument(
+    documentId: string,
+    scope: 'original' | 'digital' | 'both' = 'both',
+  ): Promise<{
+    document_id: string;
+    deleted: boolean;
+    scope?: string;
+    deleted_original?: boolean;
+    deleted_digital?: boolean;
+    document_removed?: boolean;
+  }> {
+    const params = new URLSearchParams({ scope });
+    return apiRequest(`/documents/employee/${encodeURIComponent(documentId)}?${params}`, {
       method: 'DELETE',
       portalAuth: true,
     });

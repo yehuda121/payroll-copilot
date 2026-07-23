@@ -1654,6 +1654,73 @@
   transform: scaleX(-1);
 }
 
+.action-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+/* Upload / neutral */
+.action-icon-btn:hover:not(:disabled),
+.action-icon-btn:focus-visible {
+  border-color: color-mix(in srgb, var(--color-text-muted) 45%, var(--color-border));
+  color: var(--color-text);
+  background: var(--color-surface-muted);
+  outline: none;
+}
+
+.action-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Edit — primary blue (soft, not saturated fill) */
+.action-icon-btn--primary {
+  color: var(--color-accent);
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  background: var(--color-accent-soft);
+}
+
+.action-icon-btn--primary:hover:not(:disabled),
+.action-icon-btn--primary:focus-visible {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent-soft) 70%, var(--color-accent) 12%);
+  outline: none;
+}
+
+/* Delete — standard danger red */
+.action-icon-btn--danger {
+  color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
+  background: var(--color-danger-soft);
+}
+
+.action-icon-btn--danger:hover:not(:disabled),
+.action-icon-btn--danger:focus-visible {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger-soft) 65%, var(--color-danger) 10%);
+  outline: none;
+}
+
+.action-icon-btn__icon {
+  display: inline-flex;
+  line-height: 0;
+}
+
 .code-block {
   overflow: auto;
   padding: 0.75rem;

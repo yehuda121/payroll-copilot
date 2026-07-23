@@ -99,7 +99,7 @@ export function ChatComposer({
 
   if (toolbarControls) {
     return (
-      <form className="chat-composer chat-composer--toolbar" onSubmit={onSubmit} dir="ltr">
+      <form className="chat-composer chat-composer--toolbar" onSubmit={onSubmit}>
         <div className="chat-composer__row chat-composer__row--toolbar">
           {attachButton}
           <div className="chat-composer__field">

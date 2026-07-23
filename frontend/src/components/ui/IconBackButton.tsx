@@ -10,8 +10,8 @@ type IconBackButtonProps = {
 };
 
 /**
- * Circular RTL-aware back control for workspace chrome.
- * Arrow flips in RTL so it always points toward the reading start edge.
+ * Circular back control for workspace chrome.
+ * Arrow stays left-pointing; chrome layout is fixed LTR project-wide.
  */
 export function IconBackButton({ ariaLabel, title, to, onClick }: IconBackButtonProps) {
   const label = title ?? ariaLabel;

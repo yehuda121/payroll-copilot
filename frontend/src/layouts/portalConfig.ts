@@ -7,9 +7,9 @@ export const EMPLOYEE_PORTAL: PortalConfig = {
   basePath: '/employee',
   showUserEmail: true,
   navItems: [
+    { labelKey: 'employee.navigation.chat', path: '/employee/chat' },
     { labelKey: 'employee.navigation.documents', path: '/employee/documents' },
     { labelKey: 'employee.navigation.payslips', path: '/employee/payslips' },
-    { labelKey: 'employee.navigation.chat', path: '/employee/chat' },
   ],
 };
 

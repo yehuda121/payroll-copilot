@@ -98,6 +98,7 @@ type ModalDialogProps = {
   variant?: DialogVariant;
   onClose: () => void;
   wide?: boolean;
+  className?: string;
 };
 
 export function ModalDialog({
@@ -107,6 +108,7 @@ export function ModalDialog({
   variant = 'default',
   onClose,
   wide = false,
+  className = '',
 }: ModalDialogProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -123,6 +125,21 @@ export function ModalDialog({
         event.preventDefault();
         onCloseRef.current();
       }
+      if (event.key === 'Tab' && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener('keydown', onKeyDown);
     return () => {
@@ -135,7 +152,7 @@ export function ModalDialog({
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <div
         ref={dialogRef}
-        className={`modal-dialog modal-dialog--${variant}${wide ? ' modal-dialog--wide' : ''}`}
+        className={`modal-dialog modal-dialog--${variant}${wide ? ' modal-dialog--wide' : ''} ${className}`.trim()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

@@ -119,3 +119,66 @@ export function CloseIcon({ className, size = 20, ...rest }: IconProps) {
     </svg>
   );
 }
+
+export function PencilIcon({ className, size = 18, ...rest }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...rest}
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
+    </svg>
+  );
+}
+
+export function TrashIcon({ className, size = 18, ...rest }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...rest}
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4h8v2" />
+      <path d="M19 6l-1 14H6L5 6" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
+export function UploadIcon({ className, size = 18, ...rest }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...rest}
+    >
+      <path d="M12 16V5" />
+      <path d="M7 10l5-5 5 5" />
+      <path d="M4 20h16" />
+    </svg>
+  );
+}

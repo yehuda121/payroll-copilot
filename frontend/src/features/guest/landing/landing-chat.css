@@ -380,6 +380,16 @@
   color: var(--color-text-muted);
 }
 
+.digital-form__error {
+  margin: 0.3rem 0 0;
+  font-size: 0.82rem;
+  color: var(--color-danger);
+}
+
+.digital-form__input.is-invalid {
+  border-color: var(--color-danger);
+}
+
 .digital-form__section {
   display: grid;
   gap: 0.65rem;

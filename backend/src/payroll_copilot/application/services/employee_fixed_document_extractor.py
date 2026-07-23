@@ -13,10 +13,9 @@ from payroll_copilot.application.exceptions import (
 )
 from payroll_copilot.application.ports import AICapability, Message
 from payroll_copilot.application.services.employee_document_form_schemas import (
-    ID_APPENDIX_KEYS,
-    NATIONAL_ID_KEYS,
     empty_fixed_structured,
     fixed_keys_for,
+    normalize_children_list,
 )
 from payroll_copilot.domain.enums import DocumentType
 from payroll_copilot.infrastructure.ai.provider_router import AIProviderRouter
@@ -60,28 +59,25 @@ birth_date:
 """.strip()
 
 _ID_APPENDIX_SYSTEM = """
-You extract payroll-relevant fields from an Israeli ID appendix (ספח) OCR text.
+You extract children listed on an Israeli ID appendix (ספח) from OCR text.
 
 Return STRICT JSON only. No markdown. No commentary.
 
 Output shape:
 {
-  "marital_status": {"value": string|null, "confidence": 0.0, "source_text": string|null},
-  "number_of_children": {"value": string|null, "confidence": 0.0, "source_text": string|null},
-  "residency_status": {"value": string|null, "confidence": 0.0, "source_text": string|null},
-  "citizenship": {"value": string|null, "confidence": 0.0, "source_text": string|null}
+  "children": [
+    {"name": string, "birth_date": string}
+  ]
 }
 
-Semantic mapping rules:
-- Appendix layouts and labels vary. Do NOT require exact wording.
-- marital_status: married/single/divorced/widowed / מצב משפחתי equivalents.
-- number_of_children: count of children / מספר ילדים.
-  Prefer a count, not names or IDs.
-- residency_status: resident / temporary resident / מעמד תושב when present.
-- citizenship: nationality / אזרחות when present.
-- Ignore addresses, spouse personal details, children names/IDs/birth dates.
-- Never invent values. If uncertain or not present, set value to null.
-- confidence is 0..1.
+Rules:
+- Extract ONLY child full name and Gregorian birth date for each child.
+- Ignore marital status, residency, citizenship, addresses, spouse details,
+  national IDs, Hebrew calendar dates, and any other appendix information.
+- Do NOT return number_of_children or a children count field.
+- Use OCR spellings exactly. Never invent children.
+- If no children are present, return {"children": []}.
+- birth_date must be Gregorian as printed (e.g. 12.03.2015), or "" if unknown.
 """.strip()
 
 _HEBREW_LETTER = re.compile(r"[\u0590-\u05FF]")
@@ -197,6 +193,36 @@ def _normalize_field_payload(payload: Any) -> dict[str, Any]:
     }
 
 
+def _normalize_children_field_payload(payload: Any) -> dict[str, Any]:
+    raw = payload.get("value") if isinstance(payload, dict) and "value" in payload else payload
+    if raw is None and isinstance(payload, dict) and "children" in payload:
+        raw = payload.get("children")
+    children = normalize_children_list(raw)
+    if not children:
+        return {
+            "value": [],
+            "confidence": None,
+            "source_text": None,
+            "status": "MISSING",
+            "edited_by_user": False,
+            "original_value": [],
+        }
+    confidence = None
+    source = None
+    if isinstance(payload, dict):
+        confidence = _as_confidence(payload.get("confidence"))
+        source_raw = payload.get("source_text")
+        source = source_raw if isinstance(source_raw, str) else None
+    return {
+        "value": children,
+        "confidence": confidence if confidence is not None else 1.0,
+        "source_text": source,
+        "status": "FOUND",
+        "edited_by_user": False,
+        "original_value": children,
+    }
+
+
 def is_valid_israeli_id(raw: str) -> bool:
     digits = re.sub(r"\D", "", raw or "")
     if not digits or len(digits) > 9:
@@ -304,6 +330,14 @@ def structured_from_semantic_payload(
             }
         }
 
+    if dtype == DocumentType.ID_APPENDIX.value:
+        children_raw = source.get("children")
+        return {
+            "additional_fields": {
+                "children": _normalize_children_field_payload(children_raw),
+            }
+        }
+
     additional: dict[str, Any] = {}
     for key in keys:
         additional[key] = _normalize_field_payload(source.get(key))
@@ -318,7 +352,11 @@ def fixed_structured_has_usable_values(structured: dict[str, Any]) -> bool:
         if not isinstance(payload, dict):
             continue
         value = payload.get("value")
-        if value not in (None, "") and str(payload.get("status") or "").upper() != "MISSING":
+        if str(payload.get("status") or "").upper() == "MISSING":
+            continue
+        if isinstance(value, list) and len(value) > 0:
+            return True
+        if value not in (None, ""):
             return True
     return False
 
@@ -357,7 +395,6 @@ class EmployeeFixedDocumentExtractor:
             )
         document_text = pages_block or ocr_text
         system = _ID_CARD_SYSTEM if dtype == DocumentType.NATIONAL_ID.value else _ID_APPENDIX_SYSTEM
-        keys = NATIONAL_ID_KEYS if dtype == DocumentType.NATIONAL_ID.value else ID_APPENDIX_KEYS
         if dtype == DocumentType.NATIONAL_ID.value:
             user_prompt = (
                 f"Document language hint: {language}\n\n"
@@ -369,12 +406,11 @@ class EmployeeFixedDocumentExtractor:
             )
         else:
             user_prompt = (
-                f"Document type: {dtype}\n"
                 f"Document language hint: {language}\n\n"
-                f"DOCUMENT TEXT:\n{document_text}\n\n"
-                "Map this document semantically into the required JSON schema keys only: "
-                f"{', '.join(keys)}.\n"
-                "Use meaning, not exact labels. Leave unknown fields as null."
+                f"OCR TEXT:\n{document_text}\n\n"
+                "Extract ONLY children as:\n"
+                '{"children":[{"name":"","birth_date":""}]}\n'
+                "Ignore all other appendix fields. Empty list when none found."
             )
         try:
             result = await self._provider.complete(

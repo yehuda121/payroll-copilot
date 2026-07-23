@@ -438,7 +438,18 @@ code {
   height: 100%;
 }
 
-/* ---- Utility / app chrome leftovers ---- */
+/* Application chrome always follows Hebrew (RTL) layout. */
+.ui-chrome-rtl,
+.portal-shell,
+.app-navbar,
+.employee-review-tabs,
+.portal-shell__topbar-actions,
+.document-preview-card__actions,
+.document-preview-card__header,
+.accountant-employee-workspace__header,
+.accountant-employee-workspace__page-heading {
+  direction: rtl;
+}
 
 .visually-hidden {
   position: absolute;

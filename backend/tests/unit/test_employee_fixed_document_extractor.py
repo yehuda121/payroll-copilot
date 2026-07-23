@@ -84,17 +84,58 @@ def test_semantic_payload_discards_ungrounded_hallucinations():
     assert not fixed_structured_has_usable_values(structured)
 
 
-def test_appendix_semantic_payload_unchanged():
+def test_appendix_semantic_payload_extracts_children_only():
     structured = structured_from_semantic_payload(
         DocumentType.ID_APPENDIX,
         {
+            "children": [
+                {"name": "נועה כהן", "birth_date": "12.03.2015"},
+                {"name": "יוסי כהן", "birth_date": "01.01.2018"},
+            ],
             "marital_status": {"value": "נשוי", "confidence": 0.8},
             "number_of_children": {"value": "2", "confidence": 0.7},
             "address": {"value": "ignored"},
         },
     )
     fields = structured["additional_fields"]
-    assert fields["marital_status"]["value"] == "נשוי"
-    assert fields["number_of_children"]["value"] == "2"
-    assert fields["residency_status"]["status"] == "MISSING"
-    assert "address" not in fields
+    assert set(fields) == {"children"}
+    assert fields["children"]["value"] == [
+        {"name": "נועה כהן", "birth_date": "12.03.2015"},
+        {"name": "יוסי כהן", "birth_date": "01.01.2018"},
+    ]
+    assert fields["children"]["status"] == "FOUND"
+    assert fixed_structured_has_usable_values(structured)
+
+
+def test_appendix_semantic_payload_empty_children():
+    structured = structured_from_semantic_payload(
+        DocumentType.ID_APPENDIX,
+        {"children": []},
+    )
+    fields = structured["additional_fields"]
+    assert fields["children"]["value"] == []
+    assert fields["children"]["status"] == "MISSING"
+    assert not fixed_structured_has_usable_values(structured)
+
+
+def test_project_fixed_structured_drops_legacy_appendix_scalars():
+    from payroll_copilot.application.services.employee_document_form_schemas import (
+        project_fixed_structured,
+    )
+
+    projected = project_fixed_structured(
+        DocumentType.ID_APPENDIX,
+        {
+            "additional_fields": {
+                "marital_status": {"value": "נשוי", "status": "FOUND"},
+                "number_of_children": {"value": "2", "status": "FOUND"},
+                "children": {
+                    "value": [{"name": "נועה", "birth_date": "12.03.2015"}],
+                    "status": "FOUND",
+                },
+            }
+        },
+    )
+    fields = projected["additional_fields"]
+    assert set(fields) == {"children"}
+    assert fields["children"]["value"] == [{"name": "נועה", "birth_date": "12.03.2015"}]

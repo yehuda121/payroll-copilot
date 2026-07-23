@@ -2,8 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEmployeeSession } from '../auth/EmployeeSessionContext';
 import {
+  emptyAppendixChildren,
   emptyFixedFieldValues,
   fixedFieldKeysFor,
+  ID_APPENDIX_CHILDREN_KEY,
+  isAppendixDocumentType,
+  parseAppendixChildren,
+  type AppendixChild,
 } from '../lib/employee/document-fixed-forms';
 import { validateUploadFile } from '../lib/guest/upload-guardrails';
 import { ApiClientError } from '../services/api';
@@ -42,6 +47,19 @@ function fieldsFromFixedValues(values: Record<string, string>): ExtractedPayslip
   }));
 }
 
+function fieldsFromAppendixChildren(children: AppendixChild[]): ExtractedPayslipField[] {
+  return [
+    {
+      key: ID_APPENDIX_CHILDREN_KEY,
+      value: children,
+      confidence: null,
+      source_text: null,
+      status: children.length > 0 ? 'FOUND' : 'MISSING',
+      edited_by_user: true,
+    },
+  ];
+}
+
 /**
  * Employee My Documents workspace for a single persistent document type.
  */
@@ -51,6 +69,7 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
   const { t } = useTranslation();
   const fixedKeys = fixedFieldKeysFor(documentType);
   const usesFixedForm = fixedKeys !== null;
+  const usesAppendixForm = isAppendixDocumentType(documentType);
 
   const [item, setItem] = useState<EmployeeDocumentCenterItem | null>(() => {
     const center = session.getDocumentCenter();
@@ -71,6 +90,9 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
   const [fixedValues, setFixedValues] = useState<Record<string, string>>(() =>
     emptyFixedFieldValues(documentType),
   );
+  const [appendixChildren, setAppendixChildren] = useState<AppendixChild[]>(() =>
+    emptyAppendixChildren(),
+  );
   const [formDirty, setFormDirty] = useState(false);
   /** Apply default inner-tab once per document-type selection after load settles. */
   const pendingDefaultTabRef = useRef(true);
@@ -79,7 +101,14 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
 
   const applyForm = useCallback(
     (form: EmployeeDocumentForm) => {
-      if (usesFixedForm && fixedKeys) {
+      if (usesAppendixForm) {
+        const childField = form.fields.find((field) => field.key === ID_APPENDIX_CHILDREN_KEY);
+        const children = parseAppendixChildren(childField?.value);
+        setAppendixChildren(children);
+        setFields(fieldsFromAppendixChildren(children));
+        setFixedValues({});
+        setFieldDrafts({});
+      } else if (usesFixedForm && fixedKeys) {
         const next = emptyFixedFieldValues(documentType);
         for (const field of form.fields) {
           if (fixedKeys.includes(field.key as (typeof fixedKeys)[number])) {
@@ -88,9 +117,12 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
         }
         setFixedValues(next);
         setFields(fieldsFromFixedValues(next));
+        setAppendixChildren(emptyAppendixChildren());
         setFieldDrafts({});
       } else {
         setFields(form.fields);
+        setFixedValues({});
+        setAppendixChildren(emptyAppendixChildren());
         setFieldDrafts(
           Object.fromEntries(
             form.fields.map((field) => [
@@ -106,21 +138,28 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
       }
       setFormDirty(false);
     },
-    [documentType, fixedKeys, usesFixedForm],
+    [documentType, fixedKeys, usesAppendixForm, usesFixedForm],
   );
 
   const resetFormState = useCallback(() => {
-    if (usesFixedForm) {
+    if (usesAppendixForm) {
+      const empty = emptyAppendixChildren();
+      setAppendixChildren(empty);
+      setFields(fieldsFromAppendixChildren(empty));
+      setFixedValues({});
+    } else if (usesFixedForm) {
       const empty = emptyFixedFieldValues(documentType);
       setFixedValues(empty);
       setFields(fieldsFromFixedValues(empty));
+      setAppendixChildren(emptyAppendixChildren());
     } else {
       setFields([]);
       setFixedValues({});
+      setAppendixChildren(emptyAppendixChildren());
     }
     setFieldDrafts({});
     setFormDirty(false);
-  }, [documentType, usesFixedForm]);
+  }, [documentType, usesAppendixForm, usesFixedForm]);
 
   const refresh = useCallback(async () => {
     setError(null);
@@ -173,7 +212,7 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
             throw formError;
           }
           session.invalidateDocumentForm(next.document_id);
-          if (usesFixedForm) {
+          if (usesFixedForm || usesAppendixForm) {
             resetFormState();
           } else {
             setFields([]);
@@ -185,7 +224,7 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
         const byType = session.getDocumentFormByType(documentType);
         if (byType) {
           applyForm(byType);
-        } else if (usesFixedForm) {
+        } else if (usesFixedForm || usesAppendixForm) {
           resetFormState();
         } else {
           setFields([]);
@@ -211,7 +250,16 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
         }
       }
     }
-  }, [applyForm, documentType, resetFormState, session, t, usesFixedForm, workspaceApi]);
+  }, [
+    applyForm,
+    documentType,
+    resetFormState,
+    session,
+    t,
+    usesAppendixForm,
+    usesFixedForm,
+    workspaceApi,
+  ]);
 
   useEffect(() => {
     void refresh();
@@ -257,57 +305,64 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
     setFileError(null);
   }, []);
 
-  const extractDocument = useCallback(async () => {
-    if (!pendingFile) {
-      setError(t('employee.documents.uploadRequired'));
-      return;
-    }
-    setBusyPhase('extracting');
-    setStatusMessage(t('employee.documents.extracting'));
-    setError(null);
-    try {
-      const form = await workspaceApi.extractEmployeeDocument(pendingFile, {
-        documentType,
-        language: documentLanguage,
-      });
-      session.setDocumentForm(form);
-      session.setDocumentFormByType(documentType, form);
-      session.invalidateDocumentCenter();
-      applyForm(form);
-      setPendingFile(null);
-      await refresh();
-      setTab('digital');
-    } catch (err) {
-      setError(
-        err instanceof ApiClientError || err instanceof Error ? err.message : t('common.error'),
-      );
-    } finally {
-      setBusyPhase(null);
-      setStatusMessage(null);
-    }
-  }, [applyForm, pendingFile, documentType, documentLanguage, refresh, session, t, workspaceApi]);
+  const extractDocument = useCallback(
+    async (fileOverride?: File) => {
+      const file = fileOverride ?? pendingFile;
+      if (!file) {
+        setError(t('employee.documents.uploadRequired'));
+        return;
+      }
+      setBusyPhase('extracting');
+      setStatusMessage(t('employee.documents.extracting'));
+      setError(null);
+      try {
+        const form = await workspaceApi.extractEmployeeDocument(file, {
+          documentType,
+          language: documentLanguage,
+        });
+        session.setDocumentForm(form);
+        session.setDocumentFormByType(documentType, form);
+        session.invalidateDocumentCenter();
+        applyForm(form);
+        setPendingFile(null);
+        await refresh();
+        setTab('digital');
+      } catch (err) {
+        setError(
+          err instanceof ApiClientError || err instanceof Error ? err.message : t('common.error'),
+        );
+      } finally {
+        setBusyPhase(null);
+        setStatusMessage(null);
+      }
+    },
+    [applyForm, pendingFile, documentType, documentLanguage, refresh, session, t, workspaceApi],
+  );
 
-  const deleteOwnedDocument = useCallback(async () => {
-    if (!item?.document_id) return;
-    setBusyPhase('deleting');
-    setError(null);
-    try {
-      await workspaceApi.deleteOwnedDocument(item.document_id);
-      session.invalidateDocumentForm(item.document_id);
-      session.invalidateDocumentFormByType(documentType);
-      session.invalidateDocumentCenter();
-      setPendingFile(null);
-      resetFormState();
-      await refresh();
-      setTab('upload');
-    } catch (err) {
-      setError(
-        err instanceof ApiClientError || err instanceof Error ? err.message : t('common.error'),
-      );
-    } finally {
-      setBusyPhase(null);
-    }
-  }, [documentType, item?.document_id, refresh, resetFormState, session, t, workspaceApi]);
+  const deleteOwnedDocument = useCallback(
+    async (scope: 'original' | 'digital' | 'both' = 'both') => {
+      if (!item?.document_id) return;
+      setBusyPhase('deleting');
+      setError(null);
+      try {
+        await workspaceApi.deleteOwnedDocument(item.document_id, scope);
+        session.invalidateDocumentForm(item.document_id);
+        session.invalidateDocumentFormByType(documentType);
+        session.invalidateDocumentCenter();
+        setPendingFile(null);
+        resetFormState();
+        await refresh();
+        setTab('upload');
+      } catch (err) {
+        setError(
+          err instanceof ApiClientError || err instanceof Error ? err.message : t('common.error'),
+        );
+      } finally {
+        setBusyPhase(null);
+      }
+    },
+    [documentType, item?.document_id, refresh, resetFormState, session, t, workspaceApi],
+  );
 
   const updateFieldDraft = useCallback(
     (key: string, value: string) => {
@@ -405,54 +460,101 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
     }));
   }, []);
 
-  const saveDigitalForm = useCallback(async () => {
-    setBusyPhase('saving');
-    setStatusMessage(t('employee.documents.savingDigitalForm'));
-    setError(null);
-    try {
-      const payload = usesFixedForm
-        ? Object.entries(fixedValues).map(([key, value]) => ({
-            key,
-            value,
-            original_value: value,
-          }))
-        : fields.map((field) => ({
-            key: field.key,
-            value: fieldDrafts[field.key]?.value ?? serializeFieldValue(field.value),
-            source_text: field.source_text,
-            original_value: field.value,
-          }));
+  const addChild = useCallback(() => {
+    setFormDirty(true);
+    setAppendixChildren((prev) => {
+      const next = [...prev, { name: '', birth_date: '' }];
+      setFields(fieldsFromAppendixChildren(next));
+      return next;
+    });
+  }, []);
 
-      const form = item?.document_id
-        ? await workspaceApi.saveEmployeeDocumentForm(item.document_id, payload)
-        : await workspaceApi.saveEmployeeDocumentFormByType(documentType, payload);
+  const removeChild = useCallback((index: number) => {
+    setFormDirty(true);
+    setAppendixChildren((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      setFields(fieldsFromAppendixChildren(next));
+      return next;
+    });
+  }, []);
 
-      session.setDocumentForm(form);
-      session.setDocumentFormByType(documentType, form);
-      session.invalidateDocumentCenter();
-      applyForm(form);
-      await refresh();
-      setStatusMessage(t('employee.documents.digitalFormSaved'));
-    } catch (err) {
-      setError(
-        err instanceof ApiClientError || err instanceof Error ? err.message : t('common.error'),
-      );
-    } finally {
-      setBusyPhase(null);
-    }
-  }, [
-    applyForm,
-    documentType,
-    fieldDrafts,
-    fields,
-    fixedValues,
-    item?.document_id,
-    refresh,
-    session,
-    t,
-    usesFixedForm,
-    workspaceApi,
-  ]);
+  const updateChild = useCallback((index: number, patch: Partial<AppendixChild>) => {
+    setFormDirty(true);
+    setAppendixChildren((prev) => {
+      const next = prev.map((child, i) => (i === index ? { ...child, ...patch } : child));
+      setFields(fieldsFromAppendixChildren(next));
+      return next;
+    });
+  }, []);
+
+  const saveDigitalForm = useCallback(
+    async (options?: { appendixChildrenOverride?: AppendixChild[] }) => {
+      setBusyPhase('saving');
+      setStatusMessage(t('employee.documents.savingDigitalForm'));
+      setError(null);
+      try {
+        const childrenForSave = options?.appendixChildrenOverride ?? appendixChildren;
+        if (options?.appendixChildrenOverride) {
+          setAppendixChildren(options.appendixChildrenOverride);
+          setFields(fieldsFromAppendixChildren(options.appendixChildrenOverride));
+        }
+        const payload = usesAppendixForm
+          ? [
+              {
+                key: ID_APPENDIX_CHILDREN_KEY,
+                value: childrenForSave,
+                original_value: childrenForSave,
+              },
+            ]
+          : usesFixedForm
+            ? Object.entries(fixedValues).map(([key, value]) => ({
+                key,
+                value,
+                original_value: value,
+              }))
+            : fields.map((field) => ({
+                key: field.key,
+                value: fieldDrafts[field.key]?.value ?? serializeFieldValue(field.value),
+                source_text: field.source_text,
+                original_value: field.value,
+              }));
+
+        const form = item?.document_id
+          ? await workspaceApi.saveEmployeeDocumentForm(item.document_id, payload)
+          : await workspaceApi.saveEmployeeDocumentFormByType(documentType, payload);
+
+        session.setDocumentForm(form);
+        session.setDocumentFormByType(documentType, form);
+        session.invalidateDocumentCenter();
+        applyForm(form);
+        await refresh();
+        setStatusMessage(t('employee.documents.digitalFormSaved'));
+        return true;
+      } catch (err) {
+        setError(
+          err instanceof ApiClientError || err instanceof Error ? err.message : t('common.error'),
+        );
+        return false;
+      } finally {
+        setBusyPhase(null);
+      }
+    },
+    [
+      applyForm,
+      appendixChildren,
+      documentType,
+      fieldDrafts,
+      fields,
+      fixedValues,
+      item?.document_id,
+      refresh,
+      session,
+      t,
+      usesAppendixForm,
+      usesFixedForm,
+      workspaceApi,
+    ],
+  );
 
   const draftsForForm = useMemo(() => {
     const next: Record<string, FieldDraft> = { ...fieldDrafts };
@@ -469,14 +571,14 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
   }, [fieldDrafts, fields]);
 
   const isBusy = busyPhase !== null;
-  const hasDocument = Boolean(item?.exists && item.document_id);
-  const hasDigitalForm = usesFixedForm
-    ? true
-    : Boolean(
-        item?.document_id &&
-          item.extraction_status !== 'missing' &&
-          item.extraction_status !== 'extraction_not_connected',
-      );
+  const hasDocument = Boolean(
+    (item?.has_original_file ?? item?.exists) && item.document_id,
+  );
+  const hasDigitalForm = Boolean(
+    item?.document_id &&
+      item.extraction_status !== 'missing' &&
+      item.extraction_status !== 'extraction_not_connected',
+  );
   const hasDirtyFields =
     formDirty || Object.values(fieldDrafts).some((draft) => draft.dirty);
 
@@ -502,11 +604,16 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
     fields,
     fieldDrafts: draftsForForm,
     fixedValues,
+    appendixChildren,
     usesFixedForm,
+    usesAppendixForm,
     updateFieldDraft,
     clearFieldDraft,
     removeField,
     addField,
+    addChild,
+    removeChild,
+    updateChild,
     hasDocument,
     hasDigitalForm,
     hasDirtyFields,

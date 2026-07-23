@@ -25,6 +25,15 @@ def _extraction_connection(document_type: DocumentType) -> str:
     return "extraction_not_connected"
 
 
+def _has_original_file(doc: Any) -> bool:
+    meta = dict(getattr(doc, "metadata", None) or {})
+    if meta.get("form_only") or meta.get("original_removed"):
+        return False
+    storage_key = str(getattr(doc, "storage_key", "") or "")
+    file_size = int(getattr(doc, "file_size_bytes", 0) or 0)
+    return bool(storage_key) and file_size > 0
+
+
 def _doc_row(
     *,
     document_type: DocumentType,
@@ -37,6 +46,7 @@ def _doc_row(
         return {
             "document_type": dtype,
             "exists": False,
+            "has_original_file": False,
             "document_id": None,
             "original_filename": None,
             "uploaded_at": None,
@@ -57,6 +67,7 @@ def _doc_row(
         }
 
     meta = dict(doc.metadata or {})
+    has_original = _has_original_file(doc)
     confirmation = (
         (extraction.confirmation_status if extraction else None)
         or meta.get("lifecycle_status")
@@ -78,21 +89,24 @@ def _doc_row(
 
     return {
         "document_type": dtype,
-        "exists": True,
+        # exists = original file present (upload replace UX). document_id remains when
+        # digital-only residual rows exist after scoped original delete.
+        "exists": has_original,
+        "has_original_file": has_original,
         "document_id": str(doc.id),
-        "original_filename": doc.original_filename,
-        "uploaded_at": doc.created_at.isoformat() if doc.created_at else None,
+        "original_filename": doc.original_filename if has_original else None,
+        "uploaded_at": doc.created_at.isoformat() if has_original and doc.created_at else None,
         "processing_status": doc.status.value if hasattr(doc.status, "value") else str(doc.status),
-        "extraction_status": extraction_status,
+        "extraction_status": extraction_status if extraction is not None else "missing",
         "confirmation_status": confirmation if extraction else "missing",
-        "lifecycle_status": lifecycle,
+        "lifecycle_status": lifecycle if (has_original or extraction) else "missing",
         "extraction_connection": _extraction_connection(document_type),
         "version_count": version_count,
         "payroll_year": doc.period.year if doc.period else None,
         "payroll_month": doc.period.month if doc.period else None,
         "actions": {
             "can_upload": True,
-            "can_replace": True,
+            "can_replace": has_original,
             "can_review": document_type == DocumentType.PAYSLIP
             or document_type in PERSISTENT_TYPES,
             "can_confirm": document_type == DocumentType.PAYSLIP and confirmation != "confirmed",

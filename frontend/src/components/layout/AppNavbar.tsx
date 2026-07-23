@@ -13,8 +13,8 @@ type AppNavbarProps = {
 };
 
 /**
- * Application navbar with a fixed visual layout.
- * `dir="ltr"` keeps logo left and actions right in every language;
+ * Application navbar with a fixed Hebrew (RTL) chrome layout.
+ * Logo stays on the right and actions on the left in every language;
  * only page content follows document RTL/LTR.
  */
 export function AppNavbar({ showAuthLinks = true }: AppNavbarProps) {
@@ -37,7 +37,7 @@ export function AppNavbar({ showAuthLinks = true }: AppNavbarProps) {
   }, [menuOpen]);
 
   return (
-    <header className="app-navbar" dir="ltr">
+    <header className="app-navbar ui-chrome-rtl" dir="rtl">
       <PageContainer className="app-navbar__inner" width="wide">
         <Link to="/" className="app-navbar__brand" onClick={() => setMenuOpen(false)}>
           <span className="app-navbar__mark" aria-hidden="true">

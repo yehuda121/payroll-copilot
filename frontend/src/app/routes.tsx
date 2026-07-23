@@ -200,7 +200,7 @@ export const appRouteElements = (
           </ErrorBoundary>
         }
       >
-        <Route path="/employee" element={<Navigate to="/employee/documents" replace />} />
+        <Route path="/employee" element={<Navigate to="/employee/chat" replace />} />
         <Route path="/employee/documents" element={<L><DocumentCenterPage /></L>} />
         <Route path="/employee/documents/national-id" element={<L><NationalIdReviewPage /></L>} />
         <Route path="/employee/upload" element={<Navigate to="/employee/payslips" replace />} />

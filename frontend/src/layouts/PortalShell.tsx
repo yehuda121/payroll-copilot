@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
 import { LanguageSelector } from '../components/ui/LanguageSelector';
+import { ThemeToggle } from '../components/ui/ThemeToggle';
 import { useOptionalBatchNavigationGuard } from '../features/accountant/BatchNavigationGuard';
 import { useOptionalUnsavedChanges } from '../features/accountant/UnsavedChangesGuard';
 import { useAppLocale } from '../hooks/useAppLocale';
@@ -14,7 +15,7 @@ type PortalShellProps = {
 
 export function PortalShell({ config }: PortalShellProps) {
   const { t } = useTranslation();
-  const { locale } = useAppLocale();
+  const { locale, dir } = useAppLocale();
   const { session, logout } = useAuth();
   const user = session?.user;
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ export function PortalShell({ config }: PortalShellProps) {
   };
 
   return (
-    <div className="portal-shell">
+    <div className="portal-shell ui-chrome-rtl" dir="rtl">
       <aside className="portal-shell__sidebar">
         <div className="portal-shell__brand">
           <span className="portal-shell__brand-mark" aria-hidden="true">
@@ -101,12 +102,13 @@ export function PortalShell({ config }: PortalShellProps) {
           </div>
           <div className="portal-shell__topbar-actions">
             <LanguageSelector />
+            <ThemeToggle />
             <button type="button" className="btn btn--ghost" onClick={logout}>
               {t('common.logout')}
             </button>
           </div>
         </header>
-        <main className="portal-shell__main">
+        <main className="portal-shell__main" dir={dir}>
           <Outlet />
         </main>
       </div>

@@ -300,30 +300,54 @@ class ResolvePeriodBody(BaseModel):
 @router.delete("/employee/{document_id}")
 async def delete_employee_owned_document(
     document_id: str,
+    scope: str = "both",
     bound: BoundEmployeeContext = Depends(require_bound_employee),
     storage: S3ObjectStorage = Depends(get_object_storage),
 ) -> dict:
-    """Permanently delete an employee-owned document and its extractions."""
+    """Delete original file, digital form, or both (default: both).
+
+    Query param ``scope``: ``original`` | ``digital`` | ``both``.
+    """
+    from payroll_copilot.application.use_cases.delete_employee_document import (
+        DeleteEmployeeDocumentUseCase,
+        DocumentDeleteConflictError,
+        DocumentDeleteNotFoundError,
+        DocumentDeleteScope,
+    )
+
     parsed_id = _parse_uuid(document_id, "document_id")
-    documents = dynamo_persistence.get_document_repository()
-    document = await documents.get_by_id(parsed_id)
-    if (
-        document is None
-        or document.employee_id != bound.employee.id
-        or document.organization_id != bound.employee.organization_id
-        or (
-            bound.principal.role == "employee"
-            and not is_employee_visible_document(document)
-        )
-    ):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     try:
-        await storage.delete(document.storage_key)
-    except Exception:
-        logger.warning("Failed to delete storage object for document %s", document_id, exc_info=True)
-    await dynamo_persistence.get_document_extraction_repository().delete_for_document_ids([parsed_id])
-    await documents.delete_by_ids([parsed_id])
-    return {"document_id": str(parsed_id), "deleted": True}
+        delete_scope = DocumentDeleteScope(scope.strip().lower())
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid scope. Use original, digital, or both.",
+        ) from exc
+
+    use_case = DeleteEmployeeDocumentUseCase(
+        documents=dynamo_persistence.get_document_repository(),
+        extractions=dynamo_persistence.get_document_extraction_repository(),
+        storage=storage,
+        validation_runs=dynamo_persistence.get_validation_run_repository(),
+    )
+    try:
+        return await use_case.execute(
+            document_id=parsed_id,
+            organization_id=bound.employee.organization_id,
+            employee_id=bound.employee.id,
+            scope=delete_scope,
+            require_employee_visible=bound.principal.role == "employee",
+        )
+    except DocumentDeleteNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        ) from exc
+    except DocumentDeleteConflictError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
 
 
 @router.post("/employee/{document_id}/resolve-period")
@@ -475,11 +499,13 @@ async def upload_accountant_selected_document(
 async def delete_accountant_selected_document(
     employee_number: str,
     document_id: str,
+    scope: str = "both",
     principal: AuthPrincipal = Depends(require_accountant),
     storage: S3ObjectStorage = Depends(get_object_storage),
 ) -> dict:
     return await delete_employee_owned_document(
         document_id=document_id,
+        scope=scope,
         bound=await _accountant_document_context(employee_number, principal),
         storage=storage,
     )
