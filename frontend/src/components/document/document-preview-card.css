@@ -88,6 +88,20 @@
 
 .document-preview-card__field {
   padding: 0.4rem 0.5rem;
+  min-width: 0;
+}
+
+.document-preview-card__value {
+  margin: 0.15rem 0 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.document-preview-card__form .digital-form__label {
+  display: block;
+  min-width: 0;
 }
 
 .document-preview-card__empty {
@@ -186,10 +200,52 @@
 }
 
 .document-center-grid {
+  /* Structural order stays Hebrew/RTL regardless of page text direction. */
+  direction: rtl;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-5);
   align-items: stretch;
+}
+
+.document-center-grid > * {
+  min-width: 0;
+}
+
+.document-edit-modal .digital-form__input {
+  max-width: 100%;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.birth-date-field__controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.birth-date-field__text {
+  min-width: 0;
+}
+
+.birth-date-field__picker {
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.4rem;
+  padding: 0.2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.birth-date-field__picker:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .document-edit-modal.modal-dialog {

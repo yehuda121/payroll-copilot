@@ -446,6 +446,7 @@ code {
 .portal-shell__topbar-actions,
 .document-preview-card__actions,
 .document-preview-card__header,
+.document-center-grid,
 .accountant-employee-workspace__header,
 .accountant-employee-workspace__page-heading {
   direction: rtl;

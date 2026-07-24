@@ -1,9 +1,10 @@
 import type { AppendixChild } from './document-fixed-forms';
 import { parseBirthDate } from './birth-date';
+import { FIELD_MAX_LENGTH, normalizeHumanText, validatePersonName } from './field-text';
 
 export type AppendixChildRowError = {
   index: number;
-  code: 'incomplete' | 'invalid_birth_date';
+  code: 'incomplete' | 'invalid_birth_date' | 'invalid_name' | 'name_digits' | 'name_max_length';
 };
 
 export type AppendixChildrenValidation =
@@ -13,19 +14,32 @@ export type AppendixChildrenValidation =
 /**
  * Empty rows (both blank) are dropped.
  * Rows with only one field filled are invalid.
- * Birth dates must parse when present.
+ * Names and birth dates are normalized/validated when present.
  */
 export function validateAppendixChildren(children: AppendixChild[]): AppendixChildrenValidation {
   const errors: AppendixChildRowError[] = [];
   const kept: AppendixChild[] = [];
 
   children.forEach((child, index) => {
-    const name = (child.name || '').trim();
+    const name = normalizeHumanText(child.name || '');
     const birthRaw = (child.birth_date || '').trim();
     if (!name && !birthRaw) return;
 
     if (!name || !birthRaw) {
       errors.push({ index, code: 'incomplete' });
+      return;
+    }
+
+    const nameResult = validatePersonName(name);
+    if (!nameResult.ok) {
+      if (nameResult.code === 'digits') errors.push({ index, code: 'name_digits' });
+      else if (nameResult.code === 'max_length') errors.push({ index, code: 'name_max_length' });
+      else errors.push({ index, code: 'invalid_name' });
+      return;
+    }
+
+    if (name.length > FIELD_MAX_LENGTH.personName) {
+      errors.push({ index, code: 'name_max_length' });
       return;
     }
 
@@ -35,7 +49,7 @@ export function validateAppendixChildren(children: AppendixChild[]): AppendixChi
       return;
     }
 
-    kept.push({ name, birth_date: parsed.iso });
+    kept.push({ name: nameResult.value, birth_date: parsed.iso });
   });
 
   if (errors.length > 0) return { ok: false, errors };

@@ -35,6 +35,9 @@ from payroll_copilot.application.services.document_upload_guardrail import (
 from payroll_copilot.application.services.employee_document_lifecycle import (
     is_employee_visible_document,
 )
+from payroll_copilot.application.services.employee_document_form_schemas import (
+    FixedDocumentFormValidationError,
+)
 from payroll_copilot.application.services.guest_ephemeral_store import (
     guest_owns_ephemeral,
     get_guest_ephemeral_store,
@@ -547,6 +550,11 @@ async def save_employee_document_form(
                 "message": "Digital Form not found.",
             },
         ) from exc
+    except FixedDocumentFormValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
     return employee_document_form_response(result)
 
 
@@ -591,6 +599,11 @@ async def save_employee_document_form_by_type(
                 "message": "Digital Form not found.",
             },
         ) from tip_exc
+    except FixedDocumentFormValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
     return employee_document_form_response(result)
 
 

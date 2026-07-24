@@ -488,15 +488,23 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
   }, []);
 
   const saveDigitalForm = useCallback(
-    async (options?: { appendixChildrenOverride?: AppendixChild[] }) => {
+    async (options?: {
+      appendixChildrenOverride?: AppendixChild[];
+      fixedValuesOverride?: Record<string, string>;
+    }) => {
       setBusyPhase('saving');
       setStatusMessage(t('employee.documents.savingDigitalForm'));
       setError(null);
       try {
         const childrenForSave = options?.appendixChildrenOverride ?? appendixChildren;
+        const fixedForSave = options?.fixedValuesOverride ?? fixedValues;
         if (options?.appendixChildrenOverride) {
           setAppendixChildren(options.appendixChildrenOverride);
           setFields(fieldsFromAppendixChildren(options.appendixChildrenOverride));
+        }
+        if (options?.fixedValuesOverride) {
+          setFixedValues(options.fixedValuesOverride);
+          setFields(fieldsFromFixedValues(options.fixedValuesOverride));
         }
         const payload = usesAppendixForm
           ? [
@@ -507,7 +515,7 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
               },
             ]
           : usesFixedForm
-            ? Object.entries(fixedValues).map(([key, value]) => ({
+            ? Object.entries(fixedForSave).map(([key, value]) => ({
                 key,
                 value,
                 original_value: value,

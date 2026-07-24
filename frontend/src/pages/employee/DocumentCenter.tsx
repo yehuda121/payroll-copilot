@@ -48,7 +48,8 @@ export function DocumentCenterPage() {
         : null}
 
       <div
-        className={`document-center-grid${isAccountant ? ' accountant-doc-workspace' : ''}`}
+        className={`document-center-grid ui-chrome-rtl${isAccountant ? ' accountant-doc-workspace' : ''}`}
+        dir="rtl"
         role="list"
         aria-label={t('employee.documents.persistentTitle')}
       >

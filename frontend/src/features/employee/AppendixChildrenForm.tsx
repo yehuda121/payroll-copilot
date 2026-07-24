@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { BirthDateField } from './BirthDateField';
 import type { AppendixChild } from '../../lib/employee/document-fixed-forms';
 import type { AppendixChildRowError } from '../../lib/employee/appendix-children-validation';
+import { FIELD_MAX_LENGTH } from '../../lib/employee/field-text';
 import '../../components/document/document-preview-card.css';
 import '../employee/employee-payslip.css';
 import '../guest/landing/landing-chat.css';
@@ -15,6 +16,19 @@ type AppendixChildrenFormProps = {
   onAddChild: () => void;
   onRemoveChild: (index: number) => void;
 };
+
+function rowErrorMessage(
+  t: (key: string) => string,
+  code: AppendixChildRowError['code'] | undefined,
+): string | null {
+  if (!code) return null;
+  if (code === 'incomplete') return t('employee.documents.validation.childIncomplete');
+  if (code === 'invalid_birth_date') return t('employee.documents.validation.dateInvalid');
+  if (code === 'name_digits') return t('employee.documents.validation.nameNoDigits');
+  if (code === 'name_max_length') return t('employee.documents.validation.nameMaxLength');
+  if (code === 'invalid_name') return t('employee.documents.validation.nameInvalid');
+  return null;
+}
 
 /**
  * Manual / extracted Identity Appendix editor — children list only.
@@ -53,8 +67,14 @@ export function AppendixChildrenForm({
               const nameId = `appendix-child-name-${index}`;
               const birthId = `appendix-child-birth-${index}`;
               const rowError = errorByIndex.get(index);
-              const incomplete = rowError?.code === 'incomplete';
-              const birthInvalid = rowError?.code === 'invalid_birth_date';
+              const message = rowErrorMessage(t, rowError?.code);
+              const nameInvalid =
+                rowError?.code === 'incomplete' ||
+                rowError?.code === 'invalid_name' ||
+                rowError?.code === 'name_digits' ||
+                rowError?.code === 'name_max_length';
+              const birthInvalid =
+                rowError?.code === 'incomplete' || rowError?.code === 'invalid_birth_date';
               return (
                 <li key={`child-${index}`} className="appendix-children-form__item">
                   <div className="appendix-children-form__item-header">
@@ -77,8 +97,9 @@ export function AppendixChildrenForm({
                       </span>
                       <input
                         id={nameId}
-                        className={`digital-form__input${incomplete ? ' is-invalid' : ''}`}
+                        className={`digital-form__input${nameInvalid ? ' is-invalid' : ''}`}
                         type="text"
+                        maxLength={FIELD_MAX_LENGTH.personName}
                         value={child.name}
                         disabled={busy}
                         onChange={(event) => onChangeChild(index, { name: event.target.value })}
@@ -91,14 +112,16 @@ export function AppendixChildrenForm({
                       value={child.birth_date}
                       disabled={busy}
                       error={
-                        birthInvalid ? t('employee.documents.validation.dateInvalid') : null
+                        birthInvalid && rowError?.code === 'invalid_birth_date'
+                          ? t('employee.documents.validation.dateInvalid')
+                          : null
                       }
                       onChange={(next) => onChangeChild(index, { birth_date: next })}
                     />
                   </div>
-                  {incomplete ? (
+                  {message ? (
                     <p className="digital-form__error" role="alert">
-                      {t('employee.documents.validation.childIncomplete')}
+                      {message}
                     </p>
                   ) : null}
                 </li>

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { BirthDateField } from './BirthDateField';
 import { fixedFieldKeysFor } from '../../lib/employee/document-fixed-forms';
 import { parseBirthDate } from '../../lib/employee/birth-date';
+import { FIELD_MAX_LENGTH, validatePersonName } from '../../lib/employee/field-text';
 import { validateNationalId } from '../../lib/employee/israeli-id';
 import '../employee/employee-payslip.css';
 import '../guest/landing/landing-chat.css';
@@ -27,6 +28,7 @@ export function EmployeeFixedDocumentForm({
   const { t } = useTranslation();
   const keys = fixedFieldKeysFor(documentType) ?? [];
   const [touchedId, setTouchedId] = useState(false);
+  const [touchedName, setTouchedName] = useState(false);
 
   const liveIdError = useMemo(() => {
     const raw = values.national_id ?? '';
@@ -38,6 +40,17 @@ export function EmployeeFixedDocumentForm({
     if (result.code === 'checksum') return t('employee.documents.validation.nationalIdChecksum');
     return null;
   }, [t, values.national_id]);
+
+  const liveNameError = useMemo(() => {
+    const raw = values.full_name ?? '';
+    if (!raw.trim()) return null;
+    const result = validatePersonName(raw);
+    if (result.ok) return null;
+    if (result.code === 'digits') return t('employee.documents.validation.nameNoDigits');
+    if (result.code === 'max_length') return t('employee.documents.validation.nameMaxLength');
+    if (result.code === 'invalid_chars') return t('employee.documents.validation.nameInvalid');
+    return null;
+  }, [t, values.full_name]);
 
   const liveBirthError = useMemo(() => {
     const raw = values.birth_date ?? '';
@@ -80,7 +93,16 @@ export function EmployeeFixedDocumentForm({
             const error =
               key === 'national_id'
                 ? (fieldErrors.national_id ?? (touchedId ? liveIdError : null))
-                : (fieldErrors[key as 'full_name'] ?? null);
+                : key === 'full_name'
+                  ? (fieldErrors.full_name ?? (touchedName ? liveNameError : null))
+                  : null;
+
+            const maxLength =
+              key === 'national_id'
+                ? FIELD_MAX_LENGTH.nationalId
+                : key === 'full_name'
+                  ? FIELD_MAX_LENGTH.personName
+                  : undefined;
 
             return (
               <label
@@ -96,11 +118,13 @@ export function EmployeeFixedDocumentForm({
                   className={`digital-form__input${error ? ' is-invalid' : ''}`}
                   type="text"
                   inputMode={key === 'national_id' ? 'numeric' : undefined}
+                  maxLength={maxLength}
                   value={values[key] ?? ''}
                   disabled={busy}
                   onChange={(event) => onChangeField(key, event.target.value)}
                   onBlur={() => {
                     if (key === 'national_id') setTouchedId(true);
+                    if (key === 'full_name') setTouchedName(true);
                   }}
                   autoComplete="off"
                 />

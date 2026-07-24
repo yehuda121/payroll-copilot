@@ -113,7 +113,7 @@ export function clearCognitoSession(): void {
 export function getRoleHomePath(role: UserRole): string {
   switch (role) {
     case 'employee':
-      return '/employee/documents';
+      return '/employee/chat';
     case 'payroll_accountant':
       return '/accountant/employees';
     case 'developer_admin':

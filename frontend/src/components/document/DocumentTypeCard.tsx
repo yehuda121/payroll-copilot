@@ -19,6 +19,7 @@ import {
   type AppendixChildRowError,
 } from '../../lib/employee/appendix-children-validation';
 import { parseBirthDate } from '../../lib/employee/birth-date';
+import { validatePersonName } from '../../lib/employee/field-text';
 import { validateNationalId } from '../../lib/employee/israeli-id';
 import { resolveDocumentCardStatus } from '../../lib/employee/document-card-status';
 import { validateUploadFile } from '../../lib/guest/upload-guardrails';
@@ -165,7 +166,26 @@ export function DocumentTypeCard({ documentType }: { documentType: PersistentDoc
   const validateAndSave = async () => {
     if (documentType === 'national_id') {
       const errors: Partial<Record<'national_id' | 'birth_date' | 'full_name', string>> = {};
-      const nationalId = flow.fixedValues.national_id ?? '';
+      const nextValues = { ...flow.fixedValues };
+      const fullNameRaw = nextValues.full_name ?? '';
+      if (fullNameRaw.trim()) {
+        const nameResult = validatePersonName(fullNameRaw);
+        if (!nameResult.ok) {
+          if (nameResult.code === 'digits') {
+            errors.full_name = t('employee.documents.validation.nameNoDigits');
+          } else if (nameResult.code === 'max_length') {
+            errors.full_name = t('employee.documents.validation.nameMaxLength');
+          } else {
+            errors.full_name = t('employee.documents.validation.nameInvalid');
+          }
+        } else {
+          nextValues.full_name = nameResult.value;
+        }
+      } else {
+        nextValues.full_name = '';
+      }
+
+      const nationalId = nextValues.national_id ?? '';
       if (nationalId.trim()) {
         const idResult = validateNationalId(nationalId);
         if (!idResult.ok) {
@@ -176,19 +196,28 @@ export function DocumentTypeCard({ documentType }: { documentType: PersistentDoc
           } else if (idResult.code === 'checksum') {
             errors.national_id = t('employee.documents.validation.nationalIdChecksum');
           }
+        } else {
+          nextValues.national_id = idResult.digits;
         }
       }
-      const birth = flow.fixedValues.birth_date ?? '';
+
+      const birth = nextValues.birth_date ?? '';
       if (birth.trim()) {
         const parsed = parseBirthDate(birth);
         if (!parsed.ok) {
           errors.birth_date = t('employee.documents.validation.dateInvalid');
-        } else if (parsed.iso !== birth) {
-          flow.updateFieldDraft('birth_date', parsed.iso);
+        } else {
+          nextValues.birth_date = parsed.iso;
         }
+      } else {
+        nextValues.birth_date = '';
       }
+
       setIdFieldErrors(errors);
       if (Object.keys(errors).length > 0) return;
+      const ok = await flow.saveDigitalForm({ fixedValuesOverride: nextValues });
+      if (ok) setEditOpen(false);
+      return;
     }
 
     if (isAppendixDocumentType(documentType)) {
@@ -254,6 +283,7 @@ export function DocumentTypeCard({ documentType }: { documentType: PersistentDoc
         filename={flow.item?.original_filename}
         allowManualEditWhenEmpty={allowManualEditWhenEmpty}
         hasOriginal={hasOriginal}
+        hasDigital={hasDigital}
         onEdit={() => setEditOpen(true)}
         onUpload={() => fileInputRef.current?.click()}
         onDelete={() => {
@@ -395,7 +425,9 @@ export function DocumentTypeCard({ documentType }: { documentType: PersistentDoc
           <p className="modal-dialog__message">{t('employee.documents.deleteIntro')}</p>
           <fieldset className="document-delete-choices">
             <legend className="visually-hidden">{t('employee.documents.deleteLegend')}</legend>
-            <label>
+            <label
+              title={!hasOriginal ? t('employee.documents.deleteOriginalDisabledHint') : undefined}
+            >
               <input
                 type="radio"
                 name={`delete-scope-${documentType}`}
@@ -409,7 +441,9 @@ export function DocumentTypeCard({ documentType }: { documentType: PersistentDoc
                 {t('employee.documents.deleteOriginalHint')}
               </span>
             </label>
-            <label>
+            <label
+              title={!hasDigital ? t('employee.documents.deleteDigitalDisabledHint') : undefined}
+            >
               <input
                 type="radio"
                 name={`delete-scope-${documentType}`}
@@ -423,12 +457,18 @@ export function DocumentTypeCard({ documentType }: { documentType: PersistentDoc
                 {t('employee.documents.deleteDigitalHint')}
               </span>
             </label>
-            <label>
+            <label
+              title={
+                !(hasOriginal && hasDigital)
+                  ? t('employee.documents.deleteBothDisabledHint')
+                  : undefined
+              }
+            >
               <input
                 type="radio"
                 name={`delete-scope-${documentType}`}
                 checked={deleteScope === 'both'}
-                disabled={!hasOriginal && !hasDigital}
+                disabled={!(hasOriginal && hasDigital)}
                 onChange={() => setDeleteScope('both')}
               />
               <span>

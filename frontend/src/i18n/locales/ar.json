@@ -802,13 +802,22 @@
       "deleteConfirmIntroPlural": "أنت على وشك الحذف النهائي لـ:",
       "deleteConfirmIrreversible": "لا يمكن التراجع عن هذا الإجراء.",
       "deleteDisabledNoOriginal": "الحذف متاح بعد رفع المستند الأصلي.",
+      "deleteDisabledNothing": "لا يوجد ما يُحذف بعد. ارفع مستندًا أو احفظ نموذجًا رقميًا أولًا.",
+      "deleteOriginalDisabledHint": "لم يتم رفع مستند أصلي.",
+      "deleteDigitalDisabledHint": "لا يوجد نموذج رقمي متاح.",
+      "deleteBothDisabledHint": "يلزم وجود المستند الأصلي والنموذج الرقمي معًا لهذا الخيار.",
       "validation": {
         "nationalIdDigits": "يجب أن يحتوي رقم الهوية على أرقام فقط.",
         "nationalIdLength": "يجب أن يتكون رقم الهوية من 9 أرقام بالضبط.",
         "nationalIdChecksum": "مجموع التحقق لرقم الهوية غير صالح.",
         "dateInvalid": "أدخل تاريخًا صالحًا.",
         "dateUnrecognized": "تنسيق التاريخ غير معروف. استخدم منتقي التاريخ أو تنسيقًا شائعًا مثل DD.MM.YYYY.",
-        "childIncomplete": "عند تعبئة أحد الحقلين، يصبح اسم الطفل وتاريخ الميلاد مطلوبين معًا."
+        "datePlaceholder": "YYYY-MM-DD أو DD.MM.YYYY",
+        "datePickerAria": "فتح التقويم لـ {{label}}",
+        "childIncomplete": "يجب تعبئة جميع الحقول لهذا الطفل.",
+        "nameNoDigits": "لا يمكن أن يحتوي الاسم على أرقام.",
+        "nameMaxLength": "الاسم طويل جدًا.",
+        "nameInvalid": "أدخل اسمًا صالحًا باستخدام الأحرف فقط."
       },
       "badges": {
         "loading": "جارٍ التحميل",

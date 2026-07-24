@@ -804,13 +804,22 @@
       "deleteConfirmIntroPlural": "You are about to permanently delete:",
       "deleteConfirmIrreversible": "This action cannot be undone.",
       "deleteDisabledNoOriginal": "Delete is available after an original document is uploaded.",
+      "deleteDisabledNothing": "Nothing to delete yet. Upload a document or save a digital form first.",
+      "deleteOriginalDisabledHint": "No original document is uploaded.",
+      "deleteDigitalDisabledHint": "No digital form is available.",
+      "deleteBothDisabledHint": "Both original and digital form are required for this option.",
       "validation": {
         "nationalIdDigits": "National ID must contain digits only.",
         "nationalIdLength": "National ID must be exactly 9 digits.",
         "nationalIdChecksum": "National ID checksum is invalid.",
         "dateInvalid": "Enter a valid date.",
         "dateUnrecognized": "Unrecognized date format. Use the date picker or a common format such as DD.MM.YYYY.",
-        "childIncomplete": "Child name and birth date are both required when either is filled."
+        "datePlaceholder": "YYYY-MM-DD or DD.MM.YYYY",
+        "datePickerAria": "Open calendar for {{label}}",
+        "childIncomplete": "All fields are required for this child.",
+        "nameNoDigits": "Names cannot contain digits.",
+        "nameMaxLength": "Name is too long.",
+        "nameInvalid": "Enter a valid name using letters only."
       },
       "badges": {
         "loading": "Loading",

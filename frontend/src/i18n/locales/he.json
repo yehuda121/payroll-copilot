@@ -804,13 +804,22 @@
       "deleteConfirmIntroPlural": "אתם עומדים למחוק לצמיתות:",
       "deleteConfirmIrreversible": "לא ניתן לבטל פעולה זו.",
       "deleteDisabledNoOriginal": "מחיקה זמינה לאחר העלאת מסמך מקור.",
+      "deleteDisabledNothing": "אין מה למחוק עדיין. העלו מסמך או שמרו טופס דיגיטלי תחילה.",
+      "deleteOriginalDisabledHint": "לא הועלה מסמך מקור.",
+      "deleteDigitalDisabledHint": "אין טופס דיגיטלי זמין.",
+      "deleteBothDisabledHint": "נדרשים גם מסמך מקור וגם טופס דיגיטלי עבור אפשרות זו.",
       "validation": {
         "nationalIdDigits": "מספר הזהות חייב להכיל ספרות בלבד.",
         "nationalIdLength": "מספר הזהות חייב להיות בן 9 ספרות בדיוק.",
         "nationalIdChecksum": "ספרת הביקורת של מספר הזהות אינה תקינה.",
         "dateInvalid": "נא להזין תאריך תקין.",
         "dateUnrecognized": "פורמט תאריך לא מזוהה. השתמשו בבורר התאריך או בפורמט נפוץ כמו DD.MM.YYYY.",
-        "childIncomplete": "כשאחד מהשדות מולא, גם שם הילד/ה וגם תאריך הלידה נדרשים."
+        "datePlaceholder": "YYYY-MM-DD או DD.MM.YYYY",
+        "datePickerAria": "פתיחת לוח שנה עבור {{label}}",
+        "childIncomplete": "חובה למלא את כל השדות עבור הילד/ה.",
+        "nameNoDigits": "שם אינו יכול להכיל ספרות.",
+        "nameMaxLength": "השם ארוך מדי.",
+        "nameInvalid": "נא להזין שם תקין באותיות בלבד."
       },
       "badges": {
         "loading": "טוען",

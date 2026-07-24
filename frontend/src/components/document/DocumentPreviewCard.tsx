@@ -21,8 +21,8 @@ type DocumentPreviewCardProps = {
   filename?: string | null;
   /** When true, Edit stays available even with no original/digital document. */
   allowManualEditWhenEmpty?: boolean;
-  /** True when an uploaded original file exists. */
   hasOriginal?: boolean;
+  hasDigital?: boolean;
   onEdit: () => void;
   onUpload: () => void;
   onDelete: () => void;
@@ -32,7 +32,7 @@ type DocumentPreviewCardProps = {
 
 /**
  * Fixed-height document preview card for Employee Document Center.
- * Only the preview surface opens Edit — chrome actions stay separate.
+ * Structural chrome stays RTL; preview values ellipsize visually only.
  */
 export function DocumentPreviewCard({
   title,
@@ -43,6 +43,7 @@ export function DocumentPreviewCard({
   filename,
   allowManualEditWhenEmpty = false,
   hasOriginal = false,
+  hasDigital = false,
   onEdit,
   onUpload,
   onDelete,
@@ -52,11 +53,11 @@ export function DocumentPreviewCard({
   const { t } = useTranslation();
   const canEdit =
     !busy && status !== 'loading' && (!empty || allowManualEditWhenEmpty);
-  // Always visible. Disabled when no uploaded original exists (per product rule).
-  const canDelete = !busy && status !== 'loading' && hasOriginal;
+  // Delete enabled when original and/or digital form exists.
+  const canDelete = !busy && status !== 'loading' && (hasOriginal || hasDigital);
   const deleteLabel = canDelete
     ? t('common.delete')
-    : t('employee.documents.deleteDisabledNoOriginal');
+    : t('employee.documents.deleteDisabledNothing');
 
   return (
     <article
@@ -74,7 +75,7 @@ export function DocumentPreviewCard({
         }
       }}
     >
-      <header className="document-preview-card__header" dir="rtl">
+      <header className="document-preview-card__header ui-chrome-rtl" dir="rtl">
         <h3 className="document-preview-card__title">{title}</h3>
         <DocumentStatusBadge status={status} />
       </header>
@@ -108,13 +109,20 @@ export function DocumentPreviewCard({
             onClick={onEdit}
           >
             {filename ? (
-              <p className="document-preview-card__filename">{filename}</p>
+              <p className="document-preview-card__filename" title={filename}>
+                {filename}
+              </p>
             ) : null}
             <div className="digital-form__grid document-preview-card__grid">
               {fields.map((field) => (
                 <div key={field.key} className="digital-form__field document-preview-card__field">
                   <span className="digital-form__label">{field.label}</span>
-                  <p className="digital-form__readonly">{field.value || t('common.emDash')}</p>
+                  <p
+                    className="digital-form__readonly document-preview-card__value"
+                    title={field.value || undefined}
+                  >
+                    {field.value || t('common.emDash')}
+                  </p>
                 </div>
               ))}
             </div>
@@ -122,7 +130,7 @@ export function DocumentPreviewCard({
         )}
       </div>
 
-      <footer className="document-preview-card__actions" dir="rtl">
+      <footer className="document-preview-card__actions ui-chrome-rtl" dir="rtl">
         <ActionIconButton
           label={t('common.edit')}
           tone="primary"
