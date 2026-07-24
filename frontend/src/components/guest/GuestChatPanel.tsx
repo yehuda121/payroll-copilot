@@ -1,6 +1,7 @@
 import { AssistantMarkdown } from './AssistantMarkdown';
 import { AssistantUsageFooter } from './AssistantUsageFooter';
 import { ChatComposer } from './ChatComposer';
+import { ChatWelcome } from '../chat/ChatWelcome';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { env } from '../../config/env';
@@ -14,6 +15,7 @@ import type {
 } from '../../types/assistant';
 import '../ui/ui.css';
 import '../../features/guest/guest.css';
+import '../../features/guest/landing/landing-chat.css';
 
 type GuestChatPanelProps = {
   compact?: boolean;
@@ -28,6 +30,14 @@ type GuestChatPanelProps = {
    * and keep using the existing public assistant service unchanged.
    */
   chatHandler?: (payload: AssistantChatRequest) => Promise<AssistantChatResponse>;
+  /**
+   * Use Landing product shell (fixed viewport height, toolbar composer).
+   * Domain behavior is unchanged.
+   */
+  productShell?: boolean;
+  /** When set with productShell, shows ChatWelcome using this i18n namespace. */
+  welcomeNamespace?: string;
+  welcomeSuggestionKeys?: readonly string[];
 };
 
 function formatTimestamp(iso: string, locale: string): string {
@@ -49,6 +59,9 @@ export function GuestChatPanel({
   onPendingQuestionConsumed,
   onAttach,
   chatHandler = assistantService.chat,
+  productShell = false,
+  welcomeNamespace,
+  welcomeSuggestionKeys,
 }: GuestChatPanelProps) {
   const { t, i18n } = useTranslation();
   const { locale } = useAppLocale();
@@ -188,115 +201,146 @@ export function GuestChatPanel({
     await submitMessage(msg.prompt, { replaceAssistantId: msg.id });
   };
 
+  const emptyState =
+    messages.length === 0 ? (
+      welcomeNamespace ? (
+        <div className={productShell ? 'landing-chat__empty' : 'chat-shell__empty'}>
+          <ChatWelcome namespace={welcomeNamespace} suggestionKeys={welcomeSuggestionKeys} />
+        </div>
+      ) : (
+        <div className={productShell ? 'landing-chat__empty' : 'chat-shell__empty'}>
+          <p>{t('assistant.empty')}</p>
+        </div>
+      )
+    ) : null;
+
+  const messageList = (
+    <>
+      {emptyState}
+      {messages.map((msg) => (
+        <div key={msg.id} className={`chat-bubble chat-bubble--${msg.role}`}>
+          {msg.role === 'assistant' ? (
+            <AssistantMarkdown content={msg.content} />
+          ) : (
+            <p className="chat-bubble__plain">{msg.content}</p>
+          )}
+          {msg.guardrailStatus &&
+            msg.guardrailStatus !== 'passed' &&
+            msg.guardrailStatus !== 'answered_from_source' && (
+              <div
+                className={`assistant-banner assistant-banner--${
+                  msg.guardrailStatus === 'blocked' ||
+                  msg.guardrailStatus === 'blocked_off_topic' ||
+                  msg.guardrailStatus === 'blocked_safety'
+                    ? 'blocked'
+                    : 'limited'
+                }`}
+              >
+                {guardrailLabel(msg.guardrailStatus)}
+              </div>
+            )}
+          {msg.sources && msg.sources.length > 0 && env.isDevRuntime ? (
+            <ul className="chat-message__sources">
+              {msg.sources.map((source) => (
+                <li key={`${source.title}-${source.reference ?? 'na'}`}>
+                  {source.title}
+                  {source.reference ? ` (${source.reference})` : ''}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {msg.role === 'assistant' &&
+          (!msg.sources || msg.sources.length === 0) &&
+          (msg.guardrailStatus === 'limited' || msg.guardrailStatus === 'limited_in_domain') ? (
+            <p className="chat-message__guardrail">{t('assistant.noSource')}</p>
+          ) : null}
+          <div className="chat-bubble__meta">
+            <time dateTime={msg.createdAt}>{formatTimestamp(msg.createdAt, i18n.language)}</time>
+            {msg.role === 'assistant' && (
+              <div className="chat-bubble__actions">
+                <button type="button" className="btn btn--ghost" onClick={() => void copyMessage(msg)}>
+                  {copiedId === msg.id ? t('common.copied') : t('common.copy')}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  onClick={() => {
+                    void regenerate(msg);
+                  }}
+                  disabled={isLoading}
+                >
+                  {t('common.regenerate')}
+                </button>
+              </div>
+            )}
+          </div>
+          {msg.role === 'assistant' ? <AssistantUsageFooter usage={msg.usage} /> : null}
+        </div>
+      ))}
+
+      {isLoading && (
+        <div className="chat-bubble chat-bubble--assistant" aria-label={t('assistant.typing')}>
+          <div className="chat-typing">
+            <span>{t('assistant.typing')}</span>
+            <span className="chat-typing__dots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+          </div>
+        </div>
+      )}
+      <div ref={bottomRef} />
+    </>
+  );
+
+  const composer = (
+    <ChatComposer
+      value={message}
+      onChange={setMessage}
+      onSubmit={handleSubmit}
+      disabled={isLoading}
+      canSend={Boolean(message.trim())}
+      placeholder={t('assistant.placeholder')}
+      ariaMessage={t('assistant.ariaMessage')}
+      onAttach={onAttach}
+      modelChoices={chatModelChoices}
+      modelValue={chatModel}
+      onModelChange={setChatModel}
+      toolbarControls={productShell}
+      sendingLabel={
+        isLoading ? (
+          <span className="chat-composer__send-icon" aria-hidden="true">
+            …
+          </span>
+        ) : undefined
+      }
+    />
+  );
+
+  if (productShell) {
+    return (
+      <div className={`landing-chat payroll-chat${compact ? ' payroll-chat--compact' : ''}`}>
+        <div className="landing-chat__layout">
+          <div className="landing-chat__shell" aria-label={t('assistant.title')}>
+            <div className="landing-chat__messages" aria-live="polite">
+              {messageList}
+            </div>
+            {error ? <p className="chat-panel__error">{error}</p> : null}
+            <div className="landing-chat__composer">{composer}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`chat-shell ${compact ? 'chat-shell--compact' : ''}`}>
       <div className="chat-shell__messages" aria-live="polite">
-        {messages.length === 0 && (
-          <div className="chat-shell__empty">
-            <p>{t('assistant.empty')}</p>
-          </div>
-        )}
-
-        {messages.map((msg) => (
-          <div key={msg.id} className={`chat-bubble chat-bubble--${msg.role}`}>
-            {msg.role === 'assistant' ? (
-              <AssistantMarkdown content={msg.content} />
-            ) : (
-              <p className="chat-bubble__plain">{msg.content}</p>
-            )}
-            {msg.guardrailStatus &&
-              msg.guardrailStatus !== 'passed' &&
-              msg.guardrailStatus !== 'answered_from_source' && (
-                <div
-                  className={`assistant-banner assistant-banner--${
-                    msg.guardrailStatus === 'blocked' ||
-                    msg.guardrailStatus === 'blocked_off_topic' ||
-                    msg.guardrailStatus === 'blocked_safety'
-                      ? 'blocked'
-                      : 'limited'
-                  }`}
-                >
-                  {guardrailLabel(msg.guardrailStatus)}
-                </div>
-              )}
-            {msg.sources && msg.sources.length > 0 && env.isDevRuntime ? (
-              <ul className="chat-message__sources">
-                {msg.sources.map((source) => (
-                  <li key={`${source.title}-${source.reference ?? 'na'}`}>
-                    {source.title}
-                    {source.reference ? ` (${source.reference})` : ''}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {msg.role === 'assistant' &&
-            (!msg.sources || msg.sources.length === 0) &&
-            (msg.guardrailStatus === 'limited' || msg.guardrailStatus === 'limited_in_domain') ? (
-              <p className="chat-message__guardrail">{t('assistant.noSource')}</p>
-            ) : null}
-            <div className="chat-bubble__meta">
-              <time dateTime={msg.createdAt}>{formatTimestamp(msg.createdAt, i18n.language)}</time>
-              {msg.role === 'assistant' && (
-                <div className="chat-bubble__actions">
-                  <button type="button" className="btn btn--ghost" onClick={() => void copyMessage(msg)}>
-                    {copiedId === msg.id ? t('common.copied') : t('common.copy')}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn--ghost"
-                    onClick={() => {
-                      void regenerate(msg);
-                    }}
-                    disabled={isLoading}
-                  >
-                    {t('common.regenerate')}
-                  </button>
-                </div>
-              )}
-            </div>
-            {msg.role === 'assistant' ? (
-              <AssistantUsageFooter usage={msg.usage} />
-            ) : null}
-          </div>
-        ))}
-
-        {isLoading && (
-          <div className="chat-bubble chat-bubble--assistant" aria-label={t('assistant.typing')}>
-            <div className="chat-typing">
-              <span>{t('assistant.typing')}</span>
-              <span className="chat-typing__dots" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </span>
-            </div>
-          </div>
-        )}
-        <div ref={bottomRef} />
+        {messageList}
       </div>
-
-      {error && <p className="chat-panel__error">{error}</p>}
-
-      <ChatComposer
-        value={message}
-        onChange={setMessage}
-        onSubmit={handleSubmit}
-        disabled={isLoading}
-        canSend={Boolean(message.trim())}
-        placeholder={t('assistant.placeholder')}
-        ariaMessage={t('assistant.ariaMessage')}
-        onAttach={onAttach}
-        modelChoices={chatModelChoices}
-        modelValue={chatModel}
-        onModelChange={setChatModel}
-        sendingLabel={
-          isLoading ? (
-            <span className="chat-composer__send-icon" aria-hidden="true">
-              …
-            </span>
-          ) : undefined
-        }
-      />
+      {error ? <p className="chat-panel__error">{error}</p> : null}
+      {composer}
     </div>
   );
 }

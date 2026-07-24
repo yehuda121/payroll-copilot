@@ -840,6 +840,22 @@
         "attendance": "Attendance report"
       }
     },
+    "chat": {
+      "welcome": {
+        "greeting": "Hello!",
+        "title": "How can I help today?",
+        "intro": "I can help with:",
+        "hint": "These are only suggestions — you can ask anything about your payroll.",
+        "suggestions": {
+          "payslips": "Questions about my payslips",
+          "salaryComponents": "Explain salary components and deductions",
+          "documents": "Questions about my employment documents",
+          "leaveOvertime": "Vacation, sick leave and overtime",
+          "laborLaw": "Employee rights under Israeli labor law",
+          "validation": "Understanding validation results"
+        }
+      }
+    },
     "navigation": {
       "portalName": "Employee Portal",
       "portalSubtitle": "Personal payroll & documents",

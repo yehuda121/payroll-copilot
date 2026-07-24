@@ -1,10 +1,12 @@
 import { useCallback, useState } from 'react';
 import { useEmployeeSession } from '../../auth/EmployeeSessionContext';
 import { PortalPage } from '../../components/PortalPage';
+import { EMPLOYEE_CHAT_SUGGESTIONS } from '../../components/chat/ChatWelcome';
 import { GuestChatPanel } from '../../components/guest/GuestChatPanel';
 import { PopularQuestionsPanel } from '../../components/guest/PopularQuestionsPanel';
 import { useEmployeeWorkspace } from '../../features/employee/EmployeeWorkspaceContext';
 import '../../features/guest/guest.css';
+import '../../features/guest/landing/landing-chat.css';
 import { useEmployeeContextBuilder } from '../../hooks/useEmployeeContextBuilder';
 import { useWorkspacePageCopy } from '../../hooks/useWorkspacePageCopy';
 import { employeeAssistantService } from '../../services/assistant';
@@ -75,6 +77,9 @@ export function PayrollChatPanel({
       chatHandler={employeeChat}
       pendingQuestion={pendingQuestion}
       onPendingQuestionConsumed={onPendingQuestionConsumed}
+      productShell
+      welcomeNamespace="employee.chat.welcome"
+      welcomeSuggestionKeys={EMPLOYEE_CHAT_SUGGESTIONS}
     />
   );
 }
@@ -87,20 +92,34 @@ export function PayrollChatPage() {
     <PortalPage
       title={copy.chatTitle}
       description={copy.chatDescription}
+      hideHeader
       integrationNote="@integration-point EMPLOYEE_AI_CHAT"
     >
-      <div className="chat-with-popular">
-        <PopularQuestionsPanel
-          onSelect={(question) => {
-            setPendingQuestion(question);
-          }}
-        />
-        <PayrollChatPanel
-          pendingQuestion={pendingQuestion}
-          onPendingQuestionConsumed={() => {
-            setPendingQuestion(null);
-          }}
-        />
+      {/*
+        Structural layout is fixed (chat primary, supporting + popular secondary).
+        Locale only affects text direction inside each region.
+        On narrow screens DOM order keeps Chat first.
+      */}
+      <div className="chat-with-popular chat-with-popular--workspace" dir="ltr">
+        <div className="chat-with-popular__primary">
+          <PayrollChatPanel
+            pendingQuestion={pendingQuestion}
+            onPendingQuestionConsumed={() => {
+              setPendingQuestion(null);
+            }}
+          />
+        </div>
+        <aside className="chat-with-popular__secondary" dir="auto">
+          <header className="employee-chat-support">
+            <h1 className="employee-chat-support__title">{copy.chatTitle}</h1>
+            <p className="employee-chat-support__description">{copy.chatDescription}</p>
+          </header>
+          <PopularQuestionsPanel
+            onSelect={(question) => {
+              setPendingQuestion(question);
+            }}
+          />
+        </aside>
       </div>
     </PortalPage>
   );

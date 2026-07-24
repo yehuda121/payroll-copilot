@@ -46,42 +46,45 @@ export function AppNavbar({ showAuthLinks = true }: AppNavbarProps) {
           <span className="app-navbar__name">{APP_NAME}</span>
         </Link>
 
-        <nav className="app-navbar__desktop" aria-label={t('common.primaryNav')}>
-          <LanguageSelector />
-          <ThemeToggle />
+        <div className="app-navbar__actions">
+          <div className="app-navbar__chrome-controls">
+            <LanguageSelector />
+            <ThemeToggle />
+          </div>
+          <nav className="app-navbar__desktop" aria-label={t('common.primaryNav')}>
+            {showAuthLinks ? (
+              <>
+                <Link to="/login" className="btn btn--ghost">
+                  {t('common.login')}
+                </Link>
+                <Link to="/signup" className="btn btn--primary">
+                  {t('common.signup')}
+                </Link>
+              </>
+            ) : null}
+          </nav>
           {showAuthLinks ? (
-            <>
-              <Link to="/login" className="btn btn--ghost">
-                {t('common.login')}
-              </Link>
-              <Link to="/signup" className="btn btn--primary">
-                {t('common.signup')}
-              </Link>
-            </>
+            <button
+              type="button"
+              className="btn btn--ghost btn--icon app-navbar__menu-btn"
+              aria-expanded={menuOpen}
+              aria-controls={menuId}
+              aria-label={menuOpen ? t('common.closeMenu') : t('common.openMenu')}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {menuOpen ? <CloseIcon aria-hidden="true" /> : <MenuIcon aria-hidden="true" />}
+            </button>
           ) : null}
-        </nav>
-
-        <button
-          type="button"
-          className="btn btn--ghost btn--icon app-navbar__menu-btn"
-          aria-expanded={menuOpen}
-          aria-controls={menuId}
-          aria-label={menuOpen ? t('common.closeMenu') : t('common.openMenu')}
-          onClick={() => setMenuOpen((open) => !open)}
-        >
-          {menuOpen ? <CloseIcon aria-hidden="true" /> : <MenuIcon aria-hidden="true" />}
-        </button>
+        </div>
       </PageContainer>
 
-      <div
-        id={menuId}
-        className={`app-navbar__drawer ${menuOpen ? 'is-open' : ''}`}
-        hidden={!menuOpen}
-      >
-        <PageContainer className="app-navbar__drawer-inner" width="wide">
-          <LanguageSelector />
-          <ThemeToggle />
-          {showAuthLinks ? (
+      {showAuthLinks ? (
+        <div
+          id={menuId}
+          className={`app-navbar__drawer ${menuOpen ? 'is-open' : ''}`}
+          hidden={!menuOpen}
+        >
+          <PageContainer className="app-navbar__drawer-inner" width="wide">
             <div className="app-navbar__drawer-auth">
               <Link
                 to="/login"
@@ -98,9 +101,9 @@ export function AppNavbar({ showAuthLinks = true }: AppNavbarProps) {
                 {t('common.signup')}
               </Link>
             </div>
-          ) : null}
-        </PageContainer>
-      </div>
+          </PageContainer>
+        </div>
+      ) : null}
     </header>
   );
 }

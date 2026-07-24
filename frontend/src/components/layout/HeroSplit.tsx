@@ -7,14 +7,17 @@ type HeroSplitProps = {
 };
 
 /**
- * Two-column marketing hero: copy | primary interaction.
- * Stacks on tablet/mobile (copy first, media second).
+ * Two-column marketing hero with fixed physical layout (Hebrew reference):
+ * Chat/media on the left, supporting copy on the right — locale-independent.
+ * On narrow screens: Chat first, then copy/popular content.
  */
 export function HeroSplit({ copy, media, className = '' }: HeroSplitProps) {
   return (
-    <section className={`hero-split ${className}`.trim()}>
-      <div className="hero-split__copy">{copy}</div>
+    <section className={`hero-split ${className}`.trim()} dir="ltr">
       <div className="hero-split__media">{media}</div>
+      <div className="hero-split__copy" dir="auto">
+        {copy}
+      </div>
     </section>
   );
 }
