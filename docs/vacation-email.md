@@ -59,7 +59,8 @@ Accountant-configurable notification destination (preferences PATCH). Independen
 ### Integrations (org-bound `X-Api-Key`)
 
 - `GET /integrations/vacation/mailbox-config` — notification prefs + status (not IMAP mailbox assignment)
-- `POST /integrations/email/inbound-vacation`
+- `POST /integrations/email/inbound-vacation` — single vacation item (compat)
+- `POST /integrations/email/inbound-leave/batch` — mixed VACATION + SICK_LEAVE batch; one aggregated notification instruction
 - `POST /integrations/email/events`
 - `POST /integrations/mailbox/health`
 
@@ -68,8 +69,47 @@ Legacy global `N8N_API_KEY` is **not** accepted as org authorization.
 ## Historical email protection
 
 Primary: **n8n activation watermark** (`process_after`).  
-Secondary: backend `provider` + `provider_message_id` idempotency.
+Secondary: backend `provider` + `provider_message_id` idempotency (per domain).
 
-## Sick leave
+## Vacation and Sick Leave are separate domains
 
-`CLASSIFIED_SICK_LEAVE` event only — no VacationRequest persistence.
+Payroll Copilot keeps **VacationRequest** and **SickLeaveRequest** as independent first-class entities
+(separate DynamoDB `entity_type` / key prefixes `VAC#` vs `SICK#`). Do not merge them into a generic
+LeaveRequest. Overlap and business-duplicate detection are **intra-domain only** initially
+(Vacation ↔ Sick Leave for the same dates are not treated as duplicates or overlaps).
+
+Accountant UI: `/accountant/vacations` and `/accountant/sick-leaves` are separate tabs with parallel UX.
+Notification destination email is shared; vacation and sick-leave notify toggles are independent.
+
+Batch response contract (conceptual):
+
+```json
+{
+  "received_count": 5,
+  "duplicate_count": 2,
+  "results": [
+    {
+      "classification": "VACATION",
+      "request_id": "...",
+      "outcome": "SUCCESS",
+      "review_status": "pending_approval",
+      "employee_name": "...",
+      "start_date": "...",
+      "end_date": "...",
+      "attention_codes": [],
+      "summary": "..."
+    }
+  ],
+  "notification": {
+    "should_send": true,
+    "to_email": "payroll@example.com",
+    "subject": "Payroll Copilot — New leave requests",
+    "body_text": "..."
+  }
+}
+```
+
+Duplicates are counted but omitted from `results`. If every item is a duplicate (or nothing
+notify-worthy remains after prefs/recipient checks), `notification.should_send` is `false`.
+Payroll Copilot remains SoT for matching, validation, duplicates, overlaps, and notification content;
+n8n remains the email/orchestration layer and only executes the returned send instruction.

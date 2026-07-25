@@ -13,6 +13,11 @@ from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 
 from payroll_copilot.application.ports import AICapability
+from payroll_copilot.application.use_cases.ingest_leave_batch import (
+    InboundLeaveBatchItem,
+    IngestLeaveBatchUseCase,
+)
+from payroll_copilot.application.use_cases.manage_sick_leaves import ManageSickLeavesUseCase
 from payroll_copilot.application.use_cases.manage_vacations import (
     InboundVacationCommand,
     ManageVacationsUseCase,
@@ -54,6 +59,27 @@ def _use_case() -> ManageVacationsUseCase:
         email=create_email_service(settings),
         object_storage=create_object_storage(settings),
         credentials=dynamo_persistence.get_integration_credential_repository(),
+    )
+
+
+def _sick_leave_use_case() -> ManageSickLeavesUseCase:
+    from payroll_copilot.infrastructure.storage.factory import create_object_storage
+
+    settings = get_settings()
+    return ManageSickLeavesUseCase(
+        sick_leaves=dynamo_persistence.get_sick_leave_request_repository(),
+        settings_repo=dynamo_persistence.get_vacation_settings_repository(),
+        employees=dynamo_persistence.get_employee_repository(),
+        audit=dynamo_persistence.get_audit_log_repository(),
+        object_storage=create_object_storage(settings),
+    )
+
+
+def _leave_batch_use_case() -> IngestLeaveBatchUseCase:
+    return IngestLeaveBatchUseCase(
+        vacations=_use_case(),
+        sick_leaves=_sick_leave_use_case(),
+        settings_repo=dynamo_persistence.get_vacation_settings_repository(),
     )
 
 
@@ -202,6 +228,65 @@ async def inbound_vacation(
         target_hints=body.target_hints,
     )
     return await _use_case().ingest_inbound(principal.organization_id, command)
+
+
+class InboundLeaveBatchItemRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    provider: str = Field(default="imap", max_length=32)
+    provider_message_id: str = Field(min_length=1, max_length=512)
+    provider_thread_id: str | None = Field(default=None, max_length=512)
+    from_email: str | None = Field(default=None, max_length=320)
+    to_email: str | None = Field(default=None, max_length=320)
+    subject: str | None = Field(default=None, max_length=500)
+    body_text: str | None = Field(default=None, max_length=200_000)
+    received_at: datetime | None = None
+    classification: str = Field(min_length=3, max_length=32)
+    intent: str = Field(default="new", max_length=32)
+    extraction: dict[str, Any] = Field(default_factory=dict)
+    n8n_attention_codes: list[str] = Field(default_factory=list, max_length=20)
+    target_hints: dict[str, Any] | None = None
+
+
+class InboundLeaveBatchRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[InboundLeaveBatchItemRequest] = Field(min_length=1, max_length=100)
+
+
+@router.post("/email/inbound-leave/batch")
+async def inbound_leave_batch(
+    body: InboundLeaveBatchRequest,
+    x_api_key: str = Header(...),
+) -> dict[str, Any]:
+    """Process a mixed VACATION + SICK_LEAVE batch. Org comes from API key only."""
+    principal = await resolve_integration_principal(x_api_key)
+    items: list[InboundLeaveBatchItem] = []
+    for item in body.items:
+        extraction = item.extraction or {}
+        items.append(
+            InboundLeaveBatchItem(
+                provider=item.provider,
+                provider_message_id=item.provider_message_id,
+                provider_thread_id=item.provider_thread_id,
+                from_email=item.from_email,
+                to_email=item.to_email,
+                subject=item.subject,
+                body_text=item.body_text,
+                received_at=item.received_at,
+                classification=item.classification,
+                intent=item.intent,
+                employee_email=extraction.get("employee_email"),
+                employee_name=extraction.get("employee_name"),
+                start_date=extraction.get("start_date"),
+                end_date=extraction.get("end_date"),
+                confidence=extraction.get("confidence"),
+                explanation=extraction.get("explanation"),
+                n8n_attention_codes=list(item.n8n_attention_codes or []),
+                target_hints=item.target_hints,
+            )
+        )
+    return await _leave_batch_use_case().execute(principal.organization_id, items)
 
 
 class PipelineEventRequest(BaseModel):

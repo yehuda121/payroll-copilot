@@ -99,6 +99,10 @@ const OrgAnalyticsPage = lazyPage(
   'OrgAnalyticsPage',
 );
 const VacationsPage = lazyPage(() => import('../pages/accountant/Vacations'), 'VacationsPage');
+const SickLeavesPage = lazyPage(
+  () => import('../pages/accountant/SickLeaves'),
+  'SickLeavesPage',
+);
 
 const AdminAuditLogsPage = lazyPage(
   () => import('../pages/admin/AdminAuditLogs'),
@@ -246,6 +250,7 @@ export const appRouteElements = (
         <Route path="/accountant/employees/:employeeNumber/edit" element={<L><EditEmployeePage /></L>} />
         <Route path="/accountant/bulk-upload" element={<L><BulkPayrollUploadPage /></L>} />
         <Route path="/accountant/vacations" element={<L><VacationsPage /></L>} />
+        <Route path="/accountant/sick-leaves" element={<L><SickLeavesPage /></L>} />
         <Route
           path="/accountant/bulk-upload/jobs/:jobId/items/:itemId/resolve"
           element={<L><BatchItemReviewWorkspacePage /></L>}

@@ -334,6 +334,8 @@ class ManageVacationsUseCase:
         actor_user_id: UUID | None,
         notify_on_new_vacation: bool | None = None,
         notify_on_error_or_attention: bool | None = None,
+        notify_on_new_sick_leave: bool | None = None,
+        notify_on_sick_leave_error_or_attention: bool | None = None,
         notification_email: str | None = None,
         update_notification_email: bool = False,
     ) -> VacationMailboxSettings:
@@ -349,6 +351,12 @@ class ManageVacationsUseCase:
             settings.notify_on_new_vacation = notify_on_new_vacation
         if notify_on_error_or_attention is not None:
             settings.notify_on_error_or_attention = notify_on_error_or_attention
+        if notify_on_new_sick_leave is not None:
+            settings.notify_on_new_sick_leave = notify_on_new_sick_leave
+        if notify_on_sick_leave_error_or_attention is not None:
+            settings.notify_on_sick_leave_error_or_attention = (
+                notify_on_sick_leave_error_or_attention
+            )
         if update_notification_email:
             cleaned = normalize_email(notification_email)
             if cleaned is None:
@@ -371,6 +379,10 @@ class ManageVacationsUseCase:
                 details={
                     "notify_on_new_vacation": saved.notify_on_new_vacation,
                     "notify_on_error_or_attention": saved.notify_on_error_or_attention,
+                    "notify_on_new_sick_leave": saved.notify_on_new_sick_leave,
+                    "notify_on_sick_leave_error_or_attention": (
+                        saved.notify_on_sick_leave_error_or_attention
+                    ),
                     "notification_email_verified": saved.notification_email_verified,
                 },
             )

@@ -5,7 +5,7 @@ export type NavItem = {
   labelKey?: string;
   path: string;
   /** Optional backend-backed unseen badge (e.g. vacations). */
-  badgeKey?: 'vacationsUnseen';
+  badgeKey?: 'vacationsUnseen' | 'sickLeavesUnseen';
 };
 
 export type PortalConfig = {

@@ -29,25 +29,35 @@ Do **not** mark messages read/unread/archive/delete.
 
 Backend idempotency (`provider` + `provider_message_id`) is the second safety layer.
 
-## Recommended flow
+## Recommended flow (batch leave ingest)
 
 1. **IMAP Email Trigger** with Action = Nothing (or equivalent unread-safe poll).
 2. **Filter** by `process_after` watermark.
 3. Normalize / deterministic pre-check.
 4. Optional: `GET /vacation/mailbox-config` for notification prefs / status bootstrap (not for IMAP target).
-5. Event `EMAIL_OBSERVED` → `POST /email/events`.
-6. Classify: `VACATION | SICK_LEAVE | OTHER | UNCERTAIN`.
-7. Branches:
-   - OTHER → `CLASSIFIED_OTHER` → stop  
-   - SICK_LEAVE → `CLASSIFIED_SICK_LEAVE` → stop (no VacationRequest)  
-   - UNCERTAIN → event + optional notify → stop  
-   - VACATION → continue
-8. Guardrail + structured extraction.
-9. `POST /email/inbound-vacation` → inspect `notification.*` → send email if instructed.
-10. Report persist/attention/notification events.
+5. Event `EMAIL_OBSERVED` → `POST /email/events` (optional analytics).
+6. Classify + extract: `VACATION | SICK_LEAVE | OTHER | UNCERTAIN`.
+7. **Filter** to `VACATION` or `SICK_LEAVE` only (drop OTHER/UNCERTAIN — do not create domain records).
+8. **Aggregate** the filtered items for this poll cycle.
+9. **ONE** HTTP call: `POST /email/inbound-leave/batch` with `{ "items": [ ... ] }`.
+10. Inspect `notification.should_send`:
+    - `false` → end (typical when the batch is all duplicates/ignored, prefs off, or no recipient).
+    - `true` → send **ONE** email using `notification.to_email`, `notification.subject`, `notification.body_text`.
 11. Parallel cron: `POST /mailbox/health` with monitored email + `ok|error`.
+
+### Compatibility
+
+`POST /email/inbound-vacation` remains available for single-vacation integrations.
+Prefer the batch endpoint for mixed vacation + sick leave workflows.
+
+### What n8n must NOT do
+
+- Employee matching, duplicate/overlap decisions, attention-code taxonomy
+- Choosing `organization_id` (API key resolves tenant)
+- Building business notification content or notification preference logic
+- Sending more than one summary email per batch response
 
 ## Retry
 
-Same `provider_message_id` → `DUPLICATE`.  
+Same `provider_message_id` within a domain → `DUPLICATE` (counted, not listed as a new result in batch).  
 Stable `event_id` across retries so counters are not inflated.

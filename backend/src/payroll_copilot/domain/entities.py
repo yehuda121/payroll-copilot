@@ -193,5 +193,44 @@ class VacationRequest:
     approved_at: datetime | None = None
 
 
+@dataclass
+class SickLeaveRequest:
+    """Organization sick-leave request — DynamoDB source of truth (separate from VacationRequest)."""
+
+    id: UUID
+    organization_id: UUID
+    source: str = "manual"
+    review_status: str = "pending_approval"
+    intent: str = "new"
+    employee_id: UUID | None = None
+    extracted_employee_email: str | None = None
+    extracted_employee_name: str | None = None
+    sender_email: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    provider: str | None = None
+    provider_message_id: str | None = None
+    provider_thread_id: str | None = None
+    original_subject: str | None = None
+    original_body_text: str | None = None
+    original_body_s3_key: str | None = None
+    received_at: datetime | None = None
+    ai_confidence: float | None = None
+    ai_explanation: str | None = None
+    # Immutable first-ingest AI extraction evidence (never overwritten by corrections).
+    ai_extraction_original: dict[str, Any] | None = None
+    related_sick_leave_id: UUID | None = None
+    attention_codes: list[str] = field(default_factory=list)
+    attention_detail: str | None = None
+    # Peer sick-leave IDs currently overlapping this request (warning context).
+    overlap_with: list[UUID] = field(default_factory=list)
+    seen_at: datetime | None = None
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_by: UUID | None = None
+    approved_by: UUID | None = None
+    approved_at: datetime | None = None
+
+
 def new_uuid() -> UUID:
     return uuid4()

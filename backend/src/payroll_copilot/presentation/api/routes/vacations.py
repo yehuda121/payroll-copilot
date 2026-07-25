@@ -92,6 +92,8 @@ async def _serialize_settings(s: Any, *, email_automation_status: str) -> dict[s
         "notification_email_pending": s.notification_email_pending,
         "notify_on_new_vacation": s.notify_on_new_vacation,
         "notify_on_error_or_attention": s.notify_on_error_or_attention,
+        "notify_on_new_sick_leave": s.notify_on_new_sick_leave,
+        "notify_on_sick_leave_error_or_attention": s.notify_on_sick_leave_error_or_attention,
         "active_monitored_email": s.active_monitored_email,
         "mailbox_connection_status": s.mailbox_connection_status,
         "mailbox_last_check_at": s.mailbox_last_check_at.isoformat()
@@ -123,6 +125,8 @@ class PreferencesPatch(BaseModel):
     model_config = ConfigDict(extra="forbid")
     notify_on_new_vacation: bool | None = None
     notify_on_error_or_attention: bool | None = None
+    notify_on_new_sick_leave: bool | None = None
+    notify_on_sick_leave_error_or_attention: bool | None = None
     # Present in payload (including null/empty) means update destination without OTP.
     notification_email: str | None = None
 
@@ -210,6 +214,10 @@ async def patch_vacation_preferences(
             actor_user_id=principal.user_id,
             notify_on_new_vacation=fields.get("notify_on_new_vacation"),
             notify_on_error_or_attention=fields.get("notify_on_error_or_attention"),
+            notify_on_new_sick_leave=fields.get("notify_on_new_sick_leave"),
+            notify_on_sick_leave_error_or_attention=fields.get(
+                "notify_on_sick_leave_error_or_attention"
+            ),
             notification_email=fields.get("notification_email"),
             update_notification_email="notification_email" in fields,
         )

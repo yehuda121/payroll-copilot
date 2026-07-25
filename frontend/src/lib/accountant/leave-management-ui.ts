@@ -111,6 +111,12 @@ export type LeaveSettingsForm = {
   notifyOnErrorOrAttention: boolean;
 };
 
+export type SickLeaveSettingsForm = {
+  notificationEmail: string;
+  notifyOnNewSickLeave: boolean;
+  notifyOnSickLeaveErrorOrAttention: boolean;
+};
+
 export function leaveSettingsBaseline(settings: {
   notificationEmailVerified: string | null;
   notificationEmailPending: string | null;
@@ -125,6 +131,20 @@ export function leaveSettingsBaseline(settings: {
   };
 }
 
+export function sickLeaveSettingsBaseline(settings: {
+  notificationEmailVerified: string | null;
+  notificationEmailPending: string | null;
+  notifyOnNewSickLeave: boolean;
+  notifyOnSickLeaveErrorOrAttention: boolean;
+}): SickLeaveSettingsForm {
+  return {
+    notificationEmail:
+      settings.notificationEmailVerified || settings.notificationEmailPending || '',
+    notifyOnNewSickLeave: settings.notifyOnNewSickLeave,
+    notifyOnSickLeaveErrorOrAttention: settings.notifyOnSickLeaveErrorOrAttention,
+  };
+}
+
 export function isLeaveSettingsDirty(
   current: LeaveSettingsForm,
   baseline: LeaveSettingsForm,
@@ -134,6 +154,18 @@ export function isLeaveSettingsDirty(
       normalizeLeaveNotificationEmail(baseline.notificationEmail) ||
     current.notifyOnNewVacation !== baseline.notifyOnNewVacation ||
     current.notifyOnErrorOrAttention !== baseline.notifyOnErrorOrAttention
+  );
+}
+
+export function isSickLeaveSettingsDirty(
+  current: SickLeaveSettingsForm,
+  baseline: SickLeaveSettingsForm,
+): boolean {
+  return (
+    normalizeLeaveNotificationEmail(current.notificationEmail) !==
+      normalizeLeaveNotificationEmail(baseline.notificationEmail) ||
+    current.notifyOnNewSickLeave !== baseline.notifyOnNewSickLeave ||
+    current.notifyOnSickLeaveErrorOrAttention !== baseline.notifyOnSickLeaveErrorOrAttention
   );
 }
 

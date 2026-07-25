@@ -41,6 +41,10 @@ class DynamoVacationSettingsRepository(VacationSettingsRepository):
             notification_email_pending=item.get("notification_email_pending"),
             notify_on_new_vacation=bool(item.get("notify_on_new_vacation", True)),
             notify_on_error_or_attention=bool(item.get("notify_on_error_or_attention", True)),
+            notify_on_new_sick_leave=bool(item.get("notify_on_new_sick_leave", True)),
+            notify_on_sick_leave_error_or_attention=bool(
+                item.get("notify_on_sick_leave_error_or_attention", True)
+            ),
             active_monitored_email=item.get("active_monitored_email"),
             pending_monitored_verified_at=loads_datetime(item.get("pending_monitored_verified_at")),
             mailbox_connection_status=str(item.get("mailbox_connection_status") or "disconnected"),
@@ -73,6 +77,10 @@ class DynamoVacationSettingsRepository(VacationSettingsRepository):
             "notification_email_pending": settings.notification_email_pending,
             "notify_on_new_vacation": settings.notify_on_new_vacation,
             "notify_on_error_or_attention": settings.notify_on_error_or_attention,
+            "notify_on_new_sick_leave": settings.notify_on_new_sick_leave,
+            "notify_on_sick_leave_error_or_attention": (
+                settings.notify_on_sick_leave_error_or_attention
+            ),
             "active_monitored_email": settings.active_monitored_email,
             "pending_monitored_verified_at": dumps_value(settings.pending_monitored_verified_at),
             "mailbox_connection_status": settings.mailbox_connection_status,

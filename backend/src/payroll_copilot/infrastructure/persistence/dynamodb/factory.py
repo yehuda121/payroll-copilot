@@ -27,6 +27,9 @@ from payroll_copilot.infrastructure.persistence.dynamodb.validation import (
 from payroll_copilot.infrastructure.persistence.dynamodb.vacations import (
     DynamoVacationRequestRepository,
 )
+from payroll_copilot.infrastructure.persistence.dynamodb.sick_leaves import (
+    DynamoSickLeaveRequestRepository,
+)
 from payroll_copilot.infrastructure.persistence.dynamodb.vacation_settings import (
     DynamoEmailOwnershipOtpRepository,
     DynamoIntegrationCredentialRepository,
@@ -100,6 +103,11 @@ def get_vacation_request_repository() -> DynamoVacationRequestRepository:
 
 
 @lru_cache
+def get_sick_leave_request_repository() -> DynamoSickLeaveRequestRepository:
+    return DynamoSickLeaveRequestRepository(get_dynamo_table())
+
+
+@lru_cache
 def get_vacation_settings_repository() -> DynamoVacationSettingsRepository:
     return DynamoVacationSettingsRepository(get_dynamo_table())
 
@@ -134,6 +142,7 @@ def reset_persistence_caches() -> None:
     get_organization_directory.cache_clear()
     get_popular_question_repository.cache_clear()
     get_vacation_request_repository.cache_clear()
+    get_sick_leave_request_repository.cache_clear()
     get_vacation_settings_repository.cache_clear()
     get_email_ownership_otp_repository.cache_clear()
     get_vacation_pipeline_analytics_repository.cache_clear()

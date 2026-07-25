@@ -18,6 +18,8 @@ class VacationMailboxSettings:
     notification_email_pending: str | None = None
     notify_on_new_vacation: bool = True
     notify_on_error_or_attention: bool = True
+    notify_on_new_sick_leave: bool = True
+    notify_on_sick_leave_error_or_attention: bool = True
     # Dual-gate: active monitored is verified AND connected.
     active_monitored_email: str | None = None
     pending_monitored_verified_at: datetime | None = None

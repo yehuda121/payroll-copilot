@@ -21,6 +21,7 @@ from payroll_copilot.presentation.api.routes import (
     manual_review,
     ocr,
     parser,
+    sick_leaves,
     vacations,
     validation,
 )
@@ -47,6 +48,9 @@ api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytic
 api_router.include_router(integrations.router, prefix="/integrations", tags=["Integrations"])
 api_router.include_router(
     vacations.router, prefix="/accountant/vacations", tags=["Vacations"]
+)
+api_router.include_router(
+    sick_leaves.router, prefix="/accountant/sick-leaves", tags=["Sick Leaves"]
 )
 api_router.include_router(
     admin_vacation_integrations.router,

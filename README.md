@@ -327,15 +327,23 @@ Guest extraction/session state is **ephemeral** (in-process TTL store), not the 
 Primary navigation under `/accountant`:
 
 1. **Employees** — organization-scoped search and employee master data
-2. **Leave Management** (`/accountant/vacations`) — central table for vacation leave requests (email ingest + manual), default **הכל / active** inbox, centered modal review/edit, approve/delete, settings gear, cache-first list + refresh
-3. **Bulk Upload** — persistent two-tab upload and incremental extracted-employee workspace
-4. **Analytics** — organization payroll outcomes and AI quality KPIs by payroll year (see [Analytics](#analytics))
+2. **Vacations** (`/accountant/vacations`) — VacationRequest leave management (email ingest + manual)
+3. **Sick Leave** (`/accountant/sick-leaves`) — SickLeaveRequest management (parallel UX, separate domain)
+4. **Bulk Upload** — persistent two-tab upload and incremental extracted-employee workspace
+5. **Analytics** — organization payroll outcomes and AI quality KPIs by payroll year (see [Analytics](#analytics))
 
-Vacation email automation details: [docs/vacation-email.md](docs/vacation-email.md), [docs/n8n-vacation-workflow.md](docs/n8n-vacation-workflow.md).
+Vacation / sick-leave email automation details: [docs/vacation-email.md](docs/vacation-email.md), [docs/n8n-vacation-workflow.md](docs/n8n-vacation-workflow.md).
 
 ### Leave Management (accountant)
 
-Leave Management is the accountant workflow for **VacationRequest** rows (DynamoDB SoT). Sick leave is **not** persisted as VacationRequest in V1 (n8n may emit `CLASSIFIED_SICK_LEAVE` events only); the UI type column is Vacation today so a future `leave_type` can be added without a second page.
+Leave Management covers two **separate** domains:
+
+- **VacationRequest** — DynamoDB `entity_type=vacation_request`, keys `VAC#…`
+- **SickLeaveRequest** — DynamoDB `entity_type=sick_leave_request`, keys `SICK#…`
+
+They intentionally do **not** share a generic LeaveRequest entity. Behavior may start similar but must remain independently evolvable. Overlap and business duplicates are evaluated within each domain only.
+
+**n8n batch ingest:** Prefer `POST /api/v1/integrations/email/inbound-leave/batch` so vacation and sick leave items arrive together; Payroll Copilot returns one aggregated `notification` instruction. The legacy single-item `POST …/inbound-vacation` remains supported.
 
 **Why the default view is `active` (not `current`):**  
 `current` still means “approved leave happening today.” New email intake lands as `pending_approval` or `requires_attention`, so defaulting to `current` hid the work queue. `active` includes unresolved requests (including missing dates) plus approved leave whose `end_date` is today or in the future. Past approved, cancelled, and rejected rows remain available under historical filters.
@@ -346,15 +354,15 @@ Leave Management is the accountant workflow for **VacationRequest** rows (Dynamo
 
 **Severity:** Hard codes (missing employee/dates, ambiguous identity, etc.) block approval and show as red. Warnings (`OVERLAP`, `LOW_CONFIDENCE`, update/cancel proposed) use yellow badges and require existing `confirm_warnings` confirmation. Overlap marks both peers and is refreshed on create/edit/delete/cancel.
 
-**Duplicates:** Transport idempotency remains `provider` + `provider_message_id`. Exact business duplicates (`employee_id` + start + end) against pending/attention/approved requests are suppressed on NEW ingest (cancelled/rejected do not block). Update/cancel intents are not suppressed this way.
+**Duplicates:** Transport idempotency remains `provider` + `provider_message_id` (per domain). Exact business duplicates (`employee_id` + start + end) against pending/attention/approved requests are suppressed on NEW ingest (cancelled/rejected do not block). Update/cancel intents are not suppressed this way.
 
 **Delete:** UI uses delete (no Reject). Non-approved → hard delete; approved → soft `cancelled` (existing reconciler-safe semantics). Bulk approve and bulk delete reuse org-scoped use cases with partial-success results.
 
-**Settings:** Gear opens notification destination email + notify prefs (save via preferences PATCH; no OTP in the accountant UI). IMAP/monitored mailbox connection is owned by n8n and is not shown as a Payroll Copilot connection badge.
+**Settings:** Shared notification destination email; independent vacation vs sick-leave notify toggles (preferences PATCH). IMAP/monitored mailbox connection is owned by n8n and is not shown as a Payroll Copilot connection badge.
 
-**Data access:** Lists query `PK=ORG#…` / `SK begins VAC#` with in-memory bucket filters; employee overlap/duplicate uses existing GSI3 `list_for_employee`. No new GSI was required for this Leave Management work. All accountant mutations stay behind `require_accountant` and organization binding.
+**Data access:** Vacation lists use `SK begins VAC#`; sick leave lists use `SK begins SICK#`. Employee overlap/duplicate uses domain-specific GSI3 prefixes (`VEMP#` / `SEMP#`). All accountant mutations stay behind `require_accountant` and organization binding.
 
-**Responsibility:** n8n owns IMAP intake, normalization, AI extraction, and inbound submission. Payroll Copilot owns VacationRequest lifecycle (match, validate, duplicate/overlap, accountant review/edit/approve/delete) and notification preferences.
+**Responsibility:** n8n owns IMAP intake, normalization, AI extraction, batch submission, and executing the returned send instruction. Payroll Copilot owns domain lifecycle (match, validate, duplicate/overlap, accountant review) and builds notification content/prefs.
 
 Opening an employee reuses the Employee Portal Documents, Payslips, monthly
 workspace, validation, Digital Payslip, Original Document, and Payroll AI Chat

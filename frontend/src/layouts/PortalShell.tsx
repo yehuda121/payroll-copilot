@@ -8,6 +8,7 @@ import { useOptionalBatchNavigationGuard } from '../features/accountant/BatchNav
 import { useOptionalUnsavedChanges } from '../features/accountant/UnsavedChangesGuard';
 import { useAppLocale } from '../hooks/useAppLocale';
 import { vacationsService } from '../services/vacations';
+import { sickLeavesService } from '../services/sickLeaves';
 import type { PortalConfig } from '../types/navigation';
 import './PortalShell.css';
 
@@ -24,7 +25,9 @@ export function PortalShell({ config }: PortalShellProps) {
   const { isBatchActive } = useOptionalBatchNavigationGuard();
   const unsaved = useOptionalUnsavedChanges();
   const [vacationsUnseen, setVacationsUnseen] = useState(0);
+  const [sickLeavesUnseen, setSickLeavesUnseen] = useState(0);
   const needsVacationBadge = config.navItems.some((item) => item.badgeKey === 'vacationsUnseen');
+  const needsSickLeaveBadge = config.navItems.some((item) => item.badgeKey === 'sickLeavesUnseen');
 
   useEffect(() => {
     if (!needsVacationBadge || !session) return;
@@ -46,6 +49,27 @@ export function PortalShell({ config }: PortalShellProps) {
       window.clearInterval(timer);
     };
   }, [needsVacationBadge, session]);
+
+  useEffect(() => {
+    if (!needsSickLeaveBadge || !session) return;
+    let cancelled = false;
+    const refresh = () => {
+      void sickLeavesService
+        .unseenCount()
+        .then((count) => {
+          if (!cancelled) setSickLeavesUnseen(count);
+        })
+        .catch(() => {
+          if (!cancelled) setSickLeavesUnseen(0);
+        });
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [needsSickLeaveBadge, session]);
 
   const portalName = config.portalNameKey
     ? t(config.portalNameKey)
@@ -96,7 +120,9 @@ export function PortalShell({ config }: PortalShellProps) {
             const badge =
               item.badgeKey === 'vacationsUnseen' && vacationsUnseen > 0
                 ? vacationsUnseen
-                : null;
+                : item.badgeKey === 'sickLeavesUnseen' && sickLeavesUnseen > 0
+                  ? sickLeavesUnseen
+                  : null;
             return (
               <NavLink
                 key={item.path}

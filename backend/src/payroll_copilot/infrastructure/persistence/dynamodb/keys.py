@@ -139,3 +139,24 @@ def integration_cred_sk(credential_id: UUID | str) -> str:
 
 def gsi2_integration_key_hash(key_hash: str) -> str:
     return f"INTKEY#{key_hash}"
+
+
+def sick_sk(sick_leave_id: UUID | str) -> str:
+    return f"SICK#{sick_leave_id}"
+
+
+def gsi1_sick(sick_leave_id: UUID | str) -> str:
+    return f"SICK#{sick_leave_id}"
+
+
+def gsi2_sick_message(
+    organization_id: UUID | str,
+    provider: str,
+    provider_message_id: str,
+) -> str:
+    return f"ORG#{organization_id}#SMSG#{provider}#{provider_message_id}"
+
+
+def gsi3_sick_employee(organization_id: UUID | str, employee_id: UUID | str | None) -> str:
+    emp = "NONE" if employee_id is None else str(employee_id)
+    return f"ORG#{organization_id}#SEMP#{emp}"
