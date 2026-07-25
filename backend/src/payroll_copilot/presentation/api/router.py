@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from payroll_copilot.presentation.api.routes import (
+    admin_vacation_integrations,
     ai_monitoring,
     analytics,
     assistant,
@@ -20,6 +21,7 @@ from payroll_copilot.presentation.api.routes import (
     manual_review,
     ocr,
     parser,
+    vacations,
     validation,
 )
 
@@ -43,3 +45,11 @@ api_router.include_router(assistant.router, prefix="/assistant", tags=["Assistan
 api_router.include_router(ai_monitoring.router, prefix="/admin/ai", tags=["AI Monitoring"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
 api_router.include_router(integrations.router, prefix="/integrations", tags=["Integrations"])
+api_router.include_router(
+    vacations.router, prefix="/accountant/vacations", tags=["Vacations"]
+)
+api_router.include_router(
+    admin_vacation_integrations.router,
+    prefix="/admin/vacation-integrations",
+    tags=["Admin Vacation Integrations"],
+)

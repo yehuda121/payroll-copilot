@@ -327,8 +327,34 @@ Guest extraction/session state is **ephemeral** (in-process TTL store), not the 
 Primary navigation under `/accountant`:
 
 1. **Employees** — organization-scoped search and employee master data
-2. **Bulk Upload** — persistent two-tab upload and incremental extracted-employee workspace
-3. **Analytics** — organization payroll outcomes and AI quality KPIs by payroll year (see [Analytics](#analytics))
+2. **Leave Management** (`/accountant/vacations`) — central table for vacation leave requests (email ingest + manual), default **הכל / active** inbox, centered modal review/edit, approve/delete, settings gear, cache-first list + refresh
+3. **Bulk Upload** — persistent two-tab upload and incremental extracted-employee workspace
+4. **Analytics** — organization payroll outcomes and AI quality KPIs by payroll year (see [Analytics](#analytics))
+
+Vacation email automation details: [docs/vacation-email.md](docs/vacation-email.md), [docs/n8n-vacation-workflow.md](docs/n8n-vacation-workflow.md).
+
+### Leave Management (accountant)
+
+Leave Management is the accountant workflow for **VacationRequest** rows (DynamoDB SoT). Sick leave is **not** persisted as VacationRequest in V1 (n8n may emit `CLASSIFIED_SICK_LEAVE` events only); the UI type column is Vacation today so a future `leave_type` can be added without a second page.
+
+**Why the default view is `active` (not `current`):**  
+`current` still means “approved leave happening today.” New email intake lands as `pending_approval` or `requires_attention`, so defaulting to `current` hid the work queue. `active` includes unresolved requests (including missing dates) plus approved leave whose `end_date` is today or in the future. Past approved, cancelled, and rejected rows remain available under historical filters.
+
+**Request details:** Row click opens a centered modal with editable employee name/email/dates, original email (sender/subject/body/received_at), AI confidence/explanation, and an **immutable `ai_extraction_original` snapshot** captured on first inbound ingest so accountant corrections never erase AI evidence.
+
+**Corrections:** PATCH update rematches employee by email when identity fields change, recomputes date/overlap/duplicate attention codes, clears stale codes, and recalculates review status. Identity after match is `employee_id` (not display name).
+
+**Severity:** Hard codes (missing employee/dates, ambiguous identity, etc.) block approval and show as red. Warnings (`OVERLAP`, `LOW_CONFIDENCE`, update/cancel proposed) use yellow badges and require existing `confirm_warnings` confirmation. Overlap marks both peers and is refreshed on create/edit/delete/cancel.
+
+**Duplicates:** Transport idempotency remains `provider` + `provider_message_id`. Exact business duplicates (`employee_id` + start + end) against pending/attention/approved requests are suppressed on NEW ingest (cancelled/rejected do not block). Update/cancel intents are not suppressed this way.
+
+**Delete:** UI uses delete (no Reject). Non-approved → hard delete; approved → soft `cancelled` (existing reconciler-safe semantics). Bulk approve and bulk delete reuse org-scoped use cases with partial-success results.
+
+**Settings:** Gear opens notification destination email + notify prefs (save via preferences PATCH; no OTP in the accountant UI). IMAP/monitored mailbox connection is owned by n8n and is not shown as a Payroll Copilot connection badge.
+
+**Data access:** Lists query `PK=ORG#…` / `SK begins VAC#` with in-memory bucket filters; employee overlap/duplicate uses existing GSI3 `list_for_employee`. No new GSI was required for this Leave Management work. All accountant mutations stay behind `require_accountant` and organization binding.
+
+**Responsibility:** n8n owns IMAP intake, normalization, AI extraction, and inbound submission. Payroll Copilot owns VacationRequest lifecycle (match, validate, duplicate/overlap, accountant review/edit/approve/delete) and notification preferences.
 
 Opening an employee reuses the Employee Portal Documents, Payslips, monthly
 workspace, validation, Digital Payslip, Original Document, and Payroll AI Chat
@@ -920,6 +946,8 @@ Smoke: `GET /health`, guest assistant chat, document upload, guest/employee extr
 | Document | Description |
 |----------|-------------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture (DynamoDB, AWS, auth) — preferred source of truth |
+| [docs/vacation-email.md](docs/vacation-email.md) | VacationRequest SoT, n8n vs PC responsibilities, dual-gate cutover |
+| [docs/n8n-vacation-workflow.md](docs/n8n-vacation-workflow.md) | Node-by-node Gmail unread-safe n8n build guide |
 | [docs/analytics.md](docs/analytics.md) | Analytics API contracts (salary, org payroll, quality, census) |
 | [docs/architecture.md](docs/architecture.md) | Older architecture notes (may lag) |
 | [docs/database.md](docs/database.md) | DB notes — still contains legacy PostgreSQL material |

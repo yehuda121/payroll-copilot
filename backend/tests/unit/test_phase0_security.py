@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
@@ -16,7 +17,7 @@ from payroll_copilot.infrastructure.config.production_guards import (
     validate_production_settings,
 )
 from payroll_copilot.infrastructure.config.settings import get_settings
-from payroll_copilot.presentation.api.routes.integrations import _require_n8n_api_key
+from payroll_copilot.presentation.api.routes.integrations import resolve_integration_principal
 from payroll_copilot.presentation.api.security import require_guest
 
 
@@ -118,21 +119,75 @@ def test_validate_production_settings_accepts_safe_production() -> None:
     )
 
 
-def test_n8n_api_key_fail_closed_when_empty() -> None:
-    with pytest.raises(HTTPException) as exc:
-        _require_n8n_api_key("anything", "")
+@pytest.mark.asyncio
+async def test_integration_auth_fail_closed_when_empty_global_key() -> None:
+    repo = SimpleNamespace(get_by_key_hash=AsyncMock(return_value=None))
+    with (
+        patch(
+            "payroll_copilot.infrastructure.persistence.dynamodb.get_integration_credential_repository",
+            return_value=repo,
+        ),
+        patch(
+            "payroll_copilot.presentation.api.routes.integrations.get_settings",
+            return_value=SimpleNamespace(n8n_api_key=""),
+        ),
+    ):
+        with pytest.raises(HTTPException) as exc:
+            await resolve_integration_principal("anything")
     assert exc.value.status_code == 503
     assert exc.value.detail["code"] == "n8n_not_configured"
 
 
-def test_n8n_api_key_rejects_mismatch() -> None:
-    with pytest.raises(HTTPException) as exc:
-        _require_n8n_api_key("wrong-key", "expected-key")
+@pytest.mark.asyncio
+async def test_integration_auth_rejects_mismatch() -> None:
+    repo = SimpleNamespace(get_by_key_hash=AsyncMock(return_value=None))
+    with (
+        patch(
+            "payroll_copilot.infrastructure.persistence.dynamodb.get_integration_credential_repository",
+            return_value=repo,
+        ),
+        patch(
+            "payroll_copilot.presentation.api.routes.integrations.get_settings",
+            return_value=SimpleNamespace(n8n_api_key="expected-key"),
+        ),
+    ):
+        with pytest.raises(HTTPException) as exc:
+            await resolve_integration_principal("wrong-key")
     assert exc.value.status_code == 401
 
 
-def test_n8n_api_key_accepts_match() -> None:
-    _require_n8n_api_key("expected-key", "expected-key")
+@pytest.mark.asyncio
+async def test_integration_auth_rejects_legacy_global_key_spoofing() -> None:
+    """Matching the legacy global key is no longer enough — org-bound keys required."""
+    repo = SimpleNamespace(get_by_key_hash=AsyncMock(return_value=None))
+    with (
+        patch(
+            "payroll_copilot.infrastructure.persistence.dynamodb.get_integration_credential_repository",
+            return_value=repo,
+        ),
+        patch(
+            "payroll_copilot.presentation.api.routes.integrations.get_settings",
+            return_value=SimpleNamespace(n8n_api_key="expected-key"),
+        ),
+    ):
+        with pytest.raises(HTTPException) as exc:
+            await resolve_integration_principal("expected-key")
+    assert exc.value.status_code == 401
+    assert exc.value.detail["code"] == "org_api_key_required"
+
+
+@pytest.mark.asyncio
+async def test_integration_auth_accepts_org_bound_key() -> None:
+    org_id = uuid4()
+    cred = SimpleNamespace(organization_id=org_id, id=uuid4(), revoked_at=None)
+    repo = SimpleNamespace(get_by_key_hash=AsyncMock(return_value=cred))
+    with patch(
+        "payroll_copilot.infrastructure.persistence.dynamodb.get_integration_credential_repository",
+        return_value=repo,
+    ):
+        principal = await resolve_integration_principal("org-bound-secret")
+    assert principal.organization_id == org_id
+    assert principal.auth_mode == "org_key"
 
 
 @pytest.mark.asyncio

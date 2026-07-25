@@ -4,6 +4,8 @@ export type NavItem = {
   /** i18n key resolved in PortalShell. */
   labelKey?: string;
   path: string;
+  /** Optional backend-backed unseen badge (e.g. vacations). */
+  badgeKey?: 'vacationsUnseen';
 };
 
 export type PortalConfig = {

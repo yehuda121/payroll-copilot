@@ -28,6 +28,7 @@ from payroll_copilot.application.use_cases.manage_employees import (
     CreateEmployeeCommand,
     EmployeeConflictError,
     EmployeeNotFoundError,
+    EmployeeValidationError,
     ManageEmployeesUseCase,
     UpdateEmployeeCommand,
 )
@@ -70,6 +71,7 @@ class EmployeeUpdateRequest(BaseModel):
     hourly_rate: Decimal | None = None
     monthly_salary: Decimal | None = None
     national_id: str | None = None
+    email: str | None = None
     department_id: UUID | None = None
     status: EmployeeStatus | None = None
     metadata: dict[str, Any] | None = None
@@ -590,6 +592,11 @@ async def create_employee(
         return created
     except EmployeeConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=exc.message) from exc
+    except EmployeeValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
 
 @router.patch("/{employee_number}")
 async def update_employee(
@@ -612,6 +619,7 @@ async def update_employee(
                 hourly_rate=body.hourly_rate,
                 monthly_salary=body.monthly_salary,
                 national_id=body.national_id,
+                email=body.email,
                 status=body.status,
                 metadata=body.metadata,
             )
@@ -621,6 +629,11 @@ async def update_employee(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message) from exc
     except EmployeeConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=exc.message) from exc
+    except EmployeeValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
 
 @router.post("/{employee_number}/disable")
 async def disable_employee(

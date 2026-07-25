@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
+import { ActionIconButton } from '../../components/ui/ActionIconButton';
 import { DataTable } from '../../components/ui/DataTable';
 import { EmptyState, LoadingOverlay } from '../../components/ui/Dialog';
+import { RefreshIcon } from '../../components/ui/icons';
 import {
   getAccountantErrorMessage,
   getEmployeeStatusLabel,
@@ -115,13 +117,11 @@ export function EmployeeManagementPage() {
             <option value="on_leave">{getEmployeeStatusLabel('on_leave', t)}</option>
             <option value="disabled">{getEmployeeStatusLabel('disabled', t)}</option>
           </select>
-          <button
-            type="button"
-            className="btn btn--secondary"
+          <ActionIconButton
+            label={t('common.refresh')}
+            icon={<RefreshIcon size={18} />}
             onClick={() => void load(query.trim(), status)}
-          >
-            {t('common.refresh')}
-          </button>
+          />
         </div>
         <Link to="/accountant/employees/add" className="btn btn--primary">
           {t('accountant.employees.add')}

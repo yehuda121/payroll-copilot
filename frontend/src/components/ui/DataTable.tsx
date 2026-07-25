@@ -5,7 +5,8 @@ export type SortDirection = 'asc' | 'desc';
 
 export type DataTableColumn<T> = {
   key: keyof T | string;
-  header: string;
+  /** Header cell content (string or custom control such as select-all checkbox). */
+  header: ReactNode;
   /** When false, column cannot be sorted (e.g. Actions). Default true if sortable table. */
   sortable?: boolean;
   /** Value used for sorting when render is custom. */

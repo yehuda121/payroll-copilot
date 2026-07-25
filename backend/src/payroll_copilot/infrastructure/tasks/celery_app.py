@@ -125,3 +125,42 @@ def import_employee_excel(self, document_id: str, organization_id: str) -> dict:
 def sync_legal_rules_mcp() -> dict:
     """Scheduled task: compare local YAML rules against external sources."""
     return {"status": "completed", "proposals_created": 0}
+
+
+@celery_app.task(name="reconcile_employee_leave_status")
+def reconcile_employee_leave_status(organization_id: str | None = None) -> dict:
+    """Reconcile employee on_leave from approved vacations covering today."""
+    import asyncio
+    from uuid import UUID
+
+    from payroll_copilot.application.use_cases.manage_vacations import (
+        ReconcileEmployeeLeaveStatusUseCase,
+    )
+    from payroll_copilot.infrastructure.persistence import dynamodb as dynamo_persistence
+
+    async def _run() -> dict:
+        uc = ReconcileEmployeeLeaveStatusUseCase(
+            vacations=dynamo_persistence.get_vacation_request_repository(),
+            employees=dynamo_persistence.get_employee_repository(),
+            audit=dynamo_persistence.get_audit_log_repository(),
+        )
+        if organization_id:
+            return await uc.execute(UUID(organization_id))
+        orgs = await dynamo_persistence.get_organization_directory().list_organization_ids()
+        totals = {"updated": 0, "organizations": 0}
+        for org in orgs:
+            result = await uc.execute(org)
+            totals["updated"] += int(result.get("updated") or 0)
+            totals["organizations"] += 1
+        return totals
+
+    return asyncio.run(_run())
+
+
+# Celery Beat schedule — enable the beat process in deployment to run this.
+celery_app.conf.beat_schedule = {
+    "reconcile-employee-leave-status-hourly": {
+        "task": "reconcile_employee_leave_status",
+        "schedule": 3600.0,
+    },
+}

@@ -93,3 +93,49 @@ def gsi2_emp_number(organization_id: UUID | str, employee_number: str) -> str:
 
 def gsi3_dataset(dataset_id: str) -> str:
     return f"DATASET#{dataset_id}"
+
+
+def vac_sk(vacation_id: UUID | str) -> str:
+    return f"VAC#{vacation_id}"
+
+
+def gsi1_vac(vacation_id: UUID | str) -> str:
+    return f"VAC#{vacation_id}"
+
+
+def gsi2_vac_message(
+    organization_id: UUID | str,
+    provider: str,
+    provider_message_id: str,
+) -> str:
+    return f"ORG#{organization_id}#VMSG#{provider}#{provider_message_id}"
+
+
+def gsi3_vac_employee(organization_id: UUID | str, employee_id: UUID | str | None) -> str:
+    emp = "NONE" if employee_id is None else str(employee_id)
+    return f"ORG#{organization_id}#VEMP#{emp}"
+
+
+def vac_settings_sk() -> str:
+    return "VAC_SETTINGS"
+
+
+def vac_otp_sk(*, purpose: str, email: str) -> str:
+    return f"EMAIL_OTP#{purpose}#{email.strip().lower()}"
+
+
+def vac_pipe_sk(day: str) -> str:
+    """day = YYYY-MM-DD UTC."""
+    return f"VAC_PIPE#{day}"
+
+
+def vac_event_dedup_sk(event_id: str) -> str:
+    return f"VAC_EVTDEDUP#{event_id}"
+
+
+def integration_cred_sk(credential_id: UUID | str) -> str:
+    return f"INTEGRATION#{credential_id}"
+
+
+def gsi2_integration_key_hash(key_hash: str) -> str:
+    return f"INTKEY#{key_hash}"

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { validateNationalId } from '../../lib/employee/israeli-id';
 import type { EmployeeWritePayload, EmploymentType, SalaryType } from '../../types/employee';
 
 export type EmployeeFormValues = {
@@ -17,8 +18,11 @@ export type EmployeeFormValues = {
 type EmployeeFormProps = {
   mode: 'create' | 'edit';
   initial?: Partial<EmployeeFormValues>;
+  /** Current on-file national ID mask (edit mode display only). */
+  nationalIdMasked?: string | null;
   submitting?: boolean;
   error?: string | null;
+  success?: string | null;
   onSubmit: (values: EmployeeFormValues, payload: EmployeeWritePayload) => void | Promise<void>;
   onDirtyChange?: (dirty: boolean) => void;
   footer: ReactNode;
@@ -36,6 +40,12 @@ const DEFAULTS: EmployeeFormValues = {
   contractStartDate: new Date().toISOString().slice(0, 10),
 };
 
+function isBasicEmailFormat(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+}
+
 export function toWritePayload(
   values: EmployeeFormValues,
   mode: 'create' | 'edit',
@@ -48,6 +58,7 @@ export function toWritePayload(
     last_name: values.lastName.trim(),
     employment_type: values.employmentType,
     salary_type: values.salaryType,
+    email: values.email.trim() || undefined,
     national_id: values.nationalId.trim() || undefined,
     contract_start_date: values.contractStartDate || undefined,
     hourly_rate: values.salaryType === 'hourly' ? amount : null,
@@ -55,17 +66,17 @@ export function toWritePayload(
   };
   if (mode === 'create') {
     payload.employee_number = values.employeeNumber.trim();
-    payload.email = values.email.trim() || undefined;
   }
-  // Edit mode: email is permanently immutable — omit from write payload.
   return payload;
 }
 
 export function EmployeeForm({
   mode,
   initial,
+  nationalIdMasked,
   submitting,
   error,
+  success,
   onSubmit,
   onDirtyChange,
   footer,
@@ -73,11 +84,13 @@ export function EmployeeForm({
   const { t } = useTranslation();
   const baselineRef = useRef<EmployeeFormValues>({ ...DEFAULTS, ...initial });
   const [values, setValues] = useState<EmployeeFormValues>({ ...DEFAULTS, ...initial });
+  const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     const next = { ...DEFAULTS, ...initial };
     baselineRef.current = next;
     setValues(next);
+    setLocalError(null);
     onDirtyChange?.(false);
   }, [initial, onDirtyChange]);
 
@@ -88,10 +101,30 @@ export function EmployeeForm({
 
   const update = <K extends keyof EmployeeFormValues>(key: K, value: EmployeeFormValues[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
+    setLocalError(null);
   };
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
+    if (!isBasicEmailFormat(values.email)) {
+      setLocalError(t('accountant.employees.validationInvalidEmail'));
+      return;
+    }
+    const nationalIdRaw = values.nationalId.trim();
+    if (nationalIdRaw) {
+      const nid = validateNationalId(nationalIdRaw);
+      if (!nid.ok) {
+        const key =
+          nid.code === 'digits_only'
+            ? 'accountant.employees.validationNationalIdDigits'
+            : nid.code === 'length'
+              ? 'accountant.employees.validationNationalIdLength'
+              : 'accountant.employees.validationNationalIdChecksum';
+        setLocalError(t(key));
+        return;
+      }
+    }
+    setLocalError(null);
     void onSubmit(values, toWritePayload(values, mode));
   };
 
@@ -131,22 +164,31 @@ export function EmployeeForm({
           id="email"
           type="email"
           value={values.email}
-          readOnly={mode === 'edit'}
-          disabled={mode === 'edit'}
-          title={mode === 'edit' ? t('accountant.workspace.emailReadonly') : undefined}
           onChange={(e) => update('email', e.target.value)}
+          autoComplete="off"
         />
         {mode === 'edit' && (
-          <span className="form-hint">{t('accountant.workspace.emailReadonly')}</span>
+          <span className="form-hint">{t('accountant.employees.fieldEmailEditHint')}</span>
         )}
       </div>
       <div className="form-field">
         <label htmlFor="nationalId">{t('accountant.employees.fieldNationalId')}</label>
+        {mode === 'edit' && (
+          <p className="form-hint" data-testid="national-id-current">
+            {t('accountant.employees.fieldNationalIdCurrent', {
+              value: nationalIdMasked || t('common.emDash'),
+            })}
+          </p>
+        )}
         <input
           id="nationalId"
           value={values.nationalId}
           onChange={(e) => update('nationalId', e.target.value)}
+          inputMode="numeric"
           autoComplete="off"
+          placeholder={
+            mode === 'edit' ? t('accountant.employees.fieldNationalIdPlaceholder') : undefined
+          }
         />
         <span className="form-hint">{t('accountant.employees.fieldNationalIdHint')}</span>
       </div>
@@ -199,7 +241,16 @@ export function EmployeeForm({
           onChange={(e) => update('contractStartDate', e.target.value)}
         />
       </div>
-      {error && <p className="chat-panel__error" style={{ gridColumn: '1 / -1' }}>{error}</p>}
+      {(localError || error) && (
+        <p className="chat-panel__error" style={{ gridColumn: '1 / -1' }} role="alert">
+          {localError || error}
+        </p>
+      )}
+      {success && !localError && !error && (
+        <p className="form-hint" style={{ gridColumn: '1 / -1' }} role="status">
+          {success}
+        </p>
+      )}
       <div className="form-actions" style={{ gridColumn: '1 / -1' }}>
         {footer}
         <button type="submit" className="btn btn--primary" disabled={submitting}>

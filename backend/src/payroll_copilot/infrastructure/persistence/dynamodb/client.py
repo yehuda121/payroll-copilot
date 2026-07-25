@@ -40,8 +40,16 @@ class DynamoTable:
         response = await asyncio.to_thread(self._table.get_item, Key=key)
         return response.get("Item")
 
-    async def put_item(self, item: dict[str, Any]) -> None:
-        await asyncio.to_thread(self._table.put_item, Item=item)
+    async def put_item(
+        self,
+        item: dict[str, Any],
+        *,
+        condition_expression: Any = None,
+    ) -> None:
+        kwargs: dict[str, Any] = {"Item": item}
+        if condition_expression is not None:
+            kwargs["ConditionExpression"] = condition_expression
+        await asyncio.to_thread(self._table.put_item, **kwargs)
 
     async def update_item(
         self,

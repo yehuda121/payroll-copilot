@@ -239,6 +239,7 @@ class Settings(BaseSettings):
     rate_limit_parser_per_hour_per_user: int = 60
     rate_limit_chat_per_hour_per_ip: int = 30
     rate_limit_chat_per_hour_per_user: int = 60
+    rate_limit_vacation_otp_per_hour: int = 10
 
     rules_config_path: str = "config/rules"
     legal_rules_path: str = "config/rules/labor_law"
@@ -251,6 +252,10 @@ class Settings(BaseSettings):
 
     mcp_enabled: bool = True
     kol_zchut_base_url: str = "https://www.kolzchut.org.il"
+
+    support_contact_name: str = ""
+    support_contact_email: str = ""
+    support_contact_phone: str = ""
 
     n8n_api_key: str = ""
 

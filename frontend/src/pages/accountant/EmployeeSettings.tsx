@@ -37,6 +37,7 @@ export function EmployeeSettingsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [disabling, setDisabling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -162,8 +163,10 @@ export function EmployeeSettingsPage() {
                 <EmployeeForm
                   mode="edit"
                   initial={initial}
+                  nationalIdMasked={record.nationalIdMasked}
                   submitting={submitting}
                   error={error}
+                  success={success}
                   onDirtyChange={onDirtyChange}
                   onSubmit={async (values) => {
                     if (!employeeNumber) return;
@@ -177,6 +180,7 @@ export function EmployeeSettingsPage() {
                     if (!ok) return;
                     setSubmitting(true);
                     setError(null);
+                    setSuccess(null);
                     try {
                       const payload = toWritePayload(values, 'edit');
                       if (!payload.national_id) {
@@ -186,6 +190,7 @@ export function EmployeeSettingsPage() {
                       invalidateEmployeesListCache();
                       applyRecord(updated);
                       setDirty(false);
+                      setSuccess(t('accountant.employees.saveSuccess'));
                     } catch (err) {
                       const message =
                         err instanceof ApiClientError

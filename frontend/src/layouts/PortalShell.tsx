@@ -1,4 +1,5 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+﻿import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
 import { LanguageSelector } from '../components/ui/LanguageSelector';
@@ -6,6 +7,7 @@ import { ThemeToggle } from '../components/ui/ThemeToggle';
 import { useOptionalBatchNavigationGuard } from '../features/accountant/BatchNavigationGuard';
 import { useOptionalUnsavedChanges } from '../features/accountant/UnsavedChangesGuard';
 import { useAppLocale } from '../hooks/useAppLocale';
+import { vacationsService } from '../services/vacations';
 import type { PortalConfig } from '../types/navigation';
 import './PortalShell.css';
 
@@ -21,6 +23,29 @@ export function PortalShell({ config }: PortalShellProps) {
   const navigate = useNavigate();
   const { isBatchActive } = useOptionalBatchNavigationGuard();
   const unsaved = useOptionalUnsavedChanges();
+  const [vacationsUnseen, setVacationsUnseen] = useState(0);
+  const needsVacationBadge = config.navItems.some((item) => item.badgeKey === 'vacationsUnseen');
+
+  useEffect(() => {
+    if (!needsVacationBadge || !session) return;
+    let cancelled = false;
+    const refresh = () => {
+      void vacationsService
+        .unseenCount()
+        .then((count) => {
+          if (!cancelled) setVacationsUnseen(count);
+        })
+        .catch(() => {
+          if (!cancelled) setVacationsUnseen(0);
+        });
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [needsVacationBadge, session]);
 
   const portalName = config.portalNameKey
     ? t(config.portalNameKey)
@@ -41,8 +66,6 @@ export function PortalShell({ config }: PortalShellProps) {
       navigate(path);
       return;
     }
-    // Batch work runs server-side and remains visible through the accountant
-    // workspace provider, so normal in-app navigation must not interrupt it.
   };
 
   return (
@@ -68,19 +91,26 @@ export function PortalShell({ config }: PortalShellProps) {
           </p>
         ) : null}
         <nav className="portal-shell__nav" aria-label={portalName}>
-          {config.navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === config.basePath}
-              className={({ isActive }) =>
-                `portal-shell__nav-link${isActive ? ' portal-shell__nav-link--active' : ''}`
-              }
-              onClick={(event) => void handleNavClick(event, item.path)}
-            >
-              {item.labelKey ? t(item.labelKey) : (item.label ?? item.path)}
-            </NavLink>
-          ))}
+          {config.navItems.map((item) => {
+            const label = item.labelKey ? t(item.labelKey) : (item.label ?? item.path);
+            const badge =
+              item.badgeKey === 'vacationsUnseen' && vacationsUnseen > 0
+                ? vacationsUnseen
+                : null;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.path === config.basePath}
+                className={({ isActive }) =>
+                  `portal-shell__nav-link${isActive ? ' portal-shell__nav-link--active' : ''}`
+                }
+                onClick={(event) => void handleNavClick(event, item.path)}
+              >
+                {badge != null ? `${label} (${badge})` : label}
+              </NavLink>
+            );
+          })}
         </nav>
         <div className="portal-shell__sidebar-footer">
           <Link to="/" className="portal-shell__footer-link">

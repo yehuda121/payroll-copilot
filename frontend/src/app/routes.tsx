@@ -5,6 +5,7 @@ import { ProtectedRoute } from '../auth/ProtectedRoute';
 import { getRoleHomePath } from '../auth/authProvider';
 import { useAuth } from '../auth/AuthContext';
 import { DialogProvider } from '../components/ui/Dialog';
+import { ToastProvider } from '../components/ui/Toast';
 import { Skeleton } from '../components/ui/Skeleton';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { UnsavedChangesProvider } from '../features/accountant/UnsavedChangesGuard';
@@ -97,6 +98,7 @@ const OrgAnalyticsPage = lazyPage(
   () => import('../pages/accountant/OrgAnalytics'),
   'OrgAnalyticsPage',
 );
+const VacationsPage = lazyPage(() => import('../pages/accountant/Vacations'), 'VacationsPage');
 
 const AdminAuditLogsPage = lazyPage(
   () => import('../pages/admin/AdminAuditLogs'),
@@ -170,11 +172,13 @@ function RootRedirect() {
 function AppProviders() {
   return (
     <DialogProvider>
-      <UnsavedChangesProvider>
-        <AuthProvider>
-          <Outlet />
-        </AuthProvider>
-      </UnsavedChangesProvider>
+      <ToastProvider>
+        <UnsavedChangesProvider>
+          <AuthProvider>
+            <Outlet />
+          </AuthProvider>
+        </UnsavedChangesProvider>
+      </ToastProvider>
     </DialogProvider>
   );
 }
@@ -241,6 +245,7 @@ export const appRouteElements = (
         </Route>
         <Route path="/accountant/employees/:employeeNumber/edit" element={<L><EditEmployeePage /></L>} />
         <Route path="/accountant/bulk-upload" element={<L><BulkPayrollUploadPage /></L>} />
+        <Route path="/accountant/vacations" element={<L><VacationsPage /></L>} />
         <Route
           path="/accountant/bulk-upload/jobs/:jobId/items/:itemId/resolve"
           element={<L><BatchItemReviewWorkspacePage /></L>}

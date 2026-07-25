@@ -203,7 +203,12 @@ flowchart TB
 | SQS / Step Functions | Asynchronous orchestration |
 | IAM | Least-privilege roles for API, workers, and CI |
 | CloudWatch | Operational telemetry |
-| SES | Outbound notifications |
+| SES | Outbound notifications / OTP email ownership verification |
+| Integrations | Org-bound API keys for n8n vacation ingest (no DB access) |
+
+Vacation email automation: see `docs/vacation-email.md` and `docs/n8n-vacation-workflow.md`.
+V1: one org → one manually provisioned n8n workflow; accountants do not change monitored mailbox.
+VacationRequest (DynamoDB) is the vacation SoT — not AttendanceRecord.
 
 ### Multi-tenancy
 

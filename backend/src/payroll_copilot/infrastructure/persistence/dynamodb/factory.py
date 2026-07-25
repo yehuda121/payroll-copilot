@@ -24,6 +24,15 @@ from payroll_copilot.infrastructure.persistence.dynamodb.validation import (
     DynamoValidationFindingRepository,
     DynamoValidationRunRepository,
 )
+from payroll_copilot.infrastructure.persistence.dynamodb.vacations import (
+    DynamoVacationRequestRepository,
+)
+from payroll_copilot.infrastructure.persistence.dynamodb.vacation_settings import (
+    DynamoEmailOwnershipOtpRepository,
+    DynamoIntegrationCredentialRepository,
+    DynamoVacationPipelineAnalyticsRepository,
+    DynamoVacationSettingsRepository,
+)
 
 
 @lru_cache
@@ -85,6 +94,31 @@ def get_popular_question_repository():  # -> DynamoPopularQuestionRepository
     return DynamoPopularQuestionRepository(get_dynamo_table())
 
 
+@lru_cache
+def get_vacation_request_repository() -> DynamoVacationRequestRepository:
+    return DynamoVacationRequestRepository(get_dynamo_table())
+
+
+@lru_cache
+def get_vacation_settings_repository() -> DynamoVacationSettingsRepository:
+    return DynamoVacationSettingsRepository(get_dynamo_table())
+
+
+@lru_cache
+def get_email_ownership_otp_repository() -> DynamoEmailOwnershipOtpRepository:
+    return DynamoEmailOwnershipOtpRepository(get_dynamo_table())
+
+
+@lru_cache
+def get_vacation_pipeline_analytics_repository() -> DynamoVacationPipelineAnalyticsRepository:
+    return DynamoVacationPipelineAnalyticsRepository(get_dynamo_table())
+
+
+@lru_cache
+def get_integration_credential_repository() -> DynamoIntegrationCredentialRepository:
+    return DynamoIntegrationCredentialRepository(get_dynamo_table())
+
+
 def reset_persistence_caches() -> None:
     """Clear cached table/repos (tests)."""
     get_dynamo_table.cache_clear()
@@ -99,5 +133,10 @@ def reset_persistence_caches() -> None:
     get_user_store.cache_clear()
     get_organization_directory.cache_clear()
     get_popular_question_repository.cache_clear()
+    get_vacation_request_repository.cache_clear()
+    get_vacation_settings_repository.cache_clear()
+    get_email_ownership_otp_repository.cache_clear()
+    get_vacation_pipeline_analytics_repository.cache_clear()
+    get_integration_credential_repository.cache_clear()
     create_dynamo_table  # keep import used
     get_settings.cache_clear()

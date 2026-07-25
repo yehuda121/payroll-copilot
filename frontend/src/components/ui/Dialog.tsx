@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { CloseIcon } from './icons';
 import './ui.css';
 
 export type DialogVariant = 'default' | 'danger' | 'warning';
@@ -99,6 +100,8 @@ type ModalDialogProps = {
   onClose: () => void;
   wide?: boolean;
   className?: string;
+  /** Accessible name for the header close (X) control. */
+  closeLabel?: string;
 };
 
 export function ModalDialog({
@@ -109,6 +112,7 @@ export function ModalDialog({
   onClose,
   wide = false,
   className = '',
+  closeLabel = 'Close',
 }: ModalDialogProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -161,8 +165,14 @@ export function ModalDialog({
       >
         <header className="modal-dialog__header">
           <h2 id={titleId}>{title}</h2>
-          <button type="button" className="btn btn--ghost modal-dialog__close" onClick={onClose} aria-label="Close">
-            ×
+          <button
+            type="button"
+            className="btn btn--ghost modal-dialog__close"
+            onClick={onClose}
+            aria-label={closeLabel}
+            title={closeLabel}
+          >
+            <CloseIcon size={18} aria-hidden="true" />
           </button>
         </header>
         <div className="modal-dialog__body">{children}</div>

@@ -87,6 +87,35 @@ async def org_quality_analytics(
     return OrgQualityAnalyticsResponse.model_validate(result, from_attributes=True)
 
 
+@router.get("/org/vacation-pipeline")
+async def org_vacation_pipeline_analytics(
+    year: int | None = Query(default=None, ge=2000, le=2100),
+    principal: AuthPrincipal = Depends(require_accountant),  # noqa: B008
+) -> dict:
+    """Vacation email pipeline counters (n8n events + durable aggregates)."""
+    assert principal.organization_id is not None
+    from payroll_copilot.application.use_cases.manage_vacations import ManageVacationsUseCase
+    from payroll_copilot.infrastructure.email.factory import create_email_service
+    from payroll_copilot.infrastructure.persistence import dynamodb as dynamo_persistence
+
+    from payroll_copilot.infrastructure.config.settings import get_settings
+
+    app_settings = get_settings()
+    uc = ManageVacationsUseCase(
+        vacations=dynamo_persistence.get_vacation_request_repository(),
+        settings_repo=dynamo_persistence.get_vacation_settings_repository(),
+        otp_repo=dynamo_persistence.get_email_ownership_otp_repository(),
+        pipeline=dynamo_persistence.get_vacation_pipeline_analytics_repository(),
+        employees=dynamo_persistence.get_employee_repository(),
+        audit=dynamo_persistence.get_audit_log_repository(),
+        email=create_email_service(app_settings),
+        credentials=dynamo_persistence.get_integration_credential_repository(),
+    )
+    return await uc.pipeline_analytics(
+        principal.organization_id, year=year or datetime.utcnow().year
+    )
+
+
 @router.get("/admin/census", response_model=AdminOrgCensusResponse)
 async def admin_org_census(
     _: AuthPrincipal = Depends(require_developer_admin),  # noqa: B008

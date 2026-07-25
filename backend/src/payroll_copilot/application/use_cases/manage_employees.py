@@ -8,18 +8,25 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID, uuid4
 
+from email_validator import EmailNotValidError, validate_email
+
 from payroll_copilot.application.ports.employee_audit import (
     AuditLogEntry,
     AuditLogRepository,
     EmployeeListFilter,
     EmployeeRepository,
 )
-from payroll_copilot.domain.entities import Employee
-from payroll_copilot.domain.enums import EmployeeStatus, EmploymentType, SalaryType
+from payroll_copilot.application.services.employee_document_form_schemas import (
+    FixedDocumentFormValidationError,
+    validate_national_id_value,
+)
 from payroll_copilot.application.services.national_id_privacy import (
     hash_national_id,
     mask_national_id,
 )
+from payroll_copilot.application.services.vacation_rules import normalize_email
+from payroll_copilot.domain.entities import Employee
+from payroll_copilot.domain.enums import EmployeeStatus, EmploymentType, SalaryType
 from payroll_copilot.infrastructure.security.field_crypto import encrypt_national_id
 
 # Identity fields must use dedicated columns/API fields — never via metadata patches.
@@ -45,6 +52,33 @@ def _sanitize_employee_metadata_patch(metadata: dict[str, Any] | None) -> dict[s
     }
 
 
+def _validated_employee_email(value: str | None) -> str | None:
+    """Normalize (trim/lower) and validate email; never echo the address in errors."""
+    cleaned = normalize_email(value)
+    if cleaned is None:
+        return None
+    try:
+        return validate_email(cleaned, check_deliverability=False).normalized
+    except EmailNotValidError as exc:
+        raise EmployeeValidationError(
+            "invalid_email",
+            "Invalid email format.",
+        ) from exc
+
+
+def _validated_national_id(value: str | None) -> str | None:
+    """Validate Israeli national ID; blank means omit. Preserve digit string as-is."""
+    if value is None:
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    try:
+        return validate_national_id_value(text)
+    except FixedDocumentFormValidationError as exc:
+        raise EmployeeValidationError(exc.code, exc.message) from exc
+
+
 class EmployeeConflictError(Exception):
     def __init__(self, message: str) -> None:
         self.message = message
@@ -53,6 +87,13 @@ class EmployeeConflictError(Exception):
 
 class EmployeeNotFoundError(Exception):
     def __init__(self, message: str = "Employee not found.") -> None:
+        self.message = message
+        super().__init__(message)
+
+
+class EmployeeValidationError(Exception):
+    def __init__(self, code: str, message: str) -> None:
+        self.code = code
         self.message = message
         super().__init__(message)
 
@@ -91,6 +132,7 @@ class UpdateEmployeeCommand:
     hourly_rate: Decimal | None = None
     monthly_salary: Decimal | None = None
     national_id: str | None = None
+    email: str | None = None
     status: EmployeeStatus | None = None
     metadata: dict[str, Any] | None = None
 
@@ -160,12 +202,13 @@ class ManageEmployeesUseCase:
             raise EmployeeConflictError("Employee number already exists in this organization.")
 
         metadata = _sanitize_employee_metadata_patch(command.metadata)
-        if command.email:
-            metadata["email"] = command.email.strip()
+        email = _validated_employee_email(command.email)
+        if email:
+            metadata["email"] = email
 
         encrypted: bytes | None = None
-        if command.national_id and command.national_id.strip():
-            nid = command.national_id.strip()
+        nid = _validated_national_id(command.national_id)
+        if nid:
             nid_hash = hash_national_id(nid)
             conflict = await self._employees.get_by_national_id_hash(
                 command.organization_id, nid_hash
@@ -242,19 +285,29 @@ class ManageEmployeesUseCase:
             employee.monthly_salary = command.monthly_salary
         if command.status is not None:
             employee.status = command.status
+            # Accountant-driven status changes are treated as manual ownership for leave.
+            if command.status == EmployeeStatus.ON_LEAVE:
+                metadata["leave_status_source"] = "manual"
+        if command.email is not None:
+            cleaned = _validated_employee_email(command.email)
+            if cleaned:
+                metadata["email"] = cleaned
+            else:
+                metadata.pop("email", None)
         if command.metadata:
             metadata.update(_sanitize_employee_metadata_patch(command.metadata))
-        if command.national_id is not None and command.national_id.strip():
-            nid = command.national_id.strip()
-            nid_hash = hash_national_id(nid)
-            conflict = await self._employees.get_by_national_id_hash(
-                command.organization_id, nid_hash
-            )
-            if conflict is not None and conflict.id != employee.id:
-                raise EmployeeConflictError("An employee with this national ID already exists.")
-            metadata["national_id_hash"] = nid_hash
-            metadata["national_id_masked"] = mask_national_id(nid)
-            encrypted = encrypt_national_id(nid, encryption_key=self._encryption_key)
+        if command.national_id is not None:
+            nid = _validated_national_id(command.national_id)
+            if nid:
+                nid_hash = hash_national_id(nid)
+                conflict = await self._employees.get_by_national_id_hash(
+                    command.organization_id, nid_hash
+                )
+                if conflict is not None and conflict.id != employee.id:
+                    raise EmployeeConflictError("An employee with this national ID already exists.")
+                metadata["national_id_hash"] = nid_hash
+                metadata["national_id_masked"] = mask_national_id(nid)
+                encrypted = encrypt_national_id(nid, encryption_key=self._encryption_key)
 
         employee.metadata = metadata
 

@@ -19,6 +19,7 @@ export const ACCOUNTANT_PORTAL: PortalConfig = {
   basePath: '/accountant',
   navItems: [
     { labelKey: 'accountant.navigation.employees', path: '/accountant/employees' },
+    { labelKey: 'accountant.navigation.vacations', path: '/accountant/vacations', badgeKey: 'vacationsUnseen' },
     { labelKey: 'accountant.navigation.bulkUpload', path: '/accountant/bulk-upload' },
     { labelKey: 'accountant.navigation.analytics', path: '/accountant/analytics' },
   ],
