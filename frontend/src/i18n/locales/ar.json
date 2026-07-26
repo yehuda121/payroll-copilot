@@ -42,6 +42,15 @@
       "employee": "موظف",
       "payroll_accountant": "محاسب رواتب",
       "developer_admin": "مطوّر / مسؤول"
+    },
+    "validation": {
+      "invalidEmail": "أدخل عنوان بريد إلكتروني صالحًا.",
+      "nameInvalid": "أدخل اسمًا صالحًا باستخدام الأحرف فقط.",
+      "nameMaxLength": "الاسم طويل جدًا.",
+      "nameNoDigits": "لا يمكن أن تحتوي الأسماء على أرقام.",
+      "nationalIdDigits": "يجب أن يحتوي رقم الهوية على أرقام فقط.",
+      "nationalIdLength": "يجب أن يتكون رقم الهوية من 9 أرقام بالضبط.",
+      "nationalIdChecksum": "مجموع التحقق لرقم الهوية غير صالح."
     }
   },
   "payroll": {

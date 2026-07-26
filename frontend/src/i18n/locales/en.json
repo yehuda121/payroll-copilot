@@ -42,6 +42,15 @@
       "employee": "Employee",
       "payroll_accountant": "Payroll accountant",
       "developer_admin": "Developer admin"
+    },
+    "validation": {
+      "invalidEmail": "Enter a valid email address.",
+      "nameInvalid": "Enter a valid name using letters only.",
+      "nameMaxLength": "Name is too long.",
+      "nameNoDigits": "Names cannot contain digits.",
+      "nationalIdDigits": "National ID must contain digits only.",
+      "nationalIdLength": "National ID must be exactly 9 digits.",
+      "nationalIdChecksum": "National ID checksum is invalid."
     }
   },
   "payroll": {

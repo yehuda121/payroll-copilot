@@ -5,6 +5,11 @@ import { getRoleHomePath, loadCognitoSession } from '../../auth/authProvider';
 import { useAuth } from '../../auth/AuthContext';
 import { DEV_IDENTITIES } from '../../auth/devAuth';
 import { useConfirmDialog } from '../../components/ui/Dialog';
+import {
+  EMAIL_MAX_LENGTH,
+  FREE_TEXT_MAX_LENGTH,
+  validateEmailFormat,
+} from '../../lib/validation';
 import type { UserRole } from '../../types/auth';
 import '../../layouts/PublicLayout.css';
 
@@ -122,9 +127,14 @@ function CognitoLoginForm({
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    const emailResult = validateEmailFormat(email);
+    if (!emailResult.ok) {
+      await onError(t('common.validation.invalidEmail'));
+      return;
+    }
     setBusy(true);
     try {
-      await onLogin(email.trim(), password);
+      await onLogin(emailResult.value, password);
     } catch (err) {
       await onError(err instanceof Error ? err.message : t('auth.loginFailed'));
     } finally {
@@ -142,6 +152,7 @@ function CognitoLoginForm({
           autoComplete="username"
           placeholder={t('auth.emailPlaceholder')}
           value={email}
+          maxLength={EMAIL_MAX_LENGTH}
           onChange={(event) => setEmail(event.target.value)}
           required
           disabled={busy}
@@ -155,6 +166,7 @@ function CognitoLoginForm({
           autoComplete="current-password"
           placeholder="••••••••"
           value={password}
+          maxLength={FREE_TEXT_MAX_LENGTH.password}
           onChange={(event) => setPassword(event.target.value)}
           required
           disabled={busy}

@@ -17,8 +17,17 @@ import {
 import { employeesService } from '../../services/employees';
 import type { EmployeeRecord } from '../../types/employee';
 import { buildEmployeeFieldValidationMap } from '../../lib/employee/field-validation-status';
+import { FIELD_MAX_LENGTH, validatePersonName } from '../../lib/employee/field-text';
+import { validateNationalId } from '../../lib/employee/israeli-id';
+import {
+  EMAIL_MAX_LENGTH,
+  FREE_TEXT_MAX_LENGTH,
+  clampFreeTextInput,
+  validateEmailFormat,
+} from '../../lib/validation';
 import { reviewFieldsFromExtractionPayload } from '../../lib/guest/extraction-review';
 import type { GuestValidationReport } from '../../types/validation-report';
+import { TruncatedText } from '../../components/ui/TruncatedText';
 import './UnknownEmployeeResolution.css';
 import '../employee/PayslipMonthWorkspace.css';
 
@@ -288,20 +297,70 @@ export function BatchItemReviewWorkspacePage() {
       setError(t('accountant.unknown.required'));
       return;
     }
+    const first = validatePersonName(createValues.firstName);
+    if (!first.ok) {
+      setError(
+        t(
+          first.code === 'digits'
+            ? 'common.validation.nameNoDigits'
+            : first.code === 'max_length'
+              ? 'common.validation.nameMaxLength'
+              : 'common.validation.nameInvalid',
+        ),
+      );
+      return;
+    }
+    const last = validatePersonName(createValues.lastName);
+    if (!last.ok) {
+      setError(
+        t(
+          last.code === 'digits'
+            ? 'common.validation.nameNoDigits'
+            : last.code === 'max_length'
+              ? 'common.validation.nameMaxLength'
+              : 'common.validation.nameInvalid',
+        ),
+      );
+      return;
+    }
+    const emailResult = validateEmailFormat(createValues.email, { allowEmpty: true });
+    if (!emailResult.ok) {
+      setError(t('common.validation.invalidEmail'));
+      return;
+    }
+    const nid = validateNationalId(createValues.nationalId);
+    if (!nid.ok) {
+      setError(
+        t(
+          nid.code === 'digits_only'
+            ? 'common.validation.nationalIdDigits'
+            : nid.code === 'length'
+              ? 'common.validation.nationalIdLength'
+              : 'common.validation.nationalIdChecksum',
+        ),
+      );
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       const created = await employeesService.create({
-        employee_number: createValues.employeeNumber.trim(),
-        first_name: createValues.firstName.trim(),
-        last_name: createValues.lastName.trim(),
-        national_id: createValues.nationalId.trim(),
-        email: createValues.email.trim() || undefined,
+        employee_number: clampFreeTextInput(
+          createValues.employeeNumber.trim(),
+          FREE_TEXT_MAX_LENGTH.identifier,
+        ),
+        first_name: first.value,
+        last_name: last.value,
+        national_id: nid.digits,
+        email: emailResult.value || undefined,
         employment_type: 'full_time',
         salary_type: 'monthly',
         metadata: {
-          company: createValues.company.trim(),
-          department: createValues.department.trim(),
+          company: clampFreeTextInput(createValues.company.trim(), FREE_TEXT_MAX_LENGTH.shortNote),
+          department: clampFreeTextInput(
+            createValues.department.trim(),
+            FREE_TEXT_MAX_LENGTH.shortNote,
+          ),
           source: 'batch_unknown_employee_resolution',
         },
       });
@@ -391,8 +450,11 @@ export function BatchItemReviewWorkspacePage() {
                 <span>{t('accountant.unknown.searchLabel')}</span>
                 <input
                   type="search"
+                  maxLength={FREE_TEXT_MAX_LENGTH.searchQuery}
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) =>
+                    setQuery(clampFreeTextInput(event.target.value, FREE_TEXT_MAX_LENGTH.searchQuery))
+                  }
                   placeholder={t('accountant.unknown.searchPlaceholder')}
                 />
               </label>
@@ -407,7 +469,9 @@ export function BatchItemReviewWorkspacePage() {
                     disabled={busy}
                     onClick={() => void attach(employee)}
                   >
-                    <strong>{employee.fullName}</strong>
+                    <strong>
+                      <TruncatedText>{employee.fullName}</TruncatedText>
+                    </strong>
                     <span>#{employee.employeeNumber}</span>
                     <span>{employee.nationalIdMasked || t('common.emDash')}</span>
                   </button>
@@ -433,12 +497,37 @@ export function BatchItemReviewWorkspacePage() {
                     type={key === 'email' ? 'email' : 'text'}
                     value={createValues[key]}
                     readOnly={key === 'company'}
-                    onChange={(event) =>
+                    inputMode={key === 'nationalId' ? 'numeric' : undefined}
+                    maxLength={
+                      key === 'nationalId'
+                        ? FIELD_MAX_LENGTH.nationalId
+                        : key === 'firstName' || key === 'lastName'
+                          ? FIELD_MAX_LENGTH.personName
+                          : key === 'email'
+                            ? EMAIL_MAX_LENGTH
+                            : key === 'employeeNumber'
+                              ? FREE_TEXT_MAX_LENGTH.identifier
+                              : FREE_TEXT_MAX_LENGTH.shortNote
+                    }
+                    autoComplete="off"
+                    onChange={(event) => {
+                      let next = event.target.value;
+                      if (key === 'nationalId') {
+                        next = next.replace(/\D/g, '').slice(0, FIELD_MAX_LENGTH.nationalId);
+                      } else if (key === 'email') {
+                        next = next.slice(0, EMAIL_MAX_LENGTH);
+                      } else if (key === 'firstName' || key === 'lastName') {
+                        next = next.slice(0, FIELD_MAX_LENGTH.personName);
+                      } else if (key === 'employeeNumber') {
+                        next = clampFreeTextInput(next, FREE_TEXT_MAX_LENGTH.identifier);
+                      } else {
+                        next = clampFreeTextInput(next, FREE_TEXT_MAX_LENGTH.shortNote);
+                      }
                       setCreateValues((previous) => ({
                         ...previous,
-                        [key]: event.target.value,
-                      }))
-                    }
+                        [key]: next,
+                      }));
+                    }}
                   />
                 </label>
               ))}

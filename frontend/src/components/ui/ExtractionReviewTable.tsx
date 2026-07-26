@@ -54,8 +54,9 @@ export function ExtractionReviewTable({
                     id={`extract-${field.key}`}
                     className="extraction-field__input"
                     value={inputValue}
+                    maxLength={8000}
                     placeholder={t('validate.fieldMissing')}
-                    onChange={(event) => onChangeField?.(field.key, event.target.value)}
+                    onChange={(event) => onChangeField?.(field.key, event.target.value.slice(0, 8000))}
                     aria-label={field.label}
                   />
                   <button
@@ -67,7 +68,7 @@ export function ExtractionReviewTable({
                   </button>
                 </div>
               ) : (
-                <span className="extraction-field__value">
+                <span className="extraction-field__value u-text-clamp-3" title={showMissing ? undefined : field.displayValue}>
                   {showMissing ? t('validate.fieldMissing') : field.displayValue}
                 </span>
               )}

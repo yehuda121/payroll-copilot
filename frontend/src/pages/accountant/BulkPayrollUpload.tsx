@@ -7,6 +7,7 @@ import { EmptyState } from '../../components/ui/Dialog';
 import { useBatchNavigationGuard } from '../../features/accountant/BatchNavigationGuard';
 import { getAccountantErrorMessage } from '../../i18n/accountantLabels';
 import { matchesBatchSearchQuery } from '../../lib/accountant/batch-search';
+import { FREE_TEXT_MAX_LENGTH, clampFreeTextInput } from '../../lib/validation';
 import { batchService } from '../../services/batch';
 import type { BatchEmployeeStatus, BatchExtractedEmployee } from '../../types/api';
 import './BulkPayrollUpload.css';
@@ -282,7 +283,12 @@ export function BulkPayrollUploadPage() {
                     <input
                       type="search"
                       value={searchQuery}
-                      onChange={(event) => setSearchQuery(event.target.value)}
+                      maxLength={FREE_TEXT_MAX_LENGTH.searchQuery}
+                      onChange={(event) =>
+                        setSearchQuery(
+                          clampFreeTextInput(event.target.value, FREE_TEXT_MAX_LENGTH.searchQuery),
+                        )
+                      }
                       placeholder={t('accountant.bulk.searchPlaceholder')}
                       aria-label={t('accountant.bulk.searchLabel')}
                     />

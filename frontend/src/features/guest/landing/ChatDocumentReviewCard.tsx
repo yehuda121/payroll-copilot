@@ -6,6 +6,8 @@ import {
   isMeaningfulReviewEntry,
   serializeEntryValue,
 } from '../../../lib/guest/extraction-review';
+import { FREE_TEXT_MAX_LENGTH, clampFreeTextInput } from '../../../lib/validation';
+import { TruncatedText } from '../../../components/ui/TruncatedText';
 import './landing-chat.css';
 
 type ChatDocumentReviewCardProps = {
@@ -54,7 +56,9 @@ function EntryRow({
           </div>
           <div className="digital-form__kv-value">
             <span className="digital-form__kv-label">{t('landingChat.form.valueLabel')}</span>
-            <p className="digital-form__readonly">{valueText || t('common.emDash')}</p>
+            <p className="digital-form__readonly u-text-clamp-3" title={valueText || undefined}>
+              {valueText || t('common.emDash')}
+            </p>
           </div>
         </>
       ) : (
@@ -64,7 +68,12 @@ function EntryRow({
             <input
               className="digital-form__input"
               value={keyInputValue}
-              onChange={(event) => onChangeEntry(entry.id, { key: event.target.value })}
+              maxLength={FREE_TEXT_MAX_LENGTH.shortNote}
+              onChange={(event) =>
+                onChangeEntry(entry.id, {
+                  key: clampFreeTextInput(event.target.value, FREE_TEXT_MAX_LENGTH.shortNote),
+                })
+              }
               placeholder={t('payroll.fields.unknown')}
               disabled={busy}
             />
@@ -74,7 +83,14 @@ function EntryRow({
             <input
               className="digital-form__input"
               value={valueText}
-              onChange={(event) => onChangeEntry(entry.id, { value: event.target.value })}
+              maxLength={FREE_TEXT_MAX_LENGTH.longNote}
+              onChange={(event) =>
+                onChangeEntry(entry.id, {
+                  value: clampFreeTextInput(event.target.value, FREE_TEXT_MAX_LENGTH.longNote, {
+                    allowNewlines: true,
+                  }),
+                })
+              }
               placeholder={t('landingChat.form.valuePlaceholder')}
               disabled={busy}
             />
@@ -126,7 +142,9 @@ export function ChatDocumentReviewCard({
           </div>
           <div>
             <dt>{t('landingChat.uploadedFile')}</dt>
-            <dd>{fileName}</dd>
+            <dd>
+              <TruncatedText>{fileName}</TruncatedText>
+            </dd>
           </div>
         </dl>
         <p className="digital-form__hint">{t('landingChat.confirmBeforeValidate')}</p>

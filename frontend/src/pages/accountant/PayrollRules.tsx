@@ -8,6 +8,7 @@ import { getAccountantErrorMessage } from '../../i18n/accountantLabels';
 import { useAppLocale } from '../../hooks/useAppLocale';
 import { formatDateTime } from '../../lib/formatLocale';
 import { complianceService, type RuleFileContent } from '../../services/compliance';
+import { FREE_TEXT_MAX_LENGTH, clampFreeTextInput } from '../../lib/validation';
 import type { LegalRuleSummary } from '../../types';
 
 export function PayrollRulesPage() {
@@ -189,7 +190,10 @@ export function PayrollRulesPage() {
                   type="text"
                   placeholder={t('accountant.rules.reasonPlaceholder')}
                   value={reason}
-                  onChange={(e) => setReason(e.target.value)}
+                  maxLength={FREE_TEXT_MAX_LENGTH.shortNote}
+                  onChange={(e) =>
+                    setReason(clampFreeTextInput(e.target.value, FREE_TEXT_MAX_LENGTH.shortNote))
+                  }
                   aria-label={t('accountant.rules.reasonAria')}
                   className="rule-reason-input"
                 />
@@ -218,7 +222,14 @@ export function PayrollRulesPage() {
             className="rule-editor"
             value={draft}
             readOnly={!editing}
-            onChange={(e) => setDraft(e.target.value)}
+            maxLength={FREE_TEXT_MAX_LENGTH.longNote}
+            onChange={(e) =>
+              setDraft(
+                clampFreeTextInput(e.target.value, FREE_TEXT_MAX_LENGTH.longNote, {
+                  allowNewlines: true,
+                }),
+              )
+            }
             rows={18}
             spellCheck={false}
             aria-label={t('accountant.rules.contentAria')}

@@ -6,6 +6,7 @@ import { DataTable, type DataTableColumn } from '../../components/ui/DataTable';
 import { LoadingOverlay, ModalDialog, useConfirmDialog } from '../../components/ui/Dialog';
 import { TrashIcon } from '../../components/ui/icons';
 import { useToast } from '../../components/ui/Toast';
+import { TruncatedText } from '../../components/ui/TruncatedText';
 import {
   getLeaveListCache,
   leaveListCacheKey,
@@ -32,6 +33,12 @@ import {
   type LeaveEditForm,
   type LeaveSettingsForm,
 } from '../../lib/accountant/leave-management-ui';
+import { FIELD_MAX_LENGTH } from '../../lib/employee/field-text';
+import { EMAIL_MAX_LENGTH } from '../../lib/validation/email';
+import {
+  leaveContactErrorKey,
+  validateLeaveContactFields,
+} from '../../lib/validation/leave-contact';
 import { ApiClientError } from '../../services/api';
 import {
   vacationsService,
@@ -40,7 +47,7 @@ import {
 } from '../../services/vacations';
 import {
   LeaveLoadError,
-  LeaveManualEntryFields,
+  LeaveManualEntryDialog,
   LeaveToolbar,
   LeaveUnsavedChangesDialog,
 } from './leave-ui/LeavePresentation';
@@ -98,6 +105,7 @@ export function VacationsPage() {
   const [settingsEmailError, setSettingsEmailError] = useState<string | null>(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
+  const [manualError, setManualError] = useState<string | null>(null);
   const [manualForm, setManualForm] = useState({
     employeeEmail: '',
     employeeName: '',
@@ -111,6 +119,7 @@ export function VacationsPage() {
     startDate: '',
     endDate: '',
   });
+  const [editError, setEditError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [pageLoadedAt] = useState(() => new Date().toISOString());
   const selectAllRef = useRef<HTMLInputElement | null>(null);
@@ -360,13 +369,21 @@ export function VacationsPage() {
 
   const saveDetail = async (): Promise<boolean> => {
     if (!detail) return false;
+    const validated = validateLeaveContactFields(editForm);
+    if (!validated.ok) {
+      const message = t(leaveContactErrorKey(validated.code));
+      setEditError(message);
+      showToast({ tone: 'error', message });
+      return false;
+    }
+    setEditError(null);
     setSaving(true);
     try {
       const updated = await vacationsService.update(detail.id, {
-        employeeEmail: editForm.employeeEmail.trim() || null,
-        employeeName: editForm.employeeName.trim() || null,
-        startDate: editForm.startDate || null,
-        endDate: editForm.endDate || null,
+        employeeEmail: validated.values.employeeEmail || null,
+        employeeName: validated.values.employeeName || null,
+        startDate: validated.values.startDate || null,
+        endDate: validated.values.endDate || null,
       });
       const baseline = leaveEditBaseline(updated);
       setDetail(updated);
@@ -493,12 +510,18 @@ export function VacationsPage() {
   };
 
   const createManual = async () => {
+    const validated = validateLeaveContactFields(manualForm);
+    if (!validated.ok) {
+      setManualError(t(leaveContactErrorKey(validated.code)));
+      return;
+    }
+    setManualError(null);
     try {
       await vacationsService.createManual({
-        employeeEmail: manualForm.employeeEmail || undefined,
-        employeeName: manualForm.employeeName || undefined,
-        startDate: manualForm.startDate,
-        endDate: manualForm.endDate,
+        employeeEmail: validated.values.employeeEmail || undefined,
+        employeeName: validated.values.employeeName || undefined,
+        startDate: validated.values.startDate,
+        endDate: validated.values.endDate,
         notes: manualForm.notes || undefined,
       });
       setManualOpen(false);
@@ -546,7 +569,7 @@ export function VacationsPage() {
       sortValue: (row) => leaveEmployeeLabel(row),
       render: (row) => (
         <span className={leaveRowSeverityClass(row.attentionCodes)}>
-          {leaveEmployeeLabel(row)}
+          <TruncatedText>{leaveEmployeeLabel(row)}</TruncatedText>
           {row.attentionCodes.length > 0 ? (
             <span className="leave-codes">
               {row.attentionCodes.slice(0, 2).map((code) => (
@@ -764,15 +787,25 @@ export function VacationsPage() {
                 {t('accountant.vacations.fieldName')}
                 <input
                   value={editForm.employeeName}
-                  onChange={(e) => setEditForm((f) => ({ ...f, employeeName: e.target.value }))}
+                  maxLength={FIELD_MAX_LENGTH.personName}
+                  autoComplete="name"
+                  onChange={(e) => {
+                    setEditError(null);
+                    setEditForm((f) => ({ ...f, employeeName: e.target.value }));
+                  }}
                 />
               </label>
               <label>
                 {t('accountant.vacations.fieldEmail')}
                 <input
                   type="email"
+                  maxLength={EMAIL_MAX_LENGTH}
                   value={editForm.employeeEmail}
-                  onChange={(e) => setEditForm((f) => ({ ...f, employeeEmail: e.target.value }))}
+                  autoComplete="off"
+                  onChange={(e) => {
+                    setEditError(null);
+                    setEditForm((f) => ({ ...f, employeeEmail: e.target.value }));
+                  }}
                 />
               </label>
               <label>
@@ -792,6 +825,11 @@ export function VacationsPage() {
                 />
               </label>
             </div>
+            {editError ? (
+              <p className="leave-manual-form__error" role="alert">
+                {editError}
+              </p>
+            ) : null}
 
             {detail.aiExtractionOriginal ? (
               <>
@@ -901,6 +939,7 @@ export function VacationsPage() {
                   type="email"
                   className="vacations-filter-control leave-settings-input"
                   value={settingsForm.notificationEmail}
+                  maxLength={EMAIL_MAX_LENGTH}
                   onChange={(e) => {
                     setSettingsForm((f) => ({ ...f, notificationEmail: e.target.value }));
                     setSettingsEmailError(null);
@@ -953,35 +992,29 @@ export function VacationsPage() {
       ) : null}
 
       {manualOpen ? (
-        <ModalDialog
+        <LeaveManualEntryDialog
           title={t('accountant.vacations.addManual')}
-          onClose={() => setManualOpen(false)}
-          footer={
-            <>
-              <button
-                type="button"
-                className="btn btn--secondary"
-                onClick={() => setManualOpen(false)}
-              >
-                {t('common.cancel')}
-              </button>
-              <button type="button" className="btn btn--primary" onClick={() => void createManual()}>
-                {t('common.create')}
-              </button>
-            </>
-          }
-        >
-          <LeaveManualEntryFields
-            labels={{
-              fieldEmail: t('accountant.vacations.fieldEmail'),
-              fieldName: t('accountant.vacations.fieldName'),
-              fieldStartDate: t('accountant.vacations.fieldStartDate'),
-              fieldEndDate: t('accountant.vacations.fieldEndDate'),
-            }}
-            values={manualForm}
-            onChange={(patch) => setManualForm((f) => ({ ...f, ...patch }))}
-          />
-        </ModalDialog>
+          closeLabel={t('common.close')}
+          cancelLabel={t('common.cancel')}
+          createLabel={t('common.create')}
+          labels={{
+            fieldEmail: t('accountant.vacations.fieldEmail'),
+            fieldName: t('accountant.vacations.fieldName'),
+            fieldStartDate: t('accountant.vacations.fieldStartDate'),
+            fieldEndDate: t('accountant.vacations.fieldEndDate'),
+          }}
+          values={manualForm}
+          error={manualError}
+          onChange={(patch) => {
+            setManualError(null);
+            setManualForm((f) => ({ ...f, ...patch }));
+          }}
+          onClose={() => {
+            setManualError(null);
+            setManualOpen(false);
+          }}
+          onCreate={() => void createManual()}
+        />
       ) : null}
     </PortalPage>
   );

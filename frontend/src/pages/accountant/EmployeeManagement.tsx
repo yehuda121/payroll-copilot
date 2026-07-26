@@ -13,6 +13,7 @@ import {
 } from '../../i18n/accountantLabels';
 import { useAppLocale } from '../../hooks/useAppLocale';
 import { formatCurrencyILS } from '../../lib/formatLocale';
+import { FREE_TEXT_MAX_LENGTH, clampFreeTextInput } from '../../lib/validation';
 import { ApiClientError } from '../../services/api';
 import { employeesService } from '../../services/employees';
 import type { EmployeeRecord, EmployeeStatus } from '../../types';
@@ -104,7 +105,10 @@ export function EmployeeManagementPage() {
             type="search"
             placeholder={t('accountant.employees.searchPlaceholder')}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            maxLength={FREE_TEXT_MAX_LENGTH.searchQuery}
+            onChange={(e) =>
+              setQuery(clampFreeTextInput(e.target.value, FREE_TEXT_MAX_LENGTH.searchQuery))
+            }
             aria-label={t('accountant.employees.searchAria')}
           />
           <select

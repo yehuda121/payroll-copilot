@@ -37,6 +37,10 @@
   margin: 0 0 1rem;
   font-size: 1rem;
   font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .placeholder-panel {
@@ -76,6 +80,45 @@
   padding: 0.75rem 1rem;
   text-align: start;
   border-bottom: 1px solid var(--color-border);
+  max-width: 18rem;
+  vertical-align: middle;
+}
+
+.data-table td {
+  min-width: 0;
+}
+
+.data-table td .u-text-truncate,
+.data-table td .u-text-clamp-2,
+.data-table td .u-text-clamp-3 {
+  max-width: 100%;
+}
+
+/* Responsive truncation utilities (display mode only — not for inputs) */
+.u-text-truncate {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.u-text-clamp-2,
+.u-text-clamp-3 {
+  display: -webkit-box;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+}
+
+.u-text-clamp-2 {
+  -webkit-line-clamp: 2;
+}
+
+.u-text-clamp-3 {
+  -webkit-line-clamp: 3;
 }
 
 .data-table th {
@@ -1030,6 +1073,10 @@
   margin: 0;
   font-size: 1.1rem;
   line-height: 1.35;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .modal-dialog__close {

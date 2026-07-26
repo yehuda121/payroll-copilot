@@ -1,4 +1,5 @@
 import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { TruncatedText } from './TruncatedText';
 import './ui.css';
 
 export type SortDirection = 'asc' | 'desc';
@@ -169,19 +170,28 @@ export function DataTable<T extends Record<string, unknown>>({
                 tabIndex={onRowClick ? 0 : undefined}
                 role={onRowClick ? 'link' : undefined}
               >
-                {columns.map((col) => (
-                  <td
-                    key={String(col.key)}
-                    className={col.className}
-                    onClick={
-                      String(col.key) === 'actions'
-                        ? (event) => event.stopPropagation()
-                        : undefined
-                    }
-                  >
-                    {col.render ? col.render(row) : String(row[col.key as keyof T] ?? '')}
-                  </td>
-                ))}
+                {columns.map((col) => {
+                  const isActions = String(col.key) === 'actions';
+                  const content = col.render
+                    ? col.render(row)
+                    : String(row[col.key as keyof T] ?? '');
+                  const truncatePlain =
+                    !isActions &&
+                    (typeof content === 'string' || typeof content === 'number');
+                  return (
+                    <td
+                      key={String(col.key)}
+                      className={col.className}
+                      onClick={
+                        isActions
+                          ? (event) => event.stopPropagation()
+                          : undefined
+                      }
+                    >
+                      {truncatePlain ? <TruncatedText>{content}</TruncatedText> : content}
+                    </td>
+                  );
+                })}
               </tr>
             ))
           )}

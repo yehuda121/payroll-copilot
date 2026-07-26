@@ -3,7 +3,8 @@
  */
 
 export const FIELD_MAX_LENGTH = {
-  personName: 120,
+  /** Person names across Document Center + accountant employee forms. */
+  personName: 50,
   nationalId: 9,
   birthDate: 32,
 } as const;

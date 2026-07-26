@@ -133,11 +133,17 @@
   align-items: flex-start;
   gap: 0.1rem;
   margin-inline-end: auto;
+  min-width: 0;
+  max-width: min(100%, 18rem);
 }
 
 .portal-shell__user-name {
   font-size: 0.875rem;
   font-weight: 500;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .portal-shell__user-role {

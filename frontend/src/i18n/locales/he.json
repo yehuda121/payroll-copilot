@@ -42,6 +42,15 @@
       "employee": "עובד",
       "payroll_accountant": "חשב שכר",
       "developer_admin": "מפתח / מנהל"
+    },
+    "validation": {
+      "invalidEmail": "הזינו כתובת אימייל תקינה.",
+      "nameInvalid": "הזינו שם תקין המורכב מאותיות בלבד.",
+      "nameMaxLength": "השם ארוך מדי.",
+      "nameNoDigits": "שמות אינם יכולים לכלול ספרות.",
+      "nationalIdDigits": "מספר הזהות חייב להכיל ספרות בלבד.",
+      "nationalIdLength": "מספר הזהות חייב להיות בן 9 ספרות בדיוק.",
+      "nationalIdChecksum": "ספרת הביקורת של מספר הזהות אינה תקינה."
     }
   },
   "payroll": {

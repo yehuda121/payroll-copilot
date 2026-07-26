@@ -3,6 +3,8 @@
 import { ActionIconButton } from '../../../components/ui/ActionIconButton';
 import { ModalDialog } from '../../../components/ui/Dialog';
 import { RefreshIcon, SettingsIcon } from '../../../components/ui/icons';
+import { FIELD_MAX_LENGTH } from '../../../lib/employee/field-text';
+import { EMAIL_MAX_LENGTH } from '../../../lib/validation/email';
 
 export type LeaveToolbarBucketOption = {
   value: string;
@@ -142,42 +144,105 @@ export type LeaveManualEntryFieldsProps = {
     endDate: string;
   };
   onChange: (patch: Partial<LeaveManualEntryFieldsProps['values']>) => void;
+  error?: string | null;
 };
 
-export function LeaveManualEntryFields({ labels, values, onChange }: LeaveManualEntryFieldsProps) {
+export function LeaveManualEntryFields({ labels, values, onChange, error }: LeaveManualEntryFieldsProps) {
   return (
-    <div className="form-grid">
-      <label>
+    <div className="leave-manual-form">
+      <label className="leave-manual-form__field">
         {labels.fieldEmail}
         <input
+          type="email"
+          inputMode="email"
+          autoComplete="off"
+          maxLength={EMAIL_MAX_LENGTH}
           value={values.employeeEmail}
           onChange={(e) => onChange({ employeeEmail: e.target.value })}
         />
       </label>
-      <label>
+      <label className="leave-manual-form__field">
         {labels.fieldName}
         <input
+          type="text"
+          autoComplete="name"
+          maxLength={FIELD_MAX_LENGTH.personName}
           value={values.employeeName}
           onChange={(e) => onChange({ employeeName: e.target.value })}
         />
       </label>
-      <label>
-        {labels.fieldStartDate}
-        <input
-          type="date"
-          value={values.startDate}
-          onChange={(e) => onChange({ startDate: e.target.value })}
-        />
-      </label>
-      <label>
-        {labels.fieldEndDate}
-        <input
-          type="date"
-          value={values.endDate}
-          onChange={(e) => onChange({ endDate: e.target.value })}
-        />
-      </label>
+      <div className="leave-manual-form__row">
+        <label className="leave-manual-form__field">
+          {labels.fieldStartDate}
+          <input
+            type="date"
+            value={values.startDate}
+            onChange={(e) => onChange({ startDate: e.target.value })}
+          />
+        </label>
+        <label className="leave-manual-form__field">
+          {labels.fieldEndDate}
+          <input
+            type="date"
+            value={values.endDate}
+            onChange={(e) => onChange({ endDate: e.target.value })}
+          />
+        </label>
+      </div>
+      {error ? (
+        <p className="leave-manual-form__error" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
+  );
+}
+
+export type LeaveManualEntryDialogProps = {
+  title: string;
+  closeLabel: string;
+  cancelLabel: string;
+  createLabel: string;
+  labels: LeaveManualEntryFieldsProps['labels'];
+  values: LeaveManualEntryFieldsProps['values'];
+  onChange: LeaveManualEntryFieldsProps['onChange'];
+  onClose: () => void;
+  onCreate: () => void;
+  error?: string | null;
+};
+
+/** Shared visual shell for manual leave create — all copy supplied by the domain page. */
+export function LeaveManualEntryDialog({
+  title,
+  closeLabel,
+  cancelLabel,
+  createLabel,
+  labels,
+  values,
+  onChange,
+  onClose,
+  onCreate,
+  error = null,
+}: LeaveManualEntryDialogProps) {
+  return (
+    <ModalDialog
+      title={title}
+      closeLabel={closeLabel}
+      className="leave-manual-dialog"
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className="btn btn--secondary" onClick={onClose}>
+            {cancelLabel}
+          </button>
+          <button type="button" className="btn btn--primary" onClick={onCreate}>
+            {createLabel}
+          </button>
+        </>
+      }
+    >
+      <LeaveManualEntryFields labels={labels} values={values} onChange={onChange} error={error} />
+    </ModalDialog>
   );
 }
 

@@ -147,7 +147,15 @@ export function PortalShell({ config }: PortalShellProps) {
       <div className="portal-shell__content">
         <header className="portal-shell__topbar">
           <div className="portal-shell__user">
-            <span className="portal-shell__user-name" lang={locale}>
+            <span
+              className="portal-shell__user-name"
+              lang={locale}
+              title={
+                locale === 'en'
+                  ? user?.fullName || undefined
+                  : user?.localizedFullName || user?.fullName || undefined
+              }
+            >
               {locale === 'en'
                 ? user?.fullName
                 : (user?.localizedFullName || user?.fullName)}

@@ -1,5 +1,6 @@
 import type { FormEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FREE_TEXT_MAX_LENGTH, clampFreeTextInput } from '../../lib/validation';
 import { PaperclipIcon, SendIcon } from '../ui/icons';
 
 export type ChatComposerProps = {
@@ -107,7 +108,14 @@ export function ChatComposer({
               type="text"
               dir="auto"
               value={value}
-              onChange={(event) => onChange(event.target.value)}
+              maxLength={FREE_TEXT_MAX_LENGTH.chatMessage}
+              onChange={(event) =>
+                onChange(
+                  clampFreeTextInput(event.target.value, FREE_TEXT_MAX_LENGTH.chatMessage, {
+                    allowNewlines: false,
+                  }),
+                )
+              }
               placeholder={placeholder}
               aria-label={ariaMessage}
               disabled={disabled}
@@ -131,7 +139,14 @@ export function ChatComposer({
           <input
             type="text"
             value={value}
-            onChange={(event) => onChange(event.target.value)}
+            maxLength={FREE_TEXT_MAX_LENGTH.chatMessage}
+            onChange={(event) =>
+              onChange(
+                clampFreeTextInput(event.target.value, FREE_TEXT_MAX_LENGTH.chatMessage, {
+                  allowNewlines: false,
+                }),
+              )
+            }
             placeholder={placeholder}
             aria-label={ariaMessage}
             disabled={disabled}

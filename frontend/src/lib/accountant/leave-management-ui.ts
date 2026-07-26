@@ -1,5 +1,7 @@
 /** Leave Management UI helpers — presentation only; no business rules. */
 
+import { isValidEmailFormat, sanitizeEmailInput } from '../validation/email';
+
 /** Default list filter: maps UI "הכל" / "All" to existing backend `active` bucket. */
 export const LEAVE_DEFAULT_BUCKET = 'active' as const;
 
@@ -92,17 +94,15 @@ export function mapLeaveActionError(
 
 /** Trim + lower — matches backend normalize_email presentation. */
 export function normalizeLeaveNotificationEmail(value: string): string {
-  return value.trim().toLowerCase();
+  return sanitizeEmailInput(value).toLowerCase();
 }
 
 /**
- * Basic local@domain check (same rule as EmployeeForm).
+ * Basic local@domain check (shared email format helper).
  * Empty string is allowed (clears override → fall back to monitored mailbox).
  */
 export function isBasicLeaveNotificationEmail(value: string): boolean {
-  const trimmed = value.trim();
-  if (!trimmed) return true;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+  return isValidEmailFormat(value, true);
 }
 
 export type LeaveSettingsForm = {
