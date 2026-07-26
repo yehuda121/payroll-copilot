@@ -17,6 +17,22 @@ const FINDING_KEY_ALIASES: Record<string, string> = {
   'validation.department.intern_hours_exceeded': 'validation_department_intern_hours_exceeded',
   'validation.department.lawyers_overtime_cap': 'validation_department_lawyers_overtime_cap',
   'validation.historical.salary_drift': 'validation_historical_salary_drift',
+  'validation.sanity.national_id.not_digits': 'validation_sanity_national_id_not_digits',
+  'validation.sanity.national_id.length': 'validation_sanity_national_id_length',
+  'validation.sanity.national_id.checksum': 'validation_sanity_national_id_checksum',
+  'validation.sanity.employee_name.numeric': 'validation_sanity_employee_name_numeric',
+  'validation.sanity.employee_name.no_letters': 'validation_sanity_employee_name_no_letters',
+  'validation.sanity.employee_name.too_short': 'validation_sanity_employee_name_too_short',
+  'validation.sanity.employee_name.structure': 'validation_sanity_employee_name_structure',
+  'validation.sanity.pay_period.unparseable': 'validation_sanity_pay_period_unparseable',
+  'validation.sanity.pay_period.month': 'validation_sanity_pay_period_month',
+  'validation.sanity.pay_period.year': 'validation_sanity_pay_period_year',
+  'validation.sanity.employment_start_date.invalid':
+    'validation_sanity_employment_start_date_invalid',
+  'validation.sanity.net_exceeds_gross': 'validation_sanity_net_exceeds_gross',
+  'validation.sanity.required_field_missing': 'validation_sanity_required_field_missing',
+  'validation.sanity.employment_type.unrecognized':
+    'validation_sanity_employment_type_unrecognized',
 };
 
 const FINDING_TITLE_KEYS: Record<string, string> = {

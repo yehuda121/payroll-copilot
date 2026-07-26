@@ -529,7 +529,21 @@
         "validation_youth_below_minimum_age": "Employee age is below the legal minimum.",
         "validation_department_intern_hours_exceeded": "Intern hours exceed the department limit.",
         "validation_department_lawyers_overtime_cap": "Lawyer overtime exceeds the department cap.",
-        "validation_historical_salary_drift": "Unusual salary drift was detected versus history."
+        "validation_historical_salary_drift": "Unusual salary drift was detected versus history.",
+        "validation_sanity_national_id_not_digits": "National ID must contain digits only.",
+        "validation_sanity_national_id_length": "National ID must be exactly 9 digits.",
+        "validation_sanity_national_id_checksum": "National ID failed the checksum check.",
+        "validation_sanity_employee_name_numeric": "Employee name cannot be digits only.",
+        "validation_sanity_employee_name_no_letters": "Employee name must include letters.",
+        "validation_sanity_employee_name_too_short": "Employee name is too short to be valid.",
+        "validation_sanity_employee_name_structure": "Employee name has an invalid structure.",
+        "validation_sanity_pay_period_unparseable": "Payroll period is not in a recognized format.",
+        "validation_sanity_pay_period_month": "Payroll period month is not valid.",
+        "validation_sanity_pay_period_year": "Payroll period year is not valid.",
+        "validation_sanity_employment_start_date_invalid": "Employment start date is not a valid calendar date.",
+        "validation_sanity_net_exceeds_gross": "Net salary exceeds gross salary on this payslip.",
+        "validation_sanity_required_field_missing": "A required payslip field is missing.",
+        "validation_sanity_employment_type_unrecognized": "Employment type on the payslip is not recognized."
       },
       "scope": {
         "payroll_rules": "Payroll Rules",

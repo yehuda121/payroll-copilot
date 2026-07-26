@@ -18,6 +18,7 @@ from payroll_copilot.presentation.api.router import api_router
 import payroll_copilot.domain.rules.legal  # noqa: F401
 import payroll_copilot.domain.rules.departments  # noqa: F401
 import payroll_copilot.domain.rules.historical  # noqa: F401
+import payroll_copilot.domain.rules.sanity  # noqa: F401
 
 
 @asynccontextmanager

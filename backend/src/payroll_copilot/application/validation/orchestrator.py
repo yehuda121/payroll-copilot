@@ -33,7 +33,15 @@ class ValidationOrchestrator:
             overall_confidence=overall_confidence,
             findings=tuple(findings),
             rules_evaluated=len(rules),
-            rules_failed=len(findings),
+            # INFO findings (e.g. missing-data / required-on-payslip) are informational —
+            # they must not inflate failed-rule counts. Aligns with overall_result, which
+            # already ignores INFO when computing PASS/WARNINGS/CRITICAL.
+            rules_failed=sum(
+                1
+                for finding in findings
+                if finding.severity
+                in (FindingSeverity.WARNING, FindingSeverity.CRITICAL)
+            ),
         )
 
     def _get_applicable_rules(self, context: ValidationContext) -> list[type]:

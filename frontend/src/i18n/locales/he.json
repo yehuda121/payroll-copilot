@@ -529,7 +529,21 @@
         "validation_youth_below_minimum_age": "גיל העובד נמוך מהמינימום החוקי.",
         "validation_department_intern_hours_exceeded": "שעות המתמחה חורגות ממגבלת המחלקה.",
         "validation_department_lawyers_overtime_cap": "שעות נוספות לעורכי דין חורגות מהתקרה המחלקתית.",
-        "validation_historical_salary_drift": "זוהתה סטיית שכר חריגה בהשוואה להיסטוריה."
+        "validation_historical_salary_drift": "זוהתה סטיית שכר חריגה בהשוואה להיסטוריה.",
+        "validation_sanity_national_id_not_digits": "מספר תעודת הזהות חייב להכיל ספרות בלבד.",
+        "validation_sanity_national_id_length": "מספר תעודת הזהות חייב להיות בן 9 ספרות.",
+        "validation_sanity_national_id_checksum": "מספר תעודת הזהות נכשל בבדיקת תקינות.",
+        "validation_sanity_employee_name_numeric": "שם העובד אינו יכול להיות מספרי בלבד.",
+        "validation_sanity_employee_name_no_letters": "שם העובד חייב לכלול אותיות.",
+        "validation_sanity_employee_name_too_short": "שם העובד קצר מדי מכדי להיות תקין.",
+        "validation_sanity_employee_name_structure": "שם העובד במבנה לא תקין.",
+        "validation_sanity_pay_period_unparseable": "תקופת השכר אינה בפורמט מזוהה.",
+        "validation_sanity_pay_period_month": "חודש תקופת השכר אינו תקין.",
+        "validation_sanity_pay_period_year": "שנת תקופת השכר אינה תקינה.",
+        "validation_sanity_employment_start_date_invalid": "תאריך תחילת העבודה אינו תאריך לוח שנה תקין.",
+        "validation_sanity_net_exceeds_gross": "השכר נטו גבוה מהשכר ברוטו על התלוש.",
+        "validation_sanity_required_field_missing": "שדה חובה חסר בתלוש.",
+        "validation_sanity_employment_type_unrecognized": "סוג ההעסקה בתלוש אינו מזוהה."
       },
       "scope": {
         "payroll_rules": "כללי שכר",

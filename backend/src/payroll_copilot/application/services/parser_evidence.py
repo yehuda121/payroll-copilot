@@ -459,6 +459,14 @@ def pay_period_implausible_reason(value: object) -> str | None:
     return None
 
 
+def pay_period_looks_structured(value: object) -> bool:
+    """True when value matches the numeric period patterns used by plausibility checks."""
+    if value is None or value == "":
+        return False
+    text = str(value).strip()
+    return bool(text and _PAY_PERIOD_RE.match(text))
+
+
 def derive_trust_tier(field: ExtractedField) -> FieldTrustTier:
     """Assign transparency trust metadata from provenance — never mutates value."""
     if field.value in (None, ""):

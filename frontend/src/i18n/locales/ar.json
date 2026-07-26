@@ -527,7 +527,21 @@
         "validation_youth_below_minimum_age": "عمر الموظف أقل من الحد الأدنى القانوني.",
         "validation_department_intern_hours_exceeded": "ساعات المتدرب تتجاوز حد القسم.",
         "validation_department_lawyers_overtime_cap": "ساعات العمل الإضافية للمحامين تتجاوز سقف القسم.",
-        "validation_historical_salary_drift": "تم اكتشاف انحراف غير معتاد في الراتب مقارنة بالتاريخ."
+        "validation_historical_salary_drift": "تم اكتشاف انحراف غير معتاد في الراتب مقارنة بالتاريخ.",
+        "validation_sanity_national_id_not_digits": "يجب أن يحتوي رقم الهوية على أرقام فقط.",
+        "validation_sanity_national_id_length": "يجب أن يتكون رقم الهوية من 9 أرقام بالضبط.",
+        "validation_sanity_national_id_checksum": "فشل رقم الهوية في فحص المجموع الاختباري.",
+        "validation_sanity_employee_name_numeric": "لا يمكن أن يكون اسم الموظف أرقامًا فقط.",
+        "validation_sanity_employee_name_no_letters": "يجب أن يتضمن اسم الموظف أحرفًا.",
+        "validation_sanity_employee_name_too_short": "اسم الموظف قصير جدًا ليكون صالحًا.",
+        "validation_sanity_employee_name_structure": "بنية اسم الموظف غير صالحة.",
+        "validation_sanity_pay_period_unparseable": "فترة الرواتب ليست بتنسيق معروف.",
+        "validation_sanity_pay_period_month": "شهر فترة الرواتب غير صالح.",
+        "validation_sanity_pay_period_year": "سنة فترة الرواتب غير صالحة.",
+        "validation_sanity_employment_start_date_invalid": "تاريخ بدء العمل ليس تاريخًا تقويميًا صالحًا.",
+        "validation_sanity_net_exceeds_gross": "صافي الراتب يتجاوز إجمالي الراتب في قسيمة الراتب.",
+        "validation_sanity_required_field_missing": "حقل مطلوب في قسيمة الراتب مفقود.",
+        "validation_sanity_employment_type_unrecognized": "نوع التوظيف في قسيمة الراتب غير معروف."
       },
       "scope": {
         "payroll_rules": "قواعد الرواتب",

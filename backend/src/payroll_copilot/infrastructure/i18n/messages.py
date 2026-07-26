@@ -50,6 +50,76 @@ FINDING_MESSAGES: dict[str, dict[str, str]] = {
         "en": "Required data is missing to complete this check.",
         "ar": "البيانات المطلوبة لإكمال هذا الفحص غير موجودة.",
     },
+    "validation.sanity.national_id.not_digits": {
+        "he": "מספר תעודת הזהות חייב להכיל ספרות בלבד.",
+        "en": "National ID must contain digits only.",
+        "ar": "يجب أن يحتوي رقم الهوية على أرقام فقط.",
+    },
+    "validation.sanity.national_id.length": {
+        "he": "מספר תעודת הזהות חייב להיות בן 9 ספרות.",
+        "en": "National ID must be exactly 9 digits.",
+        "ar": "يجب أن يتكون رقم الهوية من 9 أرقام بالضبط.",
+    },
+    "validation.sanity.national_id.checksum": {
+        "he": "מספר תעודת הזהות נכשל בבדיקת תקינות.",
+        "en": "National ID failed the checksum check.",
+        "ar": "فشل رقم الهوية في فحص المجموع الاختباري.",
+    },
+    "validation.sanity.employee_name.numeric": {
+        "he": "שם העובד אינו יכול להיות מספרי בלבד.",
+        "en": "Employee name cannot be digits only.",
+        "ar": "لا يمكن أن يكون اسم الموظف أرقامًا فقط.",
+    },
+    "validation.sanity.employee_name.no_letters": {
+        "he": "שם העובד חייב לכלול אותיות.",
+        "en": "Employee name must include letters.",
+        "ar": "يجب أن يتضمن اسم الموظف أحرفًا.",
+    },
+    "validation.sanity.employee_name.too_short": {
+        "he": "שם העובד קצר מדי מכדי להיות תקין.",
+        "en": "Employee name is too short to be valid.",
+        "ar": "اسم الموظف قصير جدًا ليكون صالحًا.",
+    },
+    "validation.sanity.employee_name.structure": {
+        "he": "שם העובד במבנה לא תקין.",
+        "en": "Employee name has an invalid structure.",
+        "ar": "بنية اسم الموظف غير صالحة.",
+    },
+    "validation.sanity.pay_period.unparseable": {
+        "he": "תקופת השכר אינה בפורמט מזוהה.",
+        "en": "Payroll period is not in a recognized format.",
+        "ar": "فترة الرواتب ليست بتنسيق معروف.",
+    },
+    "validation.sanity.pay_period.month": {
+        "he": "חודש תקופת השכר אינו תקין.",
+        "en": "Payroll period month is not valid.",
+        "ar": "شهر فترة الرواتب غير صالح.",
+    },
+    "validation.sanity.pay_period.year": {
+        "he": "שנת תקופת השכר אינה תקינה.",
+        "en": "Payroll period year is not valid.",
+        "ar": "سنة فترة الرواتب غير صالحة.",
+    },
+    "validation.sanity.employment_start_date.invalid": {
+        "he": "תאריך תחילת העבודה אינו תאריך לוח שנה תקין.",
+        "en": "Employment start date is not a valid calendar date.",
+        "ar": "تاريخ بدء العمل ليس تاريخًا تقويميًا صالحًا.",
+    },
+    "validation.sanity.net_exceeds_gross": {
+        "he": "השכר נטו גבוה מהשכר ברוטו על התלוש.",
+        "en": "Net salary exceeds gross salary on this payslip.",
+        "ar": "صافي الراتب يتجاوز إجمالي الراتب في قسيمة الراتب.",
+    },
+    "validation.sanity.required_field_missing": {
+        "he": "שדה חובה חסר בתלוש.",
+        "en": "A required payslip field is missing.",
+        "ar": "حقل مطلوب في قسيمة الراتب مفقود.",
+    },
+    "validation.sanity.employment_type.unrecognized": {
+        "he": "סוג ההעסקה בתלוש אינו מזוהה.",
+        "en": "Employment type on the payslip is not recognized.",
+        "ar": "نوع التوظيف في قسيمة الراتب غير معروف.",
+    },
 }
 
 FINDING_EXPLANATIONS: dict[str, dict[str, str]] = {
@@ -92,6 +162,76 @@ FINDING_EXPLANATIONS: dict[str, dict[str, str]] = {
         "he": "לא ניתן להשלים את הבדיקה בלי השדות החסרים.",
         "en": "This check cannot finish without the missing fields.",
         "ar": "لا يمكن إكمال هذا الفحص دون الحقول المفقودة.",
+    },
+    "validation.sanity.national_id.not_digits": {
+        "he": "בדיקת מבנה תעודת זהות על בסיס הספרות שחולצו מהתלוש בלבד.",
+        "en": "National ID structure check based only on digits extracted from the payslip.",
+        "ar": "فحص بنية رقم الهوية استنادًا إلى الأرقام المستخرجة من قسيمة الراتب فقط.",
+    },
+    "validation.sanity.national_id.length": {
+        "he": "תעודת זהות ישראלית מיוצגת כ־9 ספרות לאחר נירמול.",
+        "en": "An Israeli National ID is represented as 9 digits after normalization.",
+        "ar": "يُمثَّل رقم الهوية الإسرائيلي بـ 9 أرقام بعد التطبيع.",
+    },
+    "validation.sanity.national_id.checksum": {
+        "he": "בדיקת ספרת ביקורת סטנדרטית לתעודת זהות ישראלית — ללא השוואה לפרופיל.",
+        "en": "Standard Israeli ID checksum — no comparison to an employee profile.",
+        "ar": "مجموع اختباري قياسي لرقم الهوية الإسرائيلي — دون مقارنة بملف الموظف.",
+    },
+    "validation.sanity.employee_name.numeric": {
+        "he": "שמות עובדים חייבים לכלול אותיות בשפות הנתמכות — לא ספרות בלבד.",
+        "en": "Employee names must include letters in supported languages — not digits only.",
+        "ar": "يجب أن تتضمن أسماء الموظفين أحرفًا باللغات المدعومة — وليس أرقامًا فقط.",
+    },
+    "validation.sanity.employee_name.no_letters": {
+        "he": "הערך שחולץ לשם אינו כולל אותיות Unicode.",
+        "en": "The extracted name value does not include Unicode letters.",
+        "ar": "قيمة الاسم المستخرجة لا تتضمن أحرف Unicode.",
+    },
+    "validation.sanity.employee_name.too_short": {
+        "he": "שם קצר מדי נחשב בלתי סביר כשם אדם.",
+        "en": "A name this short is not a plausible person name.",
+        "ar": "اسم بهذا القصر ليس اسم شخص معقولًا.",
+    },
+    "validation.sanity.employee_name.structure": {
+        "he": "בדיקת מבנה שם על התלוש בלבד — ללא השוואה לפרופיל.",
+        "en": "Name structure check on the payslip only — no profile comparison.",
+        "ar": "فحص بنية الاسم على قسيمة الراتب فقط — دون مقارنة بالملف.",
+    },
+    "validation.sanity.pay_period.unparseable": {
+        "he": "הערך קיים אך לא ניתן לפרש אותו לחודש ושנה.",
+        "en": "A period value is present but could not be parsed into month and year.",
+        "ar": "قيمة الفترة موجودة لكن تعذر تحليلها إلى شهر وسنة.",
+    },
+    "validation.sanity.pay_period.month": {
+        "he": "חודש בתקופת שכר חייב להיות בין 1 ל־12.",
+        "en": "A payroll period month must be between 1 and 12.",
+        "ar": "يجب أن يكون شهر فترة الرواتب بين 1 و 12.",
+    },
+    "validation.sanity.pay_period.year": {
+        "he": "שנת תקופת השכר מחוץ לטווח המסמך המקובל במערכת.",
+        "en": "Payroll period year is outside the document range used by the system.",
+        "ar": "سنة فترة الرواتب خارج النطاق المستندي المستخدم في النظام.",
+    },
+    "validation.sanity.employment_start_date.invalid": {
+        "he": "התאריך אינו תאריך לוח שנה תקין לפי הפורמטים הנתמכים.",
+        "en": "The date is not a valid calendar date in supported formats.",
+        "ar": "التاريخ ليس تاريخًا تقويميًا صالحًا بالتنسيقات المدعومة.",
+    },
+    "validation.sanity.net_exceeds_gross": {
+        "he": "עקביות פנימית בתלוש: נטו אינו יכול לעלות על ברוטו כאשר שניהם קיימים.",
+        "en": "Internal payslip coherence: net cannot exceed gross when both are present.",
+        "ar": "اتساق داخلي في قسيمة الراتب: لا يمكن أن يتجاوز الصافي الإجمالي عند وجود كليهما.",
+    },
+    "validation.sanity.required_field_missing": {
+        "he": "שדה שמסומן כנדרש בתלוש חסר בנתונים המאושרים — אינו חוסם שמירה.",
+        "en": "A field marked required on the payslip is missing from confirmed data — does not block persistence.",
+        "ar": "حقل مُعلَم كمطلوب في قسيمة الراتب مفقود من البيانات المؤكدة — ولا يمنع الحفظ.",
+    },
+    "validation.sanity.employment_type.unrecognized": {
+        "he": "הערך קיים אך אינו תואם לסוגי העסקה הנתמכים במערכת — ללא המרה אוטומטית.",
+        "en": "A value is present but does not match supported employment types — no automatic conversion.",
+        "ar": "القيمة موجودة لكنها لا تطابق أنواع التوظيف المدعومة — دون تحويل تلقائي.",
     },
 }
 

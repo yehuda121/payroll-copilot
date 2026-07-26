@@ -45,4 +45,11 @@ def test_gate_fields_are_employee() -> None:
 
 def test_field_bindings_are_explicit_only() -> None:
     assert "legal.overtime.daily_limit" in bound_rule_ids_for_field("overtime_hours")
-    assert bound_rule_ids_for_field("base_salary") == frozenset()
+    assert "sanity.required.base_salary" in bound_rule_ids_for_field("base_salary")
+    assert "sanity.national_id.checksum" in bound_rule_ids_for_field("national_id")
+    assert bound_rule_ids_for_field("messages") == frozenset()
+
+
+def test_sanity_prefix_maps_to_sanity() -> None:
+    assert taxonomy_for_rule_id("sanity.national_id.length") == ValidationTaxonomy.SANITY
+    assert taxonomy_for_rule_id("sanity.required.employee_name") == ValidationTaxonomy.SANITY

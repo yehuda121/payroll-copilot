@@ -108,23 +108,32 @@ def coerce_pay_period(value: Any) -> PayPeriod | None:
         year = value.get("year")
         month = value.get("month")
         try:
-            return PayPeriod(year=int(year), month=int(month))
+            year_i, month_i = int(year), int(month)
+            if not 1 <= month_i <= 12:
+                return None
+            return PayPeriod(year=year_i, month=month_i)
         except (TypeError, ValueError):
             return None
     if isinstance(value, str):
         text = value.strip()
-        match = re.search(r"(20\d{2})[^\d]?(0?[1-9]|1[0-2])", text)
-        if match:
-            try:
-                return PayPeriod(year=int(match.group(1)), month=int(match.group(2)))
-            except ValueError:
-                return None
-        match = re.search(r"(0?[1-9]|1[0-2])[^\d](20\d{2})", text)
-        if match:
-            try:
-                return PayPeriod(year=int(match.group(2)), month=int(match.group(1)))
-            except ValueError:
-                return None
+        # Anchored numeric patterns only — never substring-match (e.g. "13/2024"
+        # must not become March 2024 via the trailing "3/2024").
+        match = re.fullmatch(
+            r"(?:(\d{1,2})[/\-.](\d{4})|(\d{4})[/\-.](\d{1,2}))",
+            text,
+        )
+        if match is None:
+            return None
+        if match.group(1) is not None:
+            month, year = int(match.group(1)), int(match.group(2))
+        else:
+            year, month = int(match.group(3)), int(match.group(4))
+        if not 1 <= month <= 12:
+            return None
+        try:
+            return PayPeriod(year=year, month=month)
+        except ValueError:
+            return None
     return None
 
 
@@ -155,22 +164,38 @@ def _split_name(full_name: str) -> tuple[str, str]:
     return (parts[0], " ".join(parts[1:]))
 
 
-def _employment_type(value: Any) -> EmploymentType:
-    if value is None:
-        return EmploymentType.FULL_TIME
+def coerce_employment_type(value: Any) -> EmploymentType | None:
+    """Map recognized payslip employment-type tokens to EmploymentType.
+
+    Returns None for missing or unrecognized values — never invents FULL_TIME.
+    Does not map salary modes (hourly/monthly/daily); those are not EmploymentType.
+    """
+    if value is None or value == "":
+        return None
     text = str(value).strip().casefold()
+    if not text:
+        return None
     mapping = {
         "full_time": EmploymentType.FULL_TIME,
         "full-time": EmploymentType.FULL_TIME,
         "fulltime": EmploymentType.FULL_TIME,
+        "full time": EmploymentType.FULL_TIME,
         "part_time": EmploymentType.PART_TIME,
         "part-time": EmploymentType.PART_TIME,
         "parttime": EmploymentType.PART_TIME,
+        "part time": EmploymentType.PART_TIME,
         "contractor": EmploymentType.CONTRACTOR,
-        "hourly": EmploymentType.HOURLY,
         "intern": EmploymentType.INTERN,
+        "pre_intern": EmploymentType.PRE_INTERN,
+        "pre-intern": EmploymentType.PRE_INTERN,
+        "preintern": EmploymentType.PRE_INTERN,
     }
-    return mapping.get(text, EmploymentType.FULL_TIME)
+    return mapping.get(text)
+
+
+def _employment_type_for_validation_employee(value: Any) -> EmploymentType:
+    """Employment type on the synthetic validation Employee — UNKNOWN when not recognized."""
+    return coerce_employment_type(value) or EmploymentType.UNKNOWN
 
 
 def map_structured_payslip_to_validation_inputs(
@@ -219,11 +244,14 @@ def map_structured_payslip_to_validation_inputs(
 
     overtime_hours = coerce_decimal(take("overtime_hours"))
     work_hours = coerce_decimal(take("regular_hours"))
-    parsed_period = coerce_pay_period(take("pay_period"))
+    pay_period_raw_value = take("pay_period")
+    parsed_period = coerce_pay_period(pay_period_raw_value)
     # Engine requires a PayPeriod handle; never invent payslip.period when missing.
     period = parsed_period or PayPeriod(year=date.today().year, month=date.today().month)
     if parsed_period is None:
         warnings.append("pay_period_missing")
+        if pay_period_raw_value is not None:
+            warnings.append("pay_period_unparseable")
 
     deductions: dict[str, Money] = {}
     for ded_key in ("national_insurance", "health_tax", "severance", "training_fund"):
@@ -245,9 +273,28 @@ def map_structured_payslip_to_validation_inputs(
             if conf is not None:
                 confidences[key] = conf
 
+    # Preserve payroll employee_id for legacy National ID SANITY fallback (8–9 digits).
+    employee_id_value = _usable_value(fields["employee_id"])
+    if employee_id_value is not None and "employee_id" not in payslip_additional:
+        payslip_additional["employee_id"] = employee_id_value
+        conf = _confidence_for(fields["employee_id"])
+        if conf is not None:
+            confidences.setdefault("employee_id", conf)
+
+    if pay_period_raw_value is not None and parsed_period is None:
+        payslip_additional["pay_period_raw"] = pay_period_raw_value
+
     department_label = take("department")
     if department_label is not None:
         payslip_additional["department_label"] = department_label
+
+    employment_type_raw = take("employment_type")
+    if employment_type_raw is not None and "employment_type" not in payslip_additional:
+        # Preserve original extracted token for review / future SANITY; do not invent meaning.
+        payslip_additional["employment_type"] = employment_type_raw
+    employment_type = _employment_type_for_validation_employee(employment_type_raw)
+    if employment_type_raw is not None and coerce_employment_type(employment_type_raw) is None:
+        warnings.append("employment_type_unrecognized")
 
     salary_type = SalaryType.HOURLY if hourly_rate is not None else SalaryType.MONTHLY
     org_id = organization_id or DEMO_ORGANIZATION_ID
@@ -261,7 +308,7 @@ def map_structured_payslip_to_validation_inputs(
         first_name=first_name,
         last_name=last_name,
         department_id=department_id,
-        employment_type=_employment_type(take("employment_type")),
+        employment_type=employment_type,
         salary_type=salary_type,
         contract_start_date=(
             date(parsed_period.year, parsed_period.month, 1)
@@ -282,7 +329,8 @@ def map_structured_payslip_to_validation_inputs(
     )
     payslip = PayslipData(
         employee_number=employee.employee_number,
-        employee_name=str(employee_name) if employee_name else employee.full_name,
+        # Do not invent a display name when extraction left the field empty.
+        employee_name=str(employee_name).strip() if employee_name else None,
         period=parsed_period,
         gross_salary=gross_salary,
         net_salary=net_salary,

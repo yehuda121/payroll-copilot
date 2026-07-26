@@ -47,18 +47,25 @@ function pickWorse(
 }
 
 function metaFromFinding(finding: ValidationFinding): EmployeeFieldValidationMeta {
+  const isMissingRequired =
+    (finding.message_key || '').toLowerCase().includes('required_field_missing') ||
+    (finding.rule_id || '').toLowerCase().startsWith('sanity.required.');
   const status = findingIsMissingData(finding)
     ? 'unchecked'
     : mapFindingToCardStatus(finding);
   const neutralKind: FieldNeutralKind | undefined =
     status === 'unchecked'
-      ? findingIsMissingData(finding)
-        ? 'insufficient_evidence'
-        : 'not_checked'
+      ? isMissingRequired
+        ? 'missing_required'
+        : findingIsMissingData(finding)
+          ? 'insufficient_evidence'
+          : 'not_checked'
       : undefined;
   return {
     status,
-    labelKey: `employee.validation.status.${status}`,
+    labelKey: isMissingRequired
+      ? 'employee.validation.status.missingRequired'
+      : `employee.validation.status.${status}`,
     explanation:
       finding.explanation && !/^[a-z][a-z0-9_.-]*$/i.test(finding.explanation)
         ? finding.explanation

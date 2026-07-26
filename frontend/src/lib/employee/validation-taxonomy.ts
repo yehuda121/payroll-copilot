@@ -3,6 +3,8 @@
  * Derive-on-read; does not change PASS/FAIL.
  */
 
+import { requiredOnPayslipKeys } from './payslip-field-registry';
+
 export type ValidationTaxonomy = 'sanity' | 'employee' | 'contract' | 'law';
 
 export type ValidationUiGroup = 'employee_checks' | 'law_checks' | 'digital';
@@ -15,7 +17,19 @@ const RULE_ID_TAXONOMY: Record<string, ValidationTaxonomy> = {
   'department.intern.weekly_hours_limit': 'contract',
   'department.lawyers.overtime_cap': 'contract',
   'historical.salary_drift': 'employee',
+  'sanity.national_id.length': 'sanity',
+  'sanity.national_id.checksum': 'sanity',
+  'sanity.employee_name.structure': 'sanity',
+  'sanity.pay_period.parseable': 'sanity',
+  'sanity.pay_period.calendar': 'sanity',
+  'sanity.employment_start_date.calendar': 'sanity',
+  'sanity.net_salary.not_exceed_gross': 'sanity',
+  'sanity.employment_type.recognized': 'sanity',
 };
+
+for (const key of requiredOnPayslipKeys()) {
+  RULE_ID_TAXONOMY[`sanity.required.${key}`] = 'sanity';
+}
 
 const CATEGORY_FALLBACK: Record<string, ValidationTaxonomy> = {
   legal: 'law',
@@ -29,20 +43,37 @@ const CATEGORY_FALLBACK: Record<string, ValidationTaxonomy> = {
   contract: 'contract',
   historical: 'employee',
   company: 'employee',
+  sanity: 'sanity',
 };
 
 /** Clear field ↔ rule_id bindings only (no guessing). */
-export const FIELD_RULE_BINDINGS: Record<string, readonly string[]> = {
-  overtime_hours: ['legal.overtime.daily_limit'],
-  hourly_rate: ['legal.minimum_wage'],
-  gross_salary: ['legal.pension.contribution', 'historical.salary_drift'],
-  pension_employee: ['legal.pension.contribution'],
-  regular_hours: ['department.intern.weekly_hours_limit'],
-  employee_id: [],
-  national_id: [],
-  employee_name: [],
-  pay_period: [],
-};
+function buildFieldRuleBindings(): Record<string, readonly string[]> {
+  const bindings: Record<string, string[]> = {
+    overtime_hours: ['legal.overtime.daily_limit'],
+    hourly_rate: ['legal.minimum_wage'],
+    gross_salary: [
+      'legal.pension.contribution',
+      'historical.salary_drift',
+      'sanity.net_salary.not_exceed_gross',
+    ],
+    pension_employee: ['legal.pension.contribution'],
+    regular_hours: ['department.intern.weekly_hours_limit'],
+    employee_id: [],
+    national_id: ['sanity.national_id.length', 'sanity.national_id.checksum'],
+    employee_name: ['sanity.employee_name.structure'],
+    pay_period: ['sanity.pay_period.parseable', 'sanity.pay_period.calendar'],
+    employment_start_date: ['sanity.employment_start_date.calendar'],
+    net_salary: ['sanity.net_salary.not_exceed_gross'],
+    employment_type: ['sanity.employment_type.recognized'],
+  };
+  for (const key of requiredOnPayslipKeys()) {
+    const existing = bindings[key] ?? [];
+    bindings[key] = [...existing, `sanity.required.${key}`];
+  }
+  return bindings;
+}
+
+export const FIELD_RULE_BINDINGS: Record<string, readonly string[]> = buildFieldRuleBindings();
 
 export function taxonomyForRuleId(
   ruleId: string | null | undefined,
@@ -55,6 +86,7 @@ export function taxonomyForRuleId(
     if (mapped) return mapped;
   }
   const lower = rid.toLowerCase();
+  if (lower.startsWith('sanity.')) return 'sanity';
   if (
     lower.startsWith('legal.') ||
     lower.startsWith('validation.overtime') ||

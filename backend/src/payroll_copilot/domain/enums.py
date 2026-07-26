@@ -17,6 +17,9 @@ class EmploymentType(StrEnum):
     INTERN = "intern"
     PRE_INTERN = "pre_intern"
     CONTRACTOR = "contractor"
+    # Synthetic / extraction: present-but-unrecognized or missing on payslip mapping.
+    # Never treat as equivalent to FULL_TIME. Not a persistence migration target.
+    UNKNOWN = "unknown"
 
 
 class SalaryType(StrEnum):
@@ -60,6 +63,7 @@ class RuleCategory(StrEnum):
     CONTRACT = "contract"
     HISTORICAL = "historical"
     COMPANY = "company"
+    SANITY = "sanity"
 
 
 class FindingSeverity(StrEnum):
