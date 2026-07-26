@@ -565,6 +565,7 @@ export function BatchItemReviewWorkspacePage() {
               fields={review?.fields}
               drafts={drafts}
               editable
+              audience="accountant"
               busy={busy}
               loading={reviewLoading}
               validationMap={validationMap}
@@ -616,6 +617,7 @@ export function BatchItemReviewWorkspacePage() {
                 fields={review?.fields}
                 drafts={drafts}
                 editable
+                audience="accountant"
                 busy={busy}
                 loading={reviewLoading}
                 validationMap={validationMap}

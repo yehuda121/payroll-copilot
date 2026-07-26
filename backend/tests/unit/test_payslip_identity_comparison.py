@@ -44,6 +44,28 @@ def test_national_id_match_and_period_match():
     assert "313366783" not in str(result.identity_check.to_dict())
 
 
+def test_national_id_prefers_dedicated_key_over_legacy_employee_id():
+    svc = PayslipIdentityComparisonService()
+    result = svc.compare(
+        trusted_full_name="Yehuda Shmulovitz",
+        trusted_employee_number="5",
+        trusted_national_id_plaintext="313366783",
+        trusted_national_id_masked="****6783",
+        selected_year=2026,
+        selected_month=6,
+        extraction_fields=_fields(
+            national_id="313366783",
+            employee_id="EMP-99",
+            employee_number="5",
+            employee_name="Yehuda Shmulovitz",
+            pay_period="06/2026",
+        ),
+    )
+    assert result.identity_check.overall == "match"
+    nid = next(f for f in result.identity_check.fields if f.key == "national_id")
+    assert nid.status == "match"
+
+
 def test_national_id_mismatch_blocks():
     svc = PayslipIdentityComparisonService()
     result = svc.compare(

@@ -57,9 +57,16 @@
     "fields": {
       "unknown": "(לא ידוע)",
       "employee_name": "שם העובד",
-      "employee_id": "מזהה עובד",
+      "employee_id": "מזהה עובד (מערכת שכר)",
       "employee_number": "מספר עובד",
       "national_id": "תעודת זהות",
+      "employer_name": "שם מעסיק",
+      "employer_id": "מזהה מעסיק",
+      "employer_address": "כתובת מעסיק / מקום עבודה",
+      "employment_start_date": "תאריך תחילת עבודה",
+      "seniority_years": "ותק (שנים)",
+      "employment_scope": "היקף משרה",
+      "salary_calculation_basis": "בסיס חישוב שכר",
       "pay_period": "תקופת שכר",
       "employment_type": "סוג העסקה",
       "department": "מחלקה",
@@ -77,10 +84,16 @@
       "severance": "פיצויים",
       "training_fund": "קרן השתלמות",
       "net_salary": "שכר נטו",
+      "amount_paid": "סכום ששולם בפועל",
       "total_deductions": "סך ניכויים",
       "vacation_balance": "יתרת חופשה",
       "sick_leave_balance": "יתרת מחלה",
       "payment_method": "אמצעי תשלום",
+      "bank_name": "שם בנק",
+      "bank_branch": "סניף",
+      "bank_account": "מספר חשבון",
+      "minimum_wage_monthly": "שכר מינימום לחודש (בתלוש)",
+      "minimum_wage_hourly": "שכר מינימום לשעה (בתלוש)",
       "messages": "הודעות"
     }
   },
@@ -535,7 +548,8 @@
         "passed": "עבר",
         "failed": "נכשל",
         "uncertain": "AI לא בטוח",
-        "unchecked": "לא ניתן לאמת"
+        "unchecked": "לא ניתן לאמת",
+        "missingRequired": "לא נמצא בתלוש"
       },
       "explain": "AI",
       "aiExplanation": "הסבר בינה מלאכותית",
@@ -562,7 +576,16 @@
       "deleteField": "מחיקת שדה",
       "deleteFieldTitle": "למחוק שדה?",
       "deleteFieldMessage": "האם אתם בטוחים שברצונכם להסיר לצמיתות את השדה מתלוש השכר הדיגיטלי? לא ניתן לבטל פעולה זו.",
-      "deleteFieldConfirm": "מחק שדה"
+      "deleteFieldConfirm": "מחק שדה",
+      "sectionRequired": "שדות חובה",
+      "sectionExpected": "שדות צפויים",
+      "sectionOther": "שדות נוספים שחולצו",
+      "requiredTag": "חובה",
+      "notFoundOnPayslip": "לא נמצא בתלוש",
+      "missingRequiredHint": "שדה זה צפוי בתלוש אך לא חולץ. ניתן להזין אותו אם הערך ידוע.",
+      "missingRequiredExplain": "{{field}} לא נמצא בתלוש זה. לא הומצא ערך. ניתן למלא אותו אם ניתן לאמת מול המסמך המקורי.",
+      "failedFieldExplain": "ל־{{field}} יש בדיקה שנכשלה. פתחו בדיקות עובד או בדיקות חוק לממצא הדטרמיניסטי. AI יכול להסביר אך אינו משנה עבר/נכשל.",
+      "uncertainFieldExplain": "{{field}} אינו ודאי. בדקו את הראיות שחולצו ואת הבדיקות הקשורות. AI מסביר רק לפי ראיות זמינות."
     },
     "compare": {
       "title": "בדיקת זהות ותקופה",
@@ -630,6 +653,8 @@
       "tabs": "לשוניות מרחב החודש",
       "tabUpload": "העלאה",
       "tabValidation": "אימות",
+      "tabEmployeeChecks": "בדיקות עובד",
+      "tabLawChecks": "בדיקות חוק",
       "digitalEmpty": "אין עדיין תלוש דיגיטלי. חלצו מסמך בלשונית ההעלאה.",
       "validationOutdated": "יש להריץ אימות מחדש.",
       "runValidationAgain": "הפעל אימות שוב",
@@ -638,6 +663,14 @@
       "periodMismatchPrompt": "נראה שהתלוש שהועלה שייך ל־{{month}}/{{year}}.",
       "movePeriod": "העבר ל־{{month}}/{{year}}",
       "keepPeriod": "השאר ב־{{month}}/{{year}}",
+      "processing": {
+        "readingPayslip": "קוראים את התלוש",
+        "checkingData": "בודקים את הנתונים",
+        "comparingEmployee": "משווים למידע העובד הזמין",
+        "checkingRules": "בודקים כללים רלוונטיים",
+        "preparingResults": "מכינים תוצאות",
+        "hint": "זה עשוי לקחת רגע. ניתן לבטל במידת הצורך."
+      },
       "timeline": {
         "completed": "הושלם"
       }

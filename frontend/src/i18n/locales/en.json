@@ -57,9 +57,16 @@
     "fields": {
       "unknown": "(Unknown)",
       "employee_name": "Employee Name",
-      "employee_id": "Employee ID",
+      "employee_id": "Employee ID (payroll)",
       "employee_number": "Employee Number",
       "national_id": "National ID",
+      "employer_name": "Employer name",
+      "employer_id": "Employer identifier",
+      "employer_address": "Employer / workplace address",
+      "employment_start_date": "Employment start date",
+      "seniority_years": "Seniority (years)",
+      "employment_scope": "Employment scope",
+      "salary_calculation_basis": "Salary calculation basis",
       "pay_period": "Pay Period",
       "employment_type": "Employment Type",
       "department": "Department",
@@ -77,10 +84,16 @@
       "severance": "Severance",
       "training_fund": "Training Fund",
       "net_salary": "Net Salary",
+      "amount_paid": "Amount actually paid",
       "total_deductions": "Total Deductions",
       "vacation_balance": "Vacation Balance",
       "sick_leave_balance": "Sick Leave Balance",
       "payment_method": "Payment Method",
+      "bank_name": "Bank name",
+      "bank_branch": "Bank branch",
+      "bank_account": "Bank account",
+      "minimum_wage_monthly": "Monthly minimum wage (on payslip)",
+      "minimum_wage_hourly": "Hourly minimum wage (on payslip)",
       "messages": "Messages"
     }
   },
@@ -535,7 +548,8 @@
         "passed": "Passed",
         "failed": "Failed",
         "uncertain": "AI uncertain",
-        "unchecked": "Cannot validate"
+        "unchecked": "Cannot validate",
+        "missingRequired": "Not found on payslip"
       },
       "explain": "AI",
       "aiExplanation": "AI explanation",
@@ -562,7 +576,16 @@
       "deleteField": "Delete field",
       "deleteFieldTitle": "Delete field?",
       "deleteFieldMessage": "Are you sure you want to permanently remove this field from the digital payslip? This action cannot be undone.",
-      "deleteFieldConfirm": "Delete Field"
+      "deleteFieldConfirm": "Delete Field",
+      "sectionRequired": "Required fields",
+      "sectionExpected": "Expected fields",
+      "sectionOther": "Other extracted fields",
+      "requiredTag": "Required",
+      "notFoundOnPayslip": "Not found on payslip",
+      "missingRequiredHint": "This field is expected on the payslip but was not extracted. You can enter it if you know the correct value.",
+      "missingRequiredExplain": "{{field}} was not found on this payslip. No value was invented. You can fill it in if you can verify it from the original document.",
+      "failedFieldExplain": "{{field}} has a failed check. Open Employee Checks or Law Checks for the deterministic finding. AI can explain the finding but never changes Pass/Fail.",
+      "uncertainFieldExplain": "{{field}} is uncertain. Review the extracted evidence and any related checks. AI explains available evidence only."
     },
     "compare": {
       "title": "Identity and period check",
@@ -630,6 +653,8 @@
       "tabs": "Month workspace tabs",
       "tabUpload": "Upload",
       "tabValidation": "Validation",
+      "tabEmployeeChecks": "Employee Checks",
+      "tabLawChecks": "Law Checks",
       "digitalEmpty": "No digital payslip yet. Extract a document from the Upload tab.",
       "validationOutdated": "Validation needs to be run again.",
       "runValidationAgain": "Run validation again",
@@ -638,6 +663,14 @@
       "periodMismatchPrompt": "The uploaded payslip appears to belong to {{month}}/{{year}}.",
       "movePeriod": "Move to {{month}}/{{year}}",
       "keepPeriod": "Keep in {{month}}/{{year}}",
+      "processing": {
+        "readingPayslip": "Reading payslip",
+        "checkingData": "Checking data",
+        "comparingEmployee": "Comparing available employee information",
+        "checkingRules": "Checking applicable rules",
+        "preparingResults": "Preparing results",
+        "hint": "This may take a moment. You can cancel if needed."
+      },
       "timeline": {
         "completed": "Completed"
       }

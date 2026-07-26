@@ -29,6 +29,19 @@ export const CANONICAL_PAYROLL_FIELD_KEYS = [
   'messages',
   'national_id',
   'total_deductions',
+  'employer_name',
+  'employer_id',
+  'employer_address',
+  'employment_start_date',
+  'seniority_years',
+  'employment_scope',
+  'salary_calculation_basis',
+  'amount_paid',
+  'bank_name',
+  'bank_branch',
+  'bank_account',
+  'minimum_wage_monthly',
+  'minimum_wage_hourly',
 ] as const;
 
 export type CanonicalPayrollFieldKey = (typeof CANONICAL_PAYROLL_FIELD_KEYS)[number];

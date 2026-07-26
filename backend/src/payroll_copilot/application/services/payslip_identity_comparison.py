@@ -292,8 +292,15 @@ class PayslipIdentityComparisonService:
         identity_fields: list[FieldComparison] = []
 
         # --- National ID (critical) ---
-        nid_payload = _field_payload(extraction_fields, "employee_id")
+        # Prefer dedicated national_id; fall back to legacy employee_id when it
+        # carries government-ID digits (historical extraction key misuse).
+        nid_payload = _field_payload(extraction_fields, "national_id")
         nid_value, nid_state, _ = _usable_extraction(nid_payload)
+        if nid_state == "missing" or normalize_national_id_digits(nid_value) is None:
+            legacy_payload = _field_payload(extraction_fields, "employee_id")
+            legacy_value, legacy_state, _ = _usable_extraction(legacy_payload)
+            if normalize_national_id_digits(legacy_value) is not None:
+                nid_value, nid_state, _ = _usable_extraction(legacy_payload)
         extracted_digits = normalize_national_id_digits(nid_value)
         trusted_digits = normalize_national_id_digits(trusted_national_id_plaintext)
 

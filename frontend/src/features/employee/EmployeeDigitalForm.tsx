@@ -26,6 +26,9 @@ type EmployeeDigitalFormProps = {
   loading?: boolean;
   reviewNotice?: string | null;
   validationMap?: Record<string, EmployeeFieldValidationMeta>;
+  /** Employee hides Other by default; accountant sees all extracted fields. */
+  audience?: 'employee' | 'accountant';
+  includeOther?: boolean;
   onChangeField: (key: string, value: string) => void;
   onClearField: (key: string) => void;
   onRemoveField?: (key: string) => void;
@@ -78,6 +81,8 @@ export function EmployeeDigitalForm({
   loading = false,
   reviewNotice,
   validationMap,
+  audience = 'employee',
+  includeOther,
   onChangeField,
   onClearField: _onClearField,
   onRemoveField,
@@ -86,7 +91,10 @@ export function EmployeeDigitalForm({
   const { t } = useTranslation();
   const { locale } = useAppLocale();
   const { confirm } = useConfirmDialog();
-  const sections = buildDigitalFormSections(fields, drafts, t, locale);
+  const sections = buildDigitalFormSections(fields, drafts, t, locale, {
+    audience,
+    includeOther,
+  });
   const allFields = sections.flatMap((section) => section.fields);
 
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -206,26 +214,44 @@ export function EmployeeDigitalForm({
               const draft = drafts[field.key];
               const meta = draft?.dirty ? undefined : validationMap?.[field.key];
               const visual = statusVisual(meta?.status, t);
+              const missingRequired = field.missingRequired || meta?.neutralKind === 'missing_required';
+              const staticTip =
+                missingRequired
+                  ? t('employee.digitalForm.missingRequiredExplain', { field: field.label })
+                  : meta?.status === 'failed'
+                    ? t('employee.digitalForm.failedFieldExplain', { field: field.label })
+                    : meta?.status === 'uncertain'
+                      ? t('employee.digitalForm.uncertainFieldExplain', { field: field.label })
+                      : null;
               const explanation =
                 meta?.explanation ||
+                staticTip ||
                 (meta?.confidencePercent != null
                   ? t('employee.validation.confidenceExplain', {
                       percent: meta.confidencePercent,
                     })
                   : null);
-              const preview = field.preview || t('common.emDash');
+              const preview = missingRequired && !field.value.trim()
+                ? t('employee.digitalForm.notFoundOnPayslip')
+                : field.preview || t('common.emDash');
 
               return (
                 <div
                   key={field.key}
                   className={`digital-form__field employee-digital-form__field ${
                     field.columnSpan === 2 ? 'employee-digital-form__field--span-2' : ''
-                  } ${visual?.fieldCss ?? ''} ${draft?.dirty ? 'digital-form__field--edited' : ''}`.trim()}
+                  } ${visual?.fieldCss ?? ''} ${missingRequired ? 'digital-form__field--missing-required' : ''} ${draft?.dirty ? 'digital-form__field--edited' : ''}`.trim()}
                   data-field-type={field.type}
+                  data-requirement={field.requirementCategory}
                 >
                   <div className="employee-digital-form__card-header">
                     <span className="digital-form__label">
                       {field.label}
+                      {field.requirementCategory === 'required' && (
+                        <span className="digital-form__required-tag">
+                          {t('employee.digitalForm.requiredTag')}
+                        </span>
+                      )}
                       {draft?.dirty && (
                         <span className="digital-form__edited">{t('validate.fieldEdited')}</span>
                       )}
@@ -253,13 +279,18 @@ export function EmployeeDigitalForm({
                         className="digital-form__value-btn"
                         onClick={() => openEditor(field.key, field.value)}
                         disabled={busy}
-                        aria-invalid={meta?.status === 'failed'}
+                        aria-invalid={meta?.status === 'failed' || missingRequired}
                         aria-label={`${field.label}: ${preview}`}
                       >
                         <span className="digital-form__value-text">{preview}</span>
                       </button>
                     ) : (
                       <p className="digital-form__readonly digital-form__value-text">{preview}</p>
+                    )}
+                    {missingRequired && (
+                      <p className="digital-form__missing-hint" role="status">
+                        {t('employee.digitalForm.missingRequiredHint')}
+                      </p>
                     )}
                   </div>
 

@@ -32,7 +32,8 @@ const TIMELINE = [
 const TABS: Array<{ id: WorkspaceTab; labelKey: string }> = [
   { id: 'upload', labelKey: 'employee.workspace.tabUpload' },
   { id: 'digital', labelKey: 'employee.upload.tabDigital' },
-  { id: 'validation', labelKey: 'employee.workspace.tabValidation' },
+  { id: 'employee_checks', labelKey: 'employee.workspace.tabEmployeeChecks' },
+  { id: 'law_checks', labelKey: 'employee.workspace.tabLawChecks' },
   { id: 'original', labelKey: 'employee.upload.tabOriginal' },
   { id: 'chat', labelKey: 'employee.navigation.chat' },
   { id: 'publishing', labelKey: 'accountant.bulk.publish.tab' },
@@ -113,13 +114,16 @@ function PayslipMonthWorkspace({
   };
 
   const validationMap = useMemo(() => {
-    if (!flow.report) return undefined;
-    const map = buildEmployeeFieldValidationMap(flow.fields, flow.report);
+    if (!flow.report && !flow.identityCheck && !flow.periodCheck) return undefined;
+    const map = buildEmployeeFieldValidationMap(flow.fields, flow.report, {
+      identity: flow.identityCheck,
+      period: flow.periodCheck,
+    });
     for (const [key, draft] of Object.entries(flow.fieldDrafts)) {
       if (draft.dirty) delete map[key];
     }
     return map;
-  }, [flow.report, flow.fields, flow.fieldDrafts]);
+  }, [flow.report, flow.fields, flow.fieldDrafts, flow.identityCheck, flow.periodCheck]);
 
   const stepIndex = TIMELINE.findIndex((item) => item.id === flow.timelineStep);
 
@@ -245,12 +249,12 @@ function PayslipMonthWorkspace({
                         <span />
                       </span>
                     </div>
-                    <h3>{t('employee.workspace.extractingTitle')}</h3>
-                    <p>{t('employee.workspace.extractingStatus')}</p>
+                    <h3>{t('employee.workspace.processing.readingPayslip')}</h3>
+                    <p>{flow.statusMessage || t('employee.workspace.extractingStatus')}</p>
                     <div
                       className="employee-progress"
                       role="progressbar"
-                      aria-label={t('employee.workspace.extractingTitle')}
+                      aria-label={t('employee.workspace.processing.readingPayslip')}
                     >
                       <div className="employee-progress__bar" />
                     </div>
@@ -268,10 +272,11 @@ function PayslipMonthWorkspace({
                       fields={flow.fields}
                       drafts={flow.fieldDrafts}
                       editable
+                      audience={batchReview ? 'accountant' : 'employee'}
                       busy={
                         flow.busyPhase === 'confirming' || flow.busyPhase === 'validating'
                       }
-                      loading={flow.busyPhase === 'extracting'}
+                      loading={false}
                       validationMap={validationMap}
                       onChangeField={flow.updateFieldDraft}
                       onClearField={flow.clearFieldDraft}
@@ -303,8 +308,17 @@ function PayslipMonthWorkspace({
               </section>
             )}
 
-            {flow.tab === 'validation' && (
-              <ValidationTab flow={flow} year={year} month={month} />
+            {(flow.tab === 'employee_checks' ||
+              flow.tab === 'law_checks' ||
+              flow.tab === 'validation') && (
+              <ValidationTab
+                flow={flow}
+                year={year}
+                month={month}
+                checkGroup={
+                  flow.tab === 'law_checks' ? 'law_checks' : 'employee_checks'
+                }
+              />
             )}
 
             {flow.tab === 'original' && <OriginalTab flow={flow} />}
@@ -460,16 +474,24 @@ function ValidationTab({
   flow,
   year,
   month,
+  checkGroup = 'employee_checks',
 }: {
   flow: Flow;
   year: number;
   month: number;
+  checkGroup?: 'employee_checks' | 'law_checks';
 }) {
   const { t, i18n } = useTranslation();
   const history = flow.detail?.validation_history ?? [];
 
   return (
-    <section aria-label={t('employee.workspace.tabValidation')}>
+    <section
+      aria-label={
+        checkGroup === 'law_checks'
+          ? t('employee.workspace.tabLawChecks')
+          : t('employee.workspace.tabEmployeeChecks')
+      }
+    >
       {flow.periodPrompt && (
         <div className="identity-period-check__banner is-warning" role="alertdialog">
           <p>
@@ -521,7 +543,8 @@ function ValidationTab({
 
       {flow.busyPhase === 'validating' ? (
         <div className="validation-wizard__prepare-card" aria-busy="true">
-          <h3>{t('employee.upload.validatingPayroll')}</h3>
+          <h3>{flow.statusMessage || t('employee.workspace.processing.checkingData')}</h3>
+          <p>{t('employee.workspace.processing.hint')}</p>
           <div className="employee-progress" role="progressbar">
             <div className="employee-progress__bar" />
           </div>
@@ -538,6 +561,7 @@ function ValidationTab({
           validationOutdated={flow.validationOutdated}
           canRunValidation={flow.isConfirmed && !flow.isBusy && !flow.blocksConfirmation}
           validating={false}
+          checkGroup={checkGroup}
           onRunValidation={() => {
             void flow.runValidation();
           }}
@@ -718,6 +742,7 @@ function OriginalTab({ flow }: { flow: Flow }) {
           fields={flow.fields}
           drafts={flow.fieldDrafts}
           editable
+          audience="employee"
           busy={flow.isBusy}
           loading={false}
           onChangeField={flow.updateFieldDraft}

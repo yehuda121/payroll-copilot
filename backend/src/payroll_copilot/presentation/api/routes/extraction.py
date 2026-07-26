@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Callable
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 
 from payroll_copilot.infrastructure.persistence.dynamodb.factory import (
     get_audit_log_repository,
@@ -23,6 +25,7 @@ from payroll_copilot.application.exceptions import (
     DocumentNotOwnedError,
     DocumentUploadRejectedError,
     DuplicatePayslipPeriodError,
+    ExtractionCancelledError,
     OcrError,
     PayslipParserError,
 )
@@ -112,6 +115,32 @@ router = APIRouter()
 _upload_guardrail = DocumentUploadGuardrailService(get_settings())
 
 
+def _client_disconnect_cancel_check(
+    request: Request,
+) -> tuple[Callable[[], bool], asyncio.Task[None]]:
+    """Bridge Starlette disconnect detection to the use-case cancel_check callback.
+
+    IMPORTANT: never call ``request.is_disconnected()`` synchronously inside
+    ``cancel_check`` — that returns a truthy coroutine and would cancel every
+    extraction. Poll asynchronously and expose a sync bool reader instead.
+    """
+    disconnected = False
+
+    async def _watch() -> None:
+        nonlocal disconnected
+        while not disconnected:
+            try:
+                if await request.is_disconnected():
+                    disconnected = True
+                    return
+            except Exception:  # noqa: BLE001 — disconnect probe must not fail extraction
+                return
+            await asyncio.sleep(0.05)
+
+    watch = asyncio.create_task(_watch())
+    return (lambda: disconnected), watch
+
+
 async def _require_employee_visible_document(
     document_id: UUID,
     bound: BoundEmployeeContext,
@@ -132,6 +161,7 @@ async def _require_employee_visible_document(
     status_code=201,
 )
 async def extract_guest_payslip(
+    request: Request,
     file: UploadFile = File(...),
     language: str = Form("auto"),
     model_provider_override: str | None = Form(None),
@@ -180,6 +210,7 @@ async def extract_guest_payslip(
             detail={"code": "upload_rejected", "message": exc.message},
         ) from exc
 
+    cancel_check, watch = _client_disconnect_cancel_check(request)
     try:
         result = await use_case.execute(
             GuestPayslipExtractionCommand(
@@ -189,6 +220,7 @@ async def extract_guest_payslip(
                 language=normalized_language,
                 owner_guest_id=guest.guest_id,
                 model_provider_override=model_provider_override,
+                cancel_check=cancel_check,
             )
         )
     except DocumentUploadRejectedError as exc:
@@ -196,11 +228,19 @@ async def extract_guest_payslip(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "upload_rejected", "message": exc.message},
         ) from exc
+    except ExtractionCancelledError as exc:
+        raise HTTPException(
+            status_code=499,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
     except (OcrError, PayslipParserError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": exc.code, "message": exc.message},
         ) from exc
+    finally:
+        watch.cancel()
+        await asyncio.gather(watch, return_exceptions=True)
 
     return GuestPayslipExtractionResponse(
         document_id=str(result.document_id),

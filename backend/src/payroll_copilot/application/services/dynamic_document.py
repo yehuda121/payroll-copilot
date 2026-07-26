@@ -14,6 +14,7 @@ from typing import Any
 from uuid import uuid4
 
 from payroll_copilot.application.ports.payslip_parser import (
+    PAYSLIP_CANONICAL_EXTRA_KEYS,
     PAYSLIP_FIELD_KEYS,
     ExtractedField,
     FieldExtractionStatus,
@@ -134,7 +135,7 @@ def is_document_origin_entry(entry: DynamicDocumentEntry) -> bool:
     # Drop empty snake_case schema placeholders the model may invent.
     if not _has_value(entry.value):
         key = entry.key.strip()
-        if key in PAYSLIP_FIELD_KEYS or key in {"national_id", "total_deductions"}:
+        if key in PAYSLIP_FIELD_KEYS or key in PAYSLIP_CANONICAL_EXTRA_KEYS:
             return False
     return True
 
@@ -181,8 +182,11 @@ _LABEL_TO_CANONICAL: dict[str, str] = {
     "שם עובד": "employee_name",
     "שם העובד": "employee_name",
     "שם": "employee_name",
-    # employee id / number
+    # Payroll-system employee identifier (NOT National ID / Teudat Zehut).
     "employee id": "employee_id",
+    "worker id": "employee_id",
+    "מזהה עובד": "employee_id",
+    # Organization employee number
     "employee number": "employee_number",
     "employee no": "employee_number",
     "personnel number": "employee_number",
@@ -190,20 +194,71 @@ _LABEL_TO_CANONICAL: dict[str, str] = {
     "file number": "employee_number",
     "worker code": "employee_number",
     "worker number": "employee_number",
-    "worker id": "employee_id",
     "מספר עובד": "employee_number",
     "מס עובד": "employee_number",
     "מספר אישי": "employee_number",
     "מספר תיק": "employee_number",
-    # national id
+    # National ID / Israeli ID (government identity — distinct from employee_id)
     "national id": "national_id",
     "id number": "national_id",
     "identity number": "national_id",
     "teudat zehut": "national_id",
+    "israeli id": "national_id",
     "תז": "national_id",
     "תעודת זהות": "national_id",
     "מספר זהות": "national_id",
-    # period
+    "מס זהות": "national_id",
+    # Employer
+    "employer name": "employer_name",
+    "employer": "employer_name",
+    "company name": "employer_name",
+    "business name": "employer_name",
+    "שם מעסיק": "employer_name",
+    "שם החברה": "employer_name",
+    "שם העסק": "employer_name",
+    "employer id": "employer_id",
+    "employer number": "employer_id",
+    "business id": "employer_id",
+    "company id": "employer_id",
+    "deduction file": "employer_id",
+    "תיק ניכויים": "employer_id",
+    "ח פ": "employer_id",
+    "חפ": "employer_id",
+    "עוסק מורשה": "employer_id",
+    "employer address": "employer_address",
+    "workplace address": "employer_address",
+    "business address": "employer_address",
+    "כתובת מעסיק": "employer_address",
+    "כתובת מקום העבודה": "employer_address",
+    "כתובת העסק": "employer_address",
+    # Employment start / seniority / scope (distinct concepts)
+    "employment start date": "employment_start_date",
+    "start date": "employment_start_date",
+    "hire date": "employment_start_date",
+    "date of hire": "employment_start_date",
+    "התחלת עבודה": "employment_start_date",
+    "תאריך התחלה": "employment_start_date",
+    "תחילת עבודה": "employment_start_date",
+    "seniority": "seniority_years",
+    "seniority years": "seniority_years",
+    "tenure": "seniority_years",
+    "tenure years": "seniority_years",
+    "ותק": "seniority_years",
+    "ותק שנים": "seniority_years",
+    "employment scope": "employment_scope",
+    "job scope": "employment_scope",
+    "position scope": "employment_scope",
+    "fte": "employment_scope",
+    "היקף משרה": "employment_scope",
+    "היקף משרה %": "employment_scope",
+    # Salary calculation basis (how regular salary is defined — not base_salary amount)
+    "salary calculation basis": "salary_calculation_basis",
+    "salary basis": "salary_calculation_basis",
+    "calculation basis": "salary_calculation_basis",
+    "בסיס חישוב": "salary_calculation_basis",
+    "בסיס חישוב שכר": "salary_calculation_basis",
+    "אופן חישוב שכר": "salary_calculation_basis",
+    # Period
     "pay period": "pay_period",
     "payroll month": "pay_period",
     "payroll period": "pay_period",
@@ -214,7 +269,7 @@ _LABEL_TO_CANONICAL: dict[str, str] = {
     "חודש שכר": "pay_period",
     "חודש": "pay_period",
     "לתקופה": "pay_period",
-    # money
+    # Money
     "gross salary": "gross_salary",
     "gross pay": "gross_salary",
     "gross": "gross_salary",
@@ -228,11 +283,45 @@ _LABEL_TO_CANONICAL: dict[str, str] = {
     "net": "net_salary",
     "שכר נטו": "net_salary",
     "נטו": "net_salary",
+    "נטו לתשלום": "net_salary",
     "base salary": "base_salary",
     "basic salary": "base_salary",
     "שכר יסוד": "base_salary",
     "שכר בסיס": "base_salary",
-    # deductions / taxes
+    # Amount actually paid (distinct from net_salary — never synthesize from net)
+    "amount paid": "amount_paid",
+    "amount actually paid": "amount_paid",
+    "paid amount": "amount_paid",
+    "actual payment": "amount_paid",
+    "סכום ששולם": "amount_paid",
+    "שולם בפועל": "amount_paid",
+    "סכום ששולם בפועל": "amount_paid",
+    # Bank details (document fields only)
+    "bank name": "bank_name",
+    "bank": "bank_name",
+    "שם בנק": "bank_name",
+    "בנק": "bank_name",
+    "bank branch": "bank_branch",
+    "branch": "bank_branch",
+    "סניף": "bank_branch",
+    "ק סניף": "bank_branch",
+    "bank account": "bank_account",
+    "account number": "bank_account",
+    "account": "bank_account",
+    "חשבון": "bank_account",
+    "מספר חשבון": "bank_account",
+    # Minimum wage printed on the payslip (document reference — not legal.minimum_wage)
+    "monthly minimum wage": "minimum_wage_monthly",
+    "minimum wage monthly": "minimum_wage_monthly",
+    "minimum monthly wage": "minimum_wage_monthly",
+    "מינימום לחודש": "minimum_wage_monthly",
+    "שכר מינימום לחודש": "minimum_wage_monthly",
+    "hourly minimum wage": "minimum_wage_hourly",
+    "minimum wage hourly": "minimum_wage_hourly",
+    "minimum hourly wage": "minimum_wage_hourly",
+    "מינימום לשעה": "minimum_wage_hourly",
+    "שכר מינימום לשעה": "minimum_wage_hourly",
+    # Deductions / taxes
     "income tax": "income_tax",
     "tax": "income_tax",
     "מס הכנסה": "income_tax",
@@ -246,7 +335,7 @@ _LABEL_TO_CANONICAL: dict[str, str] = {
     "total deductions": "total_deductions",
     "סך ניכויים": "total_deductions",
     "סהכ ניכויים": "total_deductions",
-    # hours / rates
+    # Hours / rates
     "regular hours": "regular_hours",
     "hours": "regular_hours",
     "שעות רגילות": "regular_hours",
@@ -254,7 +343,7 @@ _LABEL_TO_CANONICAL: dict[str, str] = {
     "שעות נוספות": "overtime_hours",
     "hourly rate": "hourly_rate",
     "תעריף לשעה": "hourly_rate",
-    # other
+    # Other
     "department": "department",
     "מחלקה": "department",
     "payment method": "payment_method",
@@ -287,7 +376,7 @@ def resolve_canonical_key(label: str) -> str | None:
             return canonical
     # Already a canonical key
     snake = normalized.replace(" ", "_")
-    if snake in PAYSLIP_FIELD_KEYS or snake == "national_id" or snake == "total_deductions":
+    if snake in PAYSLIP_FIELD_KEYS or snake in PAYSLIP_CANONICAL_EXTRA_KEYS:
         return snake
     return None
 
@@ -335,7 +424,11 @@ def map_dynamic_entries_to_structured(
                 continue
             seen_canonical.add(canonical)
             structured[canonical] = payload
-        elif canonical == "national_id" or canonical == "total_deductions":
+        elif canonical and canonical in PAYSLIP_CANONICAL_EXTRA_KEYS:
+            if canonical in seen_canonical:
+                warnings.append(f"duplicate_canonical:{canonical}")
+                continue
+            seen_canonical.add(canonical)
             additional[canonical] = payload
         else:
             # Keep document label for unmapped extras (including unlabeled values).

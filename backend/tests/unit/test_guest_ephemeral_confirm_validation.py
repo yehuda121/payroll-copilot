@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
@@ -78,6 +79,11 @@ def _seed_session(**overrides):  # noqa: ANN003
 
 @pytest.mark.asyncio
 async def test_ephemeral_corrections_do_not_touch_db() -> None:
+    """Corrections update Document Model (dynamic_entries), not durable DB/S3.
+
+    structured_data remains the pre-confirm extraction snapshot until confirm
+    projects dynamic_entries into canonical structured_data.
+    """
     session = _seed_session()
     docs = MagicMock()
     extractions = MagicMock()
@@ -94,12 +100,85 @@ async def test_ephemeral_corrections_do_not_touch_db() -> None:
         document_id=session.document_id,
         corrections=[FieldCorrection(key="base_salary", value=13000)],
     )
-    assert result.structured_data["base_salary"]["value"] == 13000
+    # Authoritative review state: fields / dynamic_entries carry the correction.
+    assert any(
+        row.get("key") == "base_salary" and row.get("value") == 13000 for row in result.fields
+    )
+    assert any(
+        row.get("key") == "base_salary" and row.get("value") == 13000 for row in result.entries
+    )
     docs.save.assert_not_awaited()
     extractions.save.assert_not_awaited()
     updated = get_guest_ephemeral_store().get(session.document_id)
     assert updated is not None
-    assert updated.structured_data["base_salary"]["value"] == 13000
+    assert any(
+        row.get("key") == "base_salary" and row.get("value") == 13000
+        for row in updated.dynamic_entries
+    )
+    # Pre-confirm snapshot is intentionally unchanged (not dual-written).
+    assert updated.structured_data["base_salary"]["value"] == 12000
+    assert result.structured_data["base_salary"]["value"] == 12000
+
+
+@pytest.mark.asyncio
+async def test_ephemeral_correction_survives_confirm_into_canonical_structured() -> None:
+    """review → confirm → projection must validate the corrected value, not stale extract."""
+    from payroll_copilot.application.use_cases.extract_guest_payslip import (
+        ExtractGuestPayslipUseCase,
+    )
+
+    # Mirror production extract: Document Model rows exist before correction.
+    session = _seed_session(
+        dynamic_entries=[
+            {
+                "key": "base_salary",
+                "value": 12000,
+                "confidence": 0.9,
+                "source_text": "12000",
+                "source": "extractor",
+            },
+            {
+                "key": "gross_salary",
+                "value": 12000,
+                "confidence": 0.9,
+                "source_text": "12000",
+                "source": "extractor",
+            },
+        ]
+    )
+    correct = CorrectGuestExtractionUseCase(
+        document_repository=MagicMock(),
+        extraction_repository=MagicMock(),
+    )
+    await correct.execute(
+        document_id=session.document_id,
+        corrections=[FieldCorrection(key="base_salary", value=13000)],
+    )
+
+    extract_uc = ExtractGuestPayslipUseCase(
+        document_repository=MagicMock(),
+        extraction_repository=MagicMock(),
+        object_storage=MagicMock(),
+        organization_bootstrap=MagicMock(),
+        ocr_use_case=MagicMock(),
+        document_extractor=MagicMock(),
+    )
+    _document, extraction = extract_uc.confirm_ephemeral_session(session.document_id)
+    assert extraction.confirmation_status == "confirmed"
+    assert extraction.structured_data["base_salary"]["value"] == 13000
+    # Provenance: Document Model retained under structured_data.dynamic_entries
+    entries = extraction.structured_data.get("dynamic_entries") or []
+    corrected = next(row for row in entries if row.get("key") == "base_salary")
+    assert corrected["value"] == 13000
+    assert corrected.get("source") == "user"
+
+    # Validation context reads confirmed structured_data (corrected value).
+    bundle = await GuestExtractionValidationContextBuilder(
+        extraction_repository=MagicMock()
+    ).build(document_id=session.document_id, organization_id=None, require_confirmed=True)
+    assert bundle.guest_ephemeral is True
+    assert bundle.command.payslip.base_salary is not None
+    assert bundle.command.payslip.base_salary.amount == Decimal("13000")
 
 
 @pytest.mark.asyncio

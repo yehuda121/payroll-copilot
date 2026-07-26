@@ -150,6 +150,33 @@
   background: #fef3f2;
 }
 
+.digital-form__field--missing-required {
+  border-color: color-mix(in srgb, #667085 40%, transparent);
+  border-style: dashed;
+}
+
+.digital-form__required-tag {
+  margin-inline-start: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #667085;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.digital-form__missing-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: #667085;
+}
+
+.digital-form__section-title {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-secondary, #475467);
+}
+
 .employee-field-status {
   display: inline-flex;
   align-items: center;

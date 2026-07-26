@@ -14,12 +14,18 @@ import {
   translateScopeTitle,
   type EmployeeCardStatus,
 } from '../../lib/employee/validation-display';
+import {
+  taxonomyForRuleId,
+  uiGroupForTaxonomy,
+} from '../../lib/employee/validation-taxonomy';
 import { EmployeeValidationAiButton } from './EmployeeValidationAiButton';
 import '../guest/landing/landing-chat.css';
 
 type ValidationCard = {
   key: string;
   category: 'identity' | 'employment' | 'salary' | 'taxes' | 'benefits' | 'dates';
+  /** UI group: employee checks (incl. contract) vs law checks. */
+  uiGroup: 'employee_checks' | 'law_checks';
   title: string;
   status: EmployeeCardStatus;
   explanation: string | null;
@@ -28,6 +34,8 @@ type ValidationCard = {
   confidence: number | null;
   findingId?: string | null;
 };
+
+export type ValidationResultsGroup = 'all' | 'employee_checks' | 'law_checks';
 
 type EmployeeValidationResultsProps = {
   report: GuestValidationReport | null;
@@ -38,6 +46,8 @@ type EmployeeValidationResultsProps = {
   canRunValidation?: boolean;
   validating?: boolean;
   validationOutdated?: boolean;
+  /** Filter cards for Employee Checks / Law Checks tabs. */
+  checkGroup?: ValidationResultsGroup;
 };
 
 export function EmployeeValidationResults({
@@ -49,6 +59,7 @@ export function EmployeeValidationResults({
   canRunValidation = false,
   validating = false,
   validationOutdated = false,
+  checkGroup = 'all',
 }: EmployeeValidationResultsProps) {
   const { t } = useTranslation();
 
@@ -64,6 +75,7 @@ export function EmployeeValidationResults({
       out.push({
         key: 'pay_period',
         category: 'dates',
+        uiGroup: 'employee_checks',
         title: t('employee.validation.checkTitles.pay_period'),
         status: mapCompareToCardStatus(period.status),
         explanation:
@@ -94,6 +106,7 @@ export function EmployeeValidationResults({
         out.push({
           key: `scope-${scope.key}`,
           category: categoryForRule(scope.key),
+          uiGroup: uiGroupForScope(scope.key),
           title: translateScopeTitle(scope.key, scope.label, t),
           status: mapScopeToCardStatus(scope.status, scope.reason),
           explanation: translateScopeReason(scope.reason, t),
@@ -105,11 +118,18 @@ export function EmployeeValidationResults({
       for (const finding of report.findings) {
         const messageKey = finding.message_key || finding.code || finding.rule_id;
         if (/attendance/i.test(`${messageKey} ${finding.rule_id || ''}`)) continue;
+        const taxonomy = taxonomyForRuleId(finding.rule_id, null);
+        // SANITY → Digital Payslip field state only (skip validation tabs).
+        if (taxonomy === 'sanity') continue;
+        const uiGroup =
+          taxonomy != null ? uiGroupForTaxonomy(taxonomy) : inferUiGroupFromFinding(finding.rule_id);
+        if (uiGroup === 'digital') continue;
         out.push({
           key: `finding-${finding.id}`,
           category: categoryForRule(
             `${finding.rule_id || ''} ${finding.message_key || ''} ${finding.code || ''}`,
           ),
+          uiGroup: uiGroup as 'employee_checks' | 'law_checks',
           title: translateFindingTitle(messageKey, t),
           status: mapFindingToCardStatus(finding),
           explanation:
@@ -127,8 +147,9 @@ export function EmployeeValidationResults({
       }
     }
 
-    return out;
-  }, [identity, period, report, t]);
+    if (checkGroup === 'all') return out;
+    return out.filter((card) => card.uiGroup === checkGroup);
+  }, [checkGroup, identity, period, report, t]);
 
   const statusVisual = (status: EmployeeCardStatus) => {
     switch (status) {
@@ -325,6 +346,7 @@ function identityFieldCard(field: ComparisonField, t: TFunction): ValidationCard
   return {
     key: `identity-${field.key}`,
     category: 'identity',
+    uiGroup: 'employee_checks',
     title: t(`employee.validation.checkTitles.${field.key}`, {
       defaultValue: t('employee.validation.checkTitles.identity'),
     }),
@@ -344,4 +366,23 @@ function categoryForRule(value: string): ValidationCard['category'] {
   if (/date|period|month|year/.test(normalized)) return 'dates';
   if (/salary|gross|net|wage|pay|hour|overtime/.test(normalized)) return 'salary';
   return 'employment';
+}
+
+function uiGroupForScope(scopeKey: string): 'employee_checks' | 'law_checks' {
+  const key = scopeKey.toLowerCase();
+  if (key.includes('payroll') || key.includes('tax') || key.includes('legal')) {
+    return 'law_checks';
+  }
+  return 'employee_checks';
+}
+
+function inferUiGroupFromFinding(ruleId: string | null | undefined): 'employee_checks' | 'law_checks' {
+  const taxonomy = taxonomyForRuleId(ruleId, null);
+  if (taxonomy) {
+    const group = uiGroupForTaxonomy(taxonomy);
+    if (group === 'digital') return 'employee_checks';
+    return group;
+  }
+  // Ambiguous → keep visible under Employee Checks (safer than hiding).
+  return 'employee_checks';
 }

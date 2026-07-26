@@ -129,6 +129,27 @@ PAYSLIP_FIELD_KEYS: tuple[str, ...] = (
     "messages",
 )
 
+# Well-known canonical concepts stored under structured_data.additional_fields
+# (or projected alongside). Kept out of StructuredPayslipParse so extraction
+# schema/LLM templates are not forced to emit them. Alias mapping still applies.
+PAYSLIP_CANONICAL_EXTRA_KEYS: tuple[str, ...] = (
+    "national_id",
+    "total_deductions",
+    "employer_name",
+    "employer_id",
+    "employer_address",
+    "employment_start_date",
+    "seniority_years",
+    "employment_scope",
+    "salary_calculation_basis",
+    "amount_paid",
+    "bank_name",
+    "bank_branch",
+    "bank_account",
+    "minimum_wage_monthly",
+    "minimum_wage_hourly",
+)
+
 
 def _default_field() -> ExtractedField:
     return ExtractedField(status=FieldExtractionStatus.MISSING)

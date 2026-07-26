@@ -1,106 +1,77 @@
 import { describe, expect, it } from 'vitest';
-import {
-  buildEmployeeFieldValidationMap,
-  countValidationStatuses,
-} from './field-validation-status';
-import type { ExtractedPayslipField } from '../../types/api';
+import { buildEmployeeFieldValidationMap } from './field-validation-status';
+import type { ExtractedPayslipField, ValidationFinding } from '../../types/api';
 import type { GuestValidationReport } from '../../types/validation-report';
 
-describe('employee field validation status map', () => {
-  const fields: ExtractedPayslipField[] = [
-    {
-      key: 'base_salary',
-      value: 10000,
-      confidence: 0.9,
-      source_text: null,
-      status: 'FOUND',
-    },
-    {
-      key: 'travel_expenses',
-      value: 200,
-      confidence: 0.5,
-      source_text: null,
-      status: 'UNCERTAIN',
-    },
-    {
-      key: 'vacation_balance',
-      value: null,
-      confidence: null,
-      source_text: null,
-      status: 'MISSING',
-    },
-  ];
+function field(key: string, value: unknown, status = 'FOUND'): ExtractedPayslipField {
+  return {
+    key,
+    value,
+    confidence: 0.9,
+    source_text: null,
+    status,
+    edited_by_user: false,
+  };
+}
 
-  it('maps findings and extraction fallbacks after a validation report', () => {
+function finding(partial: Partial<ValidationFinding> & { id: string; rule_id: string }): ValidationFinding {
+  return {
+    code: partial.code || partial.rule_id,
+    severity: partial.severity || 'critical',
+    message_key: partial.message_key || partial.rule_id,
+    message_params: {},
+    expected_value: partial.expected_value ?? null,
+    actual_value: partial.actual_value ?? null,
+    confidence: partial.confidence ?? 1,
+    explanation: partial.explanation ?? null,
+    ...partial,
+  } as ValidationFinding;
+}
+
+describe('buildEmployeeFieldValidationMap', () => {
+  it('aggregates explicit bound findings with FAILED precedence', () => {
     const report = {
-      runId: 'r1',
-      documentId: 'd1',
-      overallResult: 'warnings',
-      overallStatus: 'Warnings',
-      summary: 'Mixed',
-      validationConfidence: 0.8,
-      confidenceExplanation: null,
-      scope: [],
-      uploadedDocuments: [],
-      checksPassedCount: 1,
       findings: [
-        {
-          id: 'f1',
-          code: 'salary_check',
-          rule_id: 'payroll.base_salary',
-          severity: 'critical' as const,
-          message_key: 'base_salary.mismatch',
-          message: 'Salary mismatch',
-          explanation: 'Does not match contract',
-          expected_value: '12000',
-          actual_value: '10000',
-          confidence: 0.95,
-          legal_reference: null,
-        },
+        finding({
+          id: '1',
+          rule_id: 'legal.overtime.daily_limit',
+          severity: 'critical',
+        }),
       ],
-      extractionConnected: true,
-    } satisfies GuestValidationReport;
+    } as GuestValidationReport;
 
-    const map = buildEmployeeFieldValidationMap(fields, report);
-    expect(map.base_salary?.status).toBe('failed');
-    expect(map.travel_expenses?.status).toBe('uncertain');
-    expect(map.vacation_balance?.status).toBe('unchecked');
-
-    const counts = countValidationStatuses(map);
-    expect(counts.failed).toBe(1);
-    expect(counts.uncertain).toBe(1);
-    expect(counts.unchecked).toBe(1);
-    expect(counts.passed).toBe(0);
+    const map = buildEmployeeFieldValidationMap(
+      [field('overtime_hours', 5)],
+      report,
+    );
+    expect(map.overtime_hours.status).toBe('failed');
   });
 
-  it('does not invent passed when a report has no finding for a found field', () => {
+  it('does not fuzzy-bind unrelated findings to fields', () => {
     const report = {
-      runId: 'r2',
-      documentId: 'd2',
-      overallResult: 'pass',
-      overallStatus: 'Pass',
-      summary: 'Clean',
-      validationConfidence: 0.9,
-      confidenceExplanation: null,
-      scope: [],
-      uploadedDocuments: [],
-      checksPassedCount: 1,
-      findings: [],
-      extractionConnected: true,
-    } satisfies GuestValidationReport;
+      findings: [
+        finding({
+          id: '1',
+          rule_id: 'legal.overtime.daily_limit',
+          severity: 'critical',
+          explanation: 'base_salary mentioned in text only',
+        }),
+      ],
+    } as GuestValidationReport;
 
-    const map = buildEmployeeFieldValidationMap(fields, report);
-    expect(map.base_salary?.status).toBe('unchecked');
-    expect(map.travel_expenses?.status).toBe('uncertain');
-    expect(map.vacation_balance?.status).toBe('unchecked');
-    expect(countValidationStatuses(map).passed).toBe(0);
+    const map = buildEmployeeFieldValidationMap([field('base_salary', 100)], report);
+    expect(map.base_salary.status).not.toBe('failed');
   });
 
-  it('does not mark fields passed when validation has not run', () => {
-    const map = buildEmployeeFieldValidationMap(fields, null);
-    expect(map.base_salary).toBeUndefined();
-    expect(map.travel_expenses?.status).toBe('uncertain');
-    expect(map.vacation_balance?.status).toBe('unchecked');
-    expect(countValidationStatuses(map).passed).toBe(0);
+  it('marks missing required fields as gray missing_required', () => {
+    const map = buildEmployeeFieldValidationMap([field('gross_salary', 1)], null);
+    expect(map.employee_name?.neutralKind).toBe('missing_required');
+    expect(map.employee_name?.status).toBe('unchecked');
+  });
+
+  it('marks bound fields passed when validation ran without matching findings', () => {
+    const report = { findings: [] } as unknown as GuestValidationReport;
+    const map = buildEmployeeFieldValidationMap([field('overtime_hours', 2)], report);
+    expect(map.overtime_hours.status).toBe('passed');
   });
 });

@@ -565,9 +565,13 @@ class OllamaPayslipParser:
                 field_keys=field_keys,
             )
             mapping_hint = (
-                "Map labels by meaning: Employee name; Employee ID / Worker number; "
-                "National ID / Teudat Zeut; Payroll month / Period; Gross; Net; "
-                "Total deductions; Total payments; Bank transfer / Payment method.\n"
+                "Map labels by meaning: Employee name; Employee ID (payroll system id) / Worker number; "
+                "National ID / Teudat Zehut (government ID — never confuse with Employee ID); "
+                "Payroll month / Period; Gross; Net; Amount actually paid (if shown separately from net); "
+                "Total deductions; Total payments; Bank transfer / Payment method; "
+                "Employer name/id/address; Employment start; Seniority years; Employment scope %; "
+                "Salary calculation basis; Bank name/branch/account; "
+                "Monthly/hourly minimum wage printed on the payslip (document fields, not legal rates).\n"
             )
         else:
             field_keys = PAYSLIP_FIELD_KEYS
@@ -578,8 +582,12 @@ class OllamaPayslipParser:
             )
             mapping_hint = (
                 "Map payslip labels by meaning into canonical field names.\n"
-                "Examples: Worker Number / Employee ID / מספר עובד -> employee_id or employee_number; "
-                "Gross Salary / Total Payments -> gross_salary.\n"
+                "Examples: מספר עובד -> employee_number; Employee ID (payroll) -> employee_id; "
+                "תעודת זהות / National ID -> national_id (never map National ID to employee_id); "
+                "Gross Salary / Total Payments -> gross_salary; "
+                "סכום ששולם בפועל -> amount_paid (distinct from net_salary); "
+                "מינימום לחודש / מינימום לשעה -> minimum_wage_monthly / minimum_wage_hourly "
+                "(document reference values — not legal.minimum_wage).\n"
             )
 
         template_json = json.dumps(template, ensure_ascii=False, indent=2)

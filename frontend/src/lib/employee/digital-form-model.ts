@@ -1,12 +1,13 @@
 /**
  * Digital form view-model.
- * Currently renders as one continuous form; section metadata is kept so
- * future grouping can be enabled without rewriting the form.
+ * Required → Expected → (optional Other). Missing required fields render empty.
+ * Other extracted fields remain in the Document Model / structured_data;
+ * employee primary view may hide them; accountant can show all.
  */
 
 import type { TFunction } from 'i18next';
 import type { ExtractedPayslipField } from '../../types/api';
-import { filterMeaningfulReviewFields } from '../guest/extraction-review';
+import { isInternalReviewFieldKey } from '../guest/extraction-review';
 import { isCanonicalPayrollFieldKey } from '../guest/payroll-field-keys';
 import {
   detectEmployeeFieldType,
@@ -15,6 +16,14 @@ import {
   serializeFieldValue,
   type EmployeeFieldType,
 } from './field-types';
+import {
+  displayOrderForKey,
+  getPayslipFieldDefinition,
+  looksLikeNationalIdDigits,
+  requirementCategoryForKey,
+  requiredOnPayslipKeys,
+  type FieldRequirementCategory,
+} from './payslip-field-registry';
 
 export type DigitalFormFieldModel = {
   key: string;
@@ -25,8 +34,10 @@ export type DigitalFormFieldModel = {
   rawValue: unknown;
   preview: string;
   columnSpan: 1 | 2;
-  /** Reserved for future section grouping */
   sectionId: string;
+  requirementCategory: FieldRequirementCategory;
+  /** True when required_on_payslip and value is empty (not fabricated). */
+  missingRequired: boolean;
 };
 
 export type DigitalFormSectionModel = {
@@ -36,77 +47,220 @@ export type DigitalFormSectionModel = {
   fields: DigitalFormFieldModel[];
 };
 
+export type DigitalFormAudience = 'employee' | 'accountant';
+
+function hasNonEmptyValue(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  return String(value).trim() !== '';
+}
+
 function fieldLabel(key: string, t: TFunction): string {
   if (isCanonicalPayrollFieldKey(key)) {
     return t(`payroll.fields.${key}`);
   }
+  const def = getPayslipFieldDefinition(key);
+  if (def) return t(def.label_i18n_key, { defaultValue: key });
   return t(`validate.field.${key}`, { defaultValue: key });
 }
 
-function inferSectionId(key: string): string {
-  // Stable future hooks — not shown in UI yet.
-  if (['employee_name', 'employee_id', 'employee_number', 'national_id', 'department', 'employment_type'].includes(key)) {
-    return 'identity';
-  }
-  if (['pay_period', 'payment_method'].includes(key)) return 'period';
-  if (
-    ['base_salary', 'gross_salary', 'net_salary', 'hourly_rate', 'travel_expenses', 'regular_hours', 'overtime_hours'].includes(
-      key,
-    )
-  ) {
-    return 'earnings';
-  }
-  if (
-    [
-      'income_tax',
-      'national_insurance',
-      'health_tax',
-      'pension_employee',
-      'pension_employer',
-      'severance',
-      'training_fund',
-      'total_deductions',
-    ].includes(key)
-  ) {
-    return 'deductions';
-  }
-  return 'other';
+function sectionIdForKey(key: string): string {
+  return getPayslipFieldDefinition(key)?.section ?? 'other';
 }
 
-export function buildDigitalFormSections(
-  fields: ExtractedPayslipField[] | undefined,
-  drafts: Record<string, { value: string }>,
+function categorySortRank(category: FieldRequirementCategory): number {
+  if (category === 'required') return 0;
+  if (category === 'expected') return 1;
+  return 2;
+}
+
+function nationalIdSatisfied(
+  byKey: Map<string, ExtractedPayslipField>,
+  drafts: Record<string, { value: string; dirty?: boolean }>,
+): { ok: boolean; sourceKey: 'national_id' | 'employee_id' | null } {
+  const nidDraft = drafts.national_id;
+  if (nidDraft?.dirty && nidDraft.value.trim()) return { ok: true, sourceKey: 'national_id' };
+  if (hasNonEmptyValue(byKey.get('national_id')?.value)) return { ok: true, sourceKey: 'national_id' };
+  if (nidDraft && !nidDraft.dirty && nidDraft.value.trim()) return { ok: true, sourceKey: 'national_id' };
+
+  // Legacy: employee_id only satisfies National ID when it looks like Israeli ID digits.
+  const legacyDraft = drafts.employee_id;
+  const legacyValue = legacyDraft?.dirty
+    ? legacyDraft.value
+    : (legacyDraft?.value || serializeFieldValue(byKey.get('employee_id')?.value));
+  if (looksLikeNationalIdDigits(legacyValue)) {
+    return { ok: true, sourceKey: 'employee_id' };
+  }
+  return { ok: false, sourceKey: null };
+}
+
+function resolveDisplayValue(
+  field: ExtractedPayslipField | undefined,
+  draft: { value: string; dirty?: boolean } | undefined,
+): string {
+  if (draft?.dirty) return draft.value;
+  if (draft?.value != null && draft.value !== '') return draft.value;
+  if (field) return serializeFieldValue(field.value);
+  return '';
+}
+
+function toFieldModel(
+  key: string,
+  field: ExtractedPayslipField | undefined,
+  drafts: Record<string, { value: string; dirty?: boolean }>,
   t: TFunction,
   locale: string,
-): DigitalFormSectionModel[] {
-  const models: DigitalFormFieldModel[] = filterMeaningfulReviewFields(fields).map((field) => {
-    const draft = drafts[field.key];
-    // Prefer live draft for editing, but do not keep empty drafts on screen.
-    const value = draft?.dirty ? draft.value : (draft?.value ?? serializeFieldValue(field.value));
-    if (!value.trim() && !draft?.dirty) {
-      return null;
-    }
-    const type = detectEmployeeFieldType(field.key, draft?.dirty ? value : field.value);
-    return {
-      key: field.key,
-      label: fieldLabel(field.key, t),
-      type,
-      value,
-      rawValue: field.value ?? null,
-      preview: formatFieldPreview(value, type, locale),
-      columnSpan: fieldSpansColumns(type, value),
-      sectionId: inferSectionId(field.key),
-    };
-  }).filter((model): model is DigitalFormFieldModel => model != null);
+  options: { missingRequired: boolean },
+): DigitalFormFieldModel {
+  const draft = drafts[key];
+  const value = resolveDisplayValue(field, draft);
+  const type = detectEmployeeFieldType(key, draft?.dirty ? value : field?.value);
+  const category = requirementCategoryForKey(key);
+  return {
+    key,
+    label: fieldLabel(key, t),
+    type,
+    value,
+    rawValue: field?.value ?? null,
+    preview: formatFieldPreview(value, type, locale),
+    columnSpan: fieldSpansColumns(type, value),
+    sectionId: sectionIdForKey(key),
+    requirementCategory: category,
+    missingRequired: options.missingRequired,
+  };
+}
 
-  // Continuous form today: one untitled section containing all fields.
-  // Future: split by sectionId and set titleKey per group.
+/**
+ * Build Digital Payslip sections.
+ * - Employee: Required + Expected (+ dirty/custom). Other hidden from primary view.
+ * - Accountant: includes Other extracted fields (show all).
+ * - Missing required_on_payslip keys appear as empty rows (never fabricate values).
+ */
+export function buildDigitalFormSections(
+  fields: ExtractedPayslipField[] | undefined,
+  drafts: Record<string, { value: string; dirty?: boolean }>,
+  t: TFunction,
+  locale: string,
+  options?: {
+    audience?: DigitalFormAudience;
+    /** Force include Other category (accountant toggle). */
+    includeOther?: boolean;
+  },
+): DigitalFormSectionModel[] {
+  const audience = options?.audience ?? 'employee';
+  const includeOther = options?.includeOther ?? audience === 'accountant';
+
+  const byKey = new Map<string, ExtractedPayslipField>();
+  for (const field of fields ?? []) {
+    const key = (field.key || '').trim();
+    if (!key || isInternalReviewFieldKey(key)) continue;
+    byKey.set(key, field);
+  }
+
+  const models: DigitalFormFieldModel[] = [];
+  const used = new Set<string>();
+  const nidState = nationalIdSatisfied(byKey, drafts);
+
+  // 1) Required slots (including empty missing).
+  for (const key of requiredOnPayslipKeys()) {
+    if (key === 'national_id') {
+      if (nidState.ok && nidState.sourceKey === 'employee_id' && !byKey.has('national_id')) {
+        // Legacy: NID stored under employee_id — present as National ID slot.
+        const model = toFieldModel('national_id', byKey.get('employee_id'), drafts, t, locale, {
+          missingRequired: false,
+        });
+        // Prefer draft under national_id if present; else show legacy value via employee_id field payload.
+        if (!drafts.national_id?.dirty) {
+          model.value = resolveDisplayValue(byKey.get('employee_id'), drafts.employee_id);
+          model.preview = formatFieldPreview(model.value, model.type, locale);
+        }
+        model.label = fieldLabel('national_id', t);
+        models.push(model);
+        used.add('national_id');
+        // Keep employee_id available as Expected payroll ID only when it is NOT a NID-looking value.
+        if (!looksLikeNationalIdDigits(resolveDisplayValue(byKey.get('employee_id'), drafts.employee_id))) {
+          // no-op — employee_id handled in expected pass
+        } else {
+          used.add('employee_id');
+        }
+        continue;
+      }
+      const field = byKey.get('national_id');
+      const draft = drafts.national_id;
+      const value = resolveDisplayValue(field, draft);
+      const missingRequired = !value.trim() && !nidState.ok;
+      if (!value.trim() && nidState.ok) {
+        // Satisfied via legacy employee_id already handled above, or draft-only.
+        used.add('national_id');
+        continue;
+      }
+      models.push(
+        toFieldModel('national_id', field, drafts, t, locale, {
+          missingRequired,
+        }),
+      );
+      used.add('national_id');
+      continue;
+    }
+
+    const field = byKey.get(key);
+    const draft = drafts[key];
+    const value = resolveDisplayValue(field, draft);
+    const empty = !value.trim();
+    models.push(
+      toFieldModel(key, field, drafts, t, locale, {
+        missingRequired: empty,
+      }),
+    );
+    used.add(key);
+  }
+
+  // 2) Expected + Other from extraction / dirty drafts.
+  const remainingKeys = new Set<string>([...byKey.keys(), ...Object.keys(drafts)]);
+  for (const key of remainingKeys) {
+    if (used.has(key)) continue;
+    if (isInternalReviewFieldKey(key)) continue;
+
+    const category = requirementCategoryForKey(key);
+    if (category === 'other' && !includeOther) {
+      // Preserve data; hide from employee primary view unless dirty custom edit.
+      const draft = drafts[key];
+      if (!(draft?.dirty)) continue;
+    }
+
+    const field = byKey.get(key);
+    const draft = drafts[key];
+    const value = resolveDisplayValue(field, draft);
+    // Non-required: keep meaningful-field behavior (skip empty non-dirty).
+    if (!value.trim() && !draft?.dirty) continue;
+
+    models.push(
+      toFieldModel(key, field, drafts, t, locale, {
+        missingRequired: false,
+      }),
+    );
+    used.add(key);
+  }
+
+  models.sort((a, b) => {
+    const cat = categorySortRank(a.requirementCategory) - categorySortRank(b.requirementCategory);
+    if (cat !== 0) return cat;
+    return displayOrderForKey(a.key) - displayOrderForKey(b.key) || a.key.localeCompare(b.key);
+  });
+
   if (models.length === 0) return [];
-  return [
-    {
-      id: 'all',
-      titleKey: null,
-      fields: models,
-    },
+
+  // Group by requirement category for clear Required → Expected → Other structure.
+  const groups: Array<{ id: FieldRequirementCategory; titleKey: string }> = [
+    { id: 'required', titleKey: 'employee.digitalForm.sectionRequired' },
+    { id: 'expected', titleKey: 'employee.digitalForm.sectionExpected' },
+    { id: 'other', titleKey: 'employee.digitalForm.sectionOther' },
   ];
+
+  return groups
+    .map((group) => ({
+      id: group.id,
+      titleKey: group.titleKey,
+      fields: models.filter((field) => field.requirementCategory === group.id),
+    }))
+    .filter((section) => section.fields.length > 0);
 }

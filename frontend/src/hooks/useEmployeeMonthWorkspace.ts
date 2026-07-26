@@ -27,6 +27,8 @@ export type WorkspaceTab =
   | 'upload'
   | 'digital'
   | 'validation'
+  | 'employee_checks'
+  | 'law_checks'
   | 'original'
   | 'chat'
   | 'publishing';
@@ -417,7 +419,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
 
       setTab('digital');
       setBusyPhase('extracting');
-      setStatusMessage(t('employee.workspace.extractingStatus'));
+      setStatusMessage(t('employee.workspace.processing.readingPayslip'));
       setError(null);
       try {
         if (opts?.forCompare && fields.length > 0) {
@@ -612,8 +614,8 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     const signal = validateSubmission.current.begin();
     if (!signal) return;
     setBusyPhase('validating');
-    setStatusMessage(t('employee.upload.validatingPayroll'));
-    setTab('validation');
+    setStatusMessage(t('employee.workspace.processing.checkingData'));
+    setTab('employee_checks');
     try {
       const supporting = detail?.attendance.document_id
         ? [detail.attendance.document_id]
@@ -654,7 +656,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     if (!documentId) return;
     if (blocksConfirmation) {
       setError(t('employee.upload.confirmBlocked'));
-      setTab('validation');
+      setTab('employee_checks');
       return;
     }
     const ok = await confirmExtractedFields();
@@ -668,6 +670,30 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     setBusyPhase(null);
     setStatusMessage(null);
     setError(t('employee.upload.validationCancelled'));
+  }, [busyPhase, t]);
+
+  // User-facing processing copy (not internal pipeline stage names).
+  useEffect(() => {
+    if (busyPhase !== 'validating' && busyPhase !== 'extracting') return;
+    const keys =
+      busyPhase === 'extracting'
+        ? [
+            'employee.workspace.processing.readingPayslip',
+            'employee.workspace.processing.preparingResults',
+          ]
+        : [
+            'employee.workspace.processing.checkingData',
+            'employee.workspace.processing.comparingEmployee',
+            'employee.workspace.processing.checkingRules',
+            'employee.workspace.processing.preparingResults',
+          ];
+    let index = 0;
+    setStatusMessage(t(keys[0]));
+    const timer = window.setInterval(() => {
+      index = (index + 1) % keys.length;
+      setStatusMessage(t(keys[index]));
+    }, 2800);
+    return () => window.clearInterval(timer);
   }, [busyPhase, t]);
 
   const resolvePeriod = useCallback(

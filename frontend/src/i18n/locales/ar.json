@@ -57,9 +57,16 @@
     "fields": {
       "unknown": "(غير معروف)",
       "employee_name": "اسم الموظف",
-      "employee_id": "معرّف الموظف",
+      "employee_id": "معرّف الموظف (نظام الرواتب)",
       "employee_number": "رقم الموظف",
       "national_id": "رقم الهوية",
+      "employer_name": "اسم صاحب العمل",
+      "employer_id": "معرّف صاحب العمل",
+      "employer_address": "عنوان صاحب العمل / مكان العمل",
+      "employment_start_date": "تاريخ بدء العمل",
+      "seniority_years": "الأقدمية (سنوات)",
+      "employment_scope": "نطاق الوظيفة",
+      "salary_calculation_basis": "أساس حساب الراتب",
       "pay_period": "فترة الراتب",
       "employment_type": "نوع التوظيف",
       "department": "القسم",
@@ -77,10 +84,16 @@
       "severance": "مكافأة نهاية الخدمة",
       "training_fund": "صندوق التدريب",
       "net_salary": "صافي الراتب",
+      "amount_paid": "المبلغ المدفوع فعليًا",
       "total_deductions": "إجمالي الاستقطاعات",
       "vacation_balance": "رصيد الإجازة",
       "sick_leave_balance": "رصيد المرض",
       "payment_method": "طريقة الدفع",
+      "bank_name": "اسم البنك",
+      "bank_branch": "فرع البنك",
+      "bank_account": "رقم الحساب",
+      "minimum_wage_monthly": "الحد الأدنى الشهري (على القسيمة)",
+      "minimum_wage_hourly": "الحد الأدنى للساعة (على القسيمة)",
       "messages": "رسائل"
     }
   },
@@ -533,7 +546,8 @@
         "passed": "ناجح",
         "failed": "فشل",
         "uncertain": "غير مؤكد من الذكاء الاصطناعي",
-        "unchecked": "تعذر التحقق"
+        "unchecked": "تعذر التحقق",
+        "missingRequired": "غير موجود في القسيمة"
       },
       "explain": "AI",
       "aiExplanation": "شرح بالذكاء الاصطناعي",
@@ -560,7 +574,16 @@
       "deleteField": "حذف الحقل",
       "deleteFieldTitle": "حذف الحقل؟",
       "deleteFieldMessage": "هل أنت متأكد أنك تريد إزالة هذا الحقل نهائيًا من قسيمة الراتب الرقمية؟ لا يمكن التراجع عن هذا الإجراء.",
-      "deleteFieldConfirm": "حذف الحقل"
+      "deleteFieldConfirm": "حذف الحقل",
+      "sectionRequired": "الحقول المطلوبة",
+      "sectionExpected": "الحقول المتوقعة",
+      "sectionOther": "حقول مستخرجة أخرى",
+      "requiredTag": "مطلوب",
+      "notFoundOnPayslip": "غير موجود في القسيمة",
+      "missingRequiredHint": "هذا الحقل متوقع في القسيمة لكنه لم يُستخرج. يمكنك إدخاله إذا كنت تعرف القيمة الصحيحة.",
+      "missingRequiredExplain": "لم يُعثر على {{field}} في هذه القسيمة. لم تُختلق أي قيمة. يمكنك تعبئته إذا أمكن التحقق من المستند الأصلي.",
+      "failedFieldExplain": "لدى {{field}} فحص فاشل. افتح فحوصات الموظف أو فحوصات القانون للاطلاع على النتيجة الحتمية. يمكن للذكاء الاصطناعي الشرح دون تغيير ناجح/فاشل.",
+      "uncertainFieldExplain": "{{field}} غير مؤكد. راجع الأدلة المستخرجة والفحوصات ذات الصلة. يشرح الذكاء الاصطناعي الأدلة المتاحة فقط."
     },
     "compare": {
       "title": "فحص الهوية والفترة",
@@ -628,6 +651,8 @@
       "tabs": "علامات تبويب مساحة الشهر",
       "tabUpload": "الرفع",
       "tabValidation": "التحقق",
+      "tabEmployeeChecks": "فحوصات الموظف",
+      "tabLawChecks": "فحوصات القانون",
       "digitalEmpty": "لا توجد قسيمة رقمية بعد. استخرج مستندًا من تبويب الرفع.",
       "validationOutdated": "يلزم تشغيل التحقق مرة أخرى.",
       "runValidationAgain": "تشغيل التحقق مرة أخرى",
@@ -636,6 +661,14 @@
       "periodMismatchPrompt": "يبدو أن القسيمة المرفوعة تنتمي إلى {{month}}/{{year}}.",
       "movePeriod": "نقل إلى {{month}}/{{year}}",
       "keepPeriod": "الإبقاء في {{month}}/{{year}}",
+      "processing": {
+        "readingPayslip": "قراءة القسيمة",
+        "checkingData": "فحص البيانات",
+        "comparingEmployee": "مقارنة معلومات الموظف المتاحة",
+        "checkingRules": "فحص القواعد المنطبقة",
+        "preparingResults": "تجهيز النتائج",
+        "hint": "قد يستغرق ذلك لحظة. يمكنك الإلغاء عند الحاجة."
+      },
       "timeline": {
         "completed": "مكتمل"
       }
