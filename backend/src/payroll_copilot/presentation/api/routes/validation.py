@@ -72,6 +72,17 @@ class ValidationRunRequest(BaseModel):
     include_contract_rag: bool = True
     supporting_document_ids: list[str] = Field(default_factory=list)
     locale: str | None = Field(default=None, pattern="^(he|en|ar)$")
+    rerun_scope: str | None = None
+    rule_ids: list[str] = Field(default_factory=list)
+
+
+class ManualApprovalRequest(BaseModel):
+    document_id: str
+    validation_run_id: str
+    finding_id: str
+    acknowledgement: bool = False
+    reason: str | None = None
+    locale: str | None = Field(default=None, pattern="^(he|en|ar)$")
 
 class ValidationScopeItemResponse(BaseModel):
     key: str
@@ -97,6 +108,15 @@ class FindingResponse(BaseModel):
     actual_value: str | None
     confidence: float
     legal_reference: str | None = None
+    display_status: str | None = None
+    manual_approval: dict | None = None
+
+
+class RuleOutcomeResponse(BaseModel):
+    rule_id: str
+    outcome: str
+    skip_reason: str | None = None
+
 
 class ValidationRunResponse(BaseModel):
     id: str
@@ -114,6 +134,7 @@ class ValidationRunResponse(BaseModel):
     uploaded_documents: list[UploadedDocumentResponse] = Field(default_factory=list)
     extraction_connected: bool = False
     findings: list[FindingResponse] = Field(default_factory=list)
+    rule_outcomes: list[RuleOutcomeResponse] = Field(default_factory=list)
 
 def _parse_uuid(value: str, field_name: str) -> UUID:
     try:
@@ -124,7 +145,12 @@ def _parse_uuid(value: str, field_name: str) -> UUID:
             detail=f"Invalid {field_name}: must be a valid UUID",
         ) from exc
 
-def _to_response(record: ValidationRunRecord, *, locale: str) -> ValidationRunResponse:
+def _to_response(record: ValidationRunRecord, *, locale: str, document_metadata: dict | None = None) -> ValidationRunResponse:
+    from payroll_copilot.application.use_cases.approve_validation_finding import (
+        apply_approvals_to_display,
+        approvals_from_document_metadata,
+    )
+
     enrichment = record.enrichment
     validation_scope: list[ValidationScopeItemResponse] = []
     uploaded_documents: list[UploadedDocumentResponse] = []
@@ -157,6 +183,37 @@ def _to_response(record: ValidationRunRecord, *, locale: str) -> ValidationRunRe
         checks_passed_count = enrichment.checks_passed_count
         extraction_connected = enrichment.extraction_connected
 
+    finding_payloads = [
+        {
+            "id": str(finding.id),
+            "code": finding.message_key,
+            "rule_id": finding.rule_id,
+            "severity": finding.severity.value,
+            "message_key": finding.message_key,
+            "message": finding_message(finding.message_key, locale),
+            "explanation": finding_explanation(finding.message_key, locale),
+            "expected_value": finding.expected_value,
+            "actual_value": finding.actual_value,
+            "confidence": float(finding.confidence),
+            "legal_reference": finding.legal_reference,
+        }
+        for finding in record.findings
+    ]
+    annotated = apply_approvals_to_display(
+        findings=finding_payloads,
+        approvals=approvals_from_document_metadata(document_metadata),
+    )
+
+    rule_outcomes = [
+        RuleOutcomeResponse(
+            rule_id=str(item.get("rule_id") or ""),
+            outcome=str(item.get("outcome") or "skipped"),
+            skip_reason=item.get("skip_reason"),
+        )
+        for item in (record.context_snapshot or {}).get("rule_outcomes") or []
+        if isinstance(item, dict) and item.get("rule_id")
+    ]
+
     response = ValidationRunResponse(
         id=str(record.id),
         document_id=str(record.document_id),
@@ -172,22 +229,8 @@ def _to_response(record: ValidationRunRecord, *, locale: str) -> ValidationRunRe
         validation_scope=validation_scope,
         uploaded_documents=uploaded_documents,
         extraction_connected=extraction_connected,
-        findings=[
-            FindingResponse(
-                id=str(finding.id),
-                code=finding.message_key,
-                rule_id=finding.rule_id,
-                severity=finding.severity.value,
-                message_key=finding.message_key,
-                message=finding_message(finding.message_key, locale),
-                explanation=finding_explanation(finding.message_key, locale),
-                expected_value=finding.expected_value,
-                actual_value=finding.actual_value,
-                confidence=float(finding.confidence),
-                legal_reference=finding.legal_reference,
-            )
-            for finding in record.findings
-        ],
+        findings=[FindingResponse(**row) for row in annotated],
+        rule_outcomes=rule_outcomes,
     )
 
     return response
@@ -311,6 +354,8 @@ async def run_employee_validation(
             national_id_encrypted=bound.national_id_encrypted,
             supporting_document_ids=supporting_document_ids,
             locale=locale,
+            rerun_scope=request.rerun_scope,
+            rule_ids=tuple(request.rule_ids),
         )
     except DocumentNotFoundError as exc:
         raise HTTPException(
@@ -337,7 +382,12 @@ async def run_employee_validation(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"code": "extraction_required", "message": tip_exc.message},
         ) from tip_exc
-    return _to_response(result.record, locale=locale)
+    doc_for_meta = await get_document_repository().get_by_id(document_id)
+    return _to_response(
+        result.record,
+        locale=locale,
+        document_metadata=dict(doc_for_meta.metadata or {}) if doc_for_meta is not None else None,
+    )
 
 
 @router.post(
@@ -389,7 +439,53 @@ async def get_validation_run(
             detail=f"Validation run {validation_run_id} not found",
         )
     await _authorize_validation_run_access(record=record, principal=principal)
-    return _to_response(record, locale=resolved)
+    document = await get_document_repository().get_by_id(record.document_id)
+    return _to_response(
+        record,
+        locale=resolved,
+        document_metadata=dict(document.metadata or {}) if document else None,
+    )
+
+
+@router.post("/employee/findings/approve", status_code=200)
+async def approve_employee_finding(
+    request: ManualApprovalRequest,
+    _: None = Depends(limit_validation_by_user),
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+) -> dict:
+    """Manually approve a failed/uncertain finding without destroying the original verdict."""
+    from payroll_copilot.application.use_cases.approve_validation_finding import (
+        ApproveValidationFindingUseCase,
+        ManualApprovalError,
+    )
+
+    use_case = ApproveValidationFindingUseCase(
+        documents=get_document_repository(),
+        validation_runs=get_validation_run_repository(),
+        validation_findings=get_validation_finding_repository(),
+        audit_logs=get_audit_log_repository(),
+    )
+    try:
+        result = await use_case.execute(
+            document_id=_parse_uuid(request.document_id, "document_id"),
+            validation_run_id=_parse_uuid(request.validation_run_id, "validation_run_id"),
+            finding_id=_parse_uuid(request.finding_id, "finding_id"),
+            employee=bound.employee,
+            actor_user_id=bound.principal.user_id,
+            actor_role=bound.principal.role,
+            acknowledgement=request.acknowledgement,
+            reason=request.reason,
+        )
+    except ManualApprovalError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+    except DocumentNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except DocumentNotOwnedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    return result
 
 
 async def _authorize_validation_run_access(

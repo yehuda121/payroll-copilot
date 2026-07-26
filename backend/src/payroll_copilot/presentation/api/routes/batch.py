@@ -327,6 +327,9 @@ async def get_batch_item_review(
                     }
                     for finding in findings
                 ],
+                "rule_outcomes": list(
+                    (run.context_snapshot or {}).get("rule_outcomes") or []
+                ),
                 **(
                     {
                         "evidence_summary": build_validation_run_explanation(

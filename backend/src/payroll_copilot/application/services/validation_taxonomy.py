@@ -38,6 +38,14 @@ _RULE_ID_TAXONOMY: dict[str, ValidationTaxonomy] = {
     "sanity.employment_start_date.calendar": ValidationTaxonomy.SANITY,
     "sanity.net_salary.not_exceed_gross": ValidationTaxonomy.SANITY,
     "sanity.employment_type.recognized": ValidationTaxonomy.SANITY,
+    "employee.national_id.match": ValidationTaxonomy.EMPLOYEE,
+    "employee.name.match": ValidationTaxonomy.EMPLOYEE,
+    "employee.employee_number.match": ValidationTaxonomy.EMPLOYEE,
+    "employee.employment_type.match": ValidationTaxonomy.EMPLOYEE,
+    "employee.pay_period.match": ValidationTaxonomy.EMPLOYEE,
+    "contract.employment_commencement_date.match": ValidationTaxonomy.CONTRACT,
+    "contract.salary_basis.match": ValidationTaxonomy.CONTRACT,
+    "contract.hourly_rate.match": ValidationTaxonomy.CONTRACT,
 }
 
 _CATEGORY_FALLBACK: dict[RuleCategory, ValidationTaxonomy] = {
@@ -52,6 +60,7 @@ _CATEGORY_FALLBACK: dict[RuleCategory, ValidationTaxonomy] = {
     RuleCategory.CONTRACT: ValidationTaxonomy.CONTRACT,
     RuleCategory.HISTORICAL: ValidationTaxonomy.EMPLOYEE,
     RuleCategory.COMPANY: ValidationTaxonomy.EMPLOYEE,
+    RuleCategory.EMPLOYEE: ValidationTaxonomy.EMPLOYEE,
     RuleCategory.SANITY: ValidationTaxonomy.SANITY,
 }
 
@@ -67,7 +76,6 @@ _GATE_TAXONOMY: dict[str, ValidationTaxonomy] = {
 def _build_field_rule_bindings() -> dict[str, frozenset[str]]:
     bindings: dict[str, set[str]] = {
         "overtime_hours": {"legal.overtime.daily_limit"},
-        "hourly_rate": {"legal.minimum_wage"},
         "gross_salary": {
             "legal.pension.contribution",
             "historical.salary_drift",
@@ -79,15 +87,33 @@ def _build_field_rule_bindings() -> dict[str, frozenset[str]]:
         "national_id": {
             "sanity.national_id.length",
             "sanity.national_id.checksum",
+            "employee.national_id.match",
         },
-        "employee_name": {"sanity.employee_name.structure"},
+        "employee_name": {
+            "sanity.employee_name.structure",
+            "employee.name.match",
+        },
+        "employee_number": {"employee.employee_number.match"},
         "pay_period": {
             "sanity.pay_period.parseable",
             "sanity.pay_period.calendar",
+            "employee.pay_period.match",
         },
-        "employment_start_date": {"sanity.employment_start_date.calendar"},
+        "employment_start_date": {
+            "sanity.employment_start_date.calendar",
+            "contract.employment_commencement_date.match",
+        },
+        "hourly_rate": {
+            "legal.minimum_wage",
+            "contract.hourly_rate.match",
+        },
+        "salary_calculation_basis": {"contract.salary_basis.match"},
+        "salary_basis": {"contract.salary_basis.match"},
         "net_salary": {"sanity.net_salary.not_exceed_gross"},
-        "employment_type": {"sanity.employment_type.recognized"},
+        "employment_type": {
+            "sanity.employment_type.recognized",
+            "employee.employment_type.match",
+        },
     }
     for key in required_on_payslip_keys():
         bindings.setdefault(key, set()).add(f"sanity.required.{key}")
@@ -115,6 +141,10 @@ def taxonomy_for_rule_id(rule_id: str | None, category: str | None = None) -> Va
     lower = rid.lower()
     if lower.startswith("sanity."):
         return ValidationTaxonomy.SANITY
+    if lower.startswith("employee."):
+        return ValidationTaxonomy.EMPLOYEE
+    if lower.startswith("contract."):
+        return ValidationTaxonomy.CONTRACT
     if lower.startswith("legal.") or lower.startswith("validation.overtime") or "minimum_wage" in lower:
         return ValidationTaxonomy.LAW
     if lower.startswith("department."):

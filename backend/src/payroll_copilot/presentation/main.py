@@ -19,6 +19,8 @@ import payroll_copilot.domain.rules.legal  # noqa: F401
 import payroll_copilot.domain.rules.departments  # noqa: F401
 import payroll_copilot.domain.rules.historical  # noqa: F401
 import payroll_copilot.domain.rules.sanity  # noqa: F401
+import payroll_copilot.domain.rules.employee  # noqa: F401
+import payroll_copilot.domain.rules.contract  # noqa: F401
 
 
 @asynccontextmanager

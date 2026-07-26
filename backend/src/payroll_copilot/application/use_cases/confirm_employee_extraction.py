@@ -1,4 +1,4 @@
-"""Confirm an employee extraction version before deterministic validation."""
+"""Confirm employee document extraction (payslip or employment contract)."""
 
 from __future__ import annotations
 
@@ -12,6 +12,9 @@ from payroll_copilot.application.exceptions import (
 )
 from payroll_copilot.application.ports.employee_audit import AuditLogEntry, AuditLogRepository
 from payroll_copilot.application.ports.repositories import DocumentExtractionRepository, DocumentRepository
+from payroll_copilot.application.services.employee_document_form_schemas import (
+    project_fixed_structured,
+)
 from payroll_copilot.application.services.employee_document_lifecycle import (
     CONFIRMATION_CONFIRMED,
     LIFECYCLE_CONFIRMED,
@@ -21,7 +24,9 @@ from payroll_copilot.application.services.payslip_identity_comparison import (
     PayslipIdentityComparisonService,
 )
 from payroll_copilot.application.use_cases.extract_guest_payslip import _fields_from_structured
+from payroll_copilot.domain.employment_terms import terms_from_structured
 from payroll_copilot.domain.entities import Employee
+from payroll_copilot.domain.enums import DocumentType
 from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.infrastructure.security.field_crypto import decrypt_national_id
 
@@ -73,9 +78,103 @@ class ConfirmEmployeeExtractionUseCase:
         if (latest.parser_status or "") != "completed":
             raise ConfirmationBlockedError(
                 code="extraction_required",
-                message="Payslip details are not ready for confirmation yet.",
+                message="Document details are not ready for confirmation yet.",
             )
 
+        if document.document_type == DocumentType.CONTRACT:
+            return await self._confirm_contract(
+                document=document,
+                latest=latest,
+                employee=employee,
+                user_id=user_id,
+            )
+
+        return await self._confirm_payslip(
+            document=document,
+            latest=latest,
+            employee=employee,
+            user_id=user_id,
+            national_id_encrypted=national_id_encrypted,
+        )
+
+    async def _confirm_contract(self, *, document, latest, employee: Employee, user_id: UUID) -> dict:
+        projected = project_fixed_structured(DocumentType.CONTRACT, latest.structured_data)
+        terms = terms_from_structured(projected)
+        if not terms.has_any_terms:
+            raise ConfirmationBlockedError(
+                code="contract_terms_required",
+                message=(
+                    "Confirm at least employment commencement date or contractual "
+                    "salary terms before confirming the employment contract."
+                ),
+            )
+        # Never invent commencement from effective_from / upload / create dates.
+        if (
+            terms.employment_commencement_date is None
+            and terms.contractual_hourly_rate is None
+            and terms.contractual_monthly_salary is None
+            and terms.contractual_daily_rate is None
+            and terms.salary_basis is None
+        ):
+            raise ConfirmationBlockedError(
+                code="contract_terms_required",
+                message="No confirmable employment terms are present.",
+            )
+
+        latest.structured_data = projected
+        now = _utcnow()
+        latest.confirmation_status = CONFIRMATION_CONFIRMED
+        latest.confirmed_at = now
+        latest.confirmed_by = user_id
+        await self._extractions.save(latest)
+
+        meta = dict(document.metadata or {})
+        meta["lifecycle_status"] = LIFECYCLE_CONFIRMED
+        meta["confirmed_extraction_id"] = str(latest.id)
+        meta["confirmed_extraction_version"] = latest.extraction_version
+        meta["confirmed_employment_terms"] = True
+        document.metadata = meta
+        await self._documents.save(document)
+
+        if self._audit is not None:
+            await self._audit.append(
+                AuditLogEntry(
+                    action="employee_contract_confirmed",
+                    resource_type="document_extraction",
+                    resource_id=latest.id,
+                    organization_id=employee.organization_id,
+                    user_id=user_id,
+                    details={
+                        "event": "contract_extraction_confirmed",
+                        "document_id": str(document.id),
+                        "extraction_version": latest.extraction_version,
+                        "has_commencement": terms.employment_commencement_date is not None,
+                        "salary_basis": terms.salary_basis,
+                    },
+                )
+            )
+
+        return {
+            "document_id": str(document.id),
+            "extraction_id": str(latest.id),
+            "extraction_version": latest.extraction_version,
+            "confirmation_status": latest.confirmation_status,
+            "confirmed_at": latest.confirmed_at.isoformat() if latest.confirmed_at else None,
+            "lifecycle_status": LIFECYCLE_CONFIRMED,
+            "fields": fields_from_structured(projected),
+            "blocks_confirmation": False,
+            "document_type": DocumentType.CONTRACT.value,
+        }
+
+    async def _confirm_payslip(
+        self,
+        *,
+        document,
+        latest,
+        employee: Employee,
+        user_id: UUID,
+        national_id_encrypted: bytes | None,
+    ) -> dict:
         meta = dict(document.metadata or {})
         selected_year = int(meta.get("selected_period_year") or (document.period.year if document.period else 0))
         selected_month = int(
@@ -125,7 +224,6 @@ class ConfirmEmployeeExtractionUseCase:
             apply_comparison_snapshot,
         )
 
-        # Persist cleared block state with the confirmed comparison.
         document.metadata = apply_comparison_snapshot(meta, comparison)
         await self._documents.save(document)
 
@@ -139,14 +237,14 @@ class ConfirmEmployeeExtractionUseCase:
                     user_id=user_id,
                     details={
                         "event": "extraction_confirmed",
-                        "document_id": str(document_id),
+                        "document_id": str(document.id),
                         "extraction_version": latest.extraction_version,
                     },
                 )
             )
 
         return {
-            "document_id": str(document_id),
+            "document_id": str(document.id),
             "extraction_id": str(latest.id),
             "extraction_version": latest.extraction_version,
             "confirmation_status": latest.confirmation_status,

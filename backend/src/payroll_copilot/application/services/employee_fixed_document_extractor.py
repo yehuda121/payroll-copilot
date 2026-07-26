@@ -295,6 +295,36 @@ def ground_id_card_values(
     return grounded
 
 
+_CONTRACT_SYSTEM = """
+You extract confirmed employment-term candidates from an Israeli employment contract OCR.
+
+Return STRICT JSON only. No markdown. No commentary.
+
+Output shape (all values strings; use "" when unknown):
+{
+  "employment_commencement_date": "",
+  "salary_basis": "",
+  "contractual_monthly_salary": "",
+  "contractual_hourly_rate": "",
+  "contractual_daily_rate": "",
+  "effective_from": "",
+  "effective_to": ""
+}
+
+Rules:
+- employment_commencement_date = ORIGINAL employment start / seniority start when
+  explicitly stated (תחילת עבודה / מועד תחילת העסקה). NEVER invent it.
+- Do NOT put signature date, document date, or amendment date into
+  employment_commencement_date unless the text explicitly says that date is
+  the employment start.
+- salary_basis: monthly | hourly | daily only when explicit.
+- Amounts: digits as printed (no currency inventing).
+- effective_from / effective_to: only when the contract states salary/terms
+  applicability window. Do not copy commencement into these fields automatically.
+- If a field is not explicitly supported by OCR, return "".
+""".strip()
+
+
 def structured_from_semantic_payload(
     document_type: DocumentType | str,
     payload: dict[str, Any],
@@ -381,7 +411,11 @@ class EmployeeFixedDocumentExtractor:
         pages_text: list[str] | None = None,
     ) -> tuple[dict[str, Any], str, list[str]]:
         dtype = document_type.value if hasattr(document_type, "value") else str(document_type)
-        if dtype not in {DocumentType.NATIONAL_ID.value, DocumentType.ID_APPENDIX.value}:
+        if dtype not in {
+            DocumentType.NATIONAL_ID.value,
+            DocumentType.ID_APPENDIX.value,
+            DocumentType.CONTRACT.value,
+        }:
             raise ValueError(f"Unsupported fixed extraction type: {dtype}")
         if not (ocr_text or "").strip():
             raise PayslipParserEmptyOcrError()
@@ -394,7 +428,12 @@ class EmployeeFixedDocumentExtractor:
                 if text
             )
         document_text = pages_block or ocr_text
-        system = _ID_CARD_SYSTEM if dtype == DocumentType.NATIONAL_ID.value else _ID_APPENDIX_SYSTEM
+        if dtype == DocumentType.NATIONAL_ID.value:
+            system = _ID_CARD_SYSTEM
+        elif dtype == DocumentType.ID_APPENDIX.value:
+            system = _ID_APPENDIX_SYSTEM
+        else:
+            system = _CONTRACT_SYSTEM
         if dtype == DocumentType.NATIONAL_ID.value:
             user_prompt = (
                 f"Document language hint: {language}\n\n"
@@ -404,13 +443,22 @@ class EmployeeFixedDocumentExtractor:
                 "Use OCR values only. Combine first+family name for full_name. "
                 "Use Gregorian birth date only. Empty string when unsupported."
             )
-        else:
+        elif dtype == DocumentType.ID_APPENDIX.value:
             user_prompt = (
                 f"Document language hint: {language}\n\n"
                 f"OCR TEXT:\n{document_text}\n\n"
                 "Extract ONLY children as:\n"
                 '{"children":[{"name":"","birth_date":""}]}\n'
                 "Ignore all other appendix fields. Empty list when none found."
+            )
+        else:
+            user_prompt = (
+                f"Document language hint: {language}\n\n"
+                f"OCR TEXT:\n{document_text}\n\n"
+                "Extract employment terms JSON with keys:\n"
+                "employment_commencement_date, salary_basis, contractual_monthly_salary,\n"
+                "contractual_hourly_rate, contractual_daily_rate, effective_from, effective_to.\n"
+                "Empty string when unsupported. Never invent commencement from signature dates."
             )
         try:
             result = await self._provider.complete(

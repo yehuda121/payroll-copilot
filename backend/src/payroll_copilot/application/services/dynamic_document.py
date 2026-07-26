@@ -172,7 +172,13 @@ def _normalize_label(label: str) -> str:
     return " ".join(text.split())
 
 
-# Synonyms → canonical PAYSLIP_FIELD_KEYS (or well-known extras kept in additional_fields).
+# LEGACY / FALLBACK synonym map — NOT the primary semantic mechanism for semantic_v1.
+# Role after semantic_v1:
+#   - historical Document Model rows that still use printed Hebrew/English labels
+#   - confirm-time projection for legacy completeness extractions
+#   - deterministic normalization when an entry key is already a synonym
+# New semantic_v1 extractions write canonical keys directly (e.g. employee_name) and
+# must not depend on this dictionary to rediscover meaning.
 _LABEL_TO_CANONICAL: dict[str, str] = {
     # employee name
     "employee name": "employee_name",
@@ -457,7 +463,13 @@ def map_dynamic_entries_to_structured(
 
 # Reserved keys stored alongside canonical fields; never projected as review fields.
 STRUCTURED_META_KEYS = frozenset(
-    {"additional_fields", "parser_notes", "language", "dynamic_entries"}
+    {
+        "additional_fields",
+        "parser_notes",
+        "language",
+        "dynamic_entries",
+        "extractor_meta",
+    }
 )
 
 

@@ -109,7 +109,14 @@ def _doc_row(
             "can_replace": has_original,
             "can_review": document_type == DocumentType.PAYSLIP
             or document_type in PERSISTENT_TYPES,
-            "can_confirm": document_type == DocumentType.PAYSLIP and confirmation != "confirmed",
+            "can_confirm": (
+                (
+                    document_type == DocumentType.PAYSLIP
+                    or document_type == DocumentType.CONTRACT
+                )
+                and confirmation != "confirmed"
+                and extraction is not None
+            ),
         },
     }
 

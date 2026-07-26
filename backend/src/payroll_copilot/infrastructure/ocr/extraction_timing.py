@@ -35,6 +35,8 @@ class ExtractionTimer:
         extracted_text_length: int | None = None,
         extracted_field_count: int | None = None,
         error_code: str | None = None,
+        extractor_version: str | None = None,
+        grounded_canonical_count: int | None = None,
     ) -> None:
         duration = self.mark(stage)
         log_extraction_stage(
@@ -45,6 +47,8 @@ class ExtractionTimer:
             extracted_field_count=extracted_field_count,
             error_code=error_code,
             duration_ms=duration,
+            extractor_version=extractor_version,
+            grounded_canonical_count=grounded_canonical_count,
         )
 
     def log_summary(self) -> None:

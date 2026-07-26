@@ -277,7 +277,15 @@ def get_run_persisted_validation_use_case(
         get_validation_finding_repository
     ),
     organization_bootstrap: OrganizationBootstrapPort = Depends(get_organization_bootstrap),
+    employee_repository: EmployeeRepository = Depends(get_employee_repository),
+    extraction_repository: DocumentExtractionRepository = Depends(
+        get_document_extraction_repository
+    ),
 ) -> RunPersistedValidationUseCase:
+    from payroll_copilot.application.services.confirmed_employment_terms_loader import (
+        ConfirmedEmploymentTermsLoader,
+    )
+
     return RunPersistedValidationUseCase(
         run_validation=run_validation,
         guest_context_builder=guest_context_builder,
@@ -285,6 +293,11 @@ def get_run_persisted_validation_use_case(
         validation_run_repository=validation_run_repository,
         validation_finding_repository=validation_finding_repository,
         organization_bootstrap=organization_bootstrap,
+        employee_repository=employee_repository,
+        employment_terms_loader=ConfirmedEmploymentTermsLoader(
+            documents=document_repository,
+            extractions=extraction_repository,
+        ),
     )
 
 

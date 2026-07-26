@@ -568,8 +568,28 @@
     },
     "bulk": {
       "tabs": {
+        "label": "Batch review sections",
         "upload": "Upload",
         "extracted": "Extracted Employees"
+      },
+      "selection": {
+        "selectAll": "Select all",
+        "selectRow": "Select {{name}}",
+        "selectedCount": "{{count}} selected",
+        "noneSelected": "No rows selected",
+        "bulkActionsLabel": "Bulk actions",
+        "delete": "Delete",
+        "deleteTitle": "Delete {{count}} payslips?",
+        "deleteMessage": "This will permanently discard the selected extracted payslips. Documents, extraction results, Digital Payslips, and validation history will not be kept. This cannot be undone.",
+        "deleteConfirm": "Delete permanently",
+        "deleteSuccess": "Deleted {{count}} payslips.",
+        "partialDelete": "Deleted {{ok}}; {{fail}} failed. Failed rows remain selected.",
+        "publish": "Publish ({{count}})",
+        "publishTitle": "Publish {{count}} payslips?",
+        "publishMessage": "Eligible selected payslips will be published to the Employee Portal. Server publish rules still apply per item.",
+        "publishSuccess": "Published {{count}} payslips.",
+        "partialPublish": "Published {{ok}}; {{fail}} failed. Check remaining selected rows.",
+        "publishDisabledHint": "No selected rows are eligible to publish"
       },
       "progress": {
         "processed": "Processed employees",
@@ -613,7 +633,11 @@
         "resolveBeforePublish": "Attach this reviewed payslip to an employee before it can be published.",
         "ignoreTitle": "Permanently discard this payslip?",
         "ignoreWarning": "This extracted payslip will be permanently discarded. The document, extraction results, Digital Payslip, validation history and OCR results will NOT be saved. The employee will never see this payslip. This action cannot be undone.",
-        "ignoreConfirm": "Permanently discard"
+        "ignoreConfirm": "Permanently discard",
+        "deleteAction": "Delete",
+        "deleteTitle": "Delete payslip",
+        "deleteWarning": "This extracted payslip will be permanently deleted. The document, extraction results, Digital Payslip, and validation history will not be kept. This cannot be undone.",
+        "deleteConfirm": "Delete"
       },
       "validationHistory": {
         "title": "Validation history",
@@ -644,6 +668,10 @@
       "searchPlaceholder": "Search by name, employee #, ID, or period",
       "serialLabel": "Payslip {{value}}",
       "unnamedSlip": "Unrecognized employee",
+      "uploadWorkspace": {
+        "title": "Upload payroll PDF",
+        "description": "Drop a multi-employee PDF here. Processing starts from the control above when a file is ready."
+      },
       "empty": {
         "title": "No active bulk upload",
         "description": "Upload a PDF to begin processing employees."
@@ -665,7 +693,7 @@
       "create": "Create New Employee",
       "search": "Search Existing Employee",
       "editId": "Edit Extracted National ID",
-      "ignore": "Ignore",
+      "ignore": "Delete",
       "searchLabel": "Search employees",
       "searchPlaceholder": "Name, National ID, or employee number",
       "nationalId": "National ID",

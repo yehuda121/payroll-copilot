@@ -17,7 +17,13 @@ import {
 import {
   taxonomyForRuleId,
   uiGroupForTaxonomy,
+  type ValidationTaxonomy,
 } from '../../lib/employee/validation-taxonomy';
+import {
+  buildCheckCatalogRows,
+  checkRowStatusVisual,
+  type CheckCatalogRow,
+} from '../../lib/employee/check-catalog';
 import { EmployeeValidationAiButton } from './EmployeeValidationAiButton';
 import '../guest/landing/landing-chat.css';
 
@@ -26,6 +32,7 @@ type ValidationCard = {
   category: 'identity' | 'employment' | 'salary' | 'taxes' | 'benefits' | 'dates';
   /** UI group: employee checks (incl. contract) vs law checks. */
   uiGroup: 'employee_checks' | 'law_checks';
+  taxonomy: ValidationTaxonomy | null;
   title: string;
   status: EmployeeCardStatus;
   explanation: string | null;
@@ -33,6 +40,7 @@ type ValidationCard = {
   actual: string | null;
   confidence: number | null;
   findingId?: string | null;
+  ruleId?: string | null;
 };
 
 export type ValidationResultsGroup = 'all' | 'employee_checks' | 'law_checks';
@@ -48,6 +56,13 @@ type EmployeeValidationResultsProps = {
   validationOutdated?: boolean;
   /** Filter cards for Employee Checks / Law Checks tabs. */
   checkGroup?: ValidationResultsGroup;
+  /**
+   * checkRows — Batch polish: checks are primary; summary/history metadata secondary.
+   * default — legacy compact summary-first layout.
+   */
+  presentation?: 'default' | 'checkRows';
+  /** When true, hide the embedded Run/Rerun control (parent owns top chrome). */
+  hideRunAction?: boolean;
 };
 
 export function EmployeeValidationResults({
@@ -60,10 +75,23 @@ export function EmployeeValidationResults({
   validating = false,
   validationOutdated = false,
   checkGroup = 'all',
+  presentation = 'default',
+  hideRunAction = false,
 }: EmployeeValidationResultsProps) {
   const { t } = useTranslation();
+  const checkFocused = presentation === 'checkRows';
+
+  const catalogRows = useMemo(() => {
+    if (!checkFocused) return [] as CheckCatalogRow[];
+    return buildCheckCatalogRows(
+      report,
+      t,
+      checkGroup === 'all' ? 'all' : checkGroup,
+    );
+  }, [checkFocused, checkGroup, report, t]);
 
   const cards = useMemo(() => {
+    if (checkFocused) return [] as ValidationCard[];
     const out: ValidationCard[] = [];
 
     if (identity) {
@@ -76,6 +104,7 @@ export function EmployeeValidationResults({
         key: 'pay_period',
         category: 'dates',
         uiGroup: 'employee_checks',
+        taxonomy: 'employee',
         title: t('employee.validation.checkTitles.pay_period'),
         status: mapCompareToCardStatus(period.status),
         explanation:
@@ -96,6 +125,7 @@ export function EmployeeValidationResults({
             ? `${period.extracted_month}/${period.extracted_year}`
             : null,
         confidence: null,
+        ruleId: 'employee.pay_period.match',
       });
     }
 
@@ -107,6 +137,7 @@ export function EmployeeValidationResults({
           key: `scope-${scope.key}`,
           category: categoryForRule(scope.key),
           uiGroup: uiGroupForScope(scope.key),
+          taxonomy: null,
           title: translateScopeTitle(scope.key, scope.label, t),
           status: mapScopeToCardStatus(scope.status, scope.reason),
           explanation: translateScopeReason(scope.reason, t),
@@ -130,7 +161,8 @@ export function EmployeeValidationResults({
             `${finding.rule_id || ''} ${finding.message_key || ''} ${finding.code || ''}`,
           ),
           uiGroup: uiGroup as 'employee_checks' | 'law_checks',
-          title: translateFindingTitle(messageKey, t),
+          taxonomy,
+          title: translateFindingTitle(messageKey, t, finding.rule_id),
           status: mapFindingToCardStatus(finding),
           explanation:
             (finding.explanation && !looksLikeI18nKey(finding.explanation)
@@ -143,20 +175,21 @@ export function EmployeeValidationResults({
               ? Math.round(finding.confidence * 100)
               : null,
           findingId: finding.id,
+          ruleId: finding.rule_id,
         });
       }
     }
 
     if (checkGroup === 'all') return out;
     return out.filter((card) => card.uiGroup === checkGroup);
-  }, [checkGroup, identity, period, report, t]);
+  }, [checkFocused, checkGroup, identity, period, report, t]);
 
   const statusVisual = (status: EmployeeCardStatus) => {
     switch (status) {
       case 'passed':
         return { icon: '✓', label: t('employee.validation.status.passed'), css: 'is-passed' };
       case 'failed':
-        return { icon: '!', label: t('employee.validation.status.failed'), css: 'is-failed' };
+        return { icon: '✕', label: t('employee.validation.status.failed'), css: 'is-failed' };
       case 'uncertain':
         return { icon: '⚠', label: t('employee.validation.status.uncertain'), css: 'is-uncertain' };
       default:
@@ -166,10 +199,30 @@ export function EmployeeValidationResults({
 
   const counts = useMemo(() => {
     const c = { passed: 0, failed: 0, uncertain: 0, unchecked: 0 };
+    if (checkFocused) {
+      for (const row of catalogRows) {
+        if (row.status === 'passed' || row.status === 'manually_approved') c.passed += 1;
+        else if (row.status === 'failed') c.failed += 1;
+        else if (row.status === 'uncertain') c.uncertain += 1;
+        else c.unchecked += 1;
+      }
+      return c;
+    }
     for (const card of cards) c[card.status] += 1;
     return c;
-  }, [cards]);
-  const groupedCards = useMemo(
+  }, [cards, catalogRows, checkFocused]);
+
+  const catalogGroups = useMemo(() => {
+    if (!checkFocused || checkGroup !== 'employee_checks') return null;
+    const employeeRows = catalogRows.filter((row) => row.taxonomy !== 'contract');
+    const contractRows = catalogRows.filter((row) => row.taxonomy === 'contract');
+    return [
+      { id: 'employeeProfile' as const, rows: employeeRows },
+      { id: 'employmentContract' as const, rows: contractRows },
+    ].filter((group) => group.rows.length > 0);
+  }, [catalogRows, checkFocused, checkGroup]);
+
+  const categoryGroups = useMemo(
     () =>
       (['identity', 'employment', 'salary', 'taxes', 'benefits', 'dates'] as const)
         .map((category) => ({
@@ -184,49 +237,143 @@ export function EmployeeValidationResults({
     ? translateOverallResult(String(report.overallResult || report.overallStatus), t)
     : null;
 
-  return (
-    <div className="employee-validation-results employee-validation-results--compact">
-      <section
-        className="employee-validation-summary employee-validation-summary--compact"
-        aria-label={t('employee.validation.summaryTitle')}
+  const renderCatalogRow = (row: CheckCatalogRow) => {
+    const visual = checkRowStatusVisual(row.status, t);
+    const support =
+      row.status === 'not_run' && row.skipReasonKey
+        ? t(`employee.validation.notRunReasons.${row.skipReasonKey}`)
+        : row.explanation;
+    return (
+      <article
+        key={row.key}
+        className={`employee-validation-card employee-validation-check ${visual.css}`}
       >
-        <header>
-          <h3>{t('employee.validation.summaryTitle')}</h3>
-          {overallLabel && (
-            <p className="employee-validation-summary__overall">{overallLabel}</p>
-          )}
-          {report && <p>{report.summary}</p>}
-          {!report && <p>{t('employee.workspace.noValidationYet')}</p>}
-          {fileName && (
-            <p className="landing-doc-card__file">
-              {t('validate.uploadedDocument')}: {fileName}
-            </p>
-          )}
+        <header className="employee-validation-card__head">
+          <h4>{row.title}</h4>
+          <span className={`employee-field-status ${visual.css}`}>
+            <span aria-hidden="true">{visual.icon}</span>
+            <span>{visual.label}</span>
+          </span>
         </header>
+        {support && <p className="employee-validation-card__explain">{support}</p>}
+        {row.findingId && (
+          <div className="employee-validation-card__actions">
+            <EmployeeValidationAiButton
+              cardTitle={row.title}
+              findingId={row.findingId}
+              validationRunId={report?.runId}
+              staticExplanation={row.explanation}
+            />
+          </div>
+        )}
+      </article>
+    );
+  };
 
-        <ul className="employee-validation-summary__counts" aria-label={t('employee.validation.legend')}>
-          <li className="is-passed">
-            <span aria-hidden="true">✔</span>
-            <span>{t('employee.validation.status.passed')}</span>
-            <strong>{counts.passed}</strong>
-          </li>
-          <li className="is-failed">
-            <span aria-hidden="true">❌</span>
-            <span>{t('employee.validation.status.failed')}</span>
-            <strong>{counts.failed}</strong>
-          </li>
-          <li className="is-uncertain">
-            <span aria-hidden="true">⚠</span>
-            <span>{t('employee.validation.status.uncertain')}</span>
-            <strong>{counts.uncertain}</strong>
-          </li>
-          <li className="is-unchecked">
-            <span aria-hidden="true">➖</span>
-            <span>{t('employee.validation.status.unchecked')}</span>
-            <strong>{counts.unchecked}</strong>
-          </li>
-        </ul>
-      </section>
+  const renderCard = (card: ValidationCard) => {
+    const visual = statusVisual(card.status);
+    const hasDetails =
+      Boolean(card.explanation) ||
+      card.expected != null ||
+      card.actual != null ||
+      card.confidence != null;
+    return (
+      <article
+        key={card.key}
+        className={`employee-validation-card employee-validation-check ${visual.css}`}
+      >
+        <header className="employee-validation-card__head">
+          <h4>{card.title}</h4>
+          <span className={`employee-field-status ${visual.css}`}>
+            <span aria-hidden="true">{visual.icon}</span>
+            <span>{visual.label}</span>
+          </span>
+        </header>
+        {card.explanation && (
+          <p className="employee-validation-card__explain">{card.explanation}</p>
+        )}
+        <div className="employee-validation-card__actions">
+          <EmployeeValidationAiButton
+            cardTitle={card.title}
+            findingId={card.findingId}
+            validationRunId={report?.runId}
+            staticExplanation={card.explanation}
+          />
+        </div>
+        {hasDetails && (card.expected != null || card.actual != null || card.confidence != null) && (
+          <div className="employee-validation-card__details">
+            <div className="employee-validation-card__details-body">
+              {card.expected != null && (
+                <p>
+                  <strong>{t('employee.validation.expected')}:</strong> {card.expected}
+                </p>
+              )}
+              {card.actual != null && (
+                <p>
+                  <strong>{t('employee.validation.actual')}:</strong> {card.actual}
+                </p>
+              )}
+              {card.confidence != null && (
+                <p>
+                  <strong>{t('validate.confidenceLabel')}:</strong> {card.confidence}%
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </article>
+    );
+  };
+
+  return (
+    <div
+      className={`employee-validation-results employee-validation-results--compact${
+        checkFocused ? ' employee-validation-results--check-rows' : ''
+      }`}
+    >
+      {!checkFocused && (
+        <section
+          className="employee-validation-summary employee-validation-summary--compact"
+          aria-label={t('employee.validation.summaryTitle')}
+        >
+          <header>
+            <h3>{t('employee.validation.summaryTitle')}</h3>
+            {overallLabel && (
+              <p className="employee-validation-summary__overall">{overallLabel}</p>
+            )}
+            {report && <p>{report.summary}</p>}
+            {!report && <p>{t('employee.workspace.noValidationYet')}</p>}
+            {fileName && (
+              <p className="landing-doc-card__file">
+                {t('validate.uploadedDocument')}: {fileName}
+              </p>
+            )}
+          </header>
+
+          <ul className="employee-validation-summary__counts" aria-label={t('employee.validation.legend')}>
+            <li className="is-passed">
+              <span aria-hidden="true">✔</span>
+              <span>{t('employee.validation.status.passed')}</span>
+              <strong>{counts.passed}</strong>
+            </li>
+            <li className="is-failed">
+              <span aria-hidden="true">❌</span>
+              <span>{t('employee.validation.status.failed')}</span>
+              <strong>{counts.failed}</strong>
+            </li>
+            <li className="is-uncertain">
+              <span aria-hidden="true">⚠</span>
+              <span>{t('employee.validation.status.uncertain')}</span>
+              <strong>{counts.uncertain}</strong>
+            </li>
+            <li className="is-unchecked">
+              <span aria-hidden="true">➖</span>
+              <span>{t('employee.validation.status.unchecked')}</span>
+              <strong>{counts.unchecked}</strong>
+            </li>
+          </ul>
+        </section>
+      )}
 
       {validationOutdated && (
         <p className="employee-validation-outdated" role="status">
@@ -234,7 +381,7 @@ export function EmployeeValidationResults({
         </p>
       )}
 
-      {onRunValidation && (
+      {!hideRunAction && onRunValidation && (
         <div className="employee-payslip-wizard__actions">
           <button
             type="button"
@@ -251,77 +398,73 @@ export function EmployeeValidationResults({
         </div>
       )}
 
-      <section className="employee-validation-cards" aria-label={t('employee.validation.rulesTitle')}>
-        {cards.length === 0 ? (
+      <section
+        className="employee-validation-cards"
+        aria-label={t('employee.validation.rulesTitle')}
+      >
+        {checkFocused ? (
+          catalogRows.length === 0 ? (
+            <p>{t('employee.validation.noRules')}</p>
+          ) : catalogGroups ? (
+            catalogGroups.map((group) => (
+              <section key={group.id} className="employee-validation-group">
+                <h4>{t(`employee.validation.groups.${group.id}`)}</h4>
+                {group.rows.map(renderCatalogRow)}
+              </section>
+            ))
+          ) : (
+            catalogRows.map(renderCatalogRow)
+          )
+        ) : cards.length === 0 ? (
           <p>{t('employee.validation.noRules')}</p>
         ) : (
-          groupedCards.map((group) => (
+          categoryGroups.map((group) => (
             <section key={group.category} className="employee-validation-group">
               <h4>
                 {t(`employee.validation.groups.${group.category}`, {
                   defaultValue: group.category,
                 })}
               </h4>
-              {group.cards.map((card) => {
-                const visual = statusVisual(card.status);
-                const hasDetails =
-                  Boolean(card.explanation) ||
-                  card.expected != null ||
-                  card.actual != null ||
-                  card.confidence != null;
-                return (
-                  <article key={card.key} className={`employee-validation-card ${visual.css}`}>
-                    <header className="employee-validation-card__head">
-                      <h4>{card.title}</h4>
-                      <span className={`employee-field-status ${visual.css}`}>
-                        <span aria-hidden="true">{visual.icon}</span>
-                        <span>{visual.label}</span>
-                      </span>
-                    </header>
-                    <div className="employee-validation-card__actions">
-                      <EmployeeValidationAiButton
-                        cardTitle={card.title}
-                        findingId={card.findingId}
-                        validationRunId={report?.runId}
-                        staticExplanation={card.explanation}
-                      />
-                    </div>
-                    {hasDetails && (
-                      <div className="employee-validation-card__details">
-                        <div className="employee-validation-card__details-body">
-                          {card.explanation && (
-                            <p className="employee-validation-card__explain">
-                              {card.explanation}
-                            </p>
-                          )}
-                          {card.expected != null && (
-                            <p>
-                              <strong>{t('employee.validation.expected')}:</strong>{' '}
-                              {card.expected}
-                            </p>
-                          )}
-                          {card.actual != null && (
-                            <p>
-                              <strong>{t('employee.validation.actual')}:</strong>{' '}
-                              {card.actual}
-                            </p>
-                          )}
-                          {card.confidence != null && (
-                            <p>
-                              <strong>{t('validate.confidenceLabel')}:</strong>{' '}
-                              {card.confidence}%
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
+              {group.cards.map(renderCard)}
             </section>
           ))
         )}
       </section>
+
+      {checkFocused && (
+        <footer
+          className="employee-validation-summary employee-validation-summary--secondary"
+          aria-label={t('employee.validation.summaryTitle')}
+        >
+          {overallLabel && (
+            <p className="employee-validation-summary__overall">{overallLabel}</p>
+          )}
+          {report?.summary && <p className="employee-workspace-hint">{report.summary}</p>}
+          {!report && <p className="employee-workspace-hint">{t('employee.workspace.noValidationYet')}</p>}
+          <ul className="employee-validation-summary__counts" aria-label={t('employee.validation.legend')}>
+            <li className="is-passed">
+              <span aria-hidden="true">✔</span>
+              <span>{t('employee.validation.status.passed')}</span>
+              <strong>{counts.passed}</strong>
+            </li>
+            <li className="is-failed">
+              <span aria-hidden="true">❌</span>
+              <span>{t('employee.validation.status.failed')}</span>
+              <strong>{counts.failed}</strong>
+            </li>
+            <li className="is-uncertain">
+              <span aria-hidden="true">⚠</span>
+              <span>{t('employee.validation.status.uncertain')}</span>
+              <strong>{counts.uncertain}</strong>
+            </li>
+            <li className="is-unchecked">
+              <span aria-hidden="true">➖</span>
+              <span>{t('employee.validation.status.unchecked')}</span>
+              <strong>{counts.unchecked}</strong>
+            </li>
+          </ul>
+        </footer>
+      )}
     </div>
   );
 }
@@ -347,6 +490,7 @@ function identityFieldCard(field: ComparisonField, t: TFunction): ValidationCard
     key: `identity-${field.key}`,
     category: 'identity',
     uiGroup: 'employee_checks',
+    taxonomy: 'employee',
     title: t(`employee.validation.checkTitles.${field.key}`, {
       defaultValue: t('employee.validation.checkTitles.identity'),
     }),

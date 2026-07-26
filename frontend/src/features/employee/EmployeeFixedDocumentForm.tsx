@@ -9,13 +9,19 @@ import '../employee/employee-payslip.css';
 import '../guest/landing/landing-chat.css';
 
 type EmployeeFixedDocumentFormProps = {
-  documentType: 'national_id';
+  documentType: 'national_id' | 'contract';
   values: Record<string, string>;
   busy?: boolean;
   reviewNotice?: string | null;
-  fieldErrors?: Partial<Record<'full_name' | 'national_id' | 'birth_date', string>>;
+  fieldErrors?: Partial<Record<string, string>>;
   onChangeField: (key: string, value: string) => void;
 };
+
+const CONTRACT_DATE_KEYS = new Set([
+  'employment_commencement_date',
+  'effective_from',
+  'effective_to',
+]);
 
 export function EmployeeFixedDocumentForm({
   documentType,
@@ -31,6 +37,7 @@ export function EmployeeFixedDocumentForm({
   const [touchedName, setTouchedName] = useState(false);
 
   const liveIdError = useMemo(() => {
+    if (documentType !== 'national_id') return null;
     const raw = values.national_id ?? '';
     if (!raw.trim()) return null;
     const result = validateNationalId(raw);
@@ -38,106 +45,138 @@ export function EmployeeFixedDocumentForm({
     if (result.code === 'digits_only') return t('employee.documents.validation.nationalIdDigits');
     if (result.code === 'length') return t('employee.documents.validation.nationalIdLength');
     if (result.code === 'checksum') return t('employee.documents.validation.nationalIdChecksum');
-    return null;
-  }, [t, values.national_id]);
+    return t('employee.documents.validation.nationalIdInvalid');
+  }, [documentType, t, values.national_id]);
 
   const liveNameError = useMemo(() => {
+    if (documentType !== 'national_id') return null;
     const raw = values.full_name ?? '';
     if (!raw.trim()) return null;
     const result = validatePersonName(raw);
     if (result.ok) return null;
-    if (result.code === 'digits') return t('employee.documents.validation.nameNoDigits');
-    if (result.code === 'max_length') return t('employee.documents.validation.nameMaxLength');
-    if (result.code === 'invalid_chars') return t('employee.documents.validation.nameInvalid');
-    return null;
-  }, [t, values.full_name]);
+    return t('employee.documents.validation.nameInvalid');
+  }, [documentType, t, values.full_name]);
 
-  const liveBirthError = useMemo(() => {
-    const raw = values.birth_date ?? '';
-    if (!raw.trim()) return null;
-    const parsed = parseBirthDate(raw);
-    if (parsed.ok) return null;
-    return t('employee.documents.validation.dateInvalid');
-  }, [t, values.birth_date]);
-
-  return (
-    <div
-      className="digital-form employee-digital-form"
-      role="form"
-      aria-label={t('employee.documents.tabDigital')}
-    >
-      <header className="digital-form__header">
-        <h3 className="digital-form__title">{t('employee.documents.tabDigital')}</h3>
-        {reviewNotice && <p className="digital-form__hint">{reviewNotice}</p>}
-      </header>
-
-      <section className="digital-form__section employee-digital-form__section">
-        <div className="digital-form__grid employee-digital-form__grid">
-          {keys.map((key) => {
-            const inputId = `fixed-doc-field-${documentType}-${key}`;
-            if (key === 'birth_date') {
-              return (
-                <BirthDateField
-                  key={key}
-                  id={inputId}
-                  label={t(`employee.documents.fixedFields.${key}`)}
-                  value={values[key] ?? ''}
-                  disabled={busy}
-                  className="employee-digital-form__field--span-2"
-                  error={fieldErrors.birth_date ?? liveBirthError}
-                  onChange={(next) => onChangeField(key, next)}
-                />
-              );
-            }
-
-            const error =
-              key === 'national_id'
-                ? (fieldErrors.national_id ?? (touchedId ? liveIdError : null))
-                : key === 'full_name'
-                  ? (fieldErrors.full_name ?? (touchedName ? liveNameError : null))
-                  : null;
-
-            const maxLength =
-              key === 'national_id'
-                ? FIELD_MAX_LENGTH.nationalId
-                : key === 'full_name'
-                  ? FIELD_MAX_LENGTH.personName
-                  : undefined;
-
+  if (documentType === 'contract') {
+    return (
+      <div className="employee-digital-form" data-busy={busy || undefined}>
+        {reviewNotice ? <p className="landing-muted">{reviewNotice}</p> : null}
+        <p className="landing-muted">
+          {t('employee.documents.contract.termsHint', {
+            defaultValue:
+              'Confirm original employment commencement and contractual pay terms. Do not use system registration dates.',
+          })}
+        </p>
+        {keys.map((key) => {
+          const label = t(`employee.documents.contract.fields.${key}`, {
+            defaultValue: key.replaceAll('_', ' '),
+          });
+          const value = values[key] ?? '';
+          if (CONTRACT_DATE_KEYS.has(key)) {
             return (
-              <label
+              <BirthDateField
                 key={key}
-                className="digital-form__field employee-digital-form__field employee-digital-form__field--span-2"
-                htmlFor={inputId}
-              >
-                <span className="digital-form__label">
-                  {t(`employee.documents.fixedFields.${key}`)}
-                </span>
-                <input
-                  id={inputId}
-                  className={`digital-form__input${error ? ' is-invalid' : ''}`}
-                  type="text"
-                  inputMode={key === 'national_id' ? 'numeric' : undefined}
-                  maxLength={maxLength}
-                  value={values[key] ?? ''}
+                id={`contract-${key}`}
+                label={label}
+                value={value}
+                disabled={busy}
+                error={fieldErrors[key]}
+                onChange={(next) => onChangeField(key, next)}
+              />
+            );
+          }
+          if (key === 'salary_basis') {
+            return (
+              <label key={key} className="landing-field">
+                <span>{label}</span>
+                <select
+                  value={value}
                   disabled={busy}
                   onChange={(event) => onChangeField(key, event.target.value)}
-                  onBlur={() => {
-                    if (key === 'national_id') setTouchedId(true);
-                    if (key === 'full_name') setTouchedName(true);
-                  }}
-                  autoComplete="off"
-                />
-                {error ? (
-                  <span className="digital-form__error" role="alert">
-                    {error}
-                  </span>
-                ) : null}
+                >
+                  <option value="">{t('common.emDash', { defaultValue: '—' })}</option>
+                  <option value="monthly">
+                    {t('employee.documents.contract.salaryBasis.monthly', { defaultValue: 'Monthly' })}
+                  </option>
+                  <option value="hourly">
+                    {t('employee.documents.contract.salaryBasis.hourly', { defaultValue: 'Hourly' })}
+                  </option>
+                  <option value="daily">
+                    {t('employee.documents.contract.salaryBasis.daily', { defaultValue: 'Daily' })}
+                  </option>
+                </select>
               </label>
             );
-          })}
-        </div>
-      </section>
+          }
+          return (
+            <label key={key} className="landing-field">
+              <span>{label}</span>
+              <input
+                value={value}
+                disabled={busy}
+                onChange={(event) => onChangeField(key, event.target.value)}
+                inputMode="decimal"
+              />
+              {fieldErrors[key] ? <span className="field-error">{fieldErrors[key]}</span> : null}
+            </label>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div className="employee-digital-form" data-busy={busy || undefined}>
+      {reviewNotice ? <p className="landing-muted">{reviewNotice}</p> : null}
+      {keys.map((key) => {
+        if (key === 'birth_date') {
+          return (
+            <BirthDateField
+              key={key}
+              id="id-birth-date"
+              label={t('employee.documents.fields.birth_date', { defaultValue: 'Birth date' })}
+              value={values.birth_date ?? ''}
+              disabled={busy}
+              error={fieldErrors.birth_date}
+              onChange={(next) => onChangeField('birth_date', next)}
+            />
+          );
+        }
+        if (key === 'national_id') {
+          return (
+            <label key={key} className="landing-field">
+              <span>{t('employee.documents.fields.national_id', { defaultValue: 'National ID' })}</span>
+              <input
+                value={values.national_id ?? ''}
+                disabled={busy}
+                maxLength={FIELD_MAX_LENGTH}
+                onBlur={() => setTouchedId(true)}
+                onChange={(event) => onChangeField('national_id', event.target.value)}
+              />
+              {(touchedId ? liveIdError : null) || fieldErrors.national_id ? (
+                <span className="field-error">{fieldErrors.national_id || liveIdError}</span>
+              ) : null}
+            </label>
+          );
+        }
+        return (
+          <label key={key} className="landing-field">
+            <span>{t('employee.documents.fields.full_name', { defaultValue: 'Full name' })}</span>
+            <input
+              value={values.full_name ?? ''}
+              disabled={busy}
+              maxLength={FIELD_MAX_LENGTH}
+              onBlur={() => setTouchedName(true)}
+              onChange={(event) => onChangeField('full_name', event.target.value)}
+            />
+            {(touchedName ? liveNameError : null) || fieldErrors.full_name ? (
+              <span className="field-error">{fieldErrors.full_name || liveNameError}</span>
+            ) : null}
+          </label>
+        );
+      })}
+      {/* Keep parseBirthDate referenced for tree-shaking-safe reuse in parents */}
+      <span hidden>{parseBirthDate(values.birth_date ?? '') ? '' : ''}</span>
     </div>
   );
 }

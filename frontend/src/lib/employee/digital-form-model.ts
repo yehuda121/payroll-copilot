@@ -144,10 +144,22 @@ export function buildDigitalFormSections(
     audience?: DigitalFormAudience;
     /** Force include Other category (accountant toggle). */
     includeOther?: boolean;
+    /**
+     * requirement — Required / Expected / Other section titles (employee default).
+     * registrySection — document sections without classification headings (batch form).
+     */
+    groupBy?: 'requirement' | 'registrySection';
+    /** When set, only include these requirement categories (presentation filter). */
+    requirementCategories?: FieldRequirementCategory[];
   },
 ): DigitalFormSectionModel[] {
   const audience = options?.audience ?? 'employee';
   const includeOther = options?.includeOther ?? audience === 'accountant';
+  const groupBy =
+    options?.groupBy ?? (audience === 'accountant' ? 'registrySection' : 'requirement');
+  const categoryAllow = options?.requirementCategories
+    ? new Set(options.requirementCategories)
+    : null;
 
   const byKey = new Map<string, ExtractedPayslipField>();
   for (const field of fields ?? []) {
@@ -241,13 +253,36 @@ export function buildDigitalFormSections(
     used.add(key);
   }
 
-  models.sort((a, b) => {
+  const filtered = categoryAllow
+    ? models.filter((field) => categoryAllow.has(field.requirementCategory))
+    : models;
+
+  filtered.sort((a, b) => {
     const cat = categorySortRank(a.requirementCategory) - categorySortRank(b.requirementCategory);
     if (cat !== 0) return cat;
     return displayOrderForKey(a.key) - displayOrderForKey(b.key) || a.key.localeCompare(b.key);
   });
 
-  if (models.length === 0) return [];
+  if (filtered.length === 0) return [];
+
+  if (groupBy === 'registrySection') {
+    const sectionOrder = [
+      'identity',
+      'employer',
+      'period',
+      'earnings',
+      'deductions',
+      'payment',
+      'other',
+    ] as const;
+    return sectionOrder
+      .map((id) => ({
+        id,
+        titleKey: `employee.digitalForm.sections.${id}`,
+        fields: filtered.filter((field) => field.sectionId === id),
+      }))
+      .filter((section) => section.fields.length > 0);
+  }
 
   // Group by requirement category for clear Required → Expected → Other structure.
   const groups: Array<{ id: FieldRequirementCategory; titleKey: string }> = [
@@ -260,7 +295,26 @@ export function buildDigitalFormSections(
     .map((group) => ({
       id: group.id,
       titleKey: group.titleKey,
-      fields: models.filter((field) => field.requirementCategory === group.id),
+      fields: filtered.filter((field) => field.requirementCategory === group.id),
     }))
     .filter((section) => section.fields.length > 0);
+}
+
+/** True when the form has Expected/Other fields beyond the primary Required set. */
+export function digitalFormHasSecondaryFields(
+  fields: ExtractedPayslipField[] | undefined,
+  drafts: Record<string, { value: string; dirty?: boolean }>,
+  t: TFunction,
+  locale: string,
+  options?: {
+    audience?: DigitalFormAudience;
+    includeOther?: boolean;
+  },
+): boolean {
+  const secondary = buildDigitalFormSections(fields, drafts, t, locale, {
+    ...options,
+    groupBy: 'registrySection',
+    requirementCategories: ['expected', 'other'],
+  });
+  return secondary.some((section) => section.fields.length > 0);
 }

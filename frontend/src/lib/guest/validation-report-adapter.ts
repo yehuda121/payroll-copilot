@@ -171,6 +171,11 @@ export function adaptValidationReport(
     checksPassedCount: response.checks_passed_count,
     findings: response.findings,
     extractionConnected: response.extraction_connected,
+    ruleOutcomes: (response.rule_outcomes ?? []).map((item) => ({
+      rule_id: item.rule_id,
+      outcome: item.outcome,
+      skip_reason: item.skip_reason ?? null,
+    })),
   };
 }
 

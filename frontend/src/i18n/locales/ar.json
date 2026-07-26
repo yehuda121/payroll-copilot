@@ -489,7 +489,9 @@
         "salary": "الراتب",
         "taxes": "الضرائب",
         "benefits": "المزايا",
-        "dates": "التواريخ"
+        "dates": "التواريخ",
+        "employeeProfile": "فحوصات مقابل بيانات الموظف",
+        "employmentContract": "فحوصات مقابل عقد العمل"
       },
       "annotatedFormTitle": "النموذج الرقمي بعد التحقق",
       "reason": "السبب",
@@ -505,6 +507,10 @@
         "employee_number": "فحص رقم الموظف",
         "national_id": "فحص رقم الهوية",
         "pay_period": "فحص فترة الرواتب",
+        "employment_type": "فحص نوع التوظيف",
+        "employment_start_date": "فحص تاريخ بدء التوظيف",
+        "salary_basis": "فحص أساس الراتب",
+        "hourly_rate": "فحص الأجر بالساعة",
         "identity": "تطابق الهوية",
         "missingData": "فحص البيانات الناقصة",
         "overtime": "فحص ساعات العمل الإضافية",
@@ -541,7 +547,13 @@
         "validation_sanity_employment_start_date_invalid": "تاريخ بدء العمل ليس تاريخًا تقويميًا صالحًا.",
         "validation_sanity_net_exceeds_gross": "صافي الراتب يتجاوز إجمالي الراتب في قسيمة الراتب.",
         "validation_sanity_required_field_missing": "حقل مطلوب في قسيمة الراتب مفقود.",
-        "validation_sanity_employment_type_unrecognized": "نوع التوظيف في قسيمة الراتب غير معروف."
+        "validation_sanity_employment_type_unrecognized": "نوع التوظيف في قسيمة الراتب غير معروف.",
+        "validation_employee_national_id_mismatch": "رقم الهوية في قسيمة الراتب لا يطابق سجل الموظف.",
+        "validation_employee_name_mismatch": "اسم الموظف في قسيمة الراتب لا يطابق سجل الموظف.",
+        "validation_employee_employee_number_mismatch": "رقم الموظف في قسيمة الراتب لا يطابق سجل الموظف.",
+        "validation_employee_employment_start_date_mismatch": "تاريخ بدء العمل في قسيمة الراتب لا يطابق سجل الموظف. (نتيجة تاريخية؛ لم تعد تُجرى هذه المقارنة.)",
+        "validation_employee_employment_type_mismatch": "نوع التوظيف في قسيمة الراتب لا يطابق سجل الموظف.",
+        "validation_employee_pay_period_mismatch": "فترة الرواتب في قسيمة الراتب لا تطابق الشهر المحدد."
       },
       "scope": {
         "payroll_rules": "قواعد الرواتب",
@@ -561,7 +573,13 @@
         "failed": "فشل",
         "uncertain": "غير مؤكد من الذكاء الاصطناعي",
         "unchecked": "تعذر التحقق",
-        "missingRequired": "غير موجود في القسيمة"
+        "missingRequired": "غير موجود في القسيمة",
+        "notRun": "لم يُنفَّذ",
+        "manuallyApproved": "تمت الموافقة يدويًا"
+      },
+      "notRunReasons": {
+        "employee_not_identified": "لم يُنفَّذ — لم يتم التعرف على الموظف",
+        "no_confirmed_contract": "لم يُنفَّذ — لا يوجد عقد مؤكد"
       },
       "explain": "AI",
       "aiExplanation": "شرح بالذكاء الاصطناعي",
@@ -592,6 +610,17 @@
       "sectionRequired": "الحقول المطلوبة",
       "sectionExpected": "الحقول المتوقعة",
       "sectionOther": "حقول مستخرجة أخرى",
+      "sections": {
+        "identity": "بيانات الموظف",
+        "employer": "صاحب العمل",
+        "period": "فترة الراتب",
+        "earnings": "المستحقات",
+        "deductions": "الاستقطاعات",
+        "payment": "الدفع",
+        "other": "تفاصيل إضافية"
+      },
+      "showMore": "عرض المزيد",
+      "showLess": "عرض أقل",
       "requiredTag": "مطلوب",
       "notFoundOnPayslip": "غير موجود في القسيمة",
       "missingRequiredHint": "هذا الحقل متوقع في القسيمة لكنه لم يُستخرج. يمكنك إدخاله إذا كنت تعرف القيمة الصحيحة.",

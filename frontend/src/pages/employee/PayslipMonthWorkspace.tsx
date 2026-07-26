@@ -82,7 +82,9 @@ function PayslipMonthWorkspace({
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const workspaceTabs = batchReview
-    ? TABS.filter((item) => item.id !== 'upload')
+    ? TABS.filter((item) =>
+        item.id === 'digital' || item.id === 'employee_checks' || item.id === 'law_checks',
+      )
     : TABS.filter((item) => item.id !== 'chat' && item.id !== 'publishing');
   const published = flow.detail?.extraction?.lifecycle_status === 'published';
   const canPublish =
@@ -136,14 +138,14 @@ function PayslipMonthWorkspace({
   return (
     <PortalPage title={monthTitle} description={copy.monthDescription}>
       <div className="employee-month-workspace">
-        <div className="employee-month-workspace__top">
+        <div className="employee-month-workspace__top batch-review-toolbar">
           {!batchReview && (
             <Link to={`${basePath}/payslips`} className="btn btn--ghost">
               {t('employee.workspace.backToMonths')}
             </Link>
           )}
           {batchReview && (
-            <div className="employee-payslip-wizard__actions">
+            <div className="batch-review-toolbar__actions">
               <span
                 className={`status-badge status-badge--${published ? 'passed' : 'warnings'}`}
               >
@@ -155,6 +157,11 @@ function PayslipMonthWorkspace({
                 type="button"
                 className="btn btn--primary"
                 disabled={!canPublish}
+                title={
+                  !canPublish
+                    ? t('accountant.bulk.publish.requireCurrentValidation')
+                    : undefined
+                }
                 onClick={() => void publish()}
               >
                 {publishBusy
@@ -207,25 +214,47 @@ function PayslipMonthWorkspace({
           </p>
         )}
 
-        <div
-          className="employee-review-tabs"
-          role="tablist"
-          aria-label={t('employee.workspace.tabs')}
-          aria-busy={flow.loading}
-        >
-          {workspaceTabs.map((item) => (
+        <div className={batchReview ? 'batch-review-view-chrome' : undefined}>
+          <div
+            className={`employee-review-tabs${batchReview ? ' employee-review-tabs--product' : ''}`}
+            role="tablist"
+            aria-label={t('employee.workspace.tabs')}
+            aria-busy={flow.loading}
+          >
+            {workspaceTabs.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={flow.tab === item.id}
+                className={`employee-review-tabs__tab ${flow.tab === item.id ? 'is-active' : ''}`}
+                onClick={() => flow.setTab(item.id)}
+                disabled={flow.busyPhase === 'confirming'}
+              >
+                {t(item.labelKey)}
+              </button>
+            ))}
+          </div>
+          {batchReview && flow.report && (
             <button
-              key={item.id}
               type="button"
-              role="tab"
-              aria-selected={flow.tab === item.id}
-              className={`employee-review-tabs__tab ${flow.tab === item.id ? 'is-active' : ''}`}
-              onClick={() => flow.setTab(item.id)}
-              disabled={flow.busyPhase === 'confirming'}
+              className="btn btn--secondary batch-review-rerun"
+              disabled={flow.isBusy || !flow.isConfirmed || flow.blocksConfirmation}
+              onClick={() => {
+                void flow.runValidation(
+                  flow.tab === 'law_checks'
+                    ? 'law_checks'
+                    : flow.tab === 'employee_checks'
+                      ? 'employee_checks'
+                      : 'full',
+                );
+              }}
             >
-              {t(item.labelKey)}
+              {flow.busyPhase === 'validating'
+                ? t('employee.upload.validatingPayroll')
+                : t('employee.workspace.runValidationAgain')}
             </button>
-          ))}
+          )}
         </div>
 
         {flow.loading && !flow.detail ? (
@@ -273,6 +302,7 @@ function PayslipMonthWorkspace({
                       drafts={flow.fieldDrafts}
                       editable
                       audience={batchReview ? 'accountant' : 'employee'}
+                      collapseSecondaryFields={Boolean(batchReview)}
                       busy={
                         flow.busyPhase === 'confirming' || flow.busyPhase === 'validating'
                       }
@@ -283,6 +313,7 @@ function PayslipMonthWorkspace({
                       onRemoveField={flow.removeField}
                       onAddField={flow.addField}
                     />
+                    {!(batchReview && flow.report) && (
                     <div className="employee-payslip-wizard__actions employee-digital-validate">
                       <button
                         type="button"
@@ -301,6 +332,7 @@ function PayslipMonthWorkspace({
                           : t('employee.validation.runValidationPrimary')}
                       </button>
                     </div>
+                    )}
                   </>
                 ) : (
                   <p>{t('employee.workspace.digitalEmpty')}</p>
@@ -482,6 +514,7 @@ function ValidationTab({
   checkGroup?: 'employee_checks' | 'law_checks';
 }) {
   const { t, i18n } = useTranslation();
+  const { batchReview } = useEmployeeWorkspace();
   const history = flow.detail?.validation_history ?? [];
 
   return (
@@ -562,6 +595,8 @@ function ValidationTab({
           canRunValidation={flow.isConfirmed && !flow.isBusy && !flow.blocksConfirmation}
           validating={false}
           checkGroup={checkGroup}
+          presentation={batchReview ? 'checkRows' : 'default'}
+          hideRunAction={Boolean(batchReview)}
           onRunValidation={() => {
             void flow.runValidation();
           }}

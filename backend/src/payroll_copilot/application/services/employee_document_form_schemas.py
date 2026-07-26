@@ -1,4 +1,4 @@
-"""Fixed Digital Form schemas for Employee ID Card and ID Appendix."""
+"""Fixed Digital Form schemas for Employee ID Card, ID Appendix, and Contract."""
 
 from __future__ import annotations
 
@@ -15,6 +15,17 @@ NATIONAL_ID_KEYS = (
 
 # Appendix stores only a children collection. Count is derived from len(children).
 ID_APPENDIX_KEYS = ("children",)
+
+# Confirmed employment terms — never auto-filled from system/create/upload dates.
+CONTRACT_KEYS = (
+    "employment_commencement_date",
+    "salary_basis",
+    "contractual_monthly_salary",
+    "contractual_hourly_rate",
+    "contractual_daily_rate",
+    "effective_from",
+    "effective_to",
+)
 
 PERSON_NAME_MAX_LENGTH = 120
 NATIONAL_ID_LENGTH = 9
@@ -64,6 +75,8 @@ def fixed_keys_for(document_type: DocumentType | str) -> tuple[str, ...] | None:
         return NATIONAL_ID_KEYS
     if value == DocumentType.ID_APPENDIX.value:
         return ID_APPENDIX_KEYS
+    if value == DocumentType.CONTRACT.value:
+        return CONTRACT_KEYS
     return None
 
 
@@ -330,6 +343,42 @@ def structured_from_fixed_fields(
             value = normalized
         elif key == "birth_date" and isinstance(value, str):
             value = ""
+        elif key in {
+            "employment_commencement_date",
+            "effective_from",
+            "effective_to",
+        } and isinstance(value, str) and value.strip():
+            normalized = normalize_birth_date(value)
+            if not normalized:
+                raise FixedDocumentFormValidationError(
+                    "date_invalid",
+                    f"Enter a valid date for {key}.",
+                )
+            value = normalized
+        elif key == "salary_basis" and isinstance(value, str) and value.strip():
+            from payroll_copilot.domain.employment_terms import parse_salary_basis
+
+            mapped = parse_salary_basis(value)
+            if mapped is None:
+                raise FixedDocumentFormValidationError(
+                    "salary_basis_invalid",
+                    "Salary basis must be monthly, hourly, or daily.",
+                )
+            value = mapped
+        elif key in {
+            "contractual_monthly_salary",
+            "contractual_hourly_rate",
+            "contractual_daily_rate",
+        } and value not in (None, ""):
+            from payroll_copilot.domain.employment_terms import parse_money
+
+            money = parse_money(value)
+            if money is None or money < 0:
+                raise FixedDocumentFormValidationError(
+                    "money_invalid",
+                    f"Enter a valid amount for {key}.",
+                )
+            value = str(money)
         additional[key] = {
             "value": value if key != "children" else value,
             "confidence": 1.0 if _value_present(value) else None,

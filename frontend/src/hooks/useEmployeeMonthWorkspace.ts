@@ -606,7 +606,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     workspaceApi,
   ]);
 
-  const runValidation = useCallback(async () => {
+  const runValidation = useCallback(async (rerunScope?: 'full' | 'employee_checks' | 'law_checks') => {
     if (!documentId) {
       setError(t('employee.upload.confirmBeforeValidate'));
       return;
@@ -614,8 +614,17 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     const signal = validateSubmission.current.begin();
     if (!signal) return;
     setBusyPhase('validating');
-    setStatusMessage(t('employee.workspace.processing.checkingData'));
-    setTab('employee_checks');
+    setStatusMessage(
+      rerunScope === 'law_checks'
+        ? t('employee.workspace.processing.checkingRules', { defaultValue: 'Checking applicable rules…' })
+        : rerunScope === 'employee_checks'
+          ? t('employee.workspace.processing.comparingEmployee', {
+              defaultValue: 'Comparing employee information…',
+            })
+          : t('employee.workspace.processing.checkingData', { defaultValue: 'Checking payslip data…' }),
+    );
+    if (rerunScope === 'law_checks') setTab('law_checks');
+    else setTab('employee_checks');
     try {
       const supporting = detail?.attendance.document_id
         ? [detail.attendance.document_id]
@@ -624,6 +633,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
         documentId,
         locale,
         supportingDocumentIds: supporting,
+        rerunScope: rerunScope ?? 'full',
         signal,
       });
       validateSubmission.current.end();

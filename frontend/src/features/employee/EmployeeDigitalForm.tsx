@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Info, Pencil, Trash2 } from 'lucide-react';
+import { Info, Trash2 } from 'lucide-react';
 import { ModalDialog, useConfirmDialog } from '../../components/ui/Dialog';
 import { Skeleton, SkeletonText } from '../../components/ui/Skeleton';
 import type { FieldDraft } from '../../hooks/useEmployeePayslipFlow';
-import { buildDigitalFormSections } from '../../lib/employee/digital-form-model';
+import {
+  buildDigitalFormSections,
+  digitalFormHasSecondaryFields,
+} from '../../lib/employee/digital-form-model';
 import type { EmployeeFieldValidationMeta } from '../../lib/employee/field-validation-status';
 import {
   normalizeFieldInput,
@@ -29,6 +32,11 @@ type EmployeeDigitalFormProps = {
   /** Employee hides Other by default; accountant sees all extracted fields. */
   audience?: 'employee' | 'accountant';
   includeOther?: boolean;
+  /**
+   * Accountant batch: primary Required fields first; Expected/Other behind Show more.
+   * Does not change persisted data.
+   */
+  collapseSecondaryFields?: boolean;
   onChangeField: (key: string, value: string) => void;
   onClearField: (key: string) => void;
   onRemoveField?: (key: string) => void;
@@ -83,6 +91,7 @@ export function EmployeeDigitalForm({
   validationMap,
   audience = 'employee',
   includeOther,
+  collapseSecondaryFields = audience === 'accountant',
   onChangeField,
   onClearField: _onClearField,
   onRemoveField,
@@ -91,11 +100,22 @@ export function EmployeeDigitalForm({
   const { t } = useTranslation();
   const { locale } = useAppLocale();
   const { confirm } = useConfirmDialog();
+  const [showSecondary, setShowSecondary] = useState(false);
+  const showOnlyPrimary = collapseSecondaryFields && !showSecondary;
   const sections = buildDigitalFormSections(fields, drafts, t, locale, {
     audience,
     includeOther,
+    groupBy: audience === 'accountant' ? 'registrySection' : 'requirement',
+    requirementCategories: showOnlyPrimary ? ['required'] : undefined,
   });
-  const allFields = sections.flatMap((section) => section.fields);
+  const hasSecondary =
+    collapseSecondaryFields &&
+    digitalFormHasSecondaryFields(fields, drafts, t, locale, { audience, includeOther });
+  const allFields = buildDigitalFormSections(fields, drafts, t, locale, {
+    audience,
+    includeOther,
+    groupBy: audience === 'accountant' ? 'registrySection' : 'requirement',
+  }).flatMap((section) => section.fields);
 
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [evidenceKey, setEvidenceKey] = useState<string | null>(null);
@@ -191,7 +211,9 @@ export function EmployeeDigitalForm({
 
   return (
     <div
-      className="digital-form employee-digital-form"
+      className={`digital-form employee-digital-form${
+        audience === 'accountant' ? ' employee-digital-form--document' : ''
+      }`}
       role="form"
       aria-label={t('employee.upload.digitalFormTitle')}
     >
@@ -207,7 +229,13 @@ export function EmployeeDigitalForm({
           data-section-id={section.id}
         >
           {section.titleKey && (
-            <h4 className="digital-form__section-title">{t(section.titleKey)}</h4>
+            <h4
+              className={`digital-form__section-title${
+                audience === 'accountant' ? ' digital-form__section-title--document' : ''
+              }`}
+            >
+              {t(section.titleKey)}
+            </h4>
           )}
           <div className="digital-form__grid employee-digital-form__grid">
             {section.fields.map((field) => {
@@ -279,7 +307,7 @@ export function EmployeeDigitalForm({
                         className="digital-form__value-btn"
                         onClick={() => openEditor(field.key, field.value)}
                         disabled={busy}
-                        aria-invalid={meta?.status === 'failed' || missingRequired}
+                        aria-invalid={meta?.status === 'failed'}
                         aria-label={`${field.label}: ${preview}`}
                       >
                         <span className="digital-form__value-text">{preview}</span>
@@ -294,32 +322,20 @@ export function EmployeeDigitalForm({
                     )}
                   </div>
 
-                  {editable && (
+                  {editable && onRemoveField && (
                     <div className="employee-digital-form__card-footer">
                       <button
                         type="button"
-                        className="employee-digital-form__icon-btn"
-                        onClick={() => openEditor(field.key, field.value)}
+                        className="employee-digital-form__icon-btn employee-digital-form__icon-btn--danger"
+                        onClick={() => {
+                          void requestDeleteField(field.key);
+                        }}
                         disabled={busy}
-                        title={t('employee.digitalForm.editField')}
-                        aria-label={t('employee.digitalForm.editField')}
+                        title={t('employee.digitalForm.deleteField')}
+                        aria-label={t('employee.digitalForm.deleteField')}
                       >
-                        <Pencil size={16} strokeWidth={2} aria-hidden="true" />
+                        <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
                       </button>
-                      {onRemoveField && (
-                        <button
-                          type="button"
-                          className="employee-digital-form__icon-btn employee-digital-form__icon-btn--danger"
-                          onClick={() => {
-                            void requestDeleteField(field.key);
-                          }}
-                          disabled={busy}
-                          title={t('employee.digitalForm.deleteField')}
-                          aria-label={t('employee.digitalForm.deleteField')}
-                        >
-                          <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
-                        </button>
-                      )}
                     </div>
                   )}
                 </div>
@@ -328,6 +344,21 @@ export function EmployeeDigitalForm({
           </div>
         </section>
       ))}
+
+      {hasSecondary && (
+        <div className="employee-digital-form__more">
+          <button
+            type="button"
+            className="btn btn--ghost employee-digital-form__more-btn"
+            aria-expanded={showSecondary}
+            onClick={() => setShowSecondary((value) => !value)}
+          >
+            {showSecondary
+              ? t('employee.digitalForm.showLess')
+              : t('employee.digitalForm.showMore')}
+          </button>
+        </div>
+      )}
 
       {editable && onAddField && (
         <button

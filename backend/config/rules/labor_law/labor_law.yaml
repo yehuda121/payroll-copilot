@@ -11,6 +11,13 @@ rules:
     parameters:
       amount: 32.11
       currency: ILS
+      # Period-aware schedule — add future rows without changing rule code.
+      # Only values explicitly maintained here are used (never invented by AI).
+      schedule:
+        - effective_from: "2024-04-01"
+          amount: 32.11
+        - effective_from: "2026-01-01"
+          amount: 32.11
     legal_reference:
       he: "חוק שכר מינימום, התשמ\"א-1987"
       en: "Minimum Wage Law, 1987"

@@ -34,6 +34,8 @@ export type ValidationFinding = {
   actual_value: string | null;
   confidence: number;
   legal_reference: string | null;
+  display_status?: string | null;
+  manual_approval?: Record<string, unknown> | null;
 };
 
 export type ValidationRunRequest = {
@@ -58,6 +60,11 @@ export type ValidationRunResponse = {
   uploaded_documents: UploadedDocumentItem[];
   extraction_connected: boolean;
   findings: ValidationFinding[];
+  rule_outcomes?: Array<{
+    rule_id: string;
+    outcome: string;
+    skip_reason?: string | null;
+  }>;
 };
 
 export type DocumentLanguage = 'he' | 'en' | 'ar' | 'auto';

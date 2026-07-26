@@ -120,6 +120,51 @@ FINDING_MESSAGES: dict[str, dict[str, str]] = {
         "en": "Employment type on the payslip is not recognized.",
         "ar": "نوع التوظيف في قسيمة الراتب غير معروف.",
     },
+    "validation.employee.national_id.mismatch": {
+        "he": "מספר תעודת הזהות בתלוש אינו תואם לרשומת העובד.",
+        "en": "National ID on the payslip does not match the employee record.",
+        "ar": "رقم الهوية في قسيمة الراتب لا يطابق سجل الموظف.",
+    },
+    "validation.employee.name.mismatch": {
+        "he": "שם העובד בתלוש אינו תואם לרשומת העובד.",
+        "en": "Employee name on the payslip does not match the employee record.",
+        "ar": "اسم الموظف في قسيمة الراتب لا يطابق سجل الموظف.",
+    },
+    "validation.employee.employee_number.mismatch": {
+        "he": "מספר העובד בתלוש אינו תואם לרשומת העובד.",
+        "en": "Employee number on the payslip does not match the employee record.",
+        "ar": "رقم الموظف في قسيمة الراتب لا يطابق سجل الموظف.",
+    },
+    "validation.employee.employment_start_date.mismatch": {
+        "he": "תאריך תחילת העבודה בתלוש אינו תואם לרשומת העובד. (ממצא היסטורי; ההשוואה אינה רצה עוד.)",
+        "en": "Employment start date on the payslip does not match the employee record. (Historical finding; this comparison is no longer run.)",
+        "ar": "تاريخ بدء العمل في قسيمة الراتب لا يطابق سجل الموظف. (نتيجة تاريخية؛ لم تعد تُجرى هذه المقارنة.)",
+    },
+    "validation.employee.employment_type.mismatch": {
+        "he": "סוג ההעסקה בתלוש אינו תואם לרשומת העובד.",
+        "en": "Employment type on the payslip does not match the employee record.",
+        "ar": "نوع التوظيف في قسيمة الراتب لا يطابق سجل الموظف.",
+    },
+    "validation.employee.pay_period.mismatch": {
+        "he": "תקופת השכר בתלוש אינה תואמת לחודש שנבחר.",
+        "en": "Payroll period on the payslip does not match the selected month.",
+        "ar": "فترة الرواتب في قسيمة الراتب لا تطابق الشهر المحدد.",
+    },
+    "validation.contract.employment_commencement_date.mismatch": {
+        "he": "תאריך תחילת העבודה בתלוש אינו תואם לתנאי ההעסקה המאושרים.",
+        "en": "Employment start date on the payslip does not match confirmed employment terms.",
+        "ar": "تاريخ بدء العمل في قسيمة الراتب لا يطابق شروط التوظيف المؤكدة.",
+    },
+    "validation.contract.salary_basis.mismatch": {
+        "he": "בסיס חישוב השכר בתלוש אינו תואם לתנאי ההעסקה המאושרים.",
+        "en": "Salary calculation basis on the payslip does not match confirmed employment terms.",
+        "ar": "أساس حساب الراتب في القسيمة لا يطابق شروط التوظيف المؤكدة.",
+    },
+    "validation.contract.hourly_rate.mismatch": {
+        "he": "השכר השעתי בתלוש אינו תואם לשכר השעתי החוזי המאושר.",
+        "en": "Hourly rate on the payslip does not match the confirmed contractual hourly rate.",
+        "ar": "الأجر بالساعة في القسيمة لا يطابق الأجر التعاقدي المؤكد بالساعة.",
+    },
 }
 
 FINDING_EXPLANATIONS: dict[str, dict[str, str]] = {
@@ -232,6 +277,51 @@ FINDING_EXPLANATIONS: dict[str, dict[str, str]] = {
         "he": "הערך קיים אך אינו תואם לסוגי העסקה הנתמכים במערכת — ללא המרה אוטומטית.",
         "en": "A value is present but does not match supported employment types — no automatic conversion.",
         "ar": "القيمة موجودة لكنها لا تطابق أنواع التوظيف المدعومة — دون تحويل تلقائي.",
+    },
+    "validation.employee.national_id.mismatch": {
+        "he": "השוואה בין תעודת הזהות שחולצה מהתלוש לבין הרשומה המורשית של העובד.",
+        "en": "Compared the National ID extracted from the payslip to the authorized employee record.",
+        "ar": "تمت مقارنة رقم الهوية المستخرج من قسيمة الراتب بسجل الموظف المصرح به.",
+    },
+    "validation.employee.name.mismatch": {
+        "he": "השוואת שם דטרמיניסטית (סדר אסיים) בין התלוש לרשומת העובד.",
+        "en": "Deterministic order-insensitive name comparison between payslip and employee record.",
+        "ar": "مقارنة اسم حتمية غير حساسة للترتيب بين قسيمة الراتب وسجل الموظف.",
+    },
+    "validation.employee.employee_number.mismatch": {
+        "he": "השוואת מזהה שכר/מערכת — לא תעודת זהות.",
+        "en": "Payroll/system identifier comparison — not National ID.",
+        "ar": "مقارنة معرّف الرواتب/النظام — وليس رقم الهوية.",
+    },
+    "validation.employee.employment_start_date.mismatch": {
+        "he": "ממצא היסטורי בלבד: ההשוואה לתאריך תחילת חוזה ברשומת העובד הוסרה — השדה אינו מקור סמכותי לתחילת העסקה.",
+        "en": "Historical finding only: comparison to employee-record contract_start_date was removed — that field is not authoritative employment commencement.",
+        "ar": "نتيجة تاريخية فقط: أُزيلت المقارنة مع contract_start_date في سجل الموظف — هذا الحقل ليس بدء عمل موثوقًا.",
+    },
+    "validation.employee.employment_type.mismatch": {
+        "he": "השוואה רק כאשר שני הצדדים משתמשים באותו קטלוג סוגי העסקה.",
+        "en": "Compared only when both sides use the same employment-type catalog.",
+        "ar": "تمت المقارنة فقط عندما يستخدم الطرفان نفس كتالوج أنواع التوظيف.",
+    },
+    "validation.employee.pay_period.mismatch": {
+        "he": "בדיקת שקיפות מול חודש העבודה שנבחר — אינה מחליפה את שערי Move/Keep/Cancel.",
+        "en": "Transparency check against the selected workspace month — does not replace Move/Keep/Cancel gates.",
+        "ar": "فحص شفافية مقابل شهر مساحة العمل المحدد — ولا يستبدل بوابات Move/Keep/Cancel.",
+    },
+    "validation.contract.employment_commencement_date.mismatch": {
+        "he": "השוואה לתאריך תחילת העסקה המקורי בתנאי העסקה מאושרים — לא לתאריך יצירת רשומה במערכת.",
+        "en": "Compared to confirmed original employment commencement — never system create/onboarding dates.",
+        "ar": "تمت المقارنة مع تاريخ بدء التوظيف الأصلي المؤكد — وليس تواريخ إنشاء/انضمام النظام.",
+    },
+    "validation.contract.salary_basis.mismatch": {
+        "he": "השוואת בסיס חישוב שכר (חודשי/שעתי/יומי) — לא סוג העסקה.",
+        "en": "Compared salary calculation basis (monthly/hourly/daily) — not employment type.",
+        "ar": "مقارنة أساس حساب الراتب (شهري/بالساعة/يومي) — وليس نوع التوظيف.",
+    },
+    "validation.contract.hourly_rate.mismatch": {
+        "he": "השוואת שכר שעתי בתלוש מול שכר שעתי חוזי מאושר.",
+        "en": "Compared payslip hourly rate to confirmed contractual hourly rate.",
+        "ar": "تمت مقارنة الأجر بالساعة في القسيمة مع الأجر التعاقدي المؤكد بالساعة.",
     },
 }
 

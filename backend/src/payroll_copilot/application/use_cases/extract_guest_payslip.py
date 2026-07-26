@@ -1,6 +1,11 @@
-"""Guest/Employee/Batch payslip extraction (OCR → Document Model → persist).
+"""Guest/Employee/Batch payslip extraction (OCR → semantic Document Model → persist).
 
-Stage-1 reconstructs the document into DynamicDocumentEntry rows (shared).
+Stage-1 (semantic_v1, default): Field Catalog + evidence candidates → grounded
+canonical DynamicDocumentEntry rows (shared by Guest / Employee / Batch).
+
+Stage-1 rollback: GuestDynamicDocumentExtractor completeness reconstruction when
+``payslip_semantic_extraction_enabled=False``.
+
 Stage-2 canonical mapping runs for durable paths so validation/matching work;
 Document Model is always preserved under structured_data.dynamic_entries.
 
@@ -37,6 +42,13 @@ from payroll_copilot.application.services.dynamic_document import (
     project_structured_from_entries,
 )
 from payroll_copilot.application.services.guest_dynamic_extractor import GuestDynamicDocumentExtractor
+from payroll_copilot.application.services.evidence_binder import bind_evidence_candidates
+from payroll_copilot.application.services.ocr_line_evidence import (
+    build_ocr_line_evidence_bundle,
+    merge_evidence_bundles,
+)
+from payroll_copilot.application.services.payslip_semantic_catalog import EXTRACTOR_VERSION
+from payroll_copilot.application.services.payslip_semantic_extractor import PayslipSemanticExtractor
 from payroll_copilot.application.services.guest_ephemeral_store import (
     GuestEphemeralSession,
     get_guest_ephemeral_store,
@@ -134,6 +146,7 @@ class ExtractGuestPayslipUseCase:
         organization_bootstrap: OrganizationBootstrapPort,
         ocr_use_case: ExtractDocumentTextUseCase,
         document_extractor: GuestDynamicDocumentExtractor | None = None,
+        semantic_extractor: PayslipSemanticExtractor | None = None,
         parse_use_case: Any = None,
     ) -> None:
         self._documents = document_repository
@@ -141,7 +154,11 @@ class ExtractGuestPayslipUseCase:
         self._storage = object_storage
         self._org_bootstrap = organization_bootstrap
         self._ocr = ocr_use_case
+        # Explicit DI of the legacy completeness extractor is treated as a test/rollback
+        # override when semantic_extractor is not also injected.
+        self._document_extractor_override = document_extractor is not None
         self._document_extractor = document_extractor or GuestDynamicDocumentExtractor()
+        self._semantic_extractor = semantic_extractor
         # parse_use_case retained as unused kwarg so older factories keep working.
         _ = parse_use_case
 
@@ -214,11 +231,22 @@ class ExtractGuestPayslipUseCase:
             raw_text = normalize_extracted_text(ocr_result.raw_text)
             warnings.extend(list(ocr_result.warnings))
             ocr_payload = _ocr_payload_from_result(ocr_result, raw_text=raw_text)
+            settings = get_settings()
+            semantic_enabled = bool(
+                getattr(settings, "payslip_semantic_extraction_enabled", True)
+            )
+            use_semantic = semantic_enabled and (
+                self._semantic_extractor is not None or not self._document_extractor_override
+            )
+            force_layout = use_semantic and bool(
+                getattr(settings, "payslip_semantic_force_layout", True)
+            )
             layout_snapshot = _build_layout_snapshot(
                 content=command.content,
                 mime_type=command.mime_type,
                 filename=command.original_filename,
                 ocr_result=ocr_result,
+                force=force_layout,
             )
             layout_analysis = _build_layout_analysis(
                 layout_snapshot=layout_snapshot,
@@ -226,6 +254,7 @@ class ExtractGuestPayslipUseCase:
                 mime_type=command.mime_type,
                 filename=command.original_filename,
                 ocr_result=ocr_result,
+                force=force_layout,
             )
             timer.log_stage("text_normalization", extracted_text_length=len(raw_text))
 
@@ -235,17 +264,49 @@ class ExtractGuestPayslipUseCase:
             self._check_cancelled(command.cancel_check)
             try:
                 self._notify_progress(command.progress_callback, "extracting")
-                # Shared Stage-1 for Guest / Employee / Batch: reconstruct Document Model.
                 pages_text = (
                     [page.text for page in ocr_result.pages] if ocr_result.pages else None
                 )
-                document_extractor = self._resolve_document_extractor(command)
-                dynamic_entries, model_name, dyn_warnings = await document_extractor.extract(
-                    ocr_text=raw_text,
-                    language=language,
-                    pages_text=pages_text,
-                )
-                parser_model = model_name
+                extractor_meta: dict[str, Any] = {}
+                if use_semantic:
+                    # Shared semantic_v1: evidence candidates → Field Catalog LLM → grounding.
+                    layout_bundle = bind_evidence_candidates(layout_analysis or None)
+                    ocr_bundle = build_ocr_line_evidence_bundle(
+                        ocr_text=raw_text,
+                        pages_text=pages_text,
+                        ocr_pages=list(ocr_payload.get("pages") or []),
+                    )
+                    evidence_bundle = merge_evidence_bundles(layout_bundle, ocr_bundle)
+                    document_extractor = (
+                        self._semantic_extractor or self._resolve_semantic_extractor(command)
+                    )
+                    semantic_result = await document_extractor.extract(
+                        ocr_text=raw_text,
+                        language=language,
+                        pages_text=pages_text,
+                        evidence_bundle=evidence_bundle,
+                    )
+                    dynamic_entries = semantic_result.entries
+                    parser_model = semantic_result.model_name
+                    warnings.extend(semantic_result.warnings)
+                    extractor_meta = {
+                        **semantic_result.meta,
+                        "extractor_version": semantic_result.extractor_version
+                        or EXTRACTOR_VERSION,
+                        "evidence_binder": evidence_bundle.get("binder"),
+                        "evidence_candidate_count": evidence_bundle.get("candidate_count"),
+                    }
+                    dyn_warnings = []
+                else:
+                    # Legacy completeness reconstruction (rollback / explicit DI).
+                    document_extractor = self._resolve_document_extractor(command)
+                    dynamic_entries, model_name, dyn_warnings = await document_extractor.extract(
+                        ocr_text=raw_text,
+                        language=language,
+                        pages_text=pages_text,
+                    )
+                    parser_model = model_name
+                    extractor_meta = {"extractor_version": "completeness_legacy"}
                 warnings.extend(dyn_warnings)
 
                 if not entries_have_usable_values(dynamic_entries):
@@ -255,7 +316,8 @@ class ExtractGuestPayslipUseCase:
                     fields = []
                     field_confidences = {}
                     structured = {
-                        "dynamic_entries": [e.to_dict() for e in dynamic_entries]
+                        "dynamic_entries": [e.to_dict() for e in dynamic_entries],
+                        "extractor_meta": extractor_meta,
                     }
                     timer.log_stage(
                         "document_reconstruction",
@@ -263,14 +325,17 @@ class ExtractGuestPayslipUseCase:
                         extracted_text_length=len(raw_text),
                         extracted_field_count=0,
                         error_code="dynamic_extractor_no_usable_entries",
+                        extractor_version=extractor_meta.get("extractor_version"),
                     )
                 else:
                     parser_status = "completed"
                     review_fields = _fields_from_entries(dynamic_entries)
                     if use_ephemeral:
                         # Guest: canonical mapping deferred until confirm.
+                        # semantic_v1 entries already use canonical keys for Required slots.
                         structured = {
-                            "dynamic_entries": [e.to_dict() for e in dynamic_entries]
+                            "dynamic_entries": [e.to_dict() for e in dynamic_entries],
+                            "extractor_meta": extractor_meta,
                         }
                         fields = review_fields
                         field_confidences = {
@@ -283,6 +348,7 @@ class ExtractGuestPayslipUseCase:
                         structured, map_warnings = project_structured_from_entries(
                             dynamic_entries
                         )
+                        structured["extractor_meta"] = extractor_meta
                         warnings.extend(map_warnings)
                         fields, field_confidences = _fields_from_structured(structured)
                     timer.log_stage(
@@ -291,6 +357,10 @@ class ExtractGuestPayslipUseCase:
                         extracted_text_length=len(raw_text),
                         extracted_field_count=len(
                             [e for e in dynamic_entries if is_document_origin_entry(e)]
+                        ),
+                        extractor_version=extractor_meta.get("extractor_version"),
+                        grounded_canonical_count=extractor_meta.get(
+                            "grounded_canonical_count"
                         ),
                     )
             except PayslipParserError as exc:
@@ -488,6 +558,30 @@ class ExtractGuestPayslipUseCase:
             model=route.model,
         )
 
+    def _resolve_semantic_extractor(
+        self, command: GuestPayslipExtractionCommand
+    ) -> PayslipSemanticExtractor:
+        """Shared semantic_v1 extractor; same DOCUMENT_EXTRACTION capability / overrides."""
+        override = (command.model_provider_override or "").strip().lower()
+        if not override:
+            return PayslipSemanticExtractor()
+        settings = get_settings()
+        allowed = {
+            part.strip().lower()
+            for part in str(getattr(settings, "extraction_model_choices", "") or "").split(",")
+            if part.strip()
+        }
+        if override not in allowed:
+            return PayslipSemanticExtractor()
+        route = AIProviderRouter(settings).route_provider(
+            AICapability.DOCUMENT_EXTRACTION,
+            override,
+        )
+        return PayslipSemanticExtractor(
+            model_provider=route.provider,
+            model=route.model,
+        )
+
     @staticmethod
     def _check_cancelled(cancel_check: CancelCheck) -> None:
         if cancel_check is not None and cancel_check():
@@ -621,10 +715,11 @@ def _build_layout_snapshot(
     mime_type: str,
     filename: str | None,
     ocr_result,
+    force: bool = False,
 ) -> dict[str, Any]:
-    """Phase 1 additive layout metadata. Never affects parser inputs or structured_data."""
+    """Layout metadata for evidence. Forced on when semantic_v1 needs candidates."""
     settings = get_settings()
-    if not getattr(settings, "layout_snapshot_enabled", False):
+    if not force and not getattr(settings, "layout_snapshot_enabled", False):
         return {}
     try:
         provider = create_layout_provider(settings)
@@ -659,16 +754,17 @@ def _build_layout_analysis(
     mime_type: str,
     filename: str | None,
     ocr_result,
+    force: bool = False,
 ) -> dict[str, Any]:
-    """Phase 2 additive structure + associations. Also runs when Phase 3 needs candidates."""
+    """Structure + associations for evidence candidates (semantic_v1 / Phase 3)."""
     settings = get_settings()
     structure_config = create_layout_structure_config(settings)
     evidence_bound = bool(getattr(settings, "payslip_parser_evidence_bound_enabled", False))
-    if not structure_config.enabled and not evidence_bound:
+    if not force and not structure_config.enabled and not evidence_bound:
         return {}
 
-    # Phase 3 may enable analysis without persisting Phase 2 flag permanently.
-    if evidence_bound and not structure_config.enabled:
+    # Force / Phase 3 may enable analysis without persisting Phase 2 flag permanently.
+    if (force or evidence_bound) and not structure_config.enabled:
         from payroll_copilot.application.ports.structure_association import LayoutStructureConfig
 
         structure_config = LayoutStructureConfig(enabled=True)
@@ -701,18 +797,27 @@ def _build_layout_analysis(
 
 
 def _fields_from_entries(entries: list[DynamicDocumentEntry]) -> list[ExtractedFieldView]:
-    """Document Model → API field views for review (document-native labels)."""
+    """Document Model → API field views (canonical keys when semantic_v1)."""
     fields: list[ExtractedFieldView] = []
     for entry in entries:
         if not is_document_origin_entry(entry):
             continue
+        empty = entry.value in (None, "")
+        if empty:
+            status = "MISSING"
+        elif entry.kind in {"canonical_field_low_confidence", "canonical_field_ungrounded"} or (
+            entry.confidence is not None and entry.confidence < 0.6
+        ):
+            status = "UNCERTAIN"
+        else:
+            status = "FOUND"
         fields.append(
             ExtractedFieldView(
                 key=entry.key,
                 value=entry.value,
                 confidence=entry.confidence,
                 source_text=entry.source_text,
-                status="FOUND" if entry.value not in (None, "") else "MISSING",
+                status=status,
                 edited_by_user=entry.source == "user",
             )
         )

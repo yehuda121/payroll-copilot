@@ -296,6 +296,11 @@ def map_structured_payslip_to_validation_inputs(
     if employment_type_raw is not None and coerce_employment_type(employment_type_raw) is None:
         warnings.append("employment_type_unrecognized")
 
+    # Preserve dedicated employee_number when present (distinct from employee_id / national_id).
+    employee_number_dedicated = _usable_value(fields["employee_number"])
+    if employee_number_dedicated is not None and "employee_number" not in payslip_additional:
+        payslip_additional["employee_number"] = employee_number_dedicated
+
     salary_type = SalaryType.HOURLY if hourly_rate is not None else SalaryType.MONTHLY
     org_id = organization_id or DEMO_ORGANIZATION_ID
     department_id = uuid4()

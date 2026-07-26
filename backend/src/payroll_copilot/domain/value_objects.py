@@ -90,6 +90,21 @@ class RuleFinding:
 
 
 @dataclass(frozen=True, slots=True)
+class RuleEvaluationOutcome:
+    """Authoritative per-rule result from one orchestrator pass.
+
+    outcome:
+      - passed: applies_to was true and evaluate returned None
+      - failed: evaluate returned a finding (any severity, including INFO)
+      - skipped: applies_to was false (rule not evaluated)
+    """
+
+    rule_id: str
+    outcome: str
+    skip_reason: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class ValidationReport:
     """Aggregated result of a validation run."""
 
@@ -99,6 +114,8 @@ class ValidationReport:
     findings: tuple[RuleFinding, ...]
     rules_evaluated: int
     rules_failed: int
+    # Additive: empty on legacy constructors / older persisted runs.
+    rule_outcomes: tuple[RuleEvaluationOutcome, ...] = ()
 
     @property
     def has_critical(self) -> bool:

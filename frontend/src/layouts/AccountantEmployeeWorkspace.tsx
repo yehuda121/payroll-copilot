@@ -79,16 +79,26 @@ export function AccountantEmployeeWorkspaceLayout() {
   useEffect(() => {
     let active = true;
     setError(null);
-    void Promise.all([api.me(), employeesService.getByNumber(employeeNumber)])
-      .then(([me, record]) => {
+    void employeesService
+      .getByNumber(employeeNumber)
+      .then((record) => {
         if (!active) return;
-        setProfile(me);
         setMaster(record);
       })
       .catch((reason: unknown) => {
         if (active) {
           setError(reason instanceof Error ? reason.message : t('common.error'));
         }
+      });
+    // Employee portal "me" is optional chrome for accountant impersonation — do not
+    // surface network failures as a blocking workspace error when master loads.
+    void api
+      .me()
+      .then((me) => {
+        if (active) setProfile(me);
+      })
+      .catch(() => {
+        if (active) setProfile(null);
       });
     return () => {
       active = false;

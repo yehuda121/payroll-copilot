@@ -38,6 +38,7 @@ describe('buildEmployeeFieldValidationMap', () => {
           severity: 'critical',
         }),
       ],
+      ruleOutcomes: [{ rule_id: 'legal.overtime.daily_limit', outcome: 'failed' }],
     } as GuestValidationReport;
 
     const map = buildEmployeeFieldValidationMap(
@@ -63,15 +64,42 @@ describe('buildEmployeeFieldValidationMap', () => {
     expect(map.base_salary.status).not.toBe('failed');
   });
 
-  it('marks missing required fields as gray missing_required', () => {
+  it('marks missing required_on_payslip as uncertain, never failed', () => {
     const map = buildEmployeeFieldValidationMap([field('gross_salary', 1)], null);
     expect(map.employee_name?.neutralKind).toBe('missing_required');
-    expect(map.employee_name?.status).toBe('unchecked');
+    expect(map.employee_name?.status).toBe('uncertain');
+    expect(map.employee_name?.status).not.toBe('failed');
   });
 
-  it('marks bound fields passed when validation ran without matching findings', () => {
-    const report = { findings: [] } as unknown as GuestValidationReport;
+  it('does not treat sanity.required findings as failed', () => {
+    const report = {
+      findings: [
+        finding({
+          id: '1',
+          rule_id: 'sanity.required.employer_name',
+          severity: 'info',
+          message_key: 'validation.sanity.required_field_missing',
+        }),
+      ],
+      ruleOutcomes: [{ rule_id: 'sanity.required.employer_name', outcome: 'failed' }],
+    } as GuestValidationReport;
+    const map = buildEmployeeFieldValidationMap([field('employer_name', null, 'MISSING')], report);
+    expect(map.employer_name.status).toBe('uncertain');
+    expect(map.employer_name.neutralKind).toBe('missing_required');
+  });
+
+  it('marks bound fields passed only when rule_outcomes say passed', () => {
+    const report = {
+      findings: [],
+      ruleOutcomes: [{ rule_id: 'legal.overtime.daily_limit', outcome: 'passed' }],
+    } as unknown as GuestValidationReport;
     const map = buildEmployeeFieldValidationMap([field('overtime_hours', 2)], report);
     expect(map.overtime_hours.status).toBe('passed');
+  });
+
+  it('does not fabricate PASS from empty findings without outcomes', () => {
+    const report = { findings: [] } as unknown as GuestValidationReport;
+    const map = buildEmployeeFieldValidationMap([field('overtime_hours', 2)], report);
+    expect(map.overtime_hours.status).not.toBe('passed');
   });
 });

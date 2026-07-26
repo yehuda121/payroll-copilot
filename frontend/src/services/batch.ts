@@ -46,6 +46,11 @@ export type BatchValidationHistoryRun = {
       conflict?: boolean;
     };
   }>;
+  rule_outcomes?: Array<{
+    rule_id: string;
+    outcome: string;
+    skip_reason?: string | null;
+  }>;
 };
 
 export type BatchItemReview = {

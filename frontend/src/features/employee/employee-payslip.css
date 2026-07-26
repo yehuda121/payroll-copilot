@@ -100,27 +100,46 @@
 
 .employee-review-tabs {
   display: flex;
-  gap: 0.35rem;
+  flex-wrap: wrap;
+  gap: 0.25rem;
   margin: 0.85rem 0 1rem;
-  border-bottom: 1px solid var(--color-border);
+  padding: 0.2rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-surface-muted, var(--color-surface));
 }
 
 .employee-review-tabs__tab {
   appearance: none;
   border: 0;
   background: transparent;
-  padding: 0.65rem 0.9rem;
+  padding: 0.55rem 0.95rem;
   cursor: pointer;
   color: var(--color-text-muted);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  border-radius: 0.55rem;
   font: inherit;
+  font-weight: 550;
+}
+
+.employee-review-tabs__tab:hover {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+}
+
+.employee-review-tabs__tab:focus-visible {
+  outline: 2px solid var(--color-accent, #175cd3);
+  outline-offset: 1px;
 }
 
 .employee-review-tabs__tab.is-active {
   color: var(--color-text);
-  font-weight: 600;
-  border-bottom-color: var(--color-accent, #175cd3);
+  font-weight: 700;
+  background: var(--color-surface);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+
+html[data-theme='dark'] .employee-review-tabs__tab.is-active {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-border) 80%, transparent);
 }
 
 .employee-original-preview {

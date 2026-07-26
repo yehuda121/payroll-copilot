@@ -1,6 +1,8 @@
 .employee-month-workspace {
   display: grid;
   gap: 1rem;
+  max-width: 72rem;
+  margin-inline: auto;
 }
 
 .employee-workspace-skeleton {
@@ -328,23 +330,48 @@ html[data-theme='dark'] .employee-validation-card.is-unchecked {
 
 .employee-digital-form__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16.5rem, 1fr));
-  gap: 0.85rem 1rem;
-  align-items: stretch;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1.25rem;
+  align-items: start;
+  max-width: 56rem;
 }
 
 .employee-digital-form__field {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 0.45rem;
+  grid-template-rows: auto auto auto;
+  gap: 0.35rem;
   min-width: 0;
   max-width: 100%;
-  min-height: 5.75rem;
-  padding: 0.7rem 0.8rem;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  background: var(--color-surface);
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   overflow: visible;
+}
+
+.employee-digital-form__field.digital-form__field--found .digital-form__value-btn,
+.employee-digital-form__field.digital-form__field--found .digital-form__readonly {
+  border-color: color-mix(in srgb, var(--color-success, #067647) 55%, var(--color-border));
+}
+
+.employee-digital-form__field.digital-form__field--failed .digital-form__value-btn,
+.employee-digital-form__field.digital-form__field--failed .digital-form__readonly {
+  border-color: color-mix(in srgb, var(--color-danger, #b42318) 65%, var(--color-border));
+  background: color-mix(in srgb, var(--color-danger, #b42318) 6%, var(--color-surface));
+}
+
+.employee-digital-form__field.digital-form__field--uncertain .digital-form__value-btn,
+.employee-digital-form__field.digital-form__field--uncertain .digital-form__readonly {
+  border-color: color-mix(in srgb, var(--color-warning, #b54708) 65%, var(--color-border));
+  background: color-mix(in srgb, var(--color-warning, #b54708) 6%, var(--color-surface));
+}
+
+.employee-digital-form__field.digital-form__field--missing .digital-form__value-btn,
+.employee-digital-form__field.digital-form__field--missing .digital-form__readonly,
+.employee-digital-form__field.digital-form__field--missing-required .digital-form__value-btn {
+  border-color: color-mix(in srgb, #667085 45%, var(--color-border));
+  border-style: dashed;
 }
 
 .employee-month-workspace__upload-shell {
@@ -450,32 +477,284 @@ html[data-theme='dark'] .employee-month-workspace__upload-shell .drag-drop__zone
 }
 
 .employee-digital-form .digital-form__value-btn {
+  display: flex;
+  align-items: center;
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  min-height: 2.6rem;
+  min-height: 2.5rem;
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  color: inherit;
+  text-align: start;
+  font: inherit;
+  cursor: pointer;
 }
 
 .employee-digital-form .digital-form__value-text {
   line-height: 1.35;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .employee-digital-form .digital-form__readonly {
   margin: 0;
   max-width: 100%;
   min-width: 0;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
 }
 
 .employee-digital-form .digital-form__header {
   margin-bottom: 0.85rem;
+  max-width: 56rem;
 }
 
 .employee-digital-form .digital-form__title {
   margin: 0;
+  font-size: 1.05rem;
+}
+
+.employee-digital-form--document {
+  max-width: 56rem;
+  padding: 1.15rem 1.1rem 1.35rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.85rem;
+  background: var(--color-surface);
+  box-shadow: none;
+}
+
+html:not([data-theme='dark']) .employee-digital-form--document {
+  background: #fff;
+  border-color: color-mix(in srgb, var(--color-border) 85%, #cbd5e1);
+}
+
+.employee-digital-form--document .digital-form__section-title--document {
+  margin: 0 0 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--color-text-muted);
+}
+
+.employee-digital-form__more {
+  display: flex;
+  justify-content: center;
+  margin: 0.35rem 0 0.75rem;
+  max-width: 56rem;
+}
+
+.employee-digital-form__more-btn {
+  font-weight: 600;
 }
 
 .employee-digital-form__section {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0 0 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  max-width: 56rem;
+}
+
+.employee-digital-form__section:last-of-type {
+  border-bottom: 0;
+}
+
+.employee-validation-results--check-rows .employee-validation-cards {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.employee-validation-check {
+  padding: 0.9rem 1rem;
+}
+
+.employee-validation-summary--secondary {
+  margin-top: 1rem;
+  padding: 0.75rem 0.9rem;
+  opacity: 0.95;
+}
+
+.employee-validation-history--secondary {
+  margin-top: 1rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.65rem;
+  background: var(--color-surface-muted, var(--color-surface));
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.employee-validation-history--secondary summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.employee-validation-history--secondary .employee-validation-history__run {
+  margin-top: 0.65rem;
+}
+
+.batch-review-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.batch-review-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-inline-start: auto;
+}
+
+.batch-review-toolbar .action-icon-btn.is-active {
+  background: color-mix(in srgb, var(--color-accent, #175cd3) 14%, transparent);
+  color: var(--color-text);
+}
+
+.batch-resolution-panel {
+  max-width: 40rem;
+}
+
+.batch-resolution-search {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.batch-resolution-search__integrated {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.batch-review-view-chrome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin: 0.35rem 0 1rem;
+}
+
+.batch-review-view-chrome .employee-review-tabs {
   margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.batch-review-rerun {
+  flex: 0 0 auto;
+  margin-bottom: 0.15rem;
+  white-space: nowrap;
+}
+
+.employee-review-tabs--product .employee-review-tabs__tab {
+  font-weight: 550;
+}
+
+.employee-review-tabs--product .employee-review-tabs__tab.is-active {
+  font-weight: 700;
+}
+
+.batch-resolution-search__field--integrated {
+  position: relative;
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.batch-resolution-search__field--integrated input {
+  width: 100%;
+  min-height: 2.5rem;
+  padding-block: 0.45rem;
+  padding-inline-start: 2.65rem;
+  padding-inline-end: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.65rem;
+  background: var(--color-surface);
+  color: inherit;
+  font: inherit;
+}
+
+.batch-resolution-search__field--integrated input:focus-visible {
+  outline: 2px solid var(--color-accent, #175cd3);
+  outline-offset: 1px;
+}
+
+.batch-resolution-search__icon-btn {
+  position: absolute;
+  inset-inline-start: 0.4rem;
+  inset-block: 0;
+  margin-block: auto;
+  height: 1.85rem;
+  width: 1.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.employee-validation-check.is-not-run {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.employee-validation-card.is-not-run {
+  border-inline-start: 3px solid color-mix(in srgb, #98a2b3 70%, var(--color-border));
+  background: var(--color-surface);
+}
+
+.batch-resolution-search__icon-btn:hover:not(:disabled),
+.batch-resolution-search__icon-btn:focus-visible {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-accent, #175cd3) 12%, transparent);
+}
+
+.batch-resolution-search__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.batch-resolution-search__field {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.batch-resolution-search__field input {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.55rem;
+  background: var(--color-surface);
+  color: inherit;
+  font: inherit;
+}
+
+.batch-resolution-search__submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .employee-field-edit__textarea {

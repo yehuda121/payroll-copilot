@@ -1,8 +1,11 @@
-"""LLM complete-document extraction (shared Stage-1 for Guest / Employee / Batch).
+"""LLM complete-document extraction — LEGACY rollback Stage-1.
 
-Reconstructs the uploaded document into a structured Document Model.
-Does not select a sparse payroll subset — completeness over filtering.
-Canonical payroll mapping happens only after this stage.
+Primary Stage-1 for Guest / Employee / Batch is PayslipSemanticExtractor (semantic_v1).
+This completeness-oriented extractor remains for:
+  - payslip_semantic_extraction_enabled=False rollback
+  - explicit DI in unit tests
+
+It reconstructs document-native labels; meaning then depends on _LABEL_TO_CANONICAL.
 """
 
 from __future__ import annotations

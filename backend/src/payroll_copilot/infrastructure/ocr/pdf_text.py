@@ -193,11 +193,13 @@ def log_extraction_stage(
     extracted_field_count: int | None = None,
     error_code: str | None = None,
     duration_ms: float | None = None,
+    extractor_version: str | None = None,
+    grounded_canonical_count: int | None = None,
 ) -> None:
     """Structured diagnostics without personal values or raw OCR text."""
     logger.info(
         "extraction_diag stage=%s document_type=%s page_count=%s text_len=%s field_count=%s "
-        "error_code=%s duration_ms=%s",
+        "error_code=%s duration_ms=%s extractor_version=%s grounded_canonical_count=%s",
         stage,
         document_type,
         page_count if page_count is not None else "-",
@@ -205,4 +207,6 @@ def log_extraction_stage(
         extracted_field_count if extracted_field_count is not None else "-",
         error_code or "-",
         f"{duration_ms:.1f}" if duration_ms is not None else "-",
+        extractor_version or "-",
+        grounded_canonical_count if grounded_canonical_count is not None else "-",
     )

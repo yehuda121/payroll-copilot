@@ -1,5 +1,5 @@
 import type { ExtractedPayslipField, ValidationFinding } from '../../types/api';
-import type { GuestValidationReport } from '../../types/validation-report';
+import type { GuestValidationReport, RuleEvaluationOutcome } from '../../types/validation-report';
 import type { FieldVisualStatus } from '../../features/guest/landing/fieldGuidance';
 import type { ComparisonField, IdentityCheck, PeriodCheck } from '../../services/employeePortal';
 import {
@@ -46,21 +46,29 @@ function pickWorse(
   return statusRank(b.status) < statusRank(a.status) ? b : a;
 }
 
+function isRequiredPresenceFinding(finding: ValidationFinding): boolean {
+  const message = (finding.message_key || '').toLowerCase();
+  const ruleId = (finding.rule_id || '').toLowerCase();
+  return (
+    message.includes('required_field_missing') ||
+    ruleId.startsWith('sanity.required.')
+  );
+}
+
 function metaFromFinding(finding: ValidationFinding): EmployeeFieldValidationMeta {
-  const isMissingRequired =
-    (finding.message_key || '').toLowerCase().includes('required_field_missing') ||
-    (finding.rule_id || '').toLowerCase().startsWith('sanity.required.');
-  const status = findingIsMissingData(finding)
-    ? 'unchecked'
-    : mapFindingToCardStatus(finding);
-  const neutralKind: FieldNeutralKind | undefined =
-    status === 'unchecked'
-      ? isMissingRequired
-        ? 'missing_required'
-        : findingIsMissingData(finding)
-          ? 'insufficient_evidence'
-          : 'not_checked'
-      : undefined;
+  const isMissingRequired = isRequiredPresenceFinding(finding);
+  // Missing required_on_payslip / insufficient data → attention (uncertain), never FAILED.
+  const status: FieldVisualStatus =
+    isMissingRequired || findingIsMissingData(finding)
+      ? 'uncertain'
+      : mapFindingToCardStatus(finding);
+  const neutralKind: FieldNeutralKind | undefined = isMissingRequired
+    ? 'missing_required'
+    : findingIsMissingData(finding)
+      ? 'insufficient_evidence'
+      : status === 'unchecked'
+        ? 'not_checked'
+        : undefined;
   return {
     status,
     labelKey: isMissingRequired
@@ -93,6 +101,17 @@ function metaFromCompare(field: ComparisonField): EmployeeFieldValidationMeta {
   };
 }
 
+function outcomesByRuleId(
+  outcomes: RuleEvaluationOutcome[] | undefined,
+): Map<string, RuleEvaluationOutcome> {
+  const map = new Map<string, RuleEvaluationOutcome>();
+  for (const item of outcomes ?? []) {
+    const ruleId = (item.rule_id || '').trim();
+    if (ruleId) map.set(ruleId, item);
+  }
+  return map;
+}
+
 /**
  * Map extraction fields + validation report to per-field visual status.
  *
@@ -100,7 +119,8 @@ function metaFromCompare(field: ComparisonField): EmployeeFieldValidationMeta {
  * - Only bind findings via explicit FIELD_RULE_BINDINGS (no fuzzy guessing).
  * - Identity/period gates bind to their field keys when provided.
  * - Precedence: FAILED > UNCERTAIN > PASSED > neutral.
- * - Missing required_on_payslip empties → GRAY missing_required (never fabricate).
+ * - Missing required_on_payslip → UNCERTAIN/missing_required (never FAILED).
+ * - PASS only when rule_outcomes authoritatively say passed (no fabricated PASS).
  */
 export function buildEmployeeFieldValidationMap(
   fields: ExtractedPayslipField[] | undefined,
@@ -114,6 +134,7 @@ export function buildEmployeeFieldValidationMap(
   const findings = report?.findings ?? [];
   const fieldList = fields ?? [];
   const byKey = new Map(fieldList.map((field) => [field.key, field]));
+  const outcomeMap = outcomesByRuleId(report?.ruleOutcomes);
 
   // Ensure required keys are considered even when missing from extraction list.
   for (const key of requiredOnPayslipKeys()) {
@@ -165,16 +186,24 @@ export function buildEmployeeFieldValidationMap(
       for (const finding of matched) {
         best = pickWorse(best, metaFromFinding(finding));
       }
-      // After a validation run: bound rules with no findings → PASSED (deterministic absence).
-      if (report && bound.size > 0 && matched.length === 0 && !best) {
-        best = {
-          status: 'passed',
-          labelKey: 'employee.validation.status.passed',
-          explanation: null,
-          expected: null,
-          actual: null,
-          confidencePercent: null,
-        };
+      // Authoritative PASS only when every bound rule that ran passed,
+      // and at least one bound rule was evaluated as passed.
+      if (report && bound.size > 0 && matched.length === 0 && !best && outcomeMap.size > 0) {
+        const boundOutcomes = [...bound]
+          .map((ruleId) => outcomeMap.get(ruleId))
+          .filter((item): item is RuleEvaluationOutcome => Boolean(item));
+        const anyPassed = boundOutcomes.some((item) => item.outcome === 'passed');
+        const anyFailed = boundOutcomes.some((item) => item.outcome === 'failed');
+        if (anyPassed && !anyFailed) {
+          best = {
+            status: 'passed',
+            labelKey: 'employee.validation.status.passed',
+            explanation: null,
+            expected: null,
+            actual: null,
+            confidencePercent: null,
+          };
+        }
       }
     }
 
@@ -191,7 +220,7 @@ export function buildEmployeeFieldValidationMap(
 
     if (empty && requiredOnPayslipKeys().includes(key)) {
       out[key] = {
-        status: 'unchecked',
+        status: 'uncertain',
         labelKey: 'employee.validation.status.missingRequired',
         explanation: null,
         expected: null,
@@ -246,15 +275,13 @@ export function buildEmployeeFieldValidationMap(
       };
     } else if (statusUpper === 'MISSING' || empty) {
       out[key] = {
-        status: 'unchecked',
-        labelKey: empty
-          ? 'employee.validation.status.missingRequired'
-          : 'employee.validation.status.unchecked',
+        status: 'uncertain',
+        labelKey: 'employee.validation.status.missingRequired',
         explanation: null,
         expected: null,
         actual: null,
         confidencePercent: null,
-        neutralKind: empty ? 'missing_required' : 'not_checked',
+        neutralKind: 'missing_required',
       };
     }
   }

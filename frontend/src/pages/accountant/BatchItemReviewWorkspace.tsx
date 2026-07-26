@@ -3,12 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/AuthContext';
 import { PortalPage } from '../../components/PortalPage';
-import { GuestChatPanel } from '../../components/guest/GuestChatPanel';
 import { IconBackButton } from '../../components/ui/IconBackButton';
+import { ActionIconButton } from '../../components/ui/ActionIconButton';
 import { useConfirmDialog } from '../../components/ui/Dialog';
+import { TrashIcon } from '../../components/ui/icons';
 import { EmployeeDigitalForm } from '../../features/employee/EmployeeDigitalForm';
+import { EmployeeValidationResults } from '../../features/employee/EmployeeValidationResults';
+import { Search, UserPlus } from 'lucide-react';
 import type { FieldDraft } from '../../hooks/useEmployeePayslipFlow';
-import { employeeAssistantService } from '../../services/assistant';
 import {
   batchService,
   type BatchItemReview,
@@ -31,7 +33,7 @@ import { TruncatedText } from '../../components/ui/TruncatedText';
 import './UnknownEmployeeResolution.css';
 import '../employee/PayslipMonthWorkspace.css';
 
-type ReviewTab = 'digital' | 'validation' | 'original' | 'chat' | 'publishing';
+type PrimaryTab = 'digital' | 'employee_checks' | 'law_checks';
 type ResolutionMode = 'search' | 'create';
 
 type CreateValues = {
@@ -91,6 +93,11 @@ function reportFromBatchHistory(
       legal_reference: null,
     })),
     extractionConnected: true,
+    ruleOutcomes: (latest.rule_outcomes ?? []).map((item) => ({
+      rule_id: item.rule_id,
+      outcome: item.outcome,
+      skip_reason: item.skip_reason ?? null,
+    })),
   };
 }
 
@@ -103,11 +110,10 @@ export function BatchItemReviewWorkspacePage() {
   const [review, setReview] = useState<BatchItemReview | null>(null);
   const [reviewLoading, setReviewLoading] = useState(true);
   const [drafts, setDrafts] = useState<Record<string, FieldDraft>>({});
-  const [tab, setTab] = useState<ReviewTab>('digital');
+  const [tab, setTab] = useState<PrimaryTab>('digital');
   const [resolutionMode, setResolutionMode] = useState<ResolutionMode>('search');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<EmployeeRecord[]>([]);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createValues, setCreateValues] = useState<CreateValues>({
@@ -188,28 +194,6 @@ export function BatchItemReviewWorkspacePage() {
     void refresh();
   }, [refresh]);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    void batchService
-      .getItemContent(jobId, itemId, controller.signal)
-      .then((blob) => {
-        if (controller.signal.aborted) return;
-        setPreviewUrl(URL.createObjectURL(blob));
-      })
-      .catch((reason: unknown) => {
-        if (!controller.signal.aborted) {
-          setError(reason instanceof Error ? reason.message : t('common.error'));
-        }
-      });
-    return () => {
-      controller.abort();
-      setPreviewUrl((value) => {
-        if (value) URL.revokeObjectURL(value);
-        return null;
-      });
-    };
-  }, [itemId, jobId, t]);
-
   const latest = review?.validation_history[0] ?? null;
   const needsResolution =
     review?.item.status === 'unknown_employee' || !review?.item.employee_number;
@@ -240,7 +224,7 @@ export function BatchItemReviewWorkspacePage() {
       }
       next = await batchService.validateItemReview(jobId, itemId);
       applyReview(next);
-      setTab('validation');
+      setTab('employee_checks');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t('common.error'));
     } finally {
@@ -373,9 +357,9 @@ export function BatchItemReviewWorkspacePage() {
 
   const ignore = async () => {
     const accepted = await confirm({
-      title: t('accountant.bulk.review.ignoreTitle'),
-      message: t('accountant.bulk.review.ignoreWarning'),
-      confirmLabel: t('accountant.bulk.review.ignoreConfirm'),
+      title: t('accountant.bulk.review.deleteTitle'),
+      message: t('accountant.bulk.review.deleteWarning'),
+      confirmLabel: t('accountant.bulk.review.deleteConfirm'),
       cancelLabel: t('common.cancel'),
       variant: 'danger',
     });
@@ -390,13 +374,15 @@ export function BatchItemReviewWorkspacePage() {
     }
   };
 
-  const tabs: Array<[ReviewTab, string]> = [
+  const primaryTabs: Array<[PrimaryTab, string]> = [
     ['digital', 'employee.upload.tabDigital'],
-    ['validation', 'employee.workspace.tabValidation'],
-    ['original', 'employee.upload.tabOriginal'],
-    ['chat', 'employee.navigation.chat'],
-    ['publishing', 'accountant.bulk.publish.tab'],
+    ['employee_checks', 'employee.workspace.tabEmployeeChecks'],
+    ['law_checks', 'employee.workspace.tabLawChecks'],
   ];
+  const validationReport = useMemo(
+    () => (review ? reportFromBatchHistory(latest, review.document_id) : null),
+    [latest, review],
+  );
   const monthTitle =
     review?.item.payroll_year && review.item.payroll_month
       ? new Intl.DateTimeFormat(i18n.language, { month: 'long', year: 'numeric' }).format(
@@ -409,8 +395,8 @@ export function BatchItemReviewWorkspacePage() {
       title={fieldText(review, 'employee_name', 'full_name') || t('accountant.unknown.title')}
       description={monthTitle}
     >
-      <div className="employee-month-workspace">
-        <div className="employee-month-workspace__top">
+      <div className="employee-month-workspace batch-item-review">
+        <div className="batch-review-toolbar">
           <IconBackButton
             ariaLabel={t('accountant.workspace.backToBatchAria')}
             title={t('accountant.bulk.review.backToBatch')}
@@ -419,67 +405,107 @@ export function BatchItemReviewWorkspacePage() {
           <span className="status-badge status-badge--batch-unknown_employee">
             {t('accountant.bulk.status.unknown_employee')}
           </span>
+          <div className="batch-review-toolbar__actions">
+            {needsResolution && (
+              <ActionIconButton
+                label={t('accountant.unknown.create')}
+                icon={<UserPlus size={16} aria-hidden="true" />}
+                onClick={() => setResolutionMode('create')}
+                className={resolutionMode === 'create' ? 'is-active' : undefined}
+              />
+            )}
+            <ActionIconButton
+              label={t('accountant.bulk.review.deleteAction')}
+              icon={<TrashIcon size={16} aria-hidden="true" />}
+              tone="danger"
+              disabled={busy}
+              onClick={() => void ignore()}
+            />
+            <button
+              type="button"
+              className="btn btn--primary"
+              disabled
+              title={t('accountant.bulk.review.resolveBeforePublish')}
+            >
+              {t('accountant.bulk.publish.action')}
+            </button>
+          </div>
         </div>
 
         {needsResolution && (
-        <section className="unknown-resolution__summary unknown-resolution__resolution-panel">
+        <section className="unknown-resolution__summary unknown-resolution__resolution-panel batch-resolution-panel">
           <div>
             <strong>{t('accountant.bulk.review.resolutionRequired')}</strong>
             <p>{t('accountant.bulk.review.resolutionDescription')}</p>
           </div>
-          <div className="unknown-resolution__actions">
-            <button
-              className={`btn ${resolutionMode === 'search' ? 'btn--primary' : 'btn--secondary'}`}
-              onClick={() => setResolutionMode('search')}
-            >
-              {t('accountant.unknown.search')}
-            </button>
-            <button
-              className={`btn ${resolutionMode === 'create' ? 'btn--primary' : 'btn--secondary'}`}
-              onClick={() => setResolutionMode('create')}
-            >
-              {t('accountant.unknown.create')}
-            </button>
-            <button className="btn btn--danger" disabled={busy} onClick={() => void ignore()}>
-              {t('accountant.unknown.ignore')}
-            </button>
-          </div>
           {resolutionMode === 'search' ? (
-            <div className="unknown-resolution__panel">
-              <label>
-                <span>{t('accountant.unknown.searchLabel')}</span>
-                <input
-                  type="search"
-                  maxLength={FREE_TEXT_MAX_LENGTH.searchQuery}
-                  value={query}
-                  onChange={(event) =>
-                    setQuery(clampFreeTextInput(event.target.value, FREE_TEXT_MAX_LENGTH.searchQuery))
-                  }
-                  placeholder={t('accountant.unknown.searchPlaceholder')}
-                />
-              </label>
-              <button className="btn btn--primary" disabled={busy} onClick={() => void search()}>
-                {t('common.search')}
-              </button>
-              <div className="unknown-resolution__results">
-                {results.map((employee) => (
+            <div className="batch-resolution-search">
+              <div className="batch-resolution-search__integrated">
+                <label className="batch-resolution-search__field batch-resolution-search__field--integrated">
+                  <span className="visually-hidden">{t('accountant.unknown.searchLabel')}</span>
                   <button
-                    key={employee.employeeNumber}
-                    className="unknown-resolution__employee"
+                    type="button"
+                    className="batch-resolution-search__icon-btn"
                     disabled={busy}
-                    onClick={() => void attach(employee)}
+                    onClick={() => void search()}
+                    aria-label={t('common.search')}
                   >
-                    <strong>
-                      <TruncatedText>{employee.fullName}</TruncatedText>
-                    </strong>
-                    <span>#{employee.employeeNumber}</span>
-                    <span>{employee.nationalIdMasked || t('common.emDash')}</span>
+                    <Search size={16} aria-hidden="true" />
                   </button>
-                ))}
+                  <input
+                    type="search"
+                    maxLength={FREE_TEXT_MAX_LENGTH.searchQuery}
+                    value={query}
+                    onChange={(event) =>
+                      setQuery(
+                        clampFreeTextInput(event.target.value, FREE_TEXT_MAX_LENGTH.searchQuery),
+                      )
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        void search();
+                      }
+                    }}
+                    placeholder={t('accountant.unknown.searchPlaceholder')}
+                    aria-label={t('accountant.unknown.searchLabel')}
+                  />
+                </label>
+              </div>
+              <div className="unknown-resolution__results" aria-live="polite">
+                {results.length === 0 ? (
+                  <p className="employee-workspace-hint">{t('accountant.unknown.noResults', {
+                    defaultValue: t('common.emDash'),
+                  })}</p>
+                ) : (
+                  results.map((employee) => (
+                    <button
+                      key={employee.employeeNumber}
+                      type="button"
+                      className="unknown-resolution__employee"
+                      disabled={busy}
+                      onClick={() => void attach(employee)}
+                    >
+                      <strong>
+                        <TruncatedText>{employee.fullName}</TruncatedText>
+                      </strong>
+                      <span>#{employee.employeeNumber}</span>
+                      <span>{employee.nationalIdMasked || t('common.emDash')}</span>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           ) : (
             <div className="unknown-resolution__panel unknown-resolution__form">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                disabled={busy}
+                onClick={() => setResolutionMode('search')}
+              >
+                {t('accountant.unknown.search')}
+              </button>
               {(
                 [
                   ['employeeNumber', 'accountant.unknown.employeeNumber'],
@@ -545,27 +571,52 @@ export function BatchItemReviewWorkspacePage() {
 
         {error && <p className="chat-panel__error">{error}</p>}
 
-        <div className="employee-review-tabs" role="tablist">
-          {tabs.map(([id, key]) => (
-            <button
-              key={id}
-              role="tab"
-              aria-selected={tab === id}
-              className={`employee-review-tabs__tab ${tab === id ? 'is-active' : ''}`}
-              onClick={() => setTab(id)}
-            >
-              {t(key)}
-            </button>
-          ))}
+        <div className="batch-review-view-chrome">
+          <div
+            className="employee-review-tabs employee-review-tabs--product"
+            role="tablist"
+            aria-label={t('employee.workspace.tabs')}
+          >
+            {primaryTabs.map(([id, key]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                id={`batch-review-tab-${id}`}
+                aria-selected={tab === id}
+                aria-controls={`batch-review-panel-${id}`}
+                tabIndex={tab === id ? 0 : -1}
+                className={`employee-review-tabs__tab ${tab === id ? 'is-active' : ''}`}
+                onClick={() => setTab(id)}
+              >
+                {t(key)}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="btn btn--secondary batch-review-rerun"
+            disabled={busy || !review}
+            onClick={() => void saveAndValidate()}
+          >
+            {busy
+              ? t('employee.upload.validatingPayroll')
+              : t('employee.workspace.runValidationAgain')}
+          </button>
         </div>
 
         {tab === 'digital' && (
-          <>
+          <div
+            id="batch-review-panel-digital"
+            role="tabpanel"
+            aria-labelledby="batch-review-tab-digital"
+          >
             <EmployeeDigitalForm
               fields={review?.fields}
               drafts={drafts}
               editable
               audience="accountant"
+              collapseSecondaryFields
               busy={busy}
               loading={reviewLoading}
               validationMap={validationMap}
@@ -582,89 +633,28 @@ export function BatchItemReviewWorkspacePage() {
                 }))
               }
             />
-            <button
-              className="btn btn--primary btn--large"
-              disabled={busy || !review}
-              onClick={() => void saveAndValidate()}
-            >
-              {busy
-                ? t('employee.upload.validatingPayroll')
-                : latest || dirty
-                  ? t('employee.workspace.runValidationAgain')
-                  : t('employee.upload.runValidation')}
-            </button>
-          </>
-        )}
-
-        {tab === 'validation' && (
-          <ValidationHistory runs={review?.validation_history ?? []} />
-        )}
-
-        {tab === 'original' && (
-          <div className="employee-original-compare">
-            <div className="employee-original-compare__document">
-              <h3>{t('employee.upload.tabOriginal')}</h3>
-              {previewUrl && (
-                <iframe
-                  className="employee-original-compare__frame"
-                  src={previewUrl}
-                  title={review?.original_filename || t('employee.upload.tabOriginal')}
-                />
-              )}
-            </div>
-            <div className="employee-original-compare__digital">
-              <EmployeeDigitalForm
-                fields={review?.fields}
-                drafts={drafts}
-                editable
-                audience="accountant"
-                busy={busy}
-                loading={reviewLoading}
-                validationMap={validationMap}
-                onChangeField={(key, value) =>
-                  setDrafts((previous) => ({
-                    ...previous,
-                    [key]: { value, clear: !value.trim(), dirty: true },
-                  }))
-                }
-                onClearField={(key) =>
-                  setDrafts((previous) => ({
-                    ...previous,
-                    [key]: { value: '', clear: true, dirty: true },
-                  }))
-                }
-              />
-            </div>
           </div>
         )}
 
-        {tab === 'chat' && review && (
-          <GuestChatPanel
-            chatHandler={(payload) =>
-              employeeAssistantService.chatForBatchItem({
-                message: payload.message,
-                session_id: payload.session_id,
-                locale: payload.locale,
-                batch_job_id: jobId,
-                batch_item_id: itemId,
-                model_provider_override: payload.model_provider_override,
-              })
-            }
-          />
-        )}
-
-        {tab === 'publishing' && (
-          <section className="employee-publishing">
-            <h3>{t('accountant.bulk.publish.title')}</h3>
-            <p>
-              {needsResolution
-                ? t('accountant.bulk.review.resolveBeforePublish')
-                : t('accountant.bulk.publish.requireCurrentValidation')}
-            </p>
-            <button className="btn btn--primary btn--large" disabled>
-              {t('accountant.bulk.publish.action')}
-            </button>
-          </section>
+        {(tab === 'employee_checks' || tab === 'law_checks') && (
+          <div
+            id={`batch-review-panel-${tab}`}
+            role="tabpanel"
+            aria-labelledby={`batch-review-tab-${tab}`}
+          >
+            <EmployeeValidationResults
+              report={validationReport}
+              identity={null}
+              period={null}
+              checkGroup={tab}
+              presentation="checkRows"
+              hideRunAction
+              validating={busy}
+            />
+            {tab === 'employee_checks' && (
+              <ValidationHistory runs={review?.validation_history ?? []} />
+            )}
+          </div>
         )}
       </div>
     </PortalPage>
@@ -673,17 +663,31 @@ export function BatchItemReviewWorkspacePage() {
 
 function ValidationHistory({ runs }: { runs: BatchValidationHistoryRun[] }) {
   const { t, i18n } = useTranslation();
-  if (!runs.length) return <p>{t('employee.workspace.noValidationYet')}</p>;
+  if (!runs.length) return null;
+  const latestRun = runs[0];
   return (
-    <section className="employee-validation-history">
+    <details className="employee-validation-history employee-validation-history--secondary">
+      <summary>
+        {t('accountant.bulk.validationHistory.title')}
+        {latestRun.completed_at
+          ? ` · ${new Intl.DateTimeFormat(i18n.language, {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            }).format(new Date(latestRun.completed_at))}`
+          : ''}
+      </summary>
       {runs.map((run, index) => (
         <article key={run.validation_run_id} className="employee-validation-history__run">
           <header>
             <strong>
               {t('accountant.bulk.validationHistory.run', { value: runs.length - index })}
             </strong>
-            <span className={`status-badge status-badge--${run.overall_result === 'pass' ? 'passed' : 'warnings'}`}>
-              {run.overall_result || run.status}
+            <span
+              className={`status-badge status-badge--${run.overall_result === 'pass' ? 'passed' : 'warnings'}`}
+            >
+              {run.overall_result === 'pass'
+                ? t('employee.validation.status.passed')
+                : run.overall_result || run.status}
             </span>
             {run.outdated && <span>{t('accountant.bulk.validationHistory.outdated')}</span>}
             <time>
@@ -695,108 +699,8 @@ function ValidationHistory({ runs }: { runs: BatchValidationHistoryRun[] }) {
                 : t('common.emDash')}
             </time>
           </header>
-          {run.evidence_summary && (
-            <p className="employee-workspace-hint">
-              {run.evidence_summary.evidence_supported_field_count > 0
-                ? t('explainability.validationTraceSummary', {
-                    supported: run.evidence_summary.evidence_supported_field_count,
-                    total: run.evidence_summary.extracted_field_count,
-                  })
-                : t('explainability.validationTraceUnavailable')}
-            </p>
-          )}
-          <div className="employee-validation-history__findings">
-            {Object.entries(
-              run.findings.reduce<Record<string, typeof run.findings>>((groups, finding) => {
-                const category = finding.category || 'employment';
-                (groups[category] ||= []).push(finding);
-                return groups;
-              }, {}),
-            ).map(([category, findings]) => (
-              <section key={category} className="employee-validation-group">
-                <h4>
-                  {t(`employee.validation.groups.${category.toLowerCase()}`, {
-                    defaultValue: category,
-                  })}
-                </h4>
-                {findings.map((finding) => (
-                  <article key={finding.id} className="employee-validation-history__finding">
-                    <header>
-                      <strong>
-                        {String(
-                          t(finding.message_key, {
-                            ...finding.message_params,
-                            defaultValue: finding.rule_id,
-                          }),
-                        )}
-                      </strong>
-                      <span className={`status-badge status-badge--${finding.severity === 'critical' ? 'critical' : 'warnings'}`}>
-                        {finding.severity}
-                      </span>
-                    </header>
-                    <dl>
-                      <div>
-                        <dt>{t('employee.validation.actual')}</dt>
-                        <dd>{finding.actual_value ?? t('common.emDash')}</dd>
-                      </div>
-                      <div>
-                        <dt>{t('employee.validation.expected')}</dt>
-                        <dd>{finding.expected_value ?? t('common.emDash')}</dd>
-                      </div>
-                      <div>
-                        <dt>{t('validate.confidenceLabel')}</dt>
-                        <dd>
-                          {finding.confidence == null
-                            ? t('common.emDash')
-                            : `${Math.round(finding.confidence * 100)}%`}
-                        </dd>
-                      </div>
-                    </dl>
-                    {finding.evidence_explanation && (
-                      <details className="validation-evidence">
-                        <summary>{t('explainability.whyThisResult')}</summary>
-                        {finding.evidence_explanation.available ? (
-                          <dl>
-                            <div>
-                              <dt>{t('explainability.sourcePage')}</dt>
-                              <dd>
-                                {finding.evidence_explanation.page ?? t('common.emDash')}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt>{t('explainability.detectedLabel')}</dt>
-                              <dd>
-                                {finding.evidence_explanation.label ?? t('common.emDash')}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt>{t('explainability.detectedValue')}</dt>
-                              <dd>
-                                {finding.evidence_explanation.value == null
-                                  ? t('common.emDash')
-                                  : String(finding.evidence_explanation.value)}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt>{t('explainability.strategy')}</dt>
-                              <dd>
-                                {finding.evidence_explanation.association_strategy ??
-                                  t('common.emDash')}
-                              </dd>
-                            </div>
-                          </dl>
-                        ) : (
-                          <p>{t('explainability.validationTraceUnavailable')}</p>
-                        )}
-                      </details>
-                    )}
-                  </article>
-                ))}
-              </section>
-            ))}
-          </div>
         </article>
       ))}
-    </section>
+    </details>
   );
 }

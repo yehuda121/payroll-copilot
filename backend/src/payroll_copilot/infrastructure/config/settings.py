@@ -189,6 +189,14 @@ class Settings(BaseSettings):
     # Phase 4 read-only evidence explainability (default off).
     layout_explainability_enabled: bool = False
 
+    # Payslip semantic_v1 Stage-1 (Field Catalog + evidence grounding).
+    # Default ON — primary meaning resolver for Guest / Employee / Batch.
+    # Set False to rollback to legacy completeness-oriented document reconstruction.
+    payslip_semantic_extraction_enabled: bool = True
+    # When semantic_v1 is on, force layout snapshot + structure for evidence candidates
+    # even if layout_snapshot_enabled / layout_structure_enabled are False.
+    payslip_semantic_force_layout: bool = True
+
     # OCR: paddleocr is primary (en/ar). Hebrew uses transparent Tesseract fallback (H1).
     ocr_provider: str = "paddleocr"
     tesseract_lang: str = "heb+eng"

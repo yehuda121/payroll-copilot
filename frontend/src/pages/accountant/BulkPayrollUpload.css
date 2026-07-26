@@ -1,12 +1,116 @@
 .accountant-bulk {
   display: grid;
   gap: 1.25rem;
+  max-width: 72rem;
+  margin-inline: auto;
+}
+
+.accountant-bulk__chrome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.accountant-bulk__chrome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  min-height: 2.75rem;
+  margin-inline-start: auto;
+}
+
+.accountant-bulk__process-action {
+  white-space: nowrap;
+}
+
+/* Segmented primary navigation (Upload / Extracted) */
+.app-segmented-nav {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0.2rem;
+  padding: 0.2rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-surface-muted, var(--color-surface));
+  width: fit-content;
+  max-width: 100%;
+}
+
+.app-segmented-nav__tab {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  padding: 0.55rem 1rem;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-weight: 550;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.app-segmented-nav__tab:hover {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+}
+
+.app-segmented-nav__tab:focus-visible {
+  outline: 2px solid var(--color-accent, #175cd3);
+  outline-offset: 1px;
+}
+
+.app-segmented-nav__tab.is-active {
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+  font-weight: 650;
+}
+
+html[data-theme='dark'] .app-segmented-nav__tab.is-active {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-border) 80%, transparent);
 }
 
 .accountant-bulk__upload,
 .accountant-bulk__results {
   display: grid;
   gap: 1.25rem;
+}
+
+.accountant-bulk__upload-workspace {
+  display: grid;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: min(42rem, 100%);
+  margin-inline: auto;
+  padding: 1.5rem 1.25rem 1.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  background: var(--color-surface);
+}
+
+.accountant-bulk__upload-header {
+  display: grid;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+.accountant-bulk__upload-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 650;
+  color: var(--color-text);
+}
+
+.accountant-bulk__upload-lede {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
 }
 
 .accountant-bulk__upload-shell {
@@ -207,27 +311,137 @@ html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone:focus-vi
   gap: 0.625rem;
 }
 
+.accountant-bulk__select-all {
+  display: flex;
+  align-items: center;
+  padding: 0.35rem 0.25rem;
+}
+
+.accountant-bulk__select-all-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 650;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.accountant-bulk__checkbox {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--color-accent, #175cd3);
+  cursor: pointer;
+}
+
+.accountant-bulk__checkbox--select-all {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.accountant-bulk__bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--color-accent, #175cd3) 8%, var(--color-surface));
+}
+
+.accountant-bulk__bulk-bar--reserved {
+  min-height: 2.75rem;
+  min-width: min(22rem, 100%);
+  background: var(--color-surface);
+}
+
+.accountant-bulk__bulk-count {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.accountant-bulk__bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.accountant-bulk__bulk-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.accountant-bulk__bulk-actions .btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.accountant-bulk__bulk-message {
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
 .accountant-bulk__employee {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.35rem 0.45rem 0.35rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  color: inherit;
+  background: var(--color-surface);
+}
+
+.accountant-bulk__employee.is-selected {
+  border-color: color-mix(in srgb, var(--color-accent, #175cd3) 55%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent, #175cd3) 6%, var(--color-surface));
+}
+
+.accountant-bulk__row-check {
+  display: grid;
+  place-items: center;
+  padding-inline: 0.15rem;
+}
+
+.accountant-bulk__employee-main {
   display: grid;
   grid-template-columns: auto minmax(12rem, 1.2fr) auto minmax(10rem, 1.4fr);
   align-items: center;
   gap: 0.85rem 1rem;
   width: 100%;
-  padding: 0.875rem 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
+  margin: 0;
+  padding: 0.55rem 0.55rem 0.55rem 0.25rem;
+  border: 0;
+  border-radius: 0.55rem;
   color: inherit;
   text-align: start;
-  background: var(--color-surface);
-}
-
-.accountant-bulk__employee:not(:disabled) {
+  background: transparent;
+  font: inherit;
   cursor: pointer;
 }
 
-.accountant-bulk__employee:not(:disabled):hover {
-  border-color: var(--color-primary);
-  box-shadow: 0 3px 12px rgb(0 0 0 / 8%);
+.accountant-bulk__employee-main:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.accountant-bulk__employee-main:not(:disabled):hover {
+  background: color-mix(in srgb, var(--color-surface-muted, #f4f6f8) 80%, transparent);
+}
+
+.accountant-bulk__employee-main:focus-visible {
+  outline: 2px solid var(--color-accent, #175cd3);
+  outline-offset: 1px;
 }
 
 .accountant-bulk__serial {
@@ -301,7 +515,7 @@ html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone:focus-vi
 }
 
 @media (max-width: 900px) {
-  .accountant-bulk__employee {
+  .accountant-bulk__employee-main {
     grid-template-columns: auto 1fr auto;
     grid-template-areas:
       'serial name status'

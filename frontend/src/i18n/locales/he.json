@@ -491,7 +491,9 @@
         "salary": "שכר",
         "taxes": "מסים",
         "benefits": "הטבות",
-        "dates": "תאריכים"
+        "dates": "תאריכים",
+        "employeeProfile": "בדיקות מול פרטי העובד",
+        "employmentContract": "בדיקות מול חוזה העסקה"
       },
       "annotatedFormTitle": "טופס דיגיטלי לאחר אימות",
       "reason": "סיבה",
@@ -507,6 +509,10 @@
         "employee_number": "בדיקת מספר עובד",
         "national_id": "בדיקת תעודת זהות",
         "pay_period": "בדיקת תקופת שכר",
+        "employment_type": "בדיקת סוג העסקה",
+        "employment_start_date": "בדיקת מועד תחילת העסקה",
+        "salary_basis": "בדיקת בסיס שכר",
+        "hourly_rate": "בדיקת תעריף שעתי",
         "identity": "התאמת זהות",
         "missingData": "בדיקת נתונים חסרים",
         "overtime": "בדיקת שעות נוספות",
@@ -543,7 +549,13 @@
         "validation_sanity_employment_start_date_invalid": "תאריך תחילת העבודה אינו תאריך לוח שנה תקין.",
         "validation_sanity_net_exceeds_gross": "השכר נטו גבוה מהשכר ברוטו על התלוש.",
         "validation_sanity_required_field_missing": "שדה חובה חסר בתלוש.",
-        "validation_sanity_employment_type_unrecognized": "סוג ההעסקה בתלוש אינו מזוהה."
+        "validation_sanity_employment_type_unrecognized": "סוג ההעסקה בתלוש אינו מזוהה.",
+        "validation_employee_national_id_mismatch": "מספר תעודת הזהות בתלוש אינו תואם לרשומת העובד.",
+        "validation_employee_name_mismatch": "שם העובד בתלוש אינו תואם לרשומת העובד.",
+        "validation_employee_employee_number_mismatch": "מספר העובד בתלוש אינו תואם לרשומת העובד.",
+        "validation_employee_employment_start_date_mismatch": "תאריך תחילת העבודה בתלוש אינו תואם לרשומת העובד. (ממצא היסטורי; ההשוואה אינה רצה עוד.)",
+        "validation_employee_employment_type_mismatch": "סוג ההעסקה בתלוש אינו תואם לרשומת העובד.",
+        "validation_employee_pay_period_mismatch": "תקופת השכר בתלוש אינה תואמת לחודש שנבחר."
       },
       "scope": {
         "payroll_rules": "כללי שכר",
@@ -563,7 +575,13 @@
         "failed": "נכשל",
         "uncertain": "AI לא בטוח",
         "unchecked": "לא ניתן לאמת",
-        "missingRequired": "לא נמצא בתלוש"
+        "missingRequired": "לא נמצא בתלוש",
+        "notRun": "לא הורץ",
+        "manuallyApproved": "אושר ידנית"
+      },
+      "notRunReasons": {
+        "employee_not_identified": "לא הורץ — העובד לא זוהה",
+        "no_confirmed_contract": "לא הורץ — אין חוזה מאושר"
       },
       "explain": "AI",
       "aiExplanation": "הסבר בינה מלאכותית",
@@ -594,6 +612,17 @@
       "sectionRequired": "שדות חובה",
       "sectionExpected": "שדות צפויים",
       "sectionOther": "שדות נוספים שחולצו",
+      "sections": {
+        "identity": "פרטי עובד",
+        "employer": "מעסיק",
+        "period": "תקופת שכר",
+        "earnings": "רכיבי שכר",
+        "deductions": "ניכויים",
+        "payment": "תשלום",
+        "other": "פרטים נוספים"
+      },
+      "showMore": "הצג עוד",
+      "showLess": "הצג פחות",
       "requiredTag": "חובה",
       "notFoundOnPayslip": "לא נמצא בתלוש",
       "missingRequiredHint": "שדה זה צפוי בתלוש אך לא חולץ. ניתן להזין אותו אם הערך ידוע.",

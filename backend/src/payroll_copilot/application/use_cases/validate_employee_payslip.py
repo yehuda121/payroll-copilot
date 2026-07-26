@@ -63,6 +63,8 @@ class ValidateEmployeePayslipUseCase:
         national_id_encrypted: bytes | None,
         supporting_document_ids: tuple[UUID, ...] = (),
         locale: str = "he",
+        rerun_scope: str | None = None,
+        rule_ids: tuple[str, ...] = (),
     ) -> EmployeeValidationResult:
         document = await self._documents.get_by_id(document_id)
         if document is None:
@@ -135,6 +137,10 @@ class ValidateEmployeePayslipUseCase:
                 supporting_document_ids=supporting_document_ids,
                 locale=locale,
                 extraction_id=latest.id,
+                trusted_national_id=plaintext,
+                rerun_scope=rerun_scope,
+                rule_ids=rule_ids,
+                merge_with_previous=bool(rerun_scope and rerun_scope not in {"full", "all", ""}),
             )
         )
         if self._audit is not None:

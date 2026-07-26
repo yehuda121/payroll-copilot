@@ -9,7 +9,19 @@ export const ID_CARD_FIELD_KEYS = [
 /** Canonical appendix field — value is AppendixChild[]. Count is derived from length. */
 export const ID_APPENDIX_CHILDREN_KEY = 'children' as const;
 
-export type FixedDocumentFieldKey = (typeof ID_CARD_FIELD_KEYS)[number];
+export const CONTRACT_FIELD_KEYS = [
+  'employment_commencement_date',
+  'salary_basis',
+  'contractual_monthly_salary',
+  'contractual_hourly_rate',
+  'contractual_daily_rate',
+  'effective_from',
+  'effective_to',
+] as const;
+
+export type FixedDocumentFieldKey =
+  | (typeof ID_CARD_FIELD_KEYS)[number]
+  | (typeof CONTRACT_FIELD_KEYS)[number];
 
 export type AppendixChild = {
   name: string;
@@ -20,6 +32,7 @@ export function fixedFieldKeysFor(
   documentType: PersistentDocumentType,
 ): readonly FixedDocumentFieldKey[] | null {
   if (documentType === 'national_id') return ID_CARD_FIELD_KEYS;
+  if (documentType === 'contract') return CONTRACT_FIELD_KEYS;
   return null;
 }
 

@@ -26,6 +26,12 @@ class RunValidationCommand:
     field_confidences: dict[str, float]
     historical_payslips: list[PayslipData] | None = None
     disabled_rule_ids: frozenset[str] = frozenset()
+    authorized_employee: bool = False
+    trusted_national_id: str | None = None
+    selected_period_year: int | None = None
+    selected_period_month: int | None = None
+    confirmed_employment_terms: object | None = None
+    rerun_scope: str | None = None
 
 
 class RunValidationUseCase:
@@ -36,7 +42,16 @@ class RunValidationUseCase:
         self._orchestrator = ValidationOrchestrator()
 
     def execute(self, command: RunValidationCommand) -> ValidationReport:
-        legal_rules = self._rules_loader.load_merged_rules()
+        as_of = None
+        if command.period is not None:
+            from datetime import date
+
+            as_of = date(command.period.year, command.period.month, 1)
+        load_as_of = getattr(self._rules_loader, "load_merged_rules_as_of", None)
+        if callable(load_as_of) and as_of is not None:
+            legal_rules = load_as_of(as_of)
+        else:
+            legal_rules = self._rules_loader.load_merged_rules()
         context = ValidationContext(
             payslip=command.payslip,
             employee=command.employee,
@@ -46,6 +61,12 @@ class RunValidationUseCase:
             historical_payslips=command.historical_payslips or [],
             field_confidences=command.field_confidences,
             disabled_rule_ids=command.disabled_rule_ids,
+            authorized_employee=command.authorized_employee,
+            trusted_national_id=command.trusted_national_id,
+            selected_period_year=command.selected_period_year,
+            selected_period_month=command.selected_period_month,
+            confirmed_employment_terms=command.confirmed_employment_terms,  # type: ignore[arg-type]
+            rerun_scope=command.rerun_scope,
         )
         return self._orchestrator.run(context)
 

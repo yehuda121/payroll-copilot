@@ -12,6 +12,7 @@ from payroll_copilot.domain.entities import (
     Employee,
     PayslipData,
 )
+from payroll_copilot.domain.employment_terms import ConfirmedEmploymentTerms
 from payroll_copilot.domain.enums import FindingSeverity, RuleCategory
 from payroll_copilot.domain.value_objects import ConfidenceScore, PayPeriod, RuleFinding
 
@@ -51,6 +52,20 @@ class ValidationContext:
     org_rule_configs: list[dict[str, Any]] = field(default_factory=list)
     field_confidences: dict[str, float] = field(default_factory=dict)
     disabled_rule_ids: frozenset[str] = frozenset()
+    # Authorized employee profile comparison (Employee / matched Batch). False for Guest.
+    authorized_employee: bool = False
+    # In-process plaintext National ID for comparison only — never persist.
+    trusted_national_id: str | None = None
+    # Selected workspace / document month (period gate context). None when unavailable.
+    selected_period_year: int | None = None
+    selected_period_month: int | None = None
+    # Confirmed employment-agreement terms (Employee / matched Batch only).
+    confirmed_employment_terms: ConfirmedEmploymentTerms | None = None
+    # Optional metadata for selective rerun / audit (not used by rule logic).
+    rerun_scope: str | None = None
+
+    # Optional declarative metadata on subclasses (extensibility — not required).
+    # input_fields / reference_dependencies documented on rule classes where useful.
 
     def field_confidence(self, field_name: str) -> ConfidenceScore:
         value = self.field_confidences.get(field_name, 0.0)
@@ -78,6 +93,9 @@ class BaseRule(ABC):
     rule_id: str
     category: RuleCategory
     priority: int = 100
+    # Extensibility metadata (optional; used by selective rerun / docs).
+    input_fields: tuple[str, ...] = ()
+    reference_dependencies: tuple[str, ...] = ()
 
     @abstractmethod
     def applies_to(self, context: ValidationContext) -> bool:

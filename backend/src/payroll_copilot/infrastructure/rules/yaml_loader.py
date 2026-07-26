@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -33,14 +34,34 @@ class YamlLegalRulesLoader(LegalRulesLoader):
 
     def load_merged_rules(self) -> LegalRulesBundle:
         """Merge all YAML files into a single rules bundle for validation."""
+        return self.load_merged_rules_as_of(None)
+
+    def load_merged_rules_as_of(self, as_of: date | None) -> LegalRulesBundle:
+        """Merge YAML rules; as_of reserved for future multi-file version trees.
+
+        Parameter-level schedules are resolved inside individual rules via
+        resolve_parameters_as_of. Bundle.effective_from is the max file stamp
+        that is <= as_of when as_of is provided; otherwise last-file-wins.
+        """
         all_rules: dict[str, LegalRuleConfig] = {}
         version = "0.0.0"
         effective_from = "1970-01-01"
+        best_stamp: date | None = None
 
         for yaml_file in sorted(self._path.glob("*.yaml")):
             data = self._read_yaml(yaml_file)
+            file_from = data.get("effective_from", "1970-01-01")
+            file_date = None
+            try:
+                file_date = date.fromisoformat(str(file_from)[:10])
+            except ValueError:
+                file_date = None
+            if as_of is not None and file_date is not None and file_date > as_of:
+                continue
             version = data.get("version", version)
             effective_from = data.get("effective_from", effective_from)
+            if file_date is not None:
+                best_stamp = file_date if best_stamp is None else max(best_stamp, file_date)
             for rule_key, rule_data in data.get("rules", {}).items():
                 all_rules[rule_key] = self._parse_rule(rule_key, rule_data)
 

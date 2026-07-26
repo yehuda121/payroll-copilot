@@ -55,7 +55,9 @@ export function DocumentTypeCard({ documentType }: { documentType: PersistentDoc
   const hasDigital = flow.hasDigitalForm;
   const empty = settled && !hasOriginal && !hasDigital;
   const allowManualEditWhenEmpty =
-    documentType === 'national_id' || isAppendixDocumentType(documentType);
+    documentType === 'national_id' ||
+    documentType === 'contract' ||
+    isAppendixDocumentType(documentType);
   const status = resolveDocumentCardStatus({
     loading: flow.loading,
     settled,
@@ -362,9 +364,9 @@ export function DocumentTypeCard({ documentType }: { documentType: PersistentDoc
                   flow.removeChild(index);
                 }}
               />
-            ) : documentType === 'national_id' ? (
+            ) : documentType === 'national_id' || documentType === 'contract' ? (
               <EmployeeFixedDocumentForm
-                documentType="national_id"
+                documentType={documentType}
                 values={flow.fixedValues}
                 busy={flow.isBusy}
                 reviewNotice={t('employee.documents.fixedFormNotice')}

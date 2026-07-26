@@ -502,6 +502,8 @@ export const employeePortalService = {
     documentId: string;
     locale?: string;
     supportingDocumentIds?: string[];
+    rerunScope?: 'full' | 'employee_checks' | 'law_checks' | 'rules';
+    ruleIds?: string[];
     signal?: AbortSignal;
   }): Promise<ValidationRunResponse> {
     return apiRequest<ValidationRunResponse>('/validation/employee/run', {
@@ -510,9 +512,31 @@ export const employeePortalService = {
         document_id: input.documentId,
         supporting_document_ids: input.supportingDocumentIds ?? [],
         locale: input.locale,
+        rerun_scope: input.rerunScope,
+        rule_ids: input.ruleIds ?? [],
       }),
       portalAuth: true,
       signal: input.signal,
+    });
+  },
+
+  async approveFinding(input: {
+    documentId: string;
+    validationRunId: string;
+    findingId: string;
+    acknowledgement: boolean;
+    reason?: string;
+  }): Promise<unknown> {
+    return apiRequest('/validation/employee/findings/approve', {
+      method: 'POST',
+      body: JSON.stringify({
+        document_id: input.documentId,
+        validation_run_id: input.validationRunId,
+        finding_id: input.findingId,
+        acknowledgement: input.acknowledgement,
+        reason: input.reason,
+      }),
+      portalAuth: true,
     });
   },
 };

@@ -33,6 +33,15 @@ const FINDING_KEY_ALIASES: Record<string, string> = {
   'validation.sanity.required_field_missing': 'validation_sanity_required_field_missing',
   'validation.sanity.employment_type.unrecognized':
     'validation_sanity_employment_type_unrecognized',
+  'validation.employee.national_id.mismatch': 'validation_employee_national_id_mismatch',
+  'validation.employee.name.mismatch': 'validation_employee_name_mismatch',
+  'validation.employee.employee_number.mismatch':
+    'validation_employee_employee_number_mismatch',
+  'validation.employee.employment_start_date.mismatch':
+    'validation_employee_employment_start_date_mismatch',
+  'validation.employee.employment_type.mismatch':
+    'validation_employee_employment_type_mismatch',
+  'validation.employee.pay_period.mismatch': 'validation_employee_pay_period_mismatch',
 };
 
 const FINDING_TITLE_KEYS: Record<string, string> = {
@@ -44,6 +53,32 @@ const FINDING_TITLE_KEYS: Record<string, string> = {
   validation_department_intern_hours_exceeded: 'employee.validation.checkTitles.internHours',
   validation_department_lawyers_overtime_cap: 'employee.validation.checkTitles.lawyerOvertime',
   validation_historical_salary_drift: 'employee.validation.checkTitles.salaryDrift',
+  validation_employee_national_id_mismatch: 'employee.validation.checkTitles.national_id',
+  validation_employee_name_mismatch: 'employee.validation.checkTitles.employee_name',
+  validation_employee_employee_number_mismatch: 'employee.validation.checkTitles.employee_number',
+  validation_employee_pay_period_mismatch: 'employee.validation.checkTitles.pay_period',
+  validation_employee_employment_type_mismatch: 'employee.validation.checkTitles.employment_type',
+  validation_employee_employment_start_date_mismatch:
+    'employee.validation.checkTitles.employment_start_date',
+};
+
+const RULE_ID_TITLE_KEYS: Record<string, string> = {
+  'employee.national_id.match': 'employee.validation.checkTitles.national_id',
+  'employee.name.match': 'employee.validation.checkTitles.employee_name',
+  'employee.employee_number.match': 'employee.validation.checkTitles.employee_number',
+  'employee.employment_type.match': 'employee.validation.checkTitles.employment_type',
+  'employee.pay_period.match': 'employee.validation.checkTitles.pay_period',
+  'contract.employment_commencement_date.match':
+    'employee.validation.checkTitles.employment_start_date',
+  'contract.salary_basis.match': 'employee.validation.checkTitles.salary_basis',
+  'contract.hourly_rate.match': 'employee.validation.checkTitles.hourly_rate',
+  'legal.minimum_wage': 'employee.validation.checkTitles.minimumWage',
+  'legal.overtime.daily_limit': 'employee.validation.checkTitles.overtime',
+  'legal.pension.contribution': 'employee.validation.checkTitles.pension',
+  'legal.youth.minimum_age': 'employee.validation.checkTitles.youth',
+  'department.intern.weekly_hours_limit': 'employee.validation.checkTitles.internHours',
+  'department.lawyers.overtime_cap': 'employee.validation.checkTitles.lawyerOvertime',
+  'historical.salary_drift': 'employee.validation.checkTitles.salaryDrift',
 };
 
 const SCOPE_TITLE_KEYS: Record<string, string> = {
@@ -149,7 +184,10 @@ export function translateFindingMessage(
 export function translateFindingTitle(
   messageKey: string | null | undefined,
   t: TFunction,
+  ruleId?: string | null,
 ): string {
+  const rulePath = ruleId ? RULE_ID_TITLE_KEYS[ruleId.trim()] : undefined;
+  if (rulePath) return t(rulePath);
   const alias = findingAlias(messageKey);
   const titlePath = FINDING_TITLE_KEYS[alias];
   if (titlePath) return t(titlePath);

@@ -64,6 +64,7 @@ class RuleCategory(StrEnum):
     HISTORICAL = "historical"
     COMPANY = "company"
     SANITY = "sanity"
+    EMPLOYEE = "employee"
 
 
 class FindingSeverity(StrEnum):

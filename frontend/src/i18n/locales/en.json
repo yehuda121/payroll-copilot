@@ -491,7 +491,9 @@
         "salary": "Salary",
         "taxes": "Taxes",
         "benefits": "Benefits",
-        "dates": "Dates"
+        "dates": "Dates",
+        "employeeProfile": "Checks vs employee profile",
+        "employmentContract": "Checks vs employment contract"
       },
       "annotatedFormTitle": "Validated digital form",
       "reason": "Reason",
@@ -507,6 +509,10 @@
         "employee_number": "Employee Number Check",
         "national_id": "National ID Check",
         "pay_period": "Payroll Period Check",
+        "employment_type": "Employment Type Check",
+        "employment_start_date": "Employment Commencement Check",
+        "salary_basis": "Salary Basis Check",
+        "hourly_rate": "Hourly Rate Check",
         "identity": "Identity Match",
         "missingData": "Missing Data Check",
         "overtime": "Overtime Check",
@@ -543,7 +549,13 @@
         "validation_sanity_employment_start_date_invalid": "Employment start date is not a valid calendar date.",
         "validation_sanity_net_exceeds_gross": "Net salary exceeds gross salary on this payslip.",
         "validation_sanity_required_field_missing": "A required payslip field is missing.",
-        "validation_sanity_employment_type_unrecognized": "Employment type on the payslip is not recognized."
+        "validation_sanity_employment_type_unrecognized": "Employment type on the payslip is not recognized.",
+        "validation_employee_national_id_mismatch": "National ID on the payslip does not match the employee record.",
+        "validation_employee_name_mismatch": "Employee name on the payslip does not match the employee record.",
+        "validation_employee_employee_number_mismatch": "Employee number on the payslip does not match the employee record.",
+        "validation_employee_employment_start_date_mismatch": "Employment start date on the payslip does not match the employee record. (Historical finding; this comparison is no longer run.)",
+        "validation_employee_employment_type_mismatch": "Employment type on the payslip does not match the employee record.",
+        "validation_employee_pay_period_mismatch": "Payroll period on the payslip does not match the selected month."
       },
       "scope": {
         "payroll_rules": "Payroll Rules",
@@ -563,7 +575,13 @@
         "failed": "Failed",
         "uncertain": "AI uncertain",
         "unchecked": "Cannot validate",
-        "missingRequired": "Not found on payslip"
+        "missingRequired": "Not found on payslip",
+        "notRun": "Not run",
+        "manuallyApproved": "Manually approved"
+      },
+      "notRunReasons": {
+        "employee_not_identified": "Not run — employee not identified",
+        "no_confirmed_contract": "Not run — no confirmed contract"
       },
       "explain": "AI",
       "aiExplanation": "AI explanation",
@@ -594,6 +612,17 @@
       "sectionRequired": "Required fields",
       "sectionExpected": "Expected fields",
       "sectionOther": "Other extracted fields",
+      "sections": {
+        "identity": "Employee details",
+        "employer": "Employer",
+        "period": "Pay period",
+        "earnings": "Earnings",
+        "deductions": "Deductions",
+        "payment": "Payment",
+        "other": "Additional details"
+      },
+      "showMore": "Show more",
+      "showLess": "Show less",
       "requiredTag": "Required",
       "notFoundOnPayslip": "Not found on payslip",
       "missingRequiredHint": "This field is expected on the payslip but was not extracted. You can enter it if you know the correct value.",
