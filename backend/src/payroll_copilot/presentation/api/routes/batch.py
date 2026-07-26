@@ -62,6 +62,9 @@ from payroll_copilot.infrastructure.tasks.celery_app import process_bulk_payslip
 from payroll_copilot.presentation.api.dependencies import (
     get_run_persisted_validation_use_case,
 )
+from payroll_copilot.presentation.api.content_disposition import (
+    sanitize_content_disposition_filename,
+)
 from payroll_copilot.presentation.api.rate_limit_deps import limit_accountant_upload
 from payroll_copilot.presentation.api.upload_limits import read_upload_with_size_limit
 from payroll_copilot.presentation.api.security import (
@@ -376,7 +379,8 @@ async def get_batch_item_content(
         media_type=document.mime_type or "application/pdf",
         headers={
             "Content-Disposition": (
-                f'inline; filename="{document.original_filename.replace(chr(34), "")}"'
+                'inline; filename="'
+                f'{sanitize_content_disposition_filename(document.original_filename)}"'
             )
         },
     )

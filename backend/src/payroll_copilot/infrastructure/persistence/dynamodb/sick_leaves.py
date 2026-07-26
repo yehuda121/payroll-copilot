@@ -12,7 +12,12 @@ from payroll_copilot.application.ports.sick_leave_requests import (
 from payroll_copilot.domain.entities import SickLeaveRequest
 from payroll_copilot.domain.enums import SickLeaveReviewStatus
 from payroll_copilot.infrastructure.persistence.dynamodb import keys
-from payroll_copilot.infrastructure.persistence.dynamodb.client import GSI1, GSI2, DynamoTable
+from payroll_copilot.infrastructure.persistence.dynamodb.client import (
+    GSI1,
+    GSI2,
+    DynamoTable,
+    DynamoTransactionCanceledError,
+)
 from payroll_copilot.infrastructure.persistence.dynamodb.serde import (
     dumps_value,
     loads_date,
@@ -273,6 +278,68 @@ class DynamoSickLeaveRequestRepository(SickLeaveRequestRepository):
         sick_leave.updated_at = datetime.now(UTC)
         await self._table.put_item(self._to_item(sick_leave))
         return sick_leave
+
+    def _idempotency_item(self, sick_leave: SickLeaveRequest) -> dict:
+        provider = (sick_leave.provider or "").strip().lower()
+        message_id = (sick_leave.provider_message_id or "").strip()
+        return {
+            "PK": keys.org_pk(sick_leave.organization_id),
+            "SK": keys.leave_idemp_sk("sick_leave", provider, message_id),
+            "entity_type": "leave_idempotency",
+            "domain": "sick_leave",
+            "organization_id": str(sick_leave.organization_id),
+            "provider": provider,
+            "provider_message_id": message_id,
+            "leave_id": str(sick_leave.id),
+            "created_at": dumps_value(sick_leave.created_at or datetime.now(UTC)),
+        }
+
+    async def _resolve_inbound_duplicate(
+        self, sick_leave: SickLeaveRequest
+    ) -> SickLeaveRequest | None:
+        provider = (sick_leave.provider or "").strip().lower()
+        message_id = (sick_leave.provider_message_id or "").strip()
+        idemp = await self._table.get_item(
+            {
+                "PK": keys.org_pk(sick_leave.organization_id),
+                "SK": keys.leave_idemp_sk("sick_leave", provider, message_id),
+            }
+        )
+        if idemp and idemp.get("leave_id"):
+            existing = await self.get_by_id(
+                sick_leave.organization_id, UUID(str(idemp["leave_id"]))
+            )
+            if existing is not None:
+                return existing
+        return await self.get_by_provider_message(
+            sick_leave.organization_id,
+            provider=provider,
+            provider_message_id=message_id,
+        )
+
+    async def create_inbound(
+        self, sick_leave: SickLeaveRequest
+    ) -> tuple[SickLeaveRequest, bool]:
+        if not (sick_leave.provider and sick_leave.provider_message_id):
+            saved = await self.save(sick_leave)
+            return saved, True
+        sick_leave.updated_at = datetime.now(UTC)
+        leave_item = self._to_item(sick_leave)
+        idemp_item = self._idempotency_item(sick_leave)
+        condition = "attribute_not_exists(PK)"
+        try:
+            await self._table.transact_put_items(
+                [
+                    {"item": idemp_item, "condition_expression": condition},
+                    {"item": leave_item, "condition_expression": condition},
+                ]
+            )
+            return sick_leave, True
+        except DynamoTransactionCanceledError:
+            existing = await self._resolve_inbound_duplicate(sick_leave)
+            if existing is not None:
+                return existing, False
+            raise
 
     async def delete(self, organization_id: UUID, sick_leave_id: UUID) -> None:
         await self._table.delete_item(

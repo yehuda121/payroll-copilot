@@ -11,6 +11,15 @@ from payroll_copilot.presentation.api.security import AuthPrincipal, require_acc
 router = APIRouter()
 
 
+def _org(principal: AuthPrincipal) -> str:
+    if principal.organization_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "org_required", "message": "Organization binding required."},
+        )
+    return str(principal.organization_id)
+
+
 class ResolveReviewRequest(BaseModel):
     status: str = Field(
         description="resolved_create | resolved_attach | dismissed",
@@ -22,10 +31,13 @@ class ResolveReviewRequest(BaseModel):
 @router.get("")
 async def list_manual_review(
     pending_only: bool = True,
-    _: AuthPrincipal = Depends(require_accountant),
+    principal: AuthPrincipal = Depends(require_accountant),
 ) -> list[dict]:
+    org_id = _org(principal)
     queue = get_manual_review_queue()
-    items = queue.list_pending() if pending_only else queue.list_all()
+    items = (
+        queue.list_pending(org_id) if pending_only else queue.list_all(org_id)
+    )
     return [item.to_dict() for item in items]
 
 
@@ -33,10 +45,16 @@ async def list_manual_review(
 async def resolve_manual_review(
     item_id: str,
     body: ResolveReviewRequest,
-    _: AuthPrincipal = Depends(require_accountant),
+    principal: AuthPrincipal = Depends(require_accountant),
 ) -> dict:
+    org_id = _org(principal)
     queue = get_manual_review_queue()
-    item = queue.resolve(item_id, status=body.status, notes=body.notes)
+    item = queue.resolve(
+        item_id,
+        organization_id=org_id,
+        status=body.status,
+        notes=body.notes,
+    )
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review item not found")
     return item.to_dict()

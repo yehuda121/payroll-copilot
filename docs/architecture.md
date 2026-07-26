@@ -180,13 +180,18 @@ Validation Engine (per slip) → Aggregate Report → Notify accountant
 
 Progress: `GET /api/v1/jobs/{id}` returns `{ processed, total, status, errors[] }`.
 
-### Email Vacation Request (via n8n)
+### Email Leave Request (via n8n)
 
 ```
-n8n polls mailbox → POST /api/v1/integrations/email/parse-leave →
-Email Agent extracts dates/hours/type → confidence check →
-High: write attendance │ Low: human review queue
+n8n polls mailbox → classify/extract (n8n) →
+POST /api/v1/integrations/email/inbound-leave/batch
+  (or compat POST …/inbound-vacation for single vacation) →
+Payroll Copilot matches employee, validates, persists VacationRequest / SickLeaveRequest →
+returns aggregated notification instruction for n8n to send
 ```
+
+Legacy `POST …/email/parse-leave` is extract-only (does not persist leave requests).
+Canonical product docs: `docs/vacation-email.md`, `docs/n8n-vacation-workflow.md`.
 
 ---
 

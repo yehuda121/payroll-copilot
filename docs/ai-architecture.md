@@ -209,16 +209,19 @@ Scheduled job / manual trigger
 
 ## Email Agent (n8n Integration)
 
-n8n workflow:
-1. IMAP trigger on shared payroll mailbox
-2. HTTP Request to `POST /integrations/email/parse-leave`
-3. If `action == pending_review` → Slack/email notification to accountant
-4. Accountant approves via `POST /attendance/review/{id}/approve`
+Canonical leave intake (n8n-owned classification/extraction):
 
-Email Agent uses `VacationSickLeaveAgent` internally:
-- Extract: leave type, dates, partial hours, employee identity from signature
-- Confidence < 0.85 → `pending_review`
-- Confidence ≥ 0.85 → auto-record with audit flag
+1. IMAP trigger on the org mailbox (configured in n8n; unread-safe)
+2. Classify + extract `VACATION` / `SICK_LEAVE` (drop OTHER/UNCERTAIN)
+3. `POST /integrations/email/inbound-leave/batch` with `{ "items": [...] }`
+4. n8n sends **one** summary email only when the response `notification.should_send` is true
+
+Compatibility:
+
+- `POST /integrations/email/inbound-vacation` — single vacation item
+- `POST /integrations/email/parse-leave` — **extract-only** legacy helper (does **not** persist leave requests)
+
+Payroll Copilot owns employee matching, duplicate/overlap checks, attention codes, approval UI, and notification content/prefs. See `docs/vacation-email.md`.
 
 ---
 

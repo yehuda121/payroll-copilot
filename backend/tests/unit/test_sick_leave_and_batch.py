@@ -126,6 +126,27 @@ class FakeSickLeaves(SickLeaveRequestRepository):
         self.items[sick_leave.id] = sick_leave
         return sick_leave
 
+    async def create_inbound(
+        self, sick_leave: SickLeaveRequest
+    ) -> tuple[SickLeaveRequest, bool]:
+        if not getattr(self, "_idemp", None):
+            self._idemp = {}
+        if getattr(self, "_fail_next_inbound", False):
+            self._fail_next_inbound = False
+            raise RuntimeError("simulated_transaction_failure")
+        provider = (sick_leave.provider or "").strip().lower()
+        message_id = (sick_leave.provider_message_id or "").strip()
+        if provider and message_id:
+            key = f"{sick_leave.organization_id}:{provider}:{message_id}"
+            existing_id = self._idemp.get(key)
+            if existing_id is not None:
+                existing = self.items.get(existing_id)
+                if existing is not None:
+                    return existing, False
+            self._idemp[key] = sick_leave.id
+        self.items[sick_leave.id] = sick_leave
+        return sick_leave, True
+
     async def delete(self, organization_id: UUID, sick_leave_id: UUID) -> None:
         self.items.pop(sick_leave_id, None)
 
@@ -189,6 +210,24 @@ class FakeVacations(VacationRequestRepository):
     async def save(self, vacation: VacationRequest) -> VacationRequest:
         self.items[vacation.id] = vacation
         return vacation
+
+    async def create_inbound(
+        self, vacation: VacationRequest
+    ) -> tuple[VacationRequest, bool]:
+        if not getattr(self, "_idemp", None):
+            self._idemp = {}
+        provider = (vacation.provider or "").strip().lower()
+        message_id = (vacation.provider_message_id or "").strip()
+        if provider and message_id:
+            key = f"{vacation.organization_id}:{provider}:{message_id}"
+            existing_id = self._idemp.get(key)
+            if existing_id is not None:
+                existing = self.items.get(existing_id)
+                if existing is not None:
+                    return existing, False
+            self._idemp[key] = vacation.id
+        self.items[vacation.id] = vacation
+        return vacation, True
 
     async def delete(self, organization_id: UUID, vacation_id: UUID) -> None:
         self.items.pop(vacation_id, None)
@@ -727,3 +766,50 @@ def test_batch_notification_pref_and_fallback_recipient() -> None:
         received_count=2,
     )
     assert note2["should_send"] is False
+
+
+@pytest.mark.asyncio
+async def test_create_manual_same_org_employee_succeeds(sick_stack, org_id: UUID) -> None:
+    uc: ManageSickLeavesUseCase = sick_stack["uc"]
+    emp = sick_stack["emp"]
+    saved = await uc.create_manual(
+        org_id,
+        actor_user_id=uuid4(),
+        employee_id=emp.id,
+        employee_email="ada@example.com",
+        employee_name="Ada",
+        start_date=date(2026, 12, 1),
+        end_date=date(2026, 12, 2),
+    )
+    assert saved.employee_id == emp.id
+    assert saved.organization_id == org_id
+
+
+@pytest.mark.asyncio
+async def test_create_manual_foreign_org_employee_rejected(sick_stack, org_id: UUID) -> None:
+    uc: ManageSickLeavesUseCase = sick_stack["uc"]
+    foreign = _employee(uuid4(), "other@example.com")
+    sick_stack["employees"].employees.append(foreign)
+    with pytest.raises(ValueError, match="employee_not_found"):
+        await uc.create_manual(
+            org_id,
+            actor_user_id=uuid4(),
+            employee_id=foreign.id,
+            employee_email="other@example.com",
+            employee_name="Other",
+            start_date=date(2026, 12, 1),
+            end_date=date(2026, 12, 2),
+        )
+    assert list(sick_stack["sick"].items.values()) == []
+
+
+@pytest.mark.asyncio
+async def test_sick_ingest_provider_race_single_record(sick_stack, org_id: UUID) -> None:
+    uc: ManageSickLeavesUseCase = sick_stack["uc"]
+    cmd = _sick_cmd(provider_message_id="race-sick")
+    first = await uc.ingest_inbound(org_id, cmd)
+    second = await uc.ingest_inbound(org_id, cmd)
+    assert first["outcome"] in {"SUCCESS", "REQUIRES_ATTENTION"}
+    assert second["outcome"] == "DUPLICATE"
+    assert second["sick_leave_request_id"] == first["sick_leave_request_id"]
+    assert len(sick_stack["sick"].items) == 1

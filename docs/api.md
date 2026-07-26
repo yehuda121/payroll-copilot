@@ -353,9 +353,49 @@ Trigger MCP comparison against external sources. Enqueues background job.
 
 ## Integrations (n8n)
 
+Authenticated via org-bound `X-Api-Key` (resolved to `organization_id`; do not send org id from the client as authority).
+
+Canonical leave intake and compatibility routes are documented in
+[vacation-email.md](./vacation-email.md) and [n8n-vacation-workflow.md](./n8n-vacation-workflow.md).
+
+### POST /integrations/email/inbound-leave/batch
+
+Preferred webhook for mixed vacation + sick-leave items after n8n classification/extraction.
+
+```json
+{
+  "items": [
+    {
+      "provider": "imap",
+      "provider_message_id": "…",
+      "classification": "VACATION",
+      "intent": "new",
+      "from_email": "employee@company.co.il",
+      "subject": "בקשה לחופשה",
+      "body_text": "…",
+      "received_at": "2026-07-05T09:00:00Z",
+      "extraction": {
+        "employee_email": "employee@company.co.il",
+        "employee_name": "…",
+        "start_date": "2026-07-15",
+        "end_date": "2026-07-17",
+        "confidence": 0.92,
+        "explanation": "…"
+      }
+    }
+  ]
+}
+```
+
+Response includes `results[]`, duplicate counts, and a single aggregated `notification` instruction.
+
+### POST /integrations/email/inbound-vacation
+
+Compatibility path for a **single vacation** item (same extraction shape). Prefer the batch endpoint for new workflows.
+
 ### POST /integrations/email/parse-leave
 
-Webhook for n8n email workflow.
+Legacy **extract-only** helper. Does **not** persist `VacationRequest` / `SickLeaveRequest`. Prefer n8n-owned extraction + `inbound-leave/batch`.
 
 ```json
 {
@@ -370,18 +410,11 @@ Webhook for n8n email workflow.
 ```json
 // Response 200
 {
-  "parsed": {
-    "leave_type": "vacation",
-    "start_date": "2026-07-15",
-    "end_date": "2026-07-17",
-    "hours": null
-  },
+  "parsed": { "...": "agent fields" },
   "confidence": 0.87,
-  "action": "pending_review"  // or "recorded" if high confidence
+  "action": "pending_review"
 }
 ```
-
-Authenticated via `X-API-Key` header (system integration key per org).
 
 ---
 

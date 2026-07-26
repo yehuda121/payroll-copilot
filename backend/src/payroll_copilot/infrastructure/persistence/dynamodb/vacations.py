@@ -12,7 +12,12 @@ from payroll_copilot.application.ports.vacation_requests import (
 from payroll_copilot.domain.entities import VacationRequest
 from payroll_copilot.domain.enums import VacationReviewStatus
 from payroll_copilot.infrastructure.persistence.dynamodb import keys
-from payroll_copilot.infrastructure.persistence.dynamodb.client import GSI1, GSI2, DynamoTable
+from payroll_copilot.infrastructure.persistence.dynamodb.client import (
+    GSI1,
+    GSI2,
+    DynamoTable,
+    DynamoTransactionCanceledError,
+)
 from payroll_copilot.infrastructure.persistence.dynamodb.serde import (
     dumps_value,
     loads_date,
@@ -273,6 +278,68 @@ class DynamoVacationRequestRepository(VacationRequestRepository):
         vacation.updated_at = datetime.now(UTC)
         await self._table.put_item(self._to_item(vacation))
         return vacation
+
+    def _idempotency_item(self, vacation: VacationRequest) -> dict:
+        provider = (vacation.provider or "").strip().lower()
+        message_id = (vacation.provider_message_id or "").strip()
+        return {
+            "PK": keys.org_pk(vacation.organization_id),
+            "SK": keys.leave_idemp_sk("vacation", provider, message_id),
+            "entity_type": "leave_idempotency",
+            "domain": "vacation",
+            "organization_id": str(vacation.organization_id),
+            "provider": provider,
+            "provider_message_id": message_id,
+            "leave_id": str(vacation.id),
+            "created_at": dumps_value(vacation.created_at or datetime.now(UTC)),
+        }
+
+    async def _resolve_inbound_duplicate(
+        self, vacation: VacationRequest
+    ) -> VacationRequest | None:
+        provider = (vacation.provider or "").strip().lower()
+        message_id = (vacation.provider_message_id or "").strip()
+        idemp = await self._table.get_item(
+            {
+                "PK": keys.org_pk(vacation.organization_id),
+                "SK": keys.leave_idemp_sk("vacation", provider, message_id),
+            }
+        )
+        if idemp and idemp.get("leave_id"):
+            existing = await self.get_by_id(
+                vacation.organization_id, UUID(str(idemp["leave_id"]))
+            )
+            if existing is not None:
+                return existing
+        return await self.get_by_provider_message(
+            vacation.organization_id,
+            provider=provider,
+            provider_message_id=message_id,
+        )
+
+    async def create_inbound(
+        self, vacation: VacationRequest
+    ) -> tuple[VacationRequest, bool]:
+        if not (vacation.provider and vacation.provider_message_id):
+            saved = await self.save(vacation)
+            return saved, True
+        vacation.updated_at = datetime.now(UTC)
+        leave_item = self._to_item(vacation)
+        idemp_item = self._idempotency_item(vacation)
+        condition = "attribute_not_exists(PK)"
+        try:
+            await self._table.transact_put_items(
+                [
+                    {"item": idemp_item, "condition_expression": condition},
+                    {"item": leave_item, "condition_expression": condition},
+                ]
+            )
+            return vacation, True
+        except DynamoTransactionCanceledError:
+            existing = await self._resolve_inbound_duplicate(vacation)
+            if existing is not None:
+                return existing, False
+            raise
 
     async def delete(self, organization_id: UUID, vacation_id: UUID) -> None:
         await self._table.delete_item(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from uuid import UUID
 
 
@@ -160,3 +161,14 @@ def gsi2_sick_message(
 def gsi3_sick_employee(organization_id: UUID | str, employee_id: UUID | str | None) -> str:
     emp = "NONE" if employee_id is None else str(employee_id)
     return f"ORG#{organization_id}#SEMP#{emp}"
+
+
+def leave_idemp_sk(domain: str, provider: str, provider_message_id: str) -> str:
+    """Org-scoped leave ingest idempotency sort key (hash avoids delimiter issues).
+
+    domain is ``vacation`` or ``sick_leave``. PK remains ``ORG#{organization_id}``.
+    """
+    digest = hashlib.sha256(
+        f"{provider.strip().lower()}\0{provider_message_id.strip()}".encode("utf-8")
+    ).hexdigest()
+    return f"LEAVE_IDEMP#{domain}#{digest}"

@@ -433,18 +433,27 @@ async def create_manual_vacation(
     body: ManualVacationCreate,
     principal: AuthPrincipal = Depends(require_accountant),
 ) -> dict[str, Any]:
-    vac = await _use_case().create_manual(
-        _org(principal),
-        actor_user_id=principal.user_id,
-        employee_id=body.employee_id,
-        employee_email=body.employee_email,
-        employee_name=body.employee_name,
-        start_date=body.start_date,
-        end_date=body.end_date,
-        subject=body.subject,
-        notes=body.notes,
-    )
-    return _serialize_vacation(vac)
+    try:
+        vac = await _use_case().create_manual(
+            _org(principal),
+            actor_user_id=principal.user_id,
+            employee_id=body.employee_id,
+            employee_email=body.employee_email,
+            employee_name=body.employee_name,
+            start_date=body.start_date,
+            end_date=body.end_date,
+            subject=body.subject,
+            notes=body.notes,
+        )
+        return _serialize_vacation(vac)
+    except ValueError as exc:
+        detail = str(exc)
+        if detail == "employee_not_found":
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"code": detail, "message": "Employee not found in organization."},
+            ) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail) from exc
 
 
 @router.patch("/{vacation_id}")

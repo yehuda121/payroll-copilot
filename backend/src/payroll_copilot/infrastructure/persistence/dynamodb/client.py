@@ -19,6 +19,13 @@ GSI2 = "GSI2"
 GSI3 = "GSI3"
 
 
+class DynamoTransactionCanceledError(Exception):
+    """Raised when a DynamoDB TransactWriteItems condition fails (no items committed)."""
+
+    def __init__(self, message: str = "dynamodb_transaction_canceled") -> None:
+        super().__init__(message)
+
+
 class DynamoTable:
     """Thin async wrapper around a boto3 DynamoDB Table resource."""
 
@@ -50,6 +57,47 @@ class DynamoTable:
         if condition_expression is not None:
             kwargs["ConditionExpression"] = condition_expression
         await asyncio.to_thread(self._table.put_item, **kwargs)
+
+    async def transact_put_items(
+        self,
+        puts: list[dict[str, Any]],
+    ) -> None:
+        """Atomically Put multiple items.
+
+        Each entry: ``{"item": dict, "condition_expression": str | None}``.
+        On condition failure DynamoDB commits nothing; raises
+        ``DynamoTransactionCanceledError``.
+        """
+        from boto3.dynamodb.types import TypeSerializer
+
+        serializer = TypeSerializer()
+
+        def _serialize_item(item: dict[str, Any]) -> dict[str, Any]:
+            return {k: serializer.serialize(v) for k, v in item.items() if v is not None}
+
+        transact_items: list[dict[str, Any]] = []
+        for entry in puts:
+            put_body: dict[str, Any] = {
+                "TableName": self.table_name,
+                "Item": _serialize_item(entry["item"]),
+            }
+            condition = entry.get("condition_expression")
+            if condition:
+                put_body["ConditionExpression"] = condition
+            transact_items.append({"Put": put_body})
+
+        def _run() -> None:
+            self._client.transact_write_items(TransactItems=transact_items)
+
+        try:
+            await asyncio.to_thread(_run)
+        except ClientError as exc:
+            code = exc.response.get("Error", {}).get("Code")
+            if code == "TransactionCanceledException":
+                raise DynamoTransactionCanceledError(
+                    "dynamodb_transaction_canceled"
+                ) from exc
+            raise
 
     async def update_item(
         self,

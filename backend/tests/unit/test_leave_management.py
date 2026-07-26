@@ -64,6 +64,22 @@ class FakeVacations:
         self.items[vacation.id] = vacation
         return vacation
 
+    async def create_inbound(self, vacation):
+        if not getattr(self, "_idemp", None):
+            self._idemp = {}
+        provider = (vacation.provider or "").strip().lower()
+        message_id = (vacation.provider_message_id or "").strip()
+        if provider and message_id:
+            key = f"{vacation.organization_id}:{provider}:{message_id}"
+            existing_id = self._idemp.get(key)
+            if existing_id is not None:
+                existing = self.items.get(existing_id)
+                if existing is not None:
+                    return existing, False
+            self._idemp[key] = vacation.id
+        self.items[vacation.id] = vacation
+        return vacation, True
+
     async def delete(self, organization_id, vacation_id):
         vac = self.items.get(vacation_id)
         if vac and vac.organization_id == organization_id:

@@ -4,7 +4,7 @@ import { PortalPage } from '../../components/PortalPage';
 import { ActionIconButton } from '../../components/ui/ActionIconButton';
 import { DataTable, type DataTableColumn } from '../../components/ui/DataTable';
 import { LoadingOverlay, ModalDialog, useConfirmDialog } from '../../components/ui/Dialog';
-import { RefreshIcon, SettingsIcon, TrashIcon } from '../../components/ui/icons';
+import { TrashIcon } from '../../components/ui/icons';
 import { useToast } from '../../components/ui/Toast';
 import {
   getLeaveListCache,
@@ -20,8 +20,13 @@ import {
   isLeaveEditDirty,
   isLeaveSettingsDirty,
   LEAVE_DEFAULT_BUCKET,
+  LEAVE_HARD_ATTENTION_CODES,
+  leaveAttentionLabel,
   leaveEditBaseline,
+  leaveEmployeeLabel,
+  leaveRowSeverityClass,
   leaveSettingsBaseline,
+  leaveStatusBadgeClass,
   mapLeaveActionError,
   normalizeLeaveNotificationEmail,
   type LeaveEditForm,
@@ -33,7 +38,13 @@ import {
   type VacationRecord,
   type VacationSettings,
 } from '../../services/vacations';
-import './Vacations.css';
+import {
+  LeaveLoadError,
+  LeaveManualEntryFields,
+  LeaveToolbar,
+  LeaveUnsavedChangesDialog,
+} from './leave-ui/LeavePresentation';
+import './leave-ui/LeaveManagement.css';
 
 type Bucket =
   | typeof LEAVE_DEFAULT_BUCKET
@@ -44,56 +55,10 @@ type Bucket =
   | 'requires_attention'
   | 'approved';
 
-const HARD_CODES = new Set([
-  'MISSING_EMPLOYEE_EMAIL',
-  'EMPLOYEE_NOT_FOUND',
-  'EMPLOYEE_AMBIGUOUS',
-  'MISSING_START_DATE',
-  'MISSING_END_DATE',
-  'INVALID_DATE',
-  'END_BEFORE_START',
-  'AMBIGUOUS_UPDATE',
-  'AMBIGUOUS_CANCEL',
-]);
-
-const WARNING_CODES = new Set([
-  'OVERLAP',
-  'LOW_CONFIDENCE',
-  'UPDATE_PROPOSED',
-  'CANCEL_PROPOSED',
-  'DUPLICATE_CONTENT',
-]);
-
 type LoadOptions = {
   /** Explicit refresh — keep rows visible, show subtle refreshing state. */
   force?: boolean;
 };
-
-function statusBadgeClass(status: string, codes: string[]): string {
-  if (status === 'approved') return 'status-badge--passed';
-  if (codes.some((c) => HARD_CODES.has(c)) || status === 'requires_attention') {
-    return 'status-badge--critical';
-  }
-  if (codes.some((c) => WARNING_CODES.has(c))) return 'status-badge--warnings';
-  if (status === 'pending_approval') return 'status-badge--warnings';
-  return 'status-badge--neutral';
-}
-
-function rowSeverityClass(row: VacationRecord): string {
-  if (row.attentionCodes.some((c) => HARD_CODES.has(c))) return 'leave-row--error';
-  if (row.attentionCodes.some((c) => WARNING_CODES.has(c))) return 'leave-row--warning';
-  return '';
-}
-
-function attentionLabel(code: string, t: (k: string) => string): string {
-  const key = `accountant.vacations.attention.${code}`;
-  const translated = t(key);
-  return translated === key ? code : translated;
-}
-
-function employeeLabel(row: VacationRecord): string {
-  return row.extractedEmployeeName || row.extractedEmployeeEmail || '—';
-}
 
 type LeaveRow = VacationRecord & Record<string, unknown>;
 
@@ -233,6 +198,10 @@ export function VacationsPage() {
           });
         } catch (err) {
           console.error('Leave mark-seen failed', err);
+          showToast({
+            tone: 'error',
+            message: t('accountant.vacations.toastMarkSeenFailed'),
+          });
         }
       } else {
         console.error('Leave list load failed', listResult.err);
@@ -574,20 +543,22 @@ export function VacationsPage() {
     {
       key: 'employee',
       header: t('accountant.vacations.colEmployee'),
-      sortValue: (row) => employeeLabel(row),
+      sortValue: (row) => leaveEmployeeLabel(row),
       render: (row) => (
-        <span className={rowSeverityClass(row)}>
-          {employeeLabel(row)}
+        <span className={leaveRowSeverityClass(row.attentionCodes)}>
+          {leaveEmployeeLabel(row)}
           {row.attentionCodes.length > 0 ? (
             <span className="leave-codes">
               {row.attentionCodes.slice(0, 2).map((code) => (
                 <span
                   key={code}
                   className={`status-badge ${
-                    HARD_CODES.has(code) ? 'status-badge--critical' : 'status-badge--warnings'
+                    LEAVE_HARD_ATTENTION_CODES.has(code)
+                      ? 'status-badge--critical'
+                      : 'status-badge--warnings'
                   }`}
                 >
-                  {attentionLabel(code, t)}
+                  {leaveAttentionLabel(code, t, 'accountant.vacations')}
                 </span>
               ))}
             </span>
@@ -618,7 +589,7 @@ export function VacationsPage() {
       header: t('accountant.vacations.colStatus'),
       sortValue: (row) => row.reviewStatus,
       render: (row) => (
-        <span className={`status-badge ${statusBadgeClass(row.reviewStatus, row.attentionCodes)}`}>
+        <span className={`status-badge ${leaveStatusBadgeClass(row.reviewStatus, row.attentionCodes)}`}>
           {t(`accountant.vacations.status.${row.reviewStatus}`, {
             defaultValue: row.reviewStatus,
           })}
@@ -665,75 +636,39 @@ export function VacationsPage() {
     >
       {loading && items.length === 0 ? <LoadingOverlay label={t('common.loading')} /> : null}
 
-      {loadError ? (
-        <p className="vacations-error" role="alert">
-          {loadError}
-        </p>
-      ) : null}
+      <LeaveLoadError message={loadError} className="vacations-error" />
 
-      <div className="leave-toolbar">
-        <div className="leave-toolbar__actions">
-          <button type="button" className="btn btn--primary" onClick={() => setManualOpen(true)}>
-            {t('accountant.vacations.addManual')}
-          </button>
-          <ActionIconButton
-            label={t('accountant.vacations.settingsOpen')}
-            icon={<SettingsIcon size={18} />}
-            disabled={!settings}
-            onClick={openSettings}
-          />
-          <ActionIconButton
-            label={t('accountant.vacations.refresh')}
-            icon={<RefreshIcon size={18} className={refreshing ? 'leave-icon--spin' : undefined} />}
-            disabled={refreshing}
-            onClick={() => void load({ force: true })}
-          />
-        </div>
-        <div className="leave-toolbar__filters">
-          <label className="vacations-filter-field vacations-filter-field--status">
-            <select
-              className="vacations-filter-control"
-              value={bucket}
-              aria-label={t('accountant.vacations.filterStatus')}
-              onChange={(e) => setBucket(e.target.value as Bucket)}
-            >
-              {buckets.map((key) => (
-                <option key={key} value={key}>
-                  {t(`accountant.vacations.buckets.${key}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="vacations-filter-field">
-            {t('accountant.vacations.rangeStart')}
-            <input
-              className="vacations-filter-control"
-              type="date"
-              value={rangeStart}
-              onChange={(e) => setRangeStart(e.target.value)}
-            />
-          </label>
-          <label className="vacations-filter-field">
-            {t('accountant.vacations.rangeEnd')}
-            <input
-              className="vacations-filter-control"
-              type="date"
-              value={rangeEnd}
-              onChange={(e) => setRangeEnd(e.target.value)}
-            />
-          </label>
-          {selected.size > 0 ? (
-            <div className="leave-bulk-actions">
-              <button type="button" className="btn btn--primary" onClick={() => void bulkApprove()}>
-                {t('accountant.vacations.approveSelected')}
-              </button>
-              <button type="button" className="btn btn--danger" onClick={() => void bulkDelete()}>
-                {t('accountant.vacations.deleteSelected')}
-              </button>
-            </div>
-          ) : null}
-        </div>
-      </div>
+      <LeaveToolbar
+        filterClassPrefix="vacations"
+        labels={{
+          addManual: t('accountant.vacations.addManual'),
+          settingsOpen: t('accountant.vacations.settingsOpen'),
+          refresh: t('accountant.vacations.refresh'),
+          filterStatus: t('accountant.vacations.filterStatus'),
+          rangeStart: t('accountant.vacations.rangeStart'),
+          rangeEnd: t('accountant.vacations.rangeEnd'),
+          approveSelected: t('accountant.vacations.approveSelected'),
+          deleteSelected: t('accountant.vacations.deleteSelected'),
+        }}
+        buckets={buckets.map((key) => ({
+          value: key,
+          label: t(`accountant.vacations.buckets.${key}`),
+        }))}
+        bucket={bucket}
+        rangeStart={rangeStart}
+        rangeEnd={rangeEnd}
+        selectedCount={selected.size}
+        refreshing={refreshing}
+        settingsDisabled={!settings}
+        onAddManual={() => setManualOpen(true)}
+        onOpenSettings={openSettings}
+        onRefresh={() => void load({ force: true })}
+        onBucketChange={(value) => setBucket(value as Bucket)}
+        onRangeStartChange={setRangeStart}
+        onRangeEndChange={setRangeEnd}
+        onApproveSelected={() => void bulkApprove()}
+        onDeleteSelected={() => void bulkDelete()}
+      />
 
       <DataTable
         columns={columns}
@@ -747,7 +682,7 @@ export function VacationsPage() {
 
       {detail ? (
         <ModalDialog
-          title={employeeLabel(detail)}
+          title={leaveEmployeeLabel(detail)}
           wide
           className="leave-request-dialog"
           closeLabel={t('common.close')}
@@ -792,7 +727,7 @@ export function VacationsPage() {
           <div className="leave-detail-modal">
             <p>
               <span
-                className={`status-badge ${statusBadgeClass(detail.reviewStatus, detail.attentionCodes)}`}
+                className={`status-badge ${leaveStatusBadgeClass(detail.reviewStatus, detail.attentionCodes)}`}
               >
                 {t(`accountant.vacations.status.${detail.reviewStatus}`, {
                   defaultValue: detail.reviewStatus,
@@ -806,10 +741,12 @@ export function VacationsPage() {
                   <li key={code}>
                     <span
                       className={`status-badge ${
-                        HARD_CODES.has(code) ? 'status-badge--critical' : 'status-badge--warnings'
+                        LEAVE_HARD_ATTENTION_CODES.has(code)
+                          ? 'status-badge--critical'
+                          : 'status-badge--warnings'
                       }`}
                     >
-                      {attentionLabel(code, t)}
+                      {leaveAttentionLabel(code, t, 'accountant.vacations')}
                     </span>
                   </li>
                 ))}
@@ -916,38 +853,19 @@ export function VacationsPage() {
         </ModalDialog>
       ) : null}
 
-      {unsavedOpen ? (
-        <ModalDialog
-          title={t('accountant.vacations.unsavedTitle')}
-          variant="warning"
-          closeLabel={t('common.close')}
-          onClose={() => setUnsavedOpen(false)}
-          footer={
-            <div className="unsaved-actions">
-              <button
-                type="button"
-                className="btn btn--secondary"
-                onClick={() => setUnsavedOpen(false)}
-              >
-                {t('accountant.vacations.unsavedStay')}
-              </button>
-              <button type="button" className="btn btn--secondary" onClick={discardAndLeave}>
-                {t('accountant.vacations.unsavedDiscard')}
-              </button>
-              <button
-                type="button"
-                className="btn btn--primary"
-                disabled={saving}
-                onClick={() => void saveAndLeave()}
-              >
-                {t('accountant.vacations.unsavedSaveAndLeave')}
-              </button>
-            </div>
-          }
-        >
-          <p className="modal-dialog__message">{t('accountant.vacations.unsavedMessage')}</p>
-        </ModalDialog>
-      ) : null}
+      <LeaveUnsavedChangesDialog
+        open={unsavedOpen}
+        title={t('accountant.vacations.unsavedTitle')}
+        message={t('accountant.vacations.unsavedMessage')}
+        stayLabel={t('accountant.vacations.unsavedStay')}
+        discardLabel={t('accountant.vacations.unsavedDiscard')}
+        saveAndLeaveLabel={t('accountant.vacations.unsavedSaveAndLeave')}
+        closeLabel={t('common.close')}
+        saving={saving}
+        onStay={() => setUnsavedOpen(false)}
+        onDiscard={discardAndLeave}
+        onSaveAndLeave={() => void saveAndLeave()}
+      />
 
       {settingsOpen && settings ? (
         <ModalDialog
@@ -1053,38 +971,16 @@ export function VacationsPage() {
             </>
           }
         >
-          <div className="form-grid">
-            <label>
-              {t('accountant.vacations.fieldEmail')}
-              <input
-                value={manualForm.employeeEmail}
-                onChange={(e) => setManualForm((f) => ({ ...f, employeeEmail: e.target.value }))}
-              />
-            </label>
-            <label>
-              {t('accountant.vacations.fieldName')}
-              <input
-                value={manualForm.employeeName}
-                onChange={(e) => setManualForm((f) => ({ ...f, employeeName: e.target.value }))}
-              />
-            </label>
-            <label>
-              {t('accountant.vacations.fieldStartDate')}
-              <input
-                type="date"
-                value={manualForm.startDate}
-                onChange={(e) => setManualForm((f) => ({ ...f, startDate: e.target.value }))}
-              />
-            </label>
-            <label>
-              {t('accountant.vacations.fieldEndDate')}
-              <input
-                type="date"
-                value={manualForm.endDate}
-                onChange={(e) => setManualForm((f) => ({ ...f, endDate: e.target.value }))}
-              />
-            </label>
-          </div>
+          <LeaveManualEntryFields
+            labels={{
+              fieldEmail: t('accountant.vacations.fieldEmail'),
+              fieldName: t('accountant.vacations.fieldName'),
+              fieldStartDate: t('accountant.vacations.fieldStartDate'),
+              fieldEndDate: t('accountant.vacations.fieldEndDate'),
+            }}
+            values={manualForm}
+            onChange={(patch) => setManualForm((f) => ({ ...f, ...patch }))}
+          />
         </ModalDialog>
       ) : null}
     </PortalPage>

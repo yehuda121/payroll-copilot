@@ -28,6 +28,7 @@ from payroll_copilot.infrastructure.ai.provider_router import AIProviderRouter
 from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.infrastructure.email.factory import create_email_service
 from payroll_copilot.infrastructure.persistence import dynamodb as dynamo_persistence
+from payroll_copilot.presentation.api.rate_limit_deps import enforce_integration_org_rate_limit
 
 router = APIRouter()
 
@@ -133,6 +134,10 @@ async def resolve_integration_principal(x_api_key: str) -> IntegrationPrincipal:
     )
 
 
+def _rate_limit_integration(principal: IntegrationPrincipal) -> None:
+    enforce_integration_org_rate_limit(str(principal.organization_id))
+
+
 # Keep legacy parse-leave for compatibility but document it does not persist.
 class EmailParseLeaveRequest(BaseModel):
     organization_id: str
@@ -157,7 +162,8 @@ async def parse_leave_email(
 
     Prefer POST /integrations/email/inbound-vacation with n8n-owned extraction.
     """
-    await resolve_integration_principal(x_api_key)
+    principal = await resolve_integration_principal(x_api_key)
+    _rate_limit_integration(principal)
     settings = get_settings()
     provider = AIProviderRouter(settings).provider_for(AICapability.GENERAL)
     registry = AgentRegistry(provider)
@@ -174,6 +180,23 @@ async def parse_leave_email(
     return ParsedLeaveResponse(parsed=result.data, confidence=confidence, action=action)
 
 
+class LeaveExtractionPayload(BaseModel):
+    """n8n extraction object for vacation / sick-leave inbound items.
+
+    All fields optional to match the live contract; malformed types fail at the
+    HTTP boundary instead of deep in ingest.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    employee_email: str | None = Field(default=None, max_length=320)
+    employee_name: str | None = Field(default=None, max_length=500)
+    start_date: str | None = Field(default=None, max_length=64)
+    end_date: str | None = Field(default=None, max_length=64)
+    confidence: float | None = None
+    explanation: str | None = Field(default=None, max_length=5000)
+
+
 class InboundVacationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -187,7 +210,7 @@ class InboundVacationRequest(BaseModel):
     received_at: datetime | None = None
     classification: str = Field(default="VACATION", max_length=32)
     intent: str = Field(default="new", max_length=32)
-    extraction: dict[str, Any] = Field(default_factory=dict)
+    extraction: LeaveExtractionPayload = Field(default_factory=LeaveExtractionPayload)
     n8n_attention_codes: list[str] = Field(default_factory=list, max_length=20)
     target_hints: dict[str, Any] | None = None
 
@@ -195,6 +218,7 @@ class InboundVacationRequest(BaseModel):
 @router.get("/vacation/mailbox-config")
 async def mailbox_config(x_api_key: str = Header(...)) -> dict[str, Any]:
     principal = await resolve_integration_principal(x_api_key)
+    _rate_limit_integration(principal)
     uc = _use_case()
     settings = await uc.get_settings(principal.organization_id)
     return {"organizations": [await uc.mailbox_config_for_n8n(settings)]}
@@ -206,7 +230,8 @@ async def inbound_vacation(
     x_api_key: str = Header(...),
 ) -> dict[str, Any]:
     principal = await resolve_integration_principal(x_api_key)
-    extraction = body.extraction or {}
+    _rate_limit_integration(principal)
+    extraction = body.extraction
     command = InboundVacationCommand(
         provider=body.provider,
         provider_message_id=body.provider_message_id,
@@ -218,12 +243,12 @@ async def inbound_vacation(
         received_at=body.received_at,
         classification=body.classification,
         intent=body.intent,
-        employee_email=extraction.get("employee_email"),
-        employee_name=extraction.get("employee_name"),
-        start_date=extraction.get("start_date"),
-        end_date=extraction.get("end_date"),
-        confidence=extraction.get("confidence"),
-        explanation=extraction.get("explanation"),
+        employee_email=extraction.employee_email,
+        employee_name=extraction.employee_name,
+        start_date=extraction.start_date,
+        end_date=extraction.end_date,
+        confidence=extraction.confidence,
+        explanation=extraction.explanation,
         n8n_attention_codes=list(body.n8n_attention_codes or []),
         target_hints=body.target_hints,
     )
@@ -243,7 +268,7 @@ class InboundLeaveBatchItemRequest(BaseModel):
     received_at: datetime | None = None
     classification: str = Field(min_length=3, max_length=32)
     intent: str = Field(default="new", max_length=32)
-    extraction: dict[str, Any] = Field(default_factory=dict)
+    extraction: LeaveExtractionPayload = Field(default_factory=LeaveExtractionPayload)
     n8n_attention_codes: list[str] = Field(default_factory=list, max_length=20)
     target_hints: dict[str, Any] | None = None
 
@@ -261,9 +286,10 @@ async def inbound_leave_batch(
 ) -> dict[str, Any]:
     """Process a mixed VACATION + SICK_LEAVE batch. Org comes from API key only."""
     principal = await resolve_integration_principal(x_api_key)
+    _rate_limit_integration(principal)
     items: list[InboundLeaveBatchItem] = []
     for item in body.items:
-        extraction = item.extraction or {}
+        extraction = item.extraction
         items.append(
             InboundLeaveBatchItem(
                 provider=item.provider,
@@ -276,12 +302,12 @@ async def inbound_leave_batch(
                 received_at=item.received_at,
                 classification=item.classification,
                 intent=item.intent,
-                employee_email=extraction.get("employee_email"),
-                employee_name=extraction.get("employee_name"),
-                start_date=extraction.get("start_date"),
-                end_date=extraction.get("end_date"),
-                confidence=extraction.get("confidence"),
-                explanation=extraction.get("explanation"),
+                employee_email=extraction.employee_email,
+                employee_name=extraction.employee_name,
+                start_date=extraction.start_date,
+                end_date=extraction.end_date,
+                confidence=extraction.confidence,
+                explanation=extraction.explanation,
                 n8n_attention_codes=list(item.n8n_attention_codes or []),
                 target_hints=item.target_hints,
             )
@@ -306,6 +332,7 @@ async def pipeline_events(
     x_api_key: str = Header(...),
 ) -> dict[str, Any]:
     principal = await resolve_integration_principal(x_api_key)
+    _rate_limit_integration(principal)
     try:
         VacationPipelineEventType(body.event_type)
     except ValueError as exc:
@@ -354,6 +381,7 @@ async def mailbox_health(
     x_api_key: str = Header(...),
 ) -> dict[str, Any]:
     principal = await resolve_integration_principal(x_api_key)
+    _rate_limit_integration(principal)
     uc = _use_case()
     settings = await uc.apply_mailbox_health(
         principal.organization_id,

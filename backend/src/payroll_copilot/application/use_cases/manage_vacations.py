@@ -575,6 +575,10 @@ class ManageVacationsUseCase:
         notes: str | None = None,
     ) -> VacationRequest:
         codes = collect_date_attention_codes(start_date, end_date)
+        if employee_id is not None:
+            emp = await self._employees.get_by_id(employee_id)
+            if emp is None or emp.organization_id != organization_id:
+                raise ValueError("employee_not_found")
         match = await match_employee_by_email(
             self._employees, organization_id, employee_email
         )
@@ -1347,7 +1351,28 @@ class ManageVacationsUseCase:
                 if not needs_attention:
                     # Overlap alone is a warning — keep pending unless hard blocks exist.
                     vac.review_status = VacationReviewStatus.PENDING_APPROVAL.value
-        saved = await self._vacations.save(vac)
+        saved, created = await self._vacations.create_inbound(vac)
+        if not created:
+            summary = "Duplicate provider message; existing vacation returned."
+            return {
+                "outcome": "DUPLICATE",
+                "durable": True,
+                "vacation_request_id": str(saved.id),
+                "attention_codes": [],
+                "summary_code": "DUPLICATE_PROVIDER_MESSAGE",
+                "summary": summary,
+                "notification": build_notification_instructions(
+                    settings=settings,
+                    outcome="DUPLICATE",
+                    durable=True,
+                    attention_codes=[],
+                    summary=summary,
+                ),
+                "prefs_echo": {
+                    "notify_on_new_vacation": settings.notify_on_new_vacation,
+                    "notify_on_error_or_attention": settings.notify_on_error_or_attention,
+                },
+            }
         await self._refresh_overlap_peers(
             organization_id,
             employee_id=saved.employee_id,

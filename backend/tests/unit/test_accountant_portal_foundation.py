@@ -28,13 +28,17 @@ def test_low_confidence_never_auto_creates() -> None:
 
 def test_manual_review_queue_resolve() -> None:
     queue = ManualReviewQueue()
+    org_id = "00000000-0000-4000-8000-000000000001"
     item = queue.enqueue(
+        organization_id=org_id,
         reason="low_confidence_employee_identification",
         confidence=0.42,
         national_id_masked="*******123",
     )
-    assert len(queue.list_pending()) == 1
-    resolved = queue.resolve(item.id, status="dismissed", notes="duplicate scan")
+    assert len(queue.list_pending(org_id)) == 1
+    resolved = queue.resolve(
+        item.id, organization_id=org_id, status="dismissed", notes="duplicate scan"
+    )
     assert resolved is not None
     assert resolved.status == "dismissed"
-    assert queue.list_pending() == []
+    assert queue.list_pending(org_id) == []

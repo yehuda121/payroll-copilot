@@ -240,6 +240,10 @@ class Settings(BaseSettings):
     rate_limit_chat_per_hour_per_ip: int = 30
     rate_limit_chat_per_hour_per_user: int = 60
     rate_limit_vacation_otp_per_hour: int = 10
+    # n8n integrations: org-scoped. ~1 poll/min + health + optional events;
+    # batch path packs up to 100 items/request. 600/hour leaves headroom for
+    # catch-up without allowing runaway flood loops.
+    rate_limit_integration_per_hour_per_org: int = 600
 
     rules_config_path: str = "config/rules"
     legal_rules_path: str = "config/rules/labor_law"

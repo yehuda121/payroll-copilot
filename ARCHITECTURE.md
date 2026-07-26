@@ -208,7 +208,8 @@ flowchart TB
 
 Vacation email automation: see `docs/vacation-email.md` and `docs/n8n-vacation-workflow.md`.
 V1: one org → one manually provisioned n8n workflow; accountants do not change monitored mailbox.
-VacationRequest (DynamoDB) is the vacation SoT — not AttendanceRecord.
+Canonical ingest: `POST /api/v1/integrations/email/inbound-leave/batch` (compat: `inbound-vacation`; `parse-leave` is extract-only).
+VacationRequest / SickLeaveRequest (DynamoDB) are the leave SoT — not AttendanceRecord.
 
 ### Multi-tenancy
 

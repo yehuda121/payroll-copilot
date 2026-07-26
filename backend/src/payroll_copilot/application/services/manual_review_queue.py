@@ -4,6 +4,7 @@ Never auto-create employees when identification confidence is too low.
 Items wait here until a payroll accountant resolves them.
 
 Redis-backed so Celery identify stages and the API share the same queue.
+All list/resolve operations are organization-scoped.
 """
 
 from __future__ import annotations
@@ -18,12 +19,17 @@ from uuid import uuid4
 LOW_CONFIDENCE_THRESHOLD = 0.75
 
 _REDIS_KEY_PREFIX = "payroll:manual_review:"
-_REDIS_INDEX_KEY = "payroll:manual_review:index"
+_REDIS_INDEX_PREFIX = "payroll:manual_review:index:"
+
+
+def _index_key(organization_id: str) -> str:
+    return f"{_REDIS_INDEX_PREFIX}{organization_id}"
 
 
 @dataclass
 class ManualReviewItem:
     id: str
+    organization_id: str
     reason: str
     status: str = "pending"  # pending | resolved_create | resolved_attach | dismissed
     batch_job_id: str | None = None
@@ -37,6 +43,7 @@ class ManualReviewItem:
     def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
+            "organization_id": self.organization_id,
             "reason": self.reason,
             "status": self.status,
             "batch_job_id": self.batch_job_id,
@@ -52,6 +59,7 @@ class ManualReviewItem:
     def from_dict(cls, payload: dict[str, Any]) -> ManualReviewItem:
         return cls(
             id=str(payload["id"]),
+            organization_id=str(payload.get("organization_id") or ""),
             reason=str(payload["reason"]),
             status=str(payload.get("status", "pending")),
             batch_job_id=payload.get("batch_job_id"),
@@ -68,6 +76,7 @@ class ManualReviewQueueProtocol(Protocol):
     def enqueue(
         self,
         *,
+        organization_id: str,
         reason: str,
         confidence: float | None = None,
         batch_job_id: str | None = None,
@@ -75,14 +84,19 @@ class ManualReviewQueueProtocol(Protocol):
         extracted_fields: dict[str, Any] | None = None,
     ) -> ManualReviewItem: ...
 
-    def list_pending(self, *, limit: int = 100) -> list[ManualReviewItem]: ...
+    def list_pending(
+        self, organization_id: str, *, limit: int = 100
+    ) -> list[ManualReviewItem]: ...
 
-    def list_all(self, *, limit: int = 100) -> list[ManualReviewItem]: ...
+    def list_all(
+        self, organization_id: str, *, limit: int = 100
+    ) -> list[ManualReviewItem]: ...
 
     def resolve(
         self,
         item_id: str,
         *,
+        organization_id: str,
         status: str,
         notes: str | None = None,
     ) -> ManualReviewItem | None: ...
@@ -96,14 +110,19 @@ class InMemoryManualReviewQueue:
     def enqueue(
         self,
         *,
+        organization_id: str,
         reason: str,
         confidence: float | None = None,
         batch_job_id: str | None = None,
         national_id_masked: str | None = None,
         extracted_fields: dict[str, Any] | None = None,
     ) -> ManualReviewItem:
+        org = str(organization_id or "").strip()
+        if not org:
+            raise ValueError("organization_id_required")
         item = ManualReviewItem(
             id=str(uuid4()),
+            organization_id=org,
             reason=reason,
             confidence=confidence,
             batch_job_id=batch_job_id,
@@ -114,27 +133,41 @@ class InMemoryManualReviewQueue:
             self._items[item.id] = item
         return item
 
-    def list_pending(self, *, limit: int = 100) -> list[ManualReviewItem]:
+    def list_pending(
+        self, organization_id: str, *, limit: int = 100
+    ) -> list[ManualReviewItem]:
         with self._lock:
-            pending = [item for item in self._items.values() if item.status == "pending"]
+            pending = [
+                item
+                for item in self._items.values()
+                if item.status == "pending" and item.organization_id == organization_id
+            ]
             pending.sort(key=lambda item: item.created_at, reverse=True)
             return pending[:limit]
 
-    def list_all(self, *, limit: int = 100) -> list[ManualReviewItem]:
+    def list_all(
+        self, organization_id: str, *, limit: int = 100
+    ) -> list[ManualReviewItem]:
         with self._lock:
-            items = sorted(self._items.values(), key=lambda item: item.created_at, reverse=True)
+            items = [
+                item
+                for item in self._items.values()
+                if item.organization_id == organization_id
+            ]
+            items.sort(key=lambda item: item.created_at, reverse=True)
             return items[:limit]
 
     def resolve(
         self,
         item_id: str,
         *,
+        organization_id: str,
         status: str,
         notes: str | None = None,
     ) -> ManualReviewItem | None:
         with self._lock:
             item = self._items.get(item_id)
-            if item is None:
+            if item is None or item.organization_id != organization_id:
                 return None
             item.status = status
             item.resolution_notes = notes
@@ -152,14 +185,19 @@ class RedisManualReviewQueue:
     def enqueue(
         self,
         *,
+        organization_id: str,
         reason: str,
         confidence: float | None = None,
         batch_job_id: str | None = None,
         national_id_masked: str | None = None,
         extracted_fields: dict[str, Any] | None = None,
     ) -> ManualReviewItem:
+        org = str(organization_id or "").strip()
+        if not org:
+            raise ValueError("organization_id_required")
         item = ManualReviewItem(
             id=str(uuid4()),
+            organization_id=org,
             reason=reason,
             confidence=confidence,
             batch_job_id=batch_job_id,
@@ -167,33 +205,53 @@ class RedisManualReviewQueue:
             extracted_fields=extracted_fields or {},
         )
         self._save(item)
-        self._redis.zadd(_REDIS_INDEX_KEY, {item.id: datetime.now(UTC).timestamp()})
+        self._redis.zadd(_index_key(org), {item.id: datetime.now(UTC).timestamp()})
         return item
 
-    def list_pending(self, *, limit: int = 100) -> list[ManualReviewItem]:
-        return [item for item in self.list_all(limit=limit) if item.status == "pending"]
+    def list_pending(
+        self, organization_id: str, *, limit: int = 100
+    ) -> list[ManualReviewItem]:
+        return [
+            item
+            for item in self.list_all(organization_id, limit=limit)
+            if item.status == "pending"
+        ]
 
-    def list_all(self, *, limit: int = 100) -> list[ManualReviewItem]:
-        ids = self._redis.zrevrange(_REDIS_INDEX_KEY, 0, max(0, limit - 1))
+    def list_all(
+        self, organization_id: str, *, limit: int = 100
+    ) -> list[ManualReviewItem]:
+        org = str(organization_id or "").strip()
+        if not org:
+            return []
+        ids = self._redis.zrevrange(_index_key(org), 0, max(0, limit - 1))
         items: list[ManualReviewItem] = []
         for raw_id in ids:
             item_id = raw_id.decode() if isinstance(raw_id, bytes) else str(raw_id)
             raw = self._redis.get(f"{_REDIS_KEY_PREFIX}{item_id}")
-            if raw:
-                items.append(ManualReviewItem.from_dict(json.loads(raw)))
+            if not raw:
+                continue
+            item = ManualReviewItem.from_dict(json.loads(raw))
+            # Fail closed: skip items that drifted or lack org ownership.
+            if item.organization_id != org:
+                continue
+            items.append(item)
         return items
 
     def resolve(
         self,
         item_id: str,
         *,
+        organization_id: str,
         status: str,
         notes: str | None = None,
     ) -> ManualReviewItem | None:
+        org = str(organization_id or "").strip()
         raw = self._redis.get(f"{_REDIS_KEY_PREFIX}{item_id}")
         if not raw:
             return None
         item = ManualReviewItem.from_dict(json.loads(raw))
+        if not org or item.organization_id != org:
+            return None
         item.status = status
         item.resolution_notes = notes
         item.resolved_at = datetime.now(UTC).isoformat()

@@ -216,3 +216,14 @@ async def limit_public_chat_by_ip(request: Request) -> None:
         settings.rate_limit_chat_per_hour_per_ip,
         3600,
     )
+
+
+def enforce_integration_org_rate_limit(organization_id: str) -> None:
+    """Rate-limit n8n integration traffic per organization (API-key tenant)."""
+    settings = get_settings()
+    get_rate_limiter().enforce(
+        "integration",
+        organization_id,
+        settings.rate_limit_integration_per_hour_per_org,
+        3600,
+    )

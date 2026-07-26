@@ -49,6 +49,17 @@ class SickLeaveRequestRepository(ABC):
     async def save(self, vacation: SickLeaveRequest) -> SickLeaveRequest: ...
 
     @abstractmethod
+    async def create_inbound(
+        self, sick_leave: SickLeaveRequest
+    ) -> tuple[SickLeaveRequest, bool]:
+        """Atomically create an inbound leave + idempotency marker.
+
+        Returns ``(entity, created)``. When ``created`` is False, ``entity`` is the
+        existing leave for the same org/provider/message (duplicate).
+        """
+        ...
+
+    @abstractmethod
     async def delete(self, organization_id: UUID, sick_leave_id: UUID) -> None: ...
 
     @abstractmethod

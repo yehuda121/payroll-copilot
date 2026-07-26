@@ -136,6 +136,27 @@ class FakeVacations(VacationRequestRepository):
         self.items[vacation.id] = vacation
         return vacation
 
+    async def create_inbound(
+        self, vacation: VacationRequest
+    ) -> tuple[VacationRequest, bool]:
+        if not getattr(self, "_idemp", None):
+            self._idemp = {}
+        if getattr(self, "_fail_next_inbound", False):
+            self._fail_next_inbound = False
+            raise RuntimeError("simulated_transaction_failure")
+        provider = (vacation.provider or "").strip().lower()
+        message_id = (vacation.provider_message_id or "").strip()
+        if provider and message_id:
+            key = f"{vacation.organization_id}:{provider}:{message_id}"
+            existing_id = self._idemp.get(key)
+            if existing_id is not None:
+                existing = self.items.get(existing_id)
+                if existing is not None:
+                    return existing, False
+            self._idemp[key] = vacation.id
+        self.items[vacation.id] = vacation
+        return vacation, True
+
     async def delete(self, organization_id: UUID, vacation_id: UUID) -> None:
         self.items.pop(vacation_id, None)
 
@@ -659,3 +680,121 @@ async def test_notification_prefs_and_mandatory_not_stored(uc, org_id: UUID) -> 
     )
     assert mandatory["should_send"] is True
     assert mandatory["mandatory"] is True
+
+
+@pytest.mark.asyncio
+async def test_create_manual_same_org_employee_succeeds(uc, org_id: UUID) -> None:
+    manage, emp = uc
+    saved = await manage.create_manual(
+        org_id,
+        actor_user_id=uuid4(),
+        employee_id=emp.id,
+        employee_email="ada@example.com",
+        employee_name="Ada",
+        start_date=date(2026, 9, 1),
+        end_date=date(2026, 9, 5),
+    )
+    assert saved.employee_id == emp.id
+    assert saved.organization_id == org_id
+
+
+@pytest.mark.asyncio
+async def test_create_manual_foreign_org_employee_rejected(uc, org_id: UUID) -> None:
+    manage, _ = uc
+    foreign = _employee(uuid4(), "other@example.com")
+    manage._employees.employees.append(foreign)
+    with pytest.raises(ValueError, match="employee_not_found"):
+        await manage.create_manual(
+            org_id,
+            actor_user_id=uuid4(),
+            employee_id=foreign.id,
+            employee_email="other@example.com",
+            employee_name="Other",
+            start_date=date(2026, 9, 1),
+            end_date=date(2026, 9, 5),
+        )
+    assert list(manage._vacations.items.values()) == []
+
+
+@pytest.mark.asyncio
+async def test_ingest_concurrent_provider_message_single_record(uc, org_id: UUID) -> None:
+    manage, _ = uc
+    cmd_kwargs = dict(
+        provider="gmail",
+        provider_message_id="race-1",
+        provider_thread_id=None,
+        from_email="ada@example.com",
+        to_email="hr@co.il",
+        subject="Vacation",
+        body_text="I need vacation",
+        received_at=datetime.now(UTC),
+        classification="VACATION",
+        intent="new",
+        employee_email="ada@example.com",
+        employee_name="Ada",
+        start_date="2026-08-01",
+        end_date="2026-08-10",
+        confidence=0.9,
+        explanation="clear",
+        n8n_attention_codes=[],
+    )
+    first = await manage.ingest_inbound(org_id, InboundVacationCommand(**cmd_kwargs))
+    second = await manage.ingest_inbound(org_id, InboundVacationCommand(**cmd_kwargs))
+    assert first["outcome"] in {"SUCCESS", "REQUIRES_ATTENTION"}
+    assert second["outcome"] == "DUPLICATE"
+    assert second["vacation_request_id"] == first["vacation_request_id"]
+    assert len(manage._vacations.items) == 1
+
+
+@pytest.mark.asyncio
+async def test_ingest_same_message_different_orgs_independent(org_id: UUID) -> None:
+    emp_a = _employee(org_id, "ada@example.com")
+    other_org = uuid4()
+    emp_b = _employee(other_org, "bob@example.com")
+    manage_a = ManageVacationsUseCase(
+        vacations=FakeVacations(),
+        settings_repo=FakeSettings(org_id),
+        otp_repo=FakeOtp(),
+        pipeline=FakePipeline(),
+        employees=FakeEmployees([emp_a]),
+        audit=FakeAudit(),
+        email=FakeEmail(),
+    )
+    manage_b = ManageVacationsUseCase(
+        vacations=FakeVacations(),
+        settings_repo=FakeSettings(other_org),
+        otp_repo=FakeOtp(),
+        pipeline=FakePipeline(),
+        employees=FakeEmployees([emp_b]),
+        audit=FakeAudit(),
+        email=FakeEmail(),
+    )
+    cmd = InboundVacationCommand(
+        provider="gmail",
+        provider_message_id="shared-across-orgs",
+        provider_thread_id=None,
+        from_email="x@example.com",
+        to_email="hr@co.il",
+        subject="Vacation",
+        body_text="leave",
+        received_at=datetime.now(UTC),
+        classification="VACATION",
+        intent="new",
+        employee_email="ada@example.com",
+        employee_name="Ada",
+        start_date="2026-08-01",
+        end_date="2026-08-02",
+        confidence=0.9,
+        explanation="clear",
+        n8n_attention_codes=[],
+    )
+    a = await manage_a.ingest_inbound(org_id, cmd)
+    b = await manage_b.ingest_inbound(
+        other_org,
+        InboundVacationCommand(
+            **{**cmd.__dict__, "employee_email": "bob@example.com", "employee_name": "Bob"}
+        ),
+    )
+    assert a["vacation_request_id"] != b["vacation_request_id"]
+    assert a["outcome"] in {"SUCCESS", "REQUIRES_ATTENTION"}
+    assert b["outcome"] in {"SUCCESS", "REQUIRES_ATTENTION"}

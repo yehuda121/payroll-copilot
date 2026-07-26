@@ -197,6 +197,10 @@ class ManageSickLeavesUseCase:
 
     async def create_manual(self, organization_id: UUID, *, actor_user_id: UUID | None, employee_id: UUID | None, employee_email: str | None, employee_name: str | None, start_date: date, end_date: date, subject: str | None=None, notes: str | None=None) -> SickLeaveRequest:
         codes = collect_date_attention_codes(start_date, end_date)
+        if employee_id is not None:
+            emp = await self._employees.get_by_id(employee_id)
+            if emp is None or emp.organization_id != organization_id:
+                raise ValueError('employee_not_found')
         match = await match_employee_by_email(self._employees, organization_id, employee_email)
         linked = employee_id or (match.employee.id if match.employee else None)
         if employee_id is None and match.code:
@@ -459,7 +463,10 @@ class ManageSickLeavesUseCase:
                 vac.attention_codes = self._unique_codes([*vac.attention_codes, SickLeaveAttentionCode.OVERLAP.value])
                 if not needs_attention:
                     vac.review_status = SickLeaveReviewStatus.PENDING_APPROVAL.value
-        saved = await self._sick_leaves.save(vac)
+        saved, created = await self._sick_leaves.create_inbound(vac)
+        if not created:
+            summary = 'Duplicate provider message; existing sick leave returned.'
+            return {'outcome': 'DUPLICATE', 'durable': True, 'sick_leave_request_id': str(saved.id), 'attention_codes': [], 'summary_code': 'DUPLICATE_PROVIDER_MESSAGE', 'summary': summary, 'notification': build_notification_instructions(settings=settings, outcome='DUPLICATE', durable=True, attention_codes=[], summary=summary), 'prefs_echo': {'notify_on_new_sick_leave': settings.notify_on_new_sick_leave, 'notify_on_sick_leave_error_or_attention': settings.notify_on_sick_leave_error_or_attention}}
         await self._refresh_overlap_peers(organization_id, employee_id=saved.employee_id, exclude_id=saved.id, previous_peer_ids=list(saved.overlap_with or []))
         await self._audit.append(AuditLogEntry(action='sick_leave.ingested', resource_type='sick_leave_request', resource_id=saved.id, organization_id=organization_id, details={'provider': provider, 'provider_message_id': message_id, 'status': vac.review_status, 'attention_codes': list(vac.attention_codes or [])}))
         outcome = 'REQUIRES_ATTENTION' if vac.review_status == SickLeaveReviewStatus.REQUIRES_ATTENTION.value else 'SUCCESS'

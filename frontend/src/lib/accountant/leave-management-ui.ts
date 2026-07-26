@@ -169,3 +169,59 @@ export function isSickLeaveSettingsDirty(
   );
 }
 
+/** Attention codes that block approval (presentation severity only). */
+export const LEAVE_HARD_ATTENTION_CODES = new Set([
+  'MISSING_EMPLOYEE_EMAIL',
+  'EMPLOYEE_NOT_FOUND',
+  'EMPLOYEE_AMBIGUOUS',
+  'MISSING_START_DATE',
+  'MISSING_END_DATE',
+  'INVALID_DATE',
+  'END_BEFORE_START',
+  'AMBIGUOUS_UPDATE',
+  'AMBIGUOUS_CANCEL',
+]);
+
+/** Attention codes shown as warnings (presentation severity only). */
+export const LEAVE_WARNING_ATTENTION_CODES = new Set([
+  'OVERLAP',
+  'LOW_CONFIDENCE',
+  'UPDATE_PROPOSED',
+  'CANCEL_PROPOSED',
+  'DUPLICATE_CONTENT',
+]);
+
+export function leaveStatusBadgeClass(status: string, codes: string[]): string {
+  if (status === 'approved') return 'status-badge--passed';
+  if (codes.some((c) => LEAVE_HARD_ATTENTION_CODES.has(c)) || status === 'requires_attention') {
+    return 'status-badge--critical';
+  }
+  if (codes.some((c) => LEAVE_WARNING_ATTENTION_CODES.has(c))) return 'status-badge--warnings';
+  if (status === 'pending_approval') return 'status-badge--warnings';
+  return 'status-badge--neutral';
+}
+
+export function leaveRowSeverityClass(codes: string[]): string {
+  if (codes.some((c) => LEAVE_HARD_ATTENTION_CODES.has(c))) return 'leave-row--error';
+  if (codes.some((c) => LEAVE_WARNING_ATTENTION_CODES.has(c))) return 'leave-row--warning';
+  return '';
+}
+
+/** Translate an attention code using a domain-supplied i18n key prefix. */
+export function leaveAttentionLabel(
+  code: string,
+  translate: (key: string) => string,
+  i18nPrefix: string,
+): string {
+  const key = `${i18nPrefix}.attention.${code}`;
+  const translated = translate(key);
+  return translated === key ? code : translated;
+}
+
+export function leaveEmployeeLabel(row: {
+  extractedEmployeeName: string | null;
+  extractedEmployeeEmail: string | null;
+}): string {
+  return row.extractedEmployeeName || row.extractedEmployeeEmail || '—';
+}
+

@@ -33,6 +33,9 @@ from payroll_copilot.presentation.api.dependencies import (
     get_object_storage,
     get_upload_document_use_case,
 )
+from payroll_copilot.presentation.api.content_disposition import (
+    sanitize_content_disposition_filename,
+)
 from payroll_copilot.presentation.api.rate_limit_deps import (
     limit_accountant_upload,
     limit_employee_upload,
@@ -453,7 +456,10 @@ async def download_employee_document_content(
         content=content,
         media_type=document.mime_type or "application/octet-stream",
         headers={
-            "Content-Disposition": f'inline; filename="{document.original_filename or "document"}"'
+            "Content-Disposition": (
+                'inline; filename="'
+                f'{sanitize_content_disposition_filename(document.original_filename)}"'
+            )
         },
     )
 
