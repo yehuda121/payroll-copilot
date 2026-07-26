@@ -15,6 +15,19 @@
   margin-inline: auto;
 }
 
+/* Dark mode resting dropzone only — preserve existing accent hover. */
+html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone {
+  background: linear-gradient(180deg, var(--color-surface), var(--color-surface-muted));
+  border-color: var(--color-border-strong);
+}
+
+html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone:hover,
+html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone.is-dragging,
+html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone:focus-visible {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+}
+
 .accountant-bulk__progress {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));

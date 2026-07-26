@@ -67,6 +67,17 @@
   border: none;
 }
 
+html[data-theme='dark'] .employee-month-card--skeleton {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-surface-muted) 88%, var(--color-border)) 25%,
+    var(--color-surface-muted) 50%,
+    color-mix(in srgb, var(--color-surface-muted) 88%, var(--color-border)) 75%
+  );
+  background-size: 200% 100%;
+  border: 1px solid var(--color-border);
+}
+
 @keyframes employee-skeleton {
   0% {
     background-position: 200% 0;
