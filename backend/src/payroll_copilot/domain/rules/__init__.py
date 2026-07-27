@@ -44,7 +44,8 @@ class ValidationContext:
     payslip: PayslipData
     employee: Employee
     department: Department
-    period: PayPeriod
+    # None when payslip pay_period is missing/unparseable — never invent "today" for legal as_of.
+    period: PayPeriod | None
     legal_rules: LegalRulesBundle
     attendance_records: list[AttendanceRecord] = field(default_factory=list)
     historical_payslips: list[PayslipData] = field(default_factory=list)

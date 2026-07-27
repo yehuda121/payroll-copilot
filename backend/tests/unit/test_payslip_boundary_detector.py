@@ -35,6 +35,16 @@ def _blank_pages(count: int) -> bytes:
         document.close()
 
 
+def _detect_from_texts(page_texts: list[str], monkeypatch: pytest.MonkeyPatch):
+    detector = PayslipBoundaryDetector()
+    monkeypatch.setattr(
+        detector,
+        "_extract_page_texts",
+        lambda _pdf: (list(page_texts), len(page_texts)),
+    )
+    return detector.detect(b"%PDF-fake")
+
+
 def test_groups_high_confidence_continuation_pages() -> None:
     pdf_bytes = _pdf_from_pages(
         [
@@ -167,3 +177,296 @@ async def test_detect_async_rejects_low_confidence_ai_merge() -> None:
 
     assert result.strategy == "one_page_fallback"
     assert [list(b.page_indices) for b in result.boundaries] == [[0], [1]]
+
+
+def test_same_nid_missing_name_continues_previous(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = _detect_from_texts(
+        [
+            "\n".join(
+                [
+                    "Payslip",
+                    "Employee Name: Employee A",
+                    "National ID: 123456782",
+                    "Gross salary 10000",
+                    "Net salary 8000",
+                ]
+            ),
+            "\n".join(
+                [
+                    "Payslip deductions",
+                    "National ID: 123456782",
+                    "Tax 1200",
+                    "Pension 400",
+                    "Insurance detail lines continue here",
+                ]
+            ),
+        ],
+        monkeypatch,
+    )
+    assert [list(b.page_indices) for b in result.boundaries] == [[0, 1]]
+
+
+def test_same_employee_number_missing_name_continues(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = _detect_from_texts(
+        [
+            "\n".join(
+                [
+                    "Payslip",
+                    "Employee Name: Employee A",
+                    "Employee Number: 123",
+                    "Gross salary 10000",
+                    "Net salary 8000",
+                ]
+            ),
+            "\n".join(
+                [
+                    "Deductions page",
+                    "Employee Number: 123",
+                    "Tax 1200",
+                    "Pension 400",
+                    "Additional deduction rows here",
+                ]
+            ),
+        ],
+        monkeypatch,
+    )
+    assert [list(b.page_indices) for b in result.boundaries] == [[0, 1]]
+
+
+def test_different_nid_starts_new_slip(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = _detect_from_texts(
+        [
+            "\n".join(
+                [
+                    "Payslip",
+                    "Employee Name: Employee A",
+                    "National ID: 123456782",
+                    "Gross salary 10000",
+                    "Net salary 8000",
+                ]
+            ),
+            "\n".join(
+                [
+                    "Payslip",
+                    "National ID: 313366783",
+                    "Tax 1200",
+                    "Pension 400",
+                    "Insurance detail lines continue here",
+                ]
+            ),
+        ],
+        monkeypatch,
+    )
+    assert [list(b.page_indices) for b in result.boundaries] == [[0], [1]]
+
+
+def test_missing_identity_does_not_attach(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = _detect_from_texts(
+        [
+            "\n".join(
+                [
+                    "Payslip",
+                    "Employee Name: Employee A",
+                    "Employee Number: EMP-1",
+                    "Gross salary 10000",
+                    "Net salary 8000",
+                ]
+            ),
+            "\n".join(
+                [
+                    "Hours table",
+                    "Regular 160",
+                    "Overtime 12",
+                    "General notes for employees only",
+                ]
+            ),
+        ],
+        monkeypatch,
+    )
+    assert [list(b.page_indices) for b in result.boundaries] == [[0], [1]]
+
+
+def test_different_labeled_names_start_new_slip(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = _detect_from_texts(
+        [
+            "\n".join(
+                [
+                    "Payslip",
+                    "Employee Name: Employee A",
+                    "National ID: 123456782",
+                    "Gross salary 10000",
+                    "Net salary 8000",
+                ]
+            ),
+            "\n".join(
+                [
+                    "Payslip",
+                    "Employee Name: Employee B",
+                    "National ID: 123456782",
+                    "Gross salary 9000",
+                    "Net salary 7000",
+                ]
+            ),
+        ],
+        monkeypatch,
+    )
+    assert [list(b.page_indices) for b in result.boundaries] == [[0], [1]]
+
+
+def test_formatted_same_nid_continues(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = _detect_from_texts(
+        [
+            "\n".join(
+                [
+                    "Payslip",
+                    "Employee Name: Employee A",
+                    "National ID: 313366783",
+                    "Gross salary 10000",
+                    "Net salary 8000",
+                ]
+            ),
+            "\n".join(
+                [
+                    "Deductions",
+                    "National ID: 313,366,783",
+                    "Tax 1200",
+                    "Pension 400",
+                    "Insurance detail lines continue here",
+                ]
+            ),
+        ],
+        monkeypatch,
+    )
+    assert [list(b.page_indices) for b in result.boundaries] == [[0, 1]]
+
+
+def test_nid_match_but_employee_number_conflict_does_not_merge(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    result = _detect_from_texts(
+        [
+            "\n".join(
+                [
+                    "Payslip",
+                    "Employee Name: Employee A",
+                    "National ID: 123456782",
+                    "Employee Number: 100",
+                    "Gross salary 10000",
+                    "Net salary 8000",
+                ]
+            ),
+            "\n".join(
+                [
+                    "Payslip",
+                    "National ID: 123456782",
+                    "Employee Number: 200",
+                    "Tax 1200",
+                    "Pension 400",
+                    "Insurance detail lines continue here",
+                ]
+            ),
+        ],
+        monkeypatch,
+    )
+    assert [list(b.page_indices) for b in result.boundaries] == [[0], [1]]
+
+
+def test_first_page_missing_name_starts_new_item(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = _detect_from_texts(
+        [
+            "\n".join(
+                [
+                    "Payslip",
+                    "Gross salary 10000",
+                    "Net salary 8000",
+                    "Department notes without identity",
+                ]
+            ),
+            "\n".join(
+                [
+                    "Payslip",
+                    "Employee Name: Employee B",
+                    "Employee Number: EMP-9",
+                    "Gross salary 9000",
+                    "Net salary 7000",
+                ]
+            ),
+        ],
+        monkeypatch,
+    )
+    assert result.boundaries[0].page_indices == (0,)
+    assert [list(b.page_indices) for b in result.boundaries][0] == [0]
+
+
+def test_three_page_same_payslip_by_adjacent_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    result = _detect_from_texts(
+        [
+            "\n".join(
+                [
+                    "Payslip",
+                    "Employee Name: Employee A",
+                    "National ID: 123456782",
+                    "Employee Number: 555",
+                    "Gross salary 10000",
+                    "Net salary 8000",
+                ]
+            ),
+            "\n".join(
+                [
+                    "Deductions page",
+                    "National ID: 123456782",
+                    "Tax 1200",
+                    "Pension 400",
+                    "Insurance detail lines continue here",
+                ]
+            ),
+            "\n".join(
+                [
+                    "Bank transfer page",
+                    "Employee Number: 555",
+                    "Account details continue",
+                    "Payment reference lines here",
+                ]
+            ),
+        ],
+        monkeypatch,
+    )
+    assert [list(b.page_indices) for b in result.boundaries] == [[0, 1, 2]]
+
+
+def test_regression_one_page_per_employee(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = _detect_from_texts(
+        [
+            "\n".join(
+                [
+                    "Payslip",
+                    "Employee Name: Employee A",
+                    "Employee Number: EMP-A",
+                    "National ID: 123456782",
+                    "Gross 10000",
+                ]
+            ),
+            "\n".join(
+                [
+                    "Payslip",
+                    "Employee Name: Employee B",
+                    "Employee Number: EMP-B",
+                    "National ID: 313366783",
+                    "Gross 9000",
+                ]
+            ),
+            "\n".join(
+                [
+                    "Payslip",
+                    "Employee Name: Employee C",
+                    "Employee Number: EMP-C",
+                    "National ID: 000000018",
+                    "Gross 8000",
+                ]
+            ),
+        ],
+        monkeypatch,
+    )
+    assert [list(b.page_indices) for b in result.boundaries] == [[0], [1], [2]]

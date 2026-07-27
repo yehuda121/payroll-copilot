@@ -95,6 +95,7 @@ def test_garbled_embedded_text_not_usable() -> None:
 
 @pytest.mark.asyncio
 async def test_embedded_pdf_skips_tesseract(monkeypatch: pytest.MonkeyPatch) -> None:
+    """English/non-Hebrew language keeps the Latin embedded-text fast path."""
     provider = TesseractOCRProvider()
     pdf = _make_text_pdf("Employee Name Dana Levi\nGross Salary 12000\nNet salary 9500")
     rasterize = MagicMock(side_effect=AssertionError("rasterize should not run"))
@@ -106,10 +107,46 @@ async def test_embedded_pdf_skips_tesseract(monkeypatch: pytest.MonkeyPatch) -> 
         content=pdf,
         media_type="application/pdf",
         filename="slip.pdf",
-        language="auto",
+        language="en",
     )
     assert "pdf_text" in result.engine
     rasterize.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_auto_latin_only_embedded_falls_through_for_hebrew_expectation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``auto`` resolves to heb+eng, so Latin-only embedded text must not short-circuit."""
+    provider = TesseractOCRProvider()
+    pdf = _make_text_pdf("Employee Name Dana Levi\nGross Salary 12000\nNet salary 9500")
+    called = {"count": 0}
+
+    def _fake_rasterize(content: bytes, **kwargs: Any) -> list[bytes]:
+        called["count"] += 1
+        return [b"fakepng"]
+
+    def _fake_extract_image(*args: Any, **kwargs: Any) -> tuple[OcrPage, str | None]:
+        return (
+            OcrPage(page=1, language="auto", text="OCR text fallback", confidence=0.8, lines=()),
+            None,
+        )
+
+    monkeypatch.setattr(
+        "payroll_copilot.infrastructure.ocr.tesseract_provider.rasterize_pdf_to_png_pages",
+        _fake_rasterize,
+    )
+    monkeypatch.setattr(provider, "_extract_image_sync", _fake_extract_image)
+
+    result = await provider.extract(
+        content=pdf,
+        media_type="application/pdf",
+        filename="slip.pdf",
+        language="auto",
+    )
+    assert called["count"] == 1
+    assert result.engine == "tesseract"
+    assert "script_mismatch_hebrew_expected" in " ".join(result.warnings)
 
 
 @pytest.mark.asyncio
@@ -122,7 +159,7 @@ async def test_blank_pdf_invokes_rasterize(monkeypatch: pytest.MonkeyPatch) -> N
         called["count"] += 1
         return [b"fakepng"]
 
-    async def _fake_extract_image(*args: Any, **kwargs: Any) -> tuple[OcrPage, str | None]:
+    def _fake_extract_image(*args: Any, **kwargs: Any) -> tuple[OcrPage, str | None]:
         return (
             OcrPage(page=1, language="he", text="OCR text fallback", confidence=0.8, lines=()),
             None,

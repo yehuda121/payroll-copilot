@@ -124,7 +124,7 @@ function extractionFromDetail(
   };
 }
 
-function reportFromMonthDetail(
+export function reportFromMonthDetail(
   detail: PayrollMonthDetail,
   t: (key: string, opts?: Record<string, unknown>) => string,
 ): GuestValidationReport | null {
@@ -133,7 +133,8 @@ function reportFromMonthDetail(
   const findings = (latest.findings ?? []).map((f) => ({
     id: f.id,
     code: f.code,
-    rule_id: f.code,
+    // Prefer authoritative rule_id; fall back to legacy code for older payloads.
+    rule_id: (f.rule_id || f.code || '').trim() || f.code,
     severity: (f.severity as 'info' | 'warning' | 'critical') || 'info',
     message_key: f.message_key,
     // Keep message_key for mapping; never surface raw keys as display message.
@@ -149,6 +150,30 @@ function reportFromMonthDetail(
     actual_value: f.actual_value ?? null,
     confidence: f.confidence ?? 0,
     legal_reference: f.legal_reference ?? null,
+  }));
+  const ruleOutcomes = (latest.rule_outcomes ?? [])
+    .filter((item) => Boolean(item?.rule_id))
+    .map((item) => ({
+      rule_id: item.rule_id,
+      outcome: item.outcome,
+      skip_reason: item.skip_reason ?? null,
+      reason_code: item.reason_code ?? null,
+      message: item.message ?? null,
+    }));
+  const manualApprovals = (latest.manual_approvals ?? []).map((row) => ({
+    finding_id: (row.finding_id as string | null | undefined) ?? null,
+    rule_id: (row.rule_id as string | null | undefined) ?? null,
+    original_severity: (row.original_severity as string | null | undefined) ?? null,
+    original_deterministic_status:
+      (row.original_deterministic_status as string | null | undefined) ??
+      (row.deterministic_status as string | null | undefined) ??
+      null,
+    deterministic_status: (row.deterministic_status as string | null | undefined) ?? null,
+    review_status: (row.review_status as string | null | undefined) ?? 'manually_approved',
+    approved_by: (row.approved_by as string | null | undefined) ?? null,
+    approved_at: (row.approved_at as string | null | undefined) ?? null,
+    reason: (row.reason as string | null | undefined) ?? null,
+    validation_run_id: (row.validation_run_id as string | null | undefined) ?? null,
   }));
   return {
     runId: latest.validation_run_id,
@@ -175,6 +200,8 @@ function reportFromMonthDetail(
     checksPassedCount: Math.max(0, (latest.findings_count ?? 0) === 0 ? 1 : 0),
     findings,
     extractionConnected: Boolean(detail.extraction?.exists),
+    ruleOutcomes,
+    manualApprovals,
   };
 }
 
@@ -291,7 +318,25 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       setConfirmationStatus(confirmation);
       setAcknowledgement(confirmation === 'confirmed');
       const stored = reportFromMonthDetail(row, t);
-      setReport(stored);
+      setReport((prev) => {
+        if (!stored) return null;
+        // Prefer hydrated outcomes; if same run briefly lacks them, keep live outcomes.
+        if ((stored.ruleOutcomes?.length ?? 0) > 0) return stored;
+        if (
+          prev &&
+          prev.runId === stored.runId &&
+          (prev.ruleOutcomes?.length ?? 0) > 0
+        ) {
+          return {
+            ...stored,
+            ruleOutcomes: prev.ruleOutcomes,
+            manualApprovals: prev.manualApprovals?.length
+              ? prev.manualApprovals
+              : stored.manualApprovals,
+          };
+        }
+        return stored;
+      });
       setValidationOutdated(Boolean(row.latest_validation.outdated));
       if (!row.payslip.document_id) {
         setPreviewUrl((prev) => {

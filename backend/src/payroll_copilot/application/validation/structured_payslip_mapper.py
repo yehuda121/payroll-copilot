@@ -246,8 +246,8 @@ def map_structured_payslip_to_validation_inputs(
     work_hours = coerce_decimal(take("regular_hours"))
     pay_period_raw_value = take("pay_period")
     parsed_period = coerce_pay_period(pay_period_raw_value)
-    # Engine requires a PayPeriod handle; never invent payslip.period when missing.
-    period = parsed_period or PayPeriod(year=date.today().year, month=date.today().month)
+    # Never invent today's period for legal as_of when pay_period is missing/unparseable.
+    # payslip.period and command.period stay None; legal rules NOT_RUN with MISSING_PAY_PERIOD.
     if parsed_period is None:
         warnings.append("pay_period_missing")
         if pay_period_raw_value is not None:
@@ -318,12 +318,19 @@ def map_structured_payslip_to_validation_inputs(
         contract_start_date=(
             date(parsed_period.year, parsed_period.month, 1)
             if parsed_period is not None
-            else date(period.year, period.month, 1)
+            else date(1970, 1, 1)
         ),
         status=EmployeeStatus.ACTIVE,
         hourly_rate=hourly_rate,
         monthly_salary=base_salary.amount if base_salary and salary_type == SalaryType.MONTHLY else None,
-        metadata={"guest_synthetic": True},
+        metadata={
+            "guest_synthetic": True,
+            **(
+                {"contract_start_date_placeholder": True}
+                if parsed_period is None
+                else {}
+            ),
+        },
     )
     department = Department(
         id=department_id,
@@ -375,7 +382,7 @@ def map_structured_payslip_to_validation_inputs(
         payslip=payslip,
         employee=employee,
         department=department,
-        period=period,
+        period=parsed_period,
         field_confidences=confidences,
     )
     return MappedValidationInputs(

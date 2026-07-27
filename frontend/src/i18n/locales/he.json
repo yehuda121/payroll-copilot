@@ -593,9 +593,11 @@
       "notRunReasons": {
         "employee_not_identified": "לא הורץ — העובד לא זוהה",
         "no_confirmed_contract": "לא הורץ — אין חוזה מאושר",
+        "missing_pay_period": "לא הורץ — תקופת השכר בתלוש חסרה או לא תקינה",
         "EMPLOYEE_NOT_IDENTIFIED": "לא הורץ — העובד לא זוהה",
         "NO_CONFIRMED_CONTRACT": "לא הורץ — אין חוזה מאושר",
         "MISSING_PAYSLIP_DATA": "לא הורץ — נתוני תלוש נדרשים חסרים",
+        "MISSING_PAY_PERIOD": "לא הורץ — תקופת השכר בתלוש חסרה או לא תקינה",
         "RULE_NOT_READY": "לא הורץ — הבדיקה אינה מוכנה כרגע לאימות ייצור",
         "NO_APPLICABLE_LEGAL_VERSION": "לא הורץ — אין גרסה משפטית מאושרת רלוונטית",
         "NOT_APPLICABLE": "לא הורץ — הכלל אינו חל על עובד זה",

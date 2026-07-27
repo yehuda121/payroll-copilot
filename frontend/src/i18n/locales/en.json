@@ -594,9 +594,11 @@
       "notRunReasons": {
         "employee_not_identified": "Not run — employee not identified",
         "no_confirmed_contract": "Not run — no confirmed contract",
+        "missing_pay_period": "Not run — payslip pay period is missing or invalid",
         "EMPLOYEE_NOT_IDENTIFIED": "Not run — employee not identified",
         "NO_CONFIRMED_CONTRACT": "Not run — no confirmed contract",
         "MISSING_PAYSLIP_DATA": "Not run — required payslip data is missing",
+        "MISSING_PAY_PERIOD": "Not run — payslip pay period is missing or invalid",
         "RULE_NOT_READY": "Not run — this check is not currently ready for production validation",
         "NO_APPLICABLE_LEGAL_VERSION": "Not run — no applicable approved legal version was available",
         "NOT_APPLICABLE": "Not run — this rule does not apply to this employee",

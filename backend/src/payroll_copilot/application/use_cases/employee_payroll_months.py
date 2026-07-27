@@ -287,12 +287,33 @@ class BuildEmployeePayrollMonthsUseCase:
             ),
         )
         run_id = row["latest_validation"].get("validation_run_id")
+        findings: list[dict[str, Any]] = []
+        rule_outcomes: list[dict[str, Any]] = []
+        manual_approvals: list[dict[str, Any]] = []
+        if selected_run is not None:
+            rule_outcomes = [
+                {
+                    "rule_id": str(item.get("rule_id") or ""),
+                    "outcome": str(item.get("outcome") or "not_run"),
+                    "skip_reason": item.get("skip_reason"),
+                    "reason_code": item.get("reason_code"),
+                    "message": item.get("message"),
+                }
+                for item in list((selected_run.context_snapshot or {}).get("rule_outcomes") or [])
+                if isinstance(item, dict) and item.get("rule_id")
+            ]
+        if payslip_doc is not None:
+            raw_approvals = (payslip_doc.metadata or {}).get("manual_approvals")
+            if isinstance(raw_approvals, list):
+                manual_approvals = [item for item in raw_approvals if isinstance(item, dict)]
         if run_id and self._findings is not None:
             records = selected_findings
             findings = [
                 {
                     "id": str(f.id),
+                    # Keep legacy code=message_key; add authoritative rule_id additively.
                     "code": f.message_key,
+                    "rule_id": f.rule_id,
                     "severity": f.severity.value
                     if hasattr(f.severity, "value")
                     else str(f.severity),
@@ -496,6 +517,7 @@ class BuildEmployeePayrollMonthsUseCase:
                                 {
                                     "id": str(finding.id),
                                     "code": finding.message_key,
+                                    "rule_id": finding.rule_id,
                                     "severity": finding.severity.value
                                     if hasattr(finding.severity, "value")
                                     else str(finding.severity),
@@ -564,6 +586,8 @@ class BuildEmployeePayrollMonthsUseCase:
             "latest_validation": {
                 **row["latest_validation"],
                 "findings": findings,
+                "rule_outcomes": rule_outcomes,
+                "manual_approvals": manual_approvals,
                 "confidence_explanation": confidence_explanation,
                 "outdated": next(
                     (

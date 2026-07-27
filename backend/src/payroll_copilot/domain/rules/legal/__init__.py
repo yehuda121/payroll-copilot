@@ -23,6 +23,9 @@ def _payslip_additional(context: ValidationContext, key: str):
 
 
 def _as_of(context: ValidationContext) -> date:
+    if context.period is None:
+        # Orchestrator should NOT_RUN legal rules when period is missing; defensive guard.
+        raise ValueError("pay_period_required_for_legal_as_of")
     return date(context.period.year, context.period.month, 1)
 
 

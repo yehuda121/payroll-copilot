@@ -21,11 +21,13 @@ from payroll_copilot.infrastructure.ocr.confidence import average_confidence
 from payroll_copilot.infrastructure.ocr.language import (
     DEFAULT_TESSERACT_MULTI_LANG,
     normalize_document_language,
+    tesseract_lang_expects_hebrew,
     to_tesseract_lang,
 )
 from payroll_copilot.infrastructure.ocr.media_types import is_pdf, resolve_media_type
 from payroll_copilot.infrastructure.ocr.pdf_rasterizer import rasterize_pdf_to_png_pages
 from payroll_copilot.infrastructure.ocr.pdf_text import (
+    apply_hebrew_script_mismatch_gate,
     assess_embedded_text_quality,
     extract_embedded_pdf_text,
     log_extraction_stage,
@@ -99,7 +101,11 @@ class TesseractOCRProvider:
                     extracted_text_length=text_len,
                     duration_ms=(time.perf_counter() - started) * 1000,
                 )
-                quality = assess_embedded_text_quality(page_texts)
+                quality = apply_hebrew_script_mismatch_gate(
+                    assess_embedded_text_quality(page_texts),
+                    page_texts,
+                    hebrew_expected=tesseract_lang_expects_hebrew(tess_lang),
+                )
                 if quality.usable:
                     normalized_pages = [normalize_extracted_text(text) for text in page_texts]
                     pages = tuple(

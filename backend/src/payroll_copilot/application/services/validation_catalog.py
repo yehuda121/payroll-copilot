@@ -17,6 +17,7 @@ OUTCOME_NOT_RUN = "not_run"
 
 # NOT_RUN / skip reason codes
 REASON_MISSING_PAYSLIP_DATA = "MISSING_PAYSLIP_DATA"
+REASON_MISSING_PAY_PERIOD = "MISSING_PAY_PERIOD"
 REASON_RULE_NOT_READY = "RULE_NOT_READY"
 REASON_NO_APPLICABLE_LEGAL_VERSION = "NO_APPLICABLE_LEGAL_VERSION"
 REASON_NOT_APPLICABLE = "NOT_APPLICABLE"
@@ -441,6 +442,10 @@ def reason_message(reason_code: str | None) -> str:
     messages = {
         REASON_MISSING_PAYSLIP_DATA: (
             "This check was not conclusive because required payslip data was unavailable."
+        ),
+        REASON_MISSING_PAY_PERIOD: (
+            "This check was not run because the payslip pay period is missing or could not be "
+            "parsed, so no historical legal version could be selected."
         ),
         REASON_RULE_NOT_READY: (
             "This check was not run because it is not currently ready for production validation."

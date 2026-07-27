@@ -16,8 +16,10 @@ logger = logging.getLogger(__name__)
 MIN_EMBEDDED_TEXT_CHARS = 40
 
 _PRINTABLE_RE = re.compile(r"[\w\u0590-\u05FF\u0600-\u06FF]", re.UNICODE)
+_HEBREW_LETTER_RE = re.compile(r"[\u0590-\u05FF]")
 _REPLACEMENT_CHAR = "\ufffd"
 _MEANINGFUL_LINE_MIN_CHARS = 3
+SCRIPT_MISMATCH_HEBREW_EXPECTED = "script_mismatch_hebrew_expected"
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,6 +169,43 @@ def assess_embedded_text_quality(page_texts: list[str]) -> EmbeddedTextQuality:
         pages_with_text=pages_with_text,
         page_count=page_count,
         reason=None,
+    )
+
+
+def text_contains_hebrew_letters(text: str) -> bool:
+    """True when ``text`` contains at least one Unicode Hebrew letter."""
+    return bool(_HEBREW_LETTER_RE.search(text or ""))
+
+
+def page_texts_contain_hebrew_letters(page_texts: list[str]) -> bool:
+    return any(text_contains_hebrew_letters(page) for page in page_texts)
+
+
+def apply_hebrew_script_mismatch_gate(
+    quality: EmbeddedTextQuality,
+    page_texts: list[str],
+    *,
+    hebrew_expected: bool,
+) -> EmbeddedTextQuality:
+    """Reject usable embedded text when Hebrew OCR is expected but no Hebrew letters appear.
+
+    Preserves ordinary poor-quality reasons. Does not invent global OCR rules:
+    only applies when ``hebrew_expected`` is true (caller derives this from the
+    resolved Tesseract language packs).
+    """
+    if not quality.usable or not hebrew_expected:
+        return quality
+    if page_texts_contain_hebrew_letters(page_texts):
+        return quality
+    return EmbeddedTextQuality(
+        usable=False,
+        non_whitespace_chars=quality.non_whitespace_chars,
+        printable_ratio=quality.printable_ratio,
+        meaningful_lines=quality.meaningful_lines,
+        replacement_char_ratio=quality.replacement_char_ratio,
+        pages_with_text=quality.pages_with_text,
+        page_count=quality.page_count,
+        reason=SCRIPT_MISMATCH_HEBREW_EXPECTED,
     )
 
 

@@ -94,6 +94,7 @@ export type PayrollMonthValidationSummary = {
   findings?: Array<{
     id: string;
     code: string;
+    rule_id?: string | null;
     severity: string;
     message_key: string;
     message_params?: Record<string, unknown>;
@@ -103,6 +104,14 @@ export type PayrollMonthValidationSummary = {
     legal_reference?: string | null;
     explanation?: string | null;
   }>;
+  rule_outcomes?: Array<{
+    rule_id: string;
+    outcome: string;
+    skip_reason?: string | null;
+    reason_code?: string | null;
+    message?: string | null;
+  }>;
+  manual_approvals?: Array<Record<string, unknown>>;
 };
 
 export type PayrollMonthSummary = {
@@ -155,6 +164,7 @@ export type PayrollMonthDetail = {
     findings?: Array<{
       id: string;
       code: string;
+      rule_id?: string | null;
       severity: string;
       message_key: string;
       message_params: Record<string, unknown>;
@@ -180,6 +190,27 @@ export type PayrollMonthDetail = {
     outdated?: boolean;
     extraction_id?: string | null;
     confidence_explanation?: string | null;
+    findings?: Array<{
+      id: string;
+      code: string;
+      rule_id?: string | null;
+      severity: string;
+      message_key: string;
+      message_params: Record<string, unknown>;
+      expected_value: string | null;
+      actual_value: string | null;
+      confidence?: number | null;
+      legal_reference?: string | null;
+      explanation?: string | null;
+    }>;
+    rule_outcomes?: Array<{
+      rule_id: string;
+      outcome: string;
+      skip_reason?: string | null;
+      reason_code?: string | null;
+      message?: string | null;
+    }>;
+    manual_approvals?: Array<Record<string, unknown>>;
   };
   missing_documents: Array<{ document_type: string; reason_code: string }>;
   presentation_status: string;

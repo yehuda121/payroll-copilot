@@ -98,7 +98,11 @@ function findingForRule(
   findings: ValidationFinding[],
   ruleId: string,
 ): ValidationFinding | undefined {
-  return findings.find((finding) => (finding.rule_id || finding.code) === ruleId);
+  return findings.find((finding) => {
+    const rid = (finding.rule_id || '').trim();
+    if (rid && rid === ruleId) return true;
+    return (finding.code || '') === ruleId;
+  });
 }
 
 function statusFromFinding(finding: ValidationFinding): CheckRowStatus {
@@ -124,7 +128,9 @@ function knownSkipReason(reason: string | null | undefined): string | null {
   const known = new Set([
     'employee_not_identified',
     'no_confirmed_contract',
+    'missing_pay_period',
     'MISSING_PAYSLIP_DATA',
+    'MISSING_PAY_PERIOD',
     'RULE_NOT_READY',
     'NO_APPLICABLE_LEGAL_VERSION',
     'NOT_APPLICABLE',

@@ -22,7 +22,8 @@ class RunValidationCommand:
     payslip: PayslipData
     employee: Employee
     department: Department
-    period: PayPeriod
+    # None when document pay_period is missing/unparseable (no synthetic "today").
+    period: PayPeriod | None
     field_confidences: dict[str, float]
     historical_payslips: list[PayslipData] | None = None
     disabled_rule_ids: frozenset[str] = frozenset()

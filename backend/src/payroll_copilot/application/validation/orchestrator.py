@@ -12,6 +12,7 @@ from payroll_copilot.application.services.validation_catalog import (
     OUTCOME_UNCERTAIN,
     READINESS_NOT_READY,
     REASON_EXECUTION_ERROR,
+    REASON_MISSING_PAY_PERIOD,
     REASON_MISSING_PAYSLIP_DATA,
     REASON_NO_APPLICABLE_LEGAL_VERSION,
     REASON_NOT_APPLICABLE,
@@ -87,6 +88,26 @@ class ValidationOrchestrator:
                         _not_run_outcome(rule_id, reason_code=REASON_RULE_NOT_READY, skip_reason="rule_not_ready")
                     )
                     continue
+
+            # Legal versioned evaluation requires a known payslip period — never invent today.
+            if rule_id.startswith("legal.") and context.period is None:
+                if cat is not None and cat.readiness == READINESS_NOT_READY:
+                    outcomes.append(
+                        _not_run_outcome(
+                            rule_id,
+                            reason_code=REASON_RULE_NOT_READY,
+                            skip_reason="rule_not_ready",
+                        )
+                    )
+                else:
+                    outcomes.append(
+                        _not_run_outcome(
+                            rule_id,
+                            reason_code=REASON_MISSING_PAY_PERIOD,
+                            skip_reason="missing_pay_period",
+                        )
+                    )
+                continue
 
             if not rule.applies_to(context):
                 legacy = _skip_reason_for(rule_cls, context)

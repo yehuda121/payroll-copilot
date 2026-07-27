@@ -44,6 +44,12 @@ def to_tesseract_lang(language: str, *, default_multi: str = DEFAULT_TESSERACT_M
     return TESSERACT_LANG_MAP[normalized]
 
 
+def tesseract_lang_expects_hebrew(tess_lang: str) -> bool:
+    """True when the resolved Tesseract ``-l`` string includes the ``heb`` pack."""
+    packs = {part.strip().lower() for part in (tess_lang or "").split("+") if part.strip()}
+    return "heb" in packs
+
+
 def to_paddle_lang(language: str) -> str:
     """Map to a PaddleOCR language code.
 
@@ -62,6 +68,7 @@ def to_paddle_lang(language: str) -> str:
 __all__ = [
     "DEFAULT_TESSERACT_MULTI_LANG",
     "normalize_document_language",
+    "tesseract_lang_expects_hebrew",
     "to_paddle_lang",
     "to_tesseract_lang",
     "PADDLE_LANG_MAP",
