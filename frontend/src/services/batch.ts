@@ -50,6 +50,8 @@ export type BatchValidationHistoryRun = {
     rule_id: string;
     outcome: string;
     skip_reason?: string | null;
+    reason_code?: string | null;
+    message?: string | null;
   }>;
 };
 

@@ -181,7 +181,7 @@ class TestNationalIdMatch:
         assert findings[0].severity == FindingSeverity.INFO
         assert findings[0].message_key == "validation.missing_data"
 
-    def test_missing_payslip_no_employee_finding(
+    def test_missing_payslip_is_uncertain_not_pass_or_fail(
         self,
         rules_loader: YamlLegalRulesLoader,
         profile_employee: Employee,
@@ -195,8 +195,12 @@ class TestNationalIdMatch:
             authorized=True,
             trusted_national_id=_VALID_NATIONAL_ID,
         )
-        assert "employee.national_id.match" not in _ids(report)
-
+        findings = [f for f in report.findings if f.rule_id == "employee.national_id.match"]
+        assert len(findings) == 1
+        assert findings[0].severity == FindingSeverity.INFO
+        assert findings[0].message_key == "validation.missing_data"
+        outcomes = {item.rule_id: item.outcome for item in report.rule_outcomes}
+        assert outcomes.get("employee.national_id.match") == "uncertain"
 
 class TestNameMatch:
     def test_order_insensitive_hebrew_match(
@@ -419,8 +423,17 @@ class TestEmploymentType:
             department=department,
             authorized=True,
         )
-        assert "employee.employment_type.match" not in _ids(report)
+        employee_findings = [
+            f for f in report.findings if f.rule_id == "employee.employment_type.match"
+        ]
+        assert all(f.severity == FindingSeverity.INFO for f in employee_findings)
+        assert not any(
+            f.severity in {FindingSeverity.WARNING, FindingSeverity.CRITICAL}
+            for f in employee_findings
+        )
         assert "sanity.employment_type.recognized" in _ids(report)
+        outcomes = {item.rule_id: item.outcome for item in report.rule_outcomes}
+        assert outcomes.get("employee.employment_type.match") == "uncertain"
 
 
 class TestPayPeriodMatch:

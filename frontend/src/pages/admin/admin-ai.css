@@ -135,3 +135,157 @@
 .admin-ai-table tr:last-child td {
   border-bottom: none;
 }
+
+.admin-ai-table tbody tr {
+  cursor: pointer;
+}
+
+.admin-ai-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+
+.admin-ai-table tbody tr.is-selected td {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+.admin-ai-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.admin-ai-tabs button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font: inherit;
+}
+
+.admin-ai-tabs button[aria-selected='true'] {
+  color: var(--color-text);
+  border-bottom: 2px solid var(--color-accent, #175cd3);
+  font-weight: 600;
+}
+
+.admin-ai-tabs button:focus-visible {
+  outline: 2px solid var(--color-accent, #175cd3);
+  outline-offset: 2px;
+}
+
+.admin-ai-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 0.8fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .admin-ai-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-ai-detail {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1rem;
+  background: var(--color-surface);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-ai-detail h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.admin-ai-detail dl {
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.admin-ai-detail dt {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.admin-ai-detail dd {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.admin-ai-badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+}
+
+.admin-ai-badge--ok {
+  color: #027a48;
+  border-color: #abefc6;
+  background: #ecfdf3;
+}
+
+.admin-ai-badge--warn {
+  color: #b54708;
+  border-color: #fedf89;
+  background: #fffaeb;
+}
+
+.admin-ai-badge--danger {
+  color: #b42318;
+  border-color: #fecdca;
+  background: #fef3f2;
+}
+
+.admin-ai-badge--muted {
+  color: var(--color-text-muted);
+}
+
+.admin-ai-pre {
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-border) 25%, transparent);
+  font-size: 0.78rem;
+  overflow: auto;
+  max-height: 16rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.admin-ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-ai-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.admin-ai-timeline li {
+  border-inline-start: 2px solid var(--color-border);
+  padding-inline-start: 0.75rem;
+}
+
+.admin-ai-metric-unavailable {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-size: 0.95rem;
+}

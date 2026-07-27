@@ -573,15 +573,26 @@
       "status": {
         "passed": "Passed",
         "failed": "Failed",
-        "uncertain": "AI uncertain",
+        "uncertain": "Uncertain",
         "unchecked": "Cannot validate",
         "missingRequired": "Not found on payslip",
         "notRun": "Not run",
         "manuallyApproved": "Manually approved"
       },
+      "coverageSummary": "{{executed}} of {{total}} checks executed",
       "notRunReasons": {
         "employee_not_identified": "Not run — employee not identified",
-        "no_confirmed_contract": "Not run — no confirmed contract"
+        "no_confirmed_contract": "Not run — no confirmed contract",
+        "EMPLOYEE_NOT_IDENTIFIED": "Not run — employee not identified",
+        "NO_CONFIRMED_CONTRACT": "Not run — no confirmed contract",
+        "MISSING_PAYSLIP_DATA": "Not run — required payslip data is missing",
+        "RULE_NOT_READY": "Not run — this check is not currently ready for production validation",
+        "NO_APPLICABLE_LEGAL_VERSION": "Not run — no applicable approved legal version was available",
+        "NOT_APPLICABLE": "Not run — this rule does not apply to this employee",
+        "UNSUPPORTED_SCOPE": "Not run — payslip is outside the supported rule scope",
+        "RULE_DISABLED": "Not run — this check is not currently enabled",
+        "DEPENDENCY_UNAVAILABLE": "Not run — a required dependency was unavailable",
+        "EXECUTION_ERROR": "Not run — an unexpected execution error occurred"
       },
       "explain": "AI",
       "aiExplanation": "AI explanation",

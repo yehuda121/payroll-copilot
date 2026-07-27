@@ -31,6 +31,8 @@ const ADMIN_NAV_CORE = [
   { label: 'Organization Analytics', path: '/admin/analytics' },
   { label: 'AI Quality Analytics', path: '/admin/analytics/quality' },
   { label: 'AI Models', path: '/admin/ai-models' },
+  { label: 'Legal Knowledge', path: '/admin/legal-knowledge' },
+  { label: 'RAG Evaluation', path: '/admin/rag-evaluation' },
 ] as const;
 
 /** Unfinished / lab surfaces — available in Vite DEV only, never in production builds. */
@@ -38,8 +40,6 @@ const ADMIN_NAV_DEV_ONLY = [
   { label: 'Users & Roles', path: '/admin/users' },
   { label: 'Rule Packs', path: '/admin/rule-packs' },
   { label: 'Department Rules', path: '/admin/department-rules' },
-  { label: 'MCP Legal Sync', path: '/admin/mcp-sync' },
-  { label: 'RAG Management', path: '/admin/rag' },
   { label: 'System Configuration', path: '/admin/configuration' },
   { label: 'Audit Logs', path: '/admin/audit-logs' },
   { label: 'Document Lab', path: '/admin/document-lab' },

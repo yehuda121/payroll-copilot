@@ -31,6 +31,7 @@ import {
   monthTone,
   type ProfileDocItem,
   type ProfilePayload,
+  type MonthRow,
 } from './EmployeeProfile.model';
 
 function AvailabilityBadge({ value }: { value: string }) {
@@ -544,7 +545,7 @@ export function EmployeeProfilePage() {
                     <p>
                       {t('accountant.employeeProfile.missing', {
                         list: selectedMonthRow.missing_documents
-                          .map((code) => getDocumentTypeLabel(code, t))
+                          .map((code: string) => getDocumentTypeLabel(code, t))
                           .join(', '),
                       })}
                     </p>

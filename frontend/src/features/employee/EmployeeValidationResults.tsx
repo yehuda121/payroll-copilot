@@ -22,6 +22,7 @@ import {
 import {
   buildCheckCatalogRows,
   checkRowStatusVisual,
+  summarizeCheckRows,
   type CheckCatalogRow,
 } from '../../lib/employee/check-catalog';
 import { EmployeeValidationAiButton } from './EmployeeValidationAiButton';
@@ -198,17 +199,23 @@ export function EmployeeValidationResults({
   };
 
   const counts = useMemo(() => {
-    const c = { passed: 0, failed: 0, uncertain: 0, unchecked: 0 };
     if (checkFocused) {
-      for (const row of catalogRows) {
-        if (row.status === 'passed' || row.status === 'manually_approved') c.passed += 1;
-        else if (row.status === 'failed') c.failed += 1;
-        else if (row.status === 'uncertain') c.uncertain += 1;
-        else c.unchecked += 1;
-      }
-      return c;
+      const summary = summarizeCheckRows(catalogRows);
+      return {
+        passed: summary.passed,
+        failed: summary.failed,
+        uncertain: summary.uncertain,
+        unchecked: summary.not_run,
+        executed: summary.executed,
+        total: summary.total,
+      };
     }
-    for (const card of cards) c[card.status] += 1;
+    const c = { passed: 0, failed: 0, uncertain: 0, unchecked: 0, executed: 0, total: 0 };
+    for (const card of cards) {
+      c[card.status] += 1;
+      c.total += 1;
+      if (card.status !== 'unchecked') c.executed += 1;
+    }
     return c;
   }, [cards, catalogRows, checkFocused]);
 
@@ -240,13 +247,18 @@ export function EmployeeValidationResults({
   const renderCatalogRow = (row: CheckCatalogRow) => {
     const visual = checkRowStatusVisual(row.status, t);
     const support =
-      row.status === 'not_run' && row.skipReasonKey
-        ? t(`employee.validation.notRunReasons.${row.skipReasonKey}`)
+      row.status === 'not_run'
+        ? row.explanation ||
+          (row.skipReasonKey
+            ? t(`employee.validation.notRunReasons.${row.skipReasonKey}`)
+            : t('employee.validation.status.notRun'))
         : row.explanation;
     return (
       <article
         key={row.key}
         className={`employee-validation-card employee-validation-check ${visual.css}`}
+        data-check-status={row.status}
+        aria-invalid={row.status === 'failed' ? true : undefined}
       >
         <header className="employee-validation-card__head">
           <h4>{row.title}</h4>
@@ -398,6 +410,12 @@ export function EmployeeValidationResults({
         </div>
       )}
 
+      {validating && (
+        <p className="employee-workspace-hint" role="status">
+          {t('employee.upload.validatingPayroll')}
+        </p>
+      )}
+
       <section
         className="employee-validation-cards"
         aria-label={t('employee.validation.rulesTitle')}
@@ -439,6 +457,14 @@ export function EmployeeValidationResults({
           {overallLabel && (
             <p className="employee-validation-summary__overall">{overallLabel}</p>
           )}
+          {report && counts.total > 0 && (
+            <p className="employee-workspace-hint">
+              {t('employee.validation.coverageSummary', {
+                executed: counts.executed,
+                total: counts.total,
+              })}
+            </p>
+          )}
           {report?.summary && <p className="employee-workspace-hint">{report.summary}</p>}
           {!report && <p className="employee-workspace-hint">{t('employee.workspace.noValidationYet')}</p>}
           <ul className="employee-validation-summary__counts" aria-label={t('employee.validation.legend')}>
@@ -457,9 +483,9 @@ export function EmployeeValidationResults({
               <span>{t('employee.validation.status.uncertain')}</span>
               <strong>{counts.uncertain}</strong>
             </li>
-            <li className="is-unchecked">
+            <li className="is-not-run">
               <span aria-hidden="true">➖</span>
-              <span>{t('employee.validation.status.unchecked')}</span>
+              <span>{t('employee.validation.status.notRun')}</span>
               <strong>{counts.unchecked}</strong>
             </li>
           </ul>

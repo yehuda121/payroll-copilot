@@ -175,6 +175,8 @@ export function adaptValidationReport(
       rule_id: item.rule_id,
       outcome: item.outcome,
       skip_reason: item.skip_reason ?? null,
+      reason_code: item.reason_code ?? null,
+      message: item.message ?? null,
     })),
   };
 }

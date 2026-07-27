@@ -94,14 +94,18 @@ class RuleEvaluationOutcome:
     """Authoritative per-rule result from one orchestrator pass.
 
     outcome:
-      - passed: applies_to was true and evaluate returned None
-      - failed: evaluate returned a finding (any severity, including INFO)
-      - skipped: applies_to was false (rule not evaluated)
+      - passed: rule executed and payslip satisfies the rule
+      - failed: rule executed and produced a real violation (WARNING/CRITICAL)
+      - uncertain: rule executed but evidence was insufficient (e.g. missing data INFO)
+      - not_run: rule did not execute (not applicable, not ready, error, etc.)
+      - skipped: legacy alias treated as not_run by consumers
     """
 
     rule_id: str
     outcome: str
     skip_reason: str | None = None
+    reason_code: str | None = None
+    message: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

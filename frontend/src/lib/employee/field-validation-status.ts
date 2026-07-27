@@ -194,7 +194,8 @@ export function buildEmployeeFieldValidationMap(
           .filter((item): item is RuleEvaluationOutcome => Boolean(item));
         const anyPassed = boundOutcomes.some((item) => item.outcome === 'passed');
         const anyFailed = boundOutcomes.some((item) => item.outcome === 'failed');
-        if (anyPassed && !anyFailed) {
+        const anyUncertain = boundOutcomes.some((item) => item.outcome === 'uncertain');
+        if (anyPassed && !anyFailed && !anyUncertain) {
           best = {
             status: 'passed',
             labelKey: 'employee.validation.status.passed',

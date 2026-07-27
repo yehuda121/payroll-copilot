@@ -51,7 +51,7 @@ class ContractEmploymentCommencementMatchRule(BaseRule):
         payslip_date = parse_iso_date(payslip_raw)
         ref = terms.employment_commencement_date
         if payslip_date is None:
-            return None  # missing payslip value — SANITY may handle calendar/presence
+            return _insufficient(self.rule_id, "employment_start_date")
         if ref is None:
             return _insufficient(self.rule_id, "employment_commencement_date")
         if payslip_date == ref:
@@ -88,7 +88,7 @@ class ContractSalaryBasisMatchRule(BaseRule):
         payslip_basis = parse_salary_basis(payslip_raw)
         ref = terms.salary_basis
         if payslip_basis is None:
-            return None
+            return _insufficient(self.rule_id, "salary_basis")
         if ref is None:
             return _insufficient(self.rule_id, "salary_basis")
         if payslip_basis == ref:
@@ -136,7 +136,7 @@ class ContractHourlyRateMatchRule(BaseRule):
         payslip_rate = parse_money(payslip_raw)
         ref = terms.contractual_hourly_rate
         if payslip_rate is None:
-            return None
+            return _insufficient(self.rule_id, "hourly_rate")
         if ref is None:
             return _insufficient(self.rule_id, "contractual_hourly_rate")
         if payslip_rate == ref:

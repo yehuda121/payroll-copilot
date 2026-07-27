@@ -116,6 +116,8 @@ class RuleOutcomeResponse(BaseModel):
     rule_id: str
     outcome: str
     skip_reason: str | None = None
+    reason_code: str | None = None
+    message: str | None = None
 
 
 class ValidationRunResponse(BaseModel):
@@ -144,6 +146,14 @@ def _parse_uuid(value: str, field_name: str) -> UUID:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Invalid {field_name}: must be a valid UUID",
         ) from exc
+
+
+def _normalize_outcome(outcome: str) -> str:
+    """Map legacy skipped → not_run for API consumers."""
+    if outcome == "skipped":
+        return "not_run"
+    return outcome
+
 
 def _to_response(record: ValidationRunRecord, *, locale: str, document_metadata: dict | None = None) -> ValidationRunResponse:
     from payroll_copilot.application.use_cases.approve_validation_finding import (
@@ -207,8 +217,10 @@ def _to_response(record: ValidationRunRecord, *, locale: str, document_metadata:
     rule_outcomes = [
         RuleOutcomeResponse(
             rule_id=str(item.get("rule_id") or ""),
-            outcome=str(item.get("outcome") or "skipped"),
+            outcome=_normalize_outcome(str(item.get("outcome") or "not_run")),
             skip_reason=item.get("skip_reason"),
+            reason_code=item.get("reason_code"),
+            message=item.get("message"),
         )
         for item in (record.context_snapshot or {}).get("rule_outcomes") or []
         if isinstance(item, dict) and item.get("rule_id")

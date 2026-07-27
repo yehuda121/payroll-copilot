@@ -31,7 +31,7 @@ class EmployeeNationalIdMatchRule(BaseRule):
             trusted_national_id=context.trusted_national_id,
         )
         if outcome == "missing_payslip":
-            return None
+            return _insufficient(self.rule_id, "national_id")
         if outcome == "missing_reference":
             return _insufficient(self.rule_id, "national_id")
         if outcome == "match":
@@ -62,7 +62,7 @@ class EmployeeNameMatchRule(BaseRule):
             employee=context.employee,
         )
         if outcome == "missing_payslip":
-            return None
+            return _insufficient(self.rule_id, "employee_name")
         if outcome in {"missing_reference", "cannot_compare"}:
             return _insufficient(self.rule_id, "employee_name")
         if outcome == "match":
@@ -93,7 +93,7 @@ class EmployeeNumberMatchRule(BaseRule):
             employee=context.employee,
         )
         if outcome == "missing_payslip":
-            return None
+            return _insufficient(self.rule_id, "employee_number")
         if outcome == "missing_reference":
             return _insufficient(self.rule_id, "employee_number")
         if outcome == "match":
@@ -126,7 +126,7 @@ class EmployeeEmploymentTypeMatchRule(BaseRule):
             employee=context.employee,
         )
         if outcome == "missing_payslip":
-            return None
+            return _insufficient(self.rule_id, "employment_type")
         if outcome == "missing_reference":
             return _insufficient(self.rule_id, "employment_type")
         if outcome == "match":
@@ -159,7 +159,7 @@ class EmployeePayPeriodMatchRule(BaseRule):
     def evaluate(self, context: ValidationContext) -> RuleFinding | None:
         outcome = h.pay_period_vs_selected_outcome(context)
         if outcome == "missing_payslip":
-            return None
+            return _insufficient(self.rule_id, "pay_period")
         if outcome == "missing_reference":
             return _insufficient(self.rule_id, "pay_period")
         if outcome == "match":

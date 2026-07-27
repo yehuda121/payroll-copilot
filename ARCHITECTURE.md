@@ -705,10 +705,13 @@ Designed extension points (no requirement that all exist today):
 
 | Extension | Architectural hook |
 | --- | --- |
-| Vector RAG over contracts/policies | Retrieval port behind assistant/validation context builders; embeddings in a dedicated store or managed search—not a second business primary DB |
+| Legal Knowledge sync + proposals | Implemented: registry + shared sync service + developer_admin approval; official watched URLs mostly SOURCE_UNVERIFIED |
+| Version-aware Vector RAG | Implemented: **ChromaDB persistent** production backend + NumPy test adapter; YAML fallback observable |
+| DynamoDB legal metadata | Implemented: `LEGAL#SYSTEM` for sync/proposals/eval; YAML remains validation SoT |
+| RAG Evaluation (RAGAS + temporal accuracy) | Implemented as separate admin vertical; benchmark_v1 = 24 cases |
+| Vector RAG over employment contracts/policies | Still future — current index covers approved labor-law knowledge only |
 | Attendance / contract / national-ID analyzers | New document-type pipelines feeding canonical context fields |
 | Historical payroll comparison | Employee-period item collections + dedicated rules module |
-| MCP legal sync | Proposal-only workflow; human approval before rule pack mutation |
 | In-app document viewer | Presigned S3 + overlay of extraction evidence coordinates |
 | Step Functions for batch | Replace ad-hoc worker graphs with explicit state machines |
 | Multi-region | Stateless API, global tables / regional stacks, regional Bedrock quotas |
@@ -721,6 +724,8 @@ Extensions must preserve:
 2. Document Model vs Canonical Model separation.
 3. Organization tenancy and auditability.
 4. DynamoDB as the primary business database and S3 as document storage.
+
+See also: [docs/legal-knowledge-and-rag.md](docs/legal-knowledge-and-rag.md).
 
 ---
 

@@ -123,8 +123,38 @@ def import_employee_excel(self, document_id: str, organization_id: str) -> dict:
 
 @celery_app.task(name="sync_legal_rules_mcp")
 def sync_legal_rules_mcp() -> dict:
-    """Scheduled task: compare local YAML rules against external sources."""
-    return {"status": "completed", "proposals_created": 0}
+    """Scheduled/manual legal sync — creates proposals only; never auto-approves."""
+    import asyncio
+
+    from payroll_copilot.application.dto.legal_knowledge import SyncTrigger
+    from payroll_copilot.application.services.legal_change_analyzer import LegalChangeAnalyzer
+    from payroll_copilot.application.services.legal_knowledge_sync import LegalKnowledgeSyncService
+    from payroll_copilot.infrastructure.config.settings import get_settings
+    from payroll_copilot.infrastructure.persistence.dynamodb.factory import get_audit_log_repository
+    from payroll_copilot.infrastructure.persistence.legal_knowledge_store import (
+        get_legal_knowledge_store,
+    )
+
+    async def _run() -> dict:
+        settings = get_settings()
+        service = LegalKnowledgeSyncService(
+            analyzer=LegalChangeAnalyzer(None),
+            audit=get_audit_log_repository(),
+            rules_path=settings.legal_rules_path,
+            store=get_legal_knowledge_store(),
+        )
+        run = await service.run_sync(trigger=SyncTrigger.SCHEDULED, triggered_by="celery")
+        return {
+            "status": run.status.value,
+            "run_id": run.run_id,
+            "sources_checked": run.sources_checked,
+            "material_change_count": run.material_change_count,
+            "new_relevant_count": run.new_relevant_count,
+            "proposals_created": sum(1 for o in run.outcomes if o.proposal_id),
+            "error_count": run.error_count,
+        }
+
+    return asyncio.run(_run())
 
 
 @celery_app.task(name="reconcile_employee_leave_status")
@@ -158,9 +188,22 @@ def reconcile_employee_leave_status(organization_id: str | None = None) -> dict:
 
 
 # Celery Beat schedule — enable the beat process in deployment to run this.
-celery_app.conf.beat_schedule = {
+# Legal sync is OFF by default (LEGAL_SYNC_SCHEDULE_ENABLED=false) until sources are configured.
+_beat: dict = {
     "reconcile-employee-leave-status-hourly": {
         "task": "reconcile_employee_leave_status",
         "schedule": 3600.0,
     },
 }
+try:
+    from payroll_copilot.infrastructure.config.settings import get_settings as _get_settings
+
+    _s = _get_settings()
+    if getattr(_s, "legal_sync_schedule_enabled", False):
+        _beat["legal-knowledge-sync-daily"] = {
+            "task": "sync_legal_rules_mcp",
+            "schedule": float(getattr(_s, "legal_sync_interval_seconds", 86400.0)),
+        }
+except Exception:  # noqa: BLE001 — beat must still load
+    pass
+celery_app.conf.beat_schedule = _beat

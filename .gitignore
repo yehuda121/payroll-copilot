@@ -43,3 +43,9 @@ dist/
 # Uploads (local dev)
 uploads/
 tmp/
+
+# Legal knowledge runtime store (proposals, sync runs, vectors, eval results)
+backend/data/legal_knowledge/
+!backend/data/legal_knowledge/.gitkeep
+backend/data/chroma_legal/
+backend/config/rules/labor_law/.versions/

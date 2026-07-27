@@ -182,8 +182,10 @@ class RunPersistedValidationUseCase:
                     prior_outcomes.append(
                         RuleEvaluationOutcome(
                             rule_id=rid,
-                            outcome=str(raw.get("outcome") or "skipped"),
+                            outcome=str(raw.get("outcome") or "not_run"),
                             skip_reason=raw.get("skip_reason"),
+                            reason_code=raw.get("reason_code"),
+                            message=raw.get("message"),
                         )
                     )
 
@@ -215,7 +217,9 @@ class RunPersistedValidationUseCase:
                     overall_confidence=report.overall_confidence,
                     findings=tuple(merged),
                     rules_evaluated=sum(
-                        1 for item in merged_outcomes if item.outcome in {"passed", "failed"}
+                        1
+                        for item in merged_outcomes
+                        if item.outcome in {"passed", "failed", "uncertain"}
                     ),
                     rules_failed=sum(
                         1
@@ -254,6 +258,8 @@ class RunPersistedValidationUseCase:
                     "rule_id": item.rule_id,
                     "outcome": item.outcome,
                     "skip_reason": item.skip_reason,
+                    "reason_code": item.reason_code,
+                    "message": item.message,
                 }
                 for item in report.rule_outcomes
             ]
@@ -317,6 +323,8 @@ class RunPersistedValidationUseCase:
                     "rule_id": item.rule_id,
                     "outcome": item.outcome,
                     "skip_reason": item.skip_reason,
+                    "reason_code": item.reason_code,
+                    "message": item.message,
                 }
                 for item in report.rule_outcomes
             ]

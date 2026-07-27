@@ -21,6 +21,28 @@ from payroll_copilot.presentation.api.security import (
 from payroll_copilot.presentation.main import app
 
 
+@pytest.fixture(autouse=True)
+def _legal_knowledge_test_backends(monkeypatch: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathFactory) -> None:
+    """Unit/integration tests use file metadata + numpy vectors unless overridden."""
+    from payroll_copilot.infrastructure.config.settings import get_settings
+    from payroll_copilot.infrastructure.persistence.legal_knowledge_store import (
+        reset_legal_knowledge_store,
+    )
+    from payroll_copilot.infrastructure.rag.vector_store_factory import reset_legal_vector_store
+
+    settings = get_settings()
+    data_root = tmp_path_factory.mktemp("legal_knowledge")
+    monkeypatch.setattr(settings, "legal_knowledge_store", "file")
+    monkeypatch.setattr(settings, "legal_vector_backend", "numpy")
+    monkeypatch.setattr(settings, "legal_knowledge_data_path", str(data_root))
+    monkeypatch.setattr(settings, "legal_vector_persist_path", str(data_root / "chroma"))
+    reset_legal_knowledge_store()
+    reset_legal_vector_store()
+    yield
+    reset_legal_knowledge_store()
+    reset_legal_vector_store()
+
+
 class FakeObjectStorage:
     def __init__(self) -> None:
         self.uploads: list[tuple[str, bytes, str]] = []

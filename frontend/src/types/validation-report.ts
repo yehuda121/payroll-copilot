@@ -4,8 +4,10 @@ export type OverallStatusLabel = string;
 
 export type RuleEvaluationOutcome = {
   rule_id: string;
-  outcome: 'passed' | 'failed' | 'skipped' | string;
+  outcome: 'passed' | 'failed' | 'uncertain' | 'not_run' | 'skipped' | string;
   skip_reason?: string | null;
+  reason_code?: string | null;
+  message?: string | null;
 };
 
 export type GuestValidationReport = {

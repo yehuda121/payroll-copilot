@@ -571,15 +571,26 @@
       "status": {
         "passed": "ناجح",
         "failed": "فشل",
-        "uncertain": "غير مؤكد من الذكاء الاصطناعي",
+        "uncertain": "غير مؤكد",
         "unchecked": "تعذر التحقق",
         "missingRequired": "غير موجود في القسيمة",
         "notRun": "لم يُنفَّذ",
         "manuallyApproved": "تمت الموافقة يدويًا"
       },
+      "coverageSummary": "{{executed}} من أصل {{total}} فحوصات نُفِّذت",
       "notRunReasons": {
         "employee_not_identified": "لم يُنفَّذ — لم يتم التعرف على الموظف",
-        "no_confirmed_contract": "لم يُنفَّذ — لا يوجد عقد مؤكد"
+        "no_confirmed_contract": "لم يُنفَّذ — لا يوجد عقد مؤكد",
+        "EMPLOYEE_NOT_IDENTIFIED": "لم يُنفَّذ — لم يتم التعرف على الموظف",
+        "NO_CONFIRMED_CONTRACT": "لم يُنفَّذ — لا يوجد عقد مؤكد",
+        "MISSING_PAYSLIP_DATA": "لم يُنفَّذ — بيانات القسيمة المطلوبة غير متوفرة",
+        "RULE_NOT_READY": "لم يُنفَّذ — هذا الفحص غير جاهز حاليًا للتحقق الإنتاجي",
+        "NO_APPLICABLE_LEGAL_VERSION": "لم يُنفَّذ — لا تتوفر نسخة قانونية معتمدة قابلة للتطبيق",
+        "NOT_APPLICABLE": "لم يُنفَّذ — هذه القاعدة لا تنطبق على هذا الموظف",
+        "UNSUPPORTED_SCOPE": "لم يُنفَّذ — القسيمة خارج النطاق المدعوم",
+        "RULE_DISABLED": "لم يُنفَّذ — هذا الفحص غير مفعّل حاليًا",
+        "DEPENDENCY_UNAVAILABLE": "لم يُنفَّذ — تبعية مطلوبة غير متوفرة",
+        "EXECUTION_ERROR": "لم يُنفَّذ — حدث خطأ تنفيذ غير متوقع"
       },
       "explain": "AI",
       "aiExplanation": "شرح بالذكاء الاصطناعي",

@@ -18,9 +18,11 @@ from payroll_copilot.presentation.api.routes import (
     extraction,
     health,
     integrations,
+    legal_knowledge,
     manual_review,
     ocr,
     parser,
+    rag_evaluation,
     sick_leaves,
     vacations,
     validation,
@@ -42,6 +44,12 @@ api_router.include_router(document_lab.router, prefix="/dev/document-lab", tags=
 api_router.include_router(batch.router, prefix="/batch", tags=["Batch Processing"])
 api_router.include_router(manual_review.router, prefix="/manual-review", tags=["Manual Review"])
 api_router.include_router(compliance.router, prefix="/compliance", tags=["Compliance"])
+api_router.include_router(
+    legal_knowledge.router, prefix="/admin/legal-knowledge", tags=["Legal Knowledge"]
+)
+api_router.include_router(
+    rag_evaluation.router, prefix="/admin/rag-evaluation", tags=["RAG Evaluation"]
+)
 api_router.include_router(assistant.router, prefix="/assistant", tags=["Assistant"])
 api_router.include_router(ai_monitoring.router, prefix="/admin/ai", tags=["AI Monitoring"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])

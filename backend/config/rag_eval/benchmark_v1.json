@@ -1,0 +1,222 @@
+{
+  "dataset_version": "benchmark_v1",
+  "description": "Verified benchmark cases grounded in approved local YAML labor-law knowledge only. No invented legal truth.",
+  "cases": [
+    {
+      "case_id": "mw_definition_current",
+      "question": "What is the hourly minimum wage amount in the approved payroll rules?",
+      "reference_answer": "Answer only from approved legal.minimum_wage parameters (amount and currency) in the current YAML pack.",
+      "expected_rule_ids": ["legal.minimum_wage"],
+      "effective_date": "2026-06-01",
+      "tags": ["minimum_wage", "current", "factual"],
+      "enabled": true
+    },
+    {
+      "case_id": "mw_paraphrase",
+      "question": "According to approved rules, what is the lowest hourly pay an adult employee may receive?",
+      "reference_answer": "Use legal.minimum_wage approved parameters only; do not invent statutory text beyond the YAML description/reference.",
+      "expected_rule_ids": ["legal.minimum_wage"],
+      "effective_date": "2026-06-01",
+      "tags": ["minimum_wage", "paraphrase"],
+      "enabled": true
+    },
+    {
+      "case_id": "mw_historical_date",
+      "question": "Using approved rules as of 2025-06-01, what minimum wage parameters apply?",
+      "reference_answer": "Retrieve the legally eligible approved version for effective_date 2025-06-01 for legal.minimum_wage; do not use a future version if one exists.",
+      "expected_rule_ids": ["legal.minimum_wage"],
+      "effective_date": "2025-06-01",
+      "tags": ["minimum_wage", "historical", "temporal"],
+      "enabled": true
+    },
+    {
+      "case_id": "ot_daily_limit",
+      "question": "What is the daily overtime hours limit in the approved rules?",
+      "reference_answer": "Answer from legal.overtime.daily_limit approved parameters (max_hours) and description only.",
+      "expected_rule_ids": ["legal.overtime.daily_limit"],
+      "effective_date": "2026-06-01",
+      "tags": ["overtime", "factual"],
+      "enabled": true
+    },
+    {
+      "case_id": "ot_weekly_limit",
+      "question": "How many overtime hours per week are allowed according to approved rules?",
+      "reference_answer": "Use legal.overtime.weekly_limit approved max_hours only.",
+      "expected_rule_ids": ["legal.overtime.weekly_limit"],
+      "effective_date": "2026-06-01",
+      "tags": ["overtime"],
+      "enabled": true
+    },
+    {
+      "case_id": "ot_rate_tier_1",
+      "question": "What overtime pay multiplier applies to the first overtime hours band in approved rules?",
+      "reference_answer": "Use legal.overtime.rate_tier_1 parameters (hours_range and multiplier) only.",
+      "expected_rule_ids": ["legal.overtime.rate_tier_1"],
+      "effective_date": "2026-06-01",
+      "tags": ["overtime", "calculation"],
+      "enabled": true
+    },
+    {
+      "case_id": "ot_rate_tier_2",
+      "question": "What is the second-tier overtime multiplier in approved rules?",
+      "reference_answer": "Use legal.overtime.rate_tier_2 approved multiplier/range only.",
+      "expected_rule_ids": ["legal.overtime.rate_tier_2"],
+      "effective_date": "2026-06-01",
+      "tags": ["overtime"],
+      "enabled": true
+    },
+    {
+      "case_id": "ot_multi_chunk",
+      "question": "Summarize approved daily overtime limit and first-tier overtime rate together.",
+      "reference_answer": "Combine only legal.overtime.daily_limit and legal.overtime.rate_tier_1 approved parameters; do not invent weekly-rest or holiday rules.",
+      "expected_rule_ids": ["legal.overtime.daily_limit", "legal.overtime.rate_tier_1"],
+      "effective_date": "2026-06-01",
+      "tags": ["overtime", "multi_chunk"],
+      "enabled": true
+    },
+    {
+      "case_id": "pension_employee",
+      "question": "What employee pension contribution rate is defined in approved rules?",
+      "reference_answer": "Use legal.pension.contribution approved parameters only.",
+      "expected_rule_ids": ["legal.pension.contribution"],
+      "effective_date": "2026-06-01",
+      "tags": ["pension"],
+      "enabled": true
+    },
+    {
+      "case_id": "pension_employer",
+      "question": "What employer pension contribution is defined in approved rules?",
+      "reference_answer": "Use legal.pension.employer_contribution approved parameters only.",
+      "expected_rule_ids": ["legal.pension.employer_contribution"],
+      "effective_date": "2026-06-01",
+      "tags": ["pension"],
+      "enabled": true
+    },
+    {
+      "case_id": "pension_severance",
+      "question": "What severance-related pension parameter is in approved rules?",
+      "reference_answer": "Use legal.pension.severance approved parameters/description only.",
+      "expected_rule_ids": ["legal.pension.severance"],
+      "effective_date": "2026-06-01",
+      "tags": ["pension"],
+      "enabled": true
+    },
+    {
+      "case_id": "vacation_entitlement",
+      "question": "How many annual vacation days are entitled under the approved vacation rules?",
+      "reference_answer": "Use legal.vacation.annual_entitlement approved parameters and description only.",
+      "expected_rule_ids": ["legal.vacation.annual_entitlement"],
+      "effective_date": "2026-06-01",
+      "tags": ["vacation"],
+      "enabled": true
+    },
+    {
+      "case_id": "vacation_accrual",
+      "question": "What monthly vacation accrual is defined in approved rules?",
+      "reference_answer": "Use legal.vacation.monthly_accrual approved parameters only.",
+      "expected_rule_ids": ["legal.vacation.monthly_accrual"],
+      "effective_date": "2026-06-01",
+      "tags": ["vacation"],
+      "enabled": true
+    },
+    {
+      "case_id": "sick_leave",
+      "question": "What annual sick-leave entitlement is in the approved rules?",
+      "reference_answer": "Use legal.sick_leave.annual_entitlement approved parameters only.",
+      "expected_rule_ids": ["legal.sick_leave.annual_entitlement"],
+      "effective_date": "2026-06-01",
+      "tags": ["sick_leave"],
+      "enabled": true
+    },
+    {
+      "case_id": "transport_max",
+      "question": "What is the maximum transportation allowance in approved rules?",
+      "reference_answer": "Use legal.transportation.max_allowance approved parameters only.",
+      "expected_rule_ids": ["legal.transportation.max_allowance"],
+      "effective_date": "2026-06-01",
+      "tags": ["transportation"],
+      "enabled": true
+    },
+    {
+      "case_id": "transport_public",
+      "question": "What do approved rules say about public transport reimbursement?",
+      "reference_answer": "Use legal.transportation.public_transport approved parameters/description only.",
+      "expected_rule_ids": ["legal.transportation.public_transport"],
+      "effective_date": "2026-06-01",
+      "tags": ["transportation"],
+      "enabled": true
+    },
+    {
+      "case_id": "tax_credit_point",
+      "question": "What tax credit point value is defined in approved payroll rules?",
+      "reference_answer": "Use legal.tax.credit_point approved parameters only.",
+      "expected_rule_ids": ["legal.tax.credit_point"],
+      "effective_date": "2026-06-01",
+      "tags": ["tax"],
+      "enabled": true
+    },
+    {
+      "case_id": "tax_brackets",
+      "question": "Where are income tax brackets defined in approved rules?",
+      "reference_answer": "Point only to legal.tax.income_brackets approved parameters; do not invent bracket amounts beyond YAML.",
+      "expected_rule_ids": ["legal.tax.income_brackets"],
+      "effective_date": "2026-06-01",
+      "tags": ["tax"],
+      "enabled": true
+    },
+    {
+      "case_id": "youth_age",
+      "question": "What minimum age for youth employment is in approved rules?",
+      "reference_answer": "Use legal.youth.minimum_age approved parameters only.",
+      "expected_rule_ids": ["legal.youth.minimum_age"],
+      "effective_date": "2026-06-01",
+      "tags": ["youth"],
+      "enabled": true
+    },
+    {
+      "case_id": "youth_hours",
+      "question": "What is the daily hour limit for youth in approved rules?",
+      "reference_answer": "Use legal.youth.max_daily_hours approved parameters only.",
+      "expected_rule_ids": ["legal.youth.max_daily_hours"],
+      "effective_date": "2026-06-01",
+      "tags": ["youth"],
+      "enabled": true
+    },
+    {
+      "case_id": "insufficient_context",
+      "question": "What is the exact court ruling citation for a dispute from 1998 not covered in approved rules?",
+      "reference_answer": "State that approved local legal knowledge does not contain that information; do not invent a citation.",
+      "expected_rule_ids": [],
+      "effective_date": "2026-06-01",
+      "tags": ["insufficient_context", "adversarial"],
+      "enabled": true
+    },
+    {
+      "case_id": "misleading_unrelated",
+      "question": "Does the minimum wage rule also set the overtime multiplier for night shifts?",
+      "reference_answer": "Do not conflate legal.minimum_wage with overtime rate rules; answer only from approved evidence and say if night-shift overtime is not present.",
+      "expected_rule_ids": ["legal.minimum_wage"],
+      "effective_date": "2026-06-01",
+      "tags": ["misleading", "negative"],
+      "enabled": true
+    },
+    {
+      "case_id": "ambiguous_overtime",
+      "question": "Are overtime rules the same for every employee in every sector?",
+      "reference_answer": "Explain only what approved overtime rules cover (including employment_types if present); do not invent sector exceptions absent from YAML.",
+      "expected_rule_ids": ["legal.overtime.daily_limit", "legal.overtime.weekly_limit"],
+      "effective_date": "2026-06-01",
+      "tags": ["ambiguous", "overtime"],
+      "enabled": true
+    },
+    {
+      "case_id": "unsupported_topic_weekly_rest",
+      "question": "What are the approved weekly rest work premium rates?",
+      "reference_answer": "If no approved YAML rule covers weekly rest premiums, state that approved knowledge is unavailable; do not invent rates.",
+      "expected_rule_ids": [],
+      "effective_date": "2026-06-01",
+      "tags": ["unsupported_topic", "weekly_rest"],
+      "enabled": true
+    }
+  ]
+}

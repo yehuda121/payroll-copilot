@@ -43,6 +43,10 @@ from payroll_copilot.application.use_cases.payroll_assistant import (
     AssistantChatResult,
     PayrollAssistantChatUseCase,
 )
+from payroll_copilot.application.services.version_aware_legal_retriever import (
+    HybridApprovedLaborLawSearch,
+    VersionAwareLegalRetriever,
+)
 from payroll_copilot.infrastructure.ai.agents.approved_labor_law_search import (
     YamlApprovedLaborLawSearch,
 )
@@ -70,6 +74,7 @@ from payroll_copilot.infrastructure.persistence.dynamodb.factory import (
 from payroll_copilot.infrastructure.persistence.dynamodb.popular_questions import (
     strip_session_context,
 )
+from payroll_copilot.infrastructure.persistence.legal_knowledge_store import get_legal_knowledge_store
 from payroll_copilot.presentation.api.rate_limit_deps import (
     limit_chat_by_ip,
     limit_chat_by_user,
@@ -256,18 +261,31 @@ def _resolve_chat_provider(
     return router.provider_for(capability)
 
 
+def _build_labor_law_search(settings, model_provider):
+    yaml_search = YamlApprovedLaborLawSearch(settings.legal_rules_path)
+    if not getattr(settings, "legal_rag_enabled", True):
+        return yaml_search
+    store = get_legal_knowledge_store()
+    retriever = VersionAwareLegalRetriever(model=model_provider, store=store)
+    return HybridApprovedLaborLawSearch(
+        settings.legal_rules_path,
+        retriever=retriever,
+        yaml_fallback=yaml_search,
+    )
+
+
 @lru_cache
 def _get_assistant_bundle(
     capability: AICapability = AICapability.ASSISTANT,
 ) -> tuple[PayrollAssistantChatUseCase, PayrollAssistantTools]:
     settings = get_settings()
-    labor_law_search = YamlApprovedLaborLawSearch(settings.legal_rules_path)
+    model_provider = AIProviderRouter(settings).provider_for(capability)
+    labor_law_search = _build_labor_law_search(settings, model_provider)
     tools = PayrollAssistantTools(
         labor_law_search=labor_law_search,
         validation_reports=_validation_report_store,
         document_summaries=_document_summary_store,
     )
-    model_provider = AIProviderRouter(settings).provider_for(capability)
     graph = PayrollAssistantGraph(tools=tools, model_provider=model_provider)
     return PayrollAssistantChatUseCase(runner=graph), tools
 
@@ -284,13 +302,13 @@ def _get_assistant_use_case(
     allowed = set(_parse_model_choices(settings.chat_model_choices))
     if override not in allowed:
         return _get_assistant_bundle(capability)
-    labor_law_search = YamlApprovedLaborLawSearch(settings.legal_rules_path)
+    model_provider = _resolve_chat_provider(capability, override)
+    labor_law_search = _build_labor_law_search(settings, model_provider)
     tools = PayrollAssistantTools(
         labor_law_search=labor_law_search,
         validation_reports=_validation_report_store,
         document_summaries=_document_summary_store,
     )
-    model_provider = _resolve_chat_provider(capability, override)
     graph = PayrollAssistantGraph(tools=tools, model_provider=model_provider)
     return PayrollAssistantChatUseCase(runner=graph), tools
 

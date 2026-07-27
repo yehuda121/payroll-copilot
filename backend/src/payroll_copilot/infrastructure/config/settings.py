@@ -261,6 +261,20 @@ class Settings(BaseSettings):
     rag_chunk_overlap: int = 64
     rag_top_k: int = 5
     rag_min_confidence: float = 0.7
+    # Legal vector RAG — chroma (production) or numpy (local/test).
+    legal_rag_enabled: bool = True
+    legal_knowledge_data_path: str = "data/legal_knowledge"
+    legal_knowledge_store: str = "dynamodb"  # dynamodb | file
+    legal_vector_backend: str = "chroma"  # chroma | numpy
+    legal_vector_persist_path: str = "data/chroma_legal"
+    legal_vector_collection: str = "approved_legal_knowledge_v1"
+    legal_fetch_max_bytes: int = 2_000_000
+    legal_fetch_timeout_seconds: float = 30.0
+    # Scheduled legal sync (proposals only; never auto-approves). Disabled by default.
+    legal_sync_schedule_enabled: bool = False
+    legal_sync_interval_seconds: float = 86400.0
+    # RAGAS evaluation (developer-triggered only; never during ordinary chat).
+    ragas_enabled: bool = True
 
     mcp_enabled: bool = True
     kol_zchut_base_url: str = "https://www.kolzchut.org.il"

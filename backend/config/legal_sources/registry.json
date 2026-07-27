@@ -1,0 +1,109 @@
+{
+  "registry_version": "2026.7.1",
+  "sources": [
+    {
+      "source_id": "kolzchut_base",
+      "provider": "kol_zchut",
+      "source_type": "DISCOVERY_SOURCE",
+      "url": "https://www.kolzchut.org.il",
+      "authority_level": "SECONDARY_INTERPRETATION",
+      "related_rule_ids": [],
+      "enabled": true,
+      "notes": "VERIFIED_REACHABLE discovery base from project settings (HTTP 200 smoke). SECONDARY_INTERPRETATION only — not statutory. Topic-specific Kol Zchut pages left SOURCE_UNVERIFIED (no invented paths)."
+    },
+    {
+      "source_id": "watch_minimum_wage",
+      "provider": "unconfigured",
+      "source_type": "WATCHED_SOURCE",
+      "url": null,
+      "authority_level": "OFFICIAL",
+      "related_rule_ids": ["legal.minimum_wage"],
+      "enabled": false,
+      "notes": "No verified official URL seeded. Configure before sync can fetch."
+    },
+    {
+      "source_id": "watch_overtime_daily",
+      "provider": "unconfigured",
+      "source_type": "WATCHED_SOURCE",
+      "url": null,
+      "authority_level": "OFFICIAL",
+      "related_rule_ids": ["legal.overtime.daily_limit", "legal.overtime.weekly_limit"],
+      "enabled": false,
+      "notes": "No verified official URL seeded."
+    },
+    {
+      "source_id": "watch_overtime_rates",
+      "provider": "unconfigured",
+      "source_type": "WATCHED_SOURCE",
+      "url": null,
+      "authority_level": "OFFICIAL",
+      "related_rule_ids": ["legal.overtime.rate_tier_1", "legal.overtime.rate_tier_2"],
+      "enabled": false,
+      "notes": "No verified official URL seeded."
+    },
+    {
+      "source_id": "watch_vacation",
+      "provider": "unconfigured",
+      "source_type": "WATCHED_SOURCE",
+      "url": null,
+      "authority_level": "OFFICIAL",
+      "related_rule_ids": ["legal.vacation.annual_entitlement", "legal.vacation.monthly_accrual"],
+      "enabled": false,
+      "notes": "No verified official URL seeded."
+    },
+    {
+      "source_id": "watch_sick_leave",
+      "provider": "unconfigured",
+      "source_type": "WATCHED_SOURCE",
+      "url": null,
+      "authority_level": "OFFICIAL",
+      "related_rule_ids": ["legal.sick_leave.annual_entitlement"],
+      "enabled": false,
+      "notes": "No verified official URL seeded."
+    },
+    {
+      "source_id": "watch_pension",
+      "provider": "unconfigured",
+      "source_type": "WATCHED_SOURCE",
+      "url": null,
+      "authority_level": "OFFICIAL",
+      "related_rule_ids": [
+        "legal.pension.contribution",
+        "legal.pension.employer_contribution",
+        "legal.pension.severance"
+      ],
+      "enabled": false,
+      "notes": "No verified official URL seeded."
+    },
+    {
+      "source_id": "watch_tax",
+      "provider": "unconfigured",
+      "source_type": "WATCHED_SOURCE",
+      "url": null,
+      "authority_level": "OFFICIAL",
+      "related_rule_ids": ["legal.tax.income_brackets", "legal.tax.credit_point"],
+      "enabled": false,
+      "notes": "No verified official URL seeded."
+    },
+    {
+      "source_id": "watch_transportation",
+      "provider": "unconfigured",
+      "source_type": "WATCHED_SOURCE",
+      "url": null,
+      "authority_level": "OFFICIAL",
+      "related_rule_ids": ["legal.transportation.max_allowance", "legal.transportation.public_transport"],
+      "enabled": false,
+      "notes": "No verified official URL seeded."
+    },
+    {
+      "source_id": "watch_youth",
+      "provider": "unconfigured",
+      "source_type": "WATCHED_SOURCE",
+      "url": null,
+      "authority_level": "OFFICIAL",
+      "related_rule_ids": ["legal.youth.minimum_age", "legal.youth.max_daily_hours"],
+      "enabled": false,
+      "notes": "No verified official URL seeded."
+    }
+  ]
+}

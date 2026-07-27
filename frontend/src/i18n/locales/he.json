@@ -573,15 +573,26 @@
       "status": {
         "passed": "עבר",
         "failed": "נכשל",
-        "uncertain": "AI לא בטוח",
+        "uncertain": "לא חד-משמעי",
         "unchecked": "לא ניתן לאמת",
         "missingRequired": "לא נמצא בתלוש",
         "notRun": "לא הורץ",
         "manuallyApproved": "אושר ידנית"
       },
+      "coverageSummary": "{{executed}} מתוך {{total}} בדיקות הורצו",
       "notRunReasons": {
         "employee_not_identified": "לא הורץ — העובד לא זוהה",
-        "no_confirmed_contract": "לא הורץ — אין חוזה מאושר"
+        "no_confirmed_contract": "לא הורץ — אין חוזה מאושר",
+        "EMPLOYEE_NOT_IDENTIFIED": "לא הורץ — העובד לא זוהה",
+        "NO_CONFIRMED_CONTRACT": "לא הורץ — אין חוזה מאושר",
+        "MISSING_PAYSLIP_DATA": "לא הורץ — נתוני תלוש נדרשים חסרים",
+        "RULE_NOT_READY": "לא הורץ — הבדיקה אינה מוכנה כרגע לאימות ייצור",
+        "NO_APPLICABLE_LEGAL_VERSION": "לא הורץ — אין גרסה משפטית מאושרת רלוונטית",
+        "NOT_APPLICABLE": "לא הורץ — הכלל אינו חל על עובד זה",
+        "UNSUPPORTED_SCOPE": "לא הורץ — התלוש מחוץ להיקף הנתמך",
+        "RULE_DISABLED": "לא הורץ — הבדיקה אינה מופעלת כרגע",
+        "DEPENDENCY_UNAVAILABLE": "לא הורץ — תלות נדרשת לא הייתה זמינה",
+        "EXECUTION_ERROR": "לא הורץ — אירעה שגיאת ביצוע בלתי צפויה"
       },
       "explain": "AI",
       "aiExplanation": "הסבר בינה מלאכותית",

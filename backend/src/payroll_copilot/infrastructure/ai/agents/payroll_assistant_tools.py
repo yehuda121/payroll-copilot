@@ -59,12 +59,27 @@ class PayrollAssistantTools(PayrollAssistantToolsPort):
         self._document_summaries = document_summaries
         # Set per request by the guest chat route when private IDs are present.
         self.request_owner_guest_id: str | None = None
+        self.last_retrieval_diagnostics: dict = {}
 
     def set_request_owner(self, owner_guest_id: str | None) -> None:
         self.request_owner_guest_id = (owner_guest_id or "").strip() or None
 
     def search_approved_labor_law(self, query: str, *, locale: str = "en") -> AssistantToolResult:
         hits = self._labor_law_search.search(query, locale=locale)
+        return self._format_labor_hits(hits)
+
+    async def asearch_approved_labor_law(self, query: str, *, locale: str = "en") -> AssistantToolResult:
+        asearch = getattr(self._labor_law_search, "asearch", None)
+        if callable(asearch):
+            hits = await asearch(query, locale=locale)
+        else:
+            hits = self._labor_law_search.search(query, locale=locale)
+        self.last_retrieval_diagnostics = (
+            getattr(self._labor_law_search, "last_diagnostics", {}) or {}
+        )
+        return self._format_labor_hits(hits)
+
+    def _format_labor_hits(self, hits: list) -> AssistantToolResult:
         if not hits:
             return AssistantToolResult(
                 tool_name="search_approved_labor_law",

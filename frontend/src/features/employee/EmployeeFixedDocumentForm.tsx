@@ -149,7 +149,7 @@ export function EmployeeFixedDocumentForm({
               <input
                 value={values.national_id ?? ''}
                 disabled={busy}
-                maxLength={FIELD_MAX_LENGTH}
+                maxLength={FIELD_MAX_LENGTH.nationalId}
                 onBlur={() => setTouchedId(true)}
                 onChange={(event) => onChangeField('national_id', event.target.value)}
               />
@@ -165,7 +165,7 @@ export function EmployeeFixedDocumentForm({
             <input
               value={values.full_name ?? ''}
               disabled={busy}
-              maxLength={FIELD_MAX_LENGTH}
+              maxLength={FIELD_MAX_LENGTH.personName}
               onBlur={() => setTouchedName(true)}
               onChange={(event) => onChangeField('full_name', event.target.value)}
             />

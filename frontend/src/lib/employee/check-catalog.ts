@@ -1,6 +1,7 @@
 /**
  * Stable check-row catalog for Employee/Contract and Law tabs.
  * PASS is shown only when ValidationReport.ruleOutcomes authoritatively says passed.
+ * Catalog IDs must stay aligned with backend validation_catalog (all 17 labor-law rules).
  */
 
 import type { TFunction } from 'i18next';
@@ -19,7 +20,10 @@ import {
   type ValidationTaxonomy,
 } from './validation-taxonomy';
 
-/** Catalog of user-facing EMPLOYEE / CONTRACT / LAW checks (not SANITY). */
+/**
+ * Stable display order — identity/contract first, then labor-law by domain,
+ * then department/historical. Mirrors backend validation_catalog display_order.
+ */
 export const CHECK_CATALOG_RULE_IDS: readonly string[] = [
   'employee.national_id.match',
   'employee.name.match',
@@ -31,12 +35,29 @@ export const CHECK_CATALOG_RULE_IDS: readonly string[] = [
   'contract.hourly_rate.match',
   'legal.minimum_wage',
   'legal.overtime.daily_limit',
+  'legal.overtime.weekly_limit',
+  'legal.overtime.rate_tier_1',
+  'legal.overtime.rate_tier_2',
+  'legal.vacation.annual_entitlement',
+  'legal.vacation.monthly_accrual',
+  'legal.sick_leave.annual_entitlement',
   'legal.pension.contribution',
+  'legal.pension.employer_contribution',
+  'legal.pension.severance',
+  'legal.tax.income_brackets',
+  'legal.tax.credit_point',
+  'legal.transportation.max_allowance',
+  'legal.transportation.public_transport',
   'legal.youth.minimum_age',
+  'legal.youth.max_daily_hours',
   'department.intern.weekly_hours_limit',
   'department.lawyers.overtime_cap',
   'historical.salary_drift',
 ] as const;
+
+export const LABOR_LAW_RULE_IDS: readonly string[] = CHECK_CATALOG_RULE_IDS.filter((id) =>
+  id.startsWith('legal.'),
+);
 
 export type CheckRowStatus =
   | 'passed'
@@ -54,6 +75,7 @@ export type CheckCatalogRow = {
   status: CheckRowStatus;
   explanation: string | null;
   skipReasonKey: string | null;
+  reasonCode: string | null;
   findingId?: string | null;
 };
 
@@ -62,6 +84,9 @@ function catalogUiGroup(ruleId: string): 'employee_checks' | 'law_checks' {
   if (taxonomy) {
     const group = uiGroupForTaxonomy(taxonomy);
     if (group === 'law_checks') return 'law_checks';
+  }
+  if (ruleId.startsWith('legal.') || ruleId.startsWith('department.') || ruleId.startsWith('historical.')) {
+    return 'law_checks';
   }
   return 'employee_checks';
 }
@@ -85,12 +110,55 @@ function statusFromFinding(finding: ValidationFinding): CheckRowStatus {
   return 'uncertain';
 }
 
+function normalizeOutcome(outcome: string | null | undefined): string {
+  if (!outcome) return 'not_run';
+  if (outcome === 'skipped') return 'not_run';
+  return outcome;
+}
+
 function knownSkipReason(reason: string | null | undefined): string | null {
   if (!reason) return null;
-  if (reason === 'employee_not_identified' || reason === 'no_confirmed_contract') {
-    return reason;
-  }
+  const known = new Set([
+    'employee_not_identified',
+    'no_confirmed_contract',
+    'MISSING_PAYSLIP_DATA',
+    'RULE_NOT_READY',
+    'NO_APPLICABLE_LEGAL_VERSION',
+    'NOT_APPLICABLE',
+    'UNSUPPORTED_SCOPE',
+    'RULE_DISABLED',
+    'DEPENDENCY_UNAVAILABLE',
+    'EXECUTION_ERROR',
+    'EMPLOYEE_NOT_IDENTIFIED',
+    'NO_CONFIRMED_CONTRACT',
+  ]);
+  if (known.has(reason)) return reason;
   return null;
+}
+
+function notRunExplanation(
+  outcome: RuleEvaluationOutcome | undefined,
+  t: TFunction,
+): { explanation: string | null; skipReasonKey: string | null; reasonCode: string | null } {
+  const reasonCode = outcome?.reason_code ?? null;
+  const skipReason = knownSkipReason(outcome?.skip_reason) ?? knownSkipReason(reasonCode);
+  if (outcome?.message && outcome.message.trim()) {
+    return { explanation: outcome.message, skipReasonKey: skipReason, reasonCode };
+  }
+  if (skipReason) {
+    return {
+      explanation: t(`employee.validation.notRunReasons.${skipReason}`, {
+        defaultValue: t('employee.validation.status.notRun'),
+      }),
+      skipReasonKey: skipReason,
+      reasonCode,
+    };
+  }
+  return {
+    explanation: t('employee.validation.status.notRun'),
+    skipReasonKey: null,
+    reasonCode,
+  };
 }
 
 /**
@@ -126,24 +194,59 @@ export function buildCheckCatalogRows(
     let status: CheckRowStatus = 'not_run';
     let explanation: string | null = null;
     let skipReasonKey: string | null = null;
+    let reasonCode: string | null = null;
 
-    if (finding) {
+    const normalized = normalizeOutcome(outcome?.outcome);
+
+    if (hasAuthoritativeOutcomes && (normalized === 'not_run' || !outcome)) {
+      // Explicit NOT_RUN (or missing outcome for a catalog rule when outcomes exist)
+      if (outcome && normalized === 'not_run') {
+        status = 'not_run';
+        const nr = notRunExplanation(outcome, t);
+        explanation = nr.explanation;
+        skipReasonKey = nr.skipReasonKey;
+        reasonCode = nr.reasonCode;
+      } else if (!outcome) {
+        status = 'not_run';
+        explanation = t('employee.validation.status.notRun');
+      }
+    } else if (hasAuthoritativeOutcomes && normalized === 'uncertain') {
+      status = 'uncertain';
+      explanation =
+        outcome?.message ||
+        (finding
+          ? (finding.explanation && !/^[a-z][a-z0-9_.-]*$/i.test(finding.explanation)
+              ? finding.explanation
+              : null) || translateFindingMessage(finding.message_key, t)
+          : t('employee.validation.status.uncertain'));
+      reasonCode = outcome?.reason_code ?? null;
+    } else if (hasAuthoritativeOutcomes && normalized === 'passed' && !finding) {
+      status = 'passed';
+      explanation = null;
+    } else if (finding) {
       status = statusFromFinding(finding);
       explanation =
         (finding.explanation && !/^[a-z][a-z0-9_.-]*$/i.test(finding.explanation)
           ? finding.explanation
           : null) || translateFindingMessage(finding.message_key, t);
-    } else if (hasAuthoritativeOutcomes && outcome?.outcome === 'passed') {
-      status = 'passed';
-      explanation = null;
-    } else if (hasAuthoritativeOutcomes && outcome?.outcome === 'failed') {
-      // Finding missing but outcome says failed — treat as uncertain attention.
-      status = 'uncertain';
-    } else if (hasAuthoritativeOutcomes && outcome?.outcome === 'skipped') {
-      status = 'not_run';
-      skipReasonKey = knownSkipReason(outcome.skip_reason);
+      // Authoritative outcome wins over finding for passed/failed/uncertain when present
+      if (hasAuthoritativeOutcomes && normalized === 'passed' && status !== 'manually_approved') {
+        // Finding present with passed outcome is unusual; keep finding status if failed
+        if (status === 'failed' || status === 'uncertain') {
+          // Prefer finding severity when present
+        } else {
+          status = 'passed';
+          explanation = null;
+        }
+      } else if (hasAuthoritativeOutcomes && normalized === 'failed') {
+        if (status !== 'manually_approved') status = 'failed';
+      }
+    } else if (hasAuthoritativeOutcomes && normalized === 'failed') {
+      status = 'failed';
+      explanation = outcome?.message ?? null;
     } else {
       status = 'not_run';
+      explanation = t('employee.validation.status.notRun');
     }
 
     rows.push({
@@ -155,6 +258,7 @@ export function buildCheckCatalogRows(
       status,
       explanation,
       skipReasonKey,
+      reasonCode,
       findingId: finding?.id ?? null,
     });
   }
@@ -181,11 +285,45 @@ export function buildCheckCatalogRows(
           ? finding.explanation
           : null) || translateFindingMessage(finding.message_key, t),
       skipReasonKey: null,
+      reasonCode: null,
       findingId: finding.id,
     });
   }
 
   return rows;
+}
+
+export function summarizeCheckRows(rows: CheckCatalogRow[]): {
+  total: number;
+  executed: number;
+  passed: number;
+  failed: number;
+  uncertain: number;
+  not_run: number;
+} {
+  const summary = {
+    total: rows.length,
+    executed: 0,
+    passed: 0,
+    failed: 0,
+    uncertain: 0,
+    not_run: 0,
+  };
+  for (const row of rows) {
+    if (row.status === 'passed' || row.status === 'manually_approved') {
+      summary.passed += 1;
+      summary.executed += 1;
+    } else if (row.status === 'failed') {
+      summary.failed += 1;
+      summary.executed += 1;
+    } else if (row.status === 'uncertain') {
+      summary.uncertain += 1;
+      summary.executed += 1;
+    } else {
+      summary.not_run += 1;
+    }
+  }
+  return summary;
 }
 
 export function checkRowStatusVisual(

@@ -18,13 +18,17 @@ import { LandingPage } from '../pages/public/LandingPage';
 import { LoginPage } from '../pages/public/LoginPage';
 import { SignupPage } from '../pages/public/SignupPage';
 
-function lazyPage<T extends ComponentType<object>>(
-  factory: () => Promise<{ [key: string]: T }>,
+function lazyPage(
+  factory: () => Promise<Record<string, unknown>>,
   exportName: string,
 ) {
   return lazy(async () => {
     const module = await factory();
-    return { default: module[exportName] as T };
+    const Comp = module[exportName];
+    if (typeof Comp !== 'function') {
+      throw new Error(`lazyPage: export "${exportName}" is not a component`);
+    }
+    return { default: Comp as ComponentType<object> };
   });
 }
 
@@ -114,13 +118,13 @@ const DepartmentRulesPage = lazyPage(
   'DepartmentRulesPage',
 );
 const DocumentLabPage = lazyPage(() => import('../pages/admin/DocumentLab'), 'DocumentLabPage');
-const McpLegalSyncPage = lazyPage(
-  () => import('../pages/admin/McpLegalSync'),
-  'McpLegalSyncPage',
+const LegalKnowledgePage = lazyPage(
+  () => import('../pages/admin/LegalKnowledgePage'),
+  'LegalKnowledgePage',
 );
-const RagManagementPage = lazyPage(
-  () => import('../pages/admin/RagManagement'),
-  'RagManagementPage',
+const RagEvaluationPage = lazyPage(
+  () => import('../pages/admin/RagEvaluationPage'),
+  'RagEvaluationPage',
 );
 const RulePacksPage = lazyPage(() => import('../pages/admin/RulePacks'), 'RulePacksPage');
 const SystemConfigurationPage = lazyPage(
@@ -276,13 +280,15 @@ export const appRouteElements = (
         <Route path="/admin/analytics" element={<L><OrgCensusAnalyticsPage /></L>} />
         <Route path="/admin/analytics/quality" element={<L><AdminQualityAnalyticsPage /></L>} />
         <Route path="/admin/ai-models" element={<L><AiModelsPage /></L>} />
+        <Route path="/admin/legal-knowledge" element={<L><LegalKnowledgePage /></L>} />
+        <Route path="/admin/rag-evaluation" element={<L><RagEvaluationPage /></L>} />
+        <Route path="/admin/mcp-sync" element={<Navigate to="/admin/legal-knowledge" replace />} />
+        <Route path="/admin/rag" element={<Navigate to="/admin/rag-evaluation" replace />} />
         {import.meta.env.DEV ? (
           <>
             <Route path="/admin/users" element={<L><UsersAndRolesPage /></L>} />
             <Route path="/admin/rule-packs" element={<L><RulePacksPage /></L>} />
             <Route path="/admin/department-rules" element={<L><DepartmentRulesPage /></L>} />
-            <Route path="/admin/mcp-sync" element={<L><McpLegalSyncPage /></L>} />
-            <Route path="/admin/rag" element={<L><RagManagementPage /></L>} />
             <Route path="/admin/configuration" element={<L><SystemConfigurationPage /></L>} />
             <Route path="/admin/audit-logs" element={<L><AdminAuditLogsPage /></L>} />
             <Route path="/admin/document-lab" element={<L><DocumentLabPage /></L>} />

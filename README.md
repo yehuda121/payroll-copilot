@@ -424,7 +424,7 @@ Developer-admin surfaces under `/admin` (role: `developer_admin` / `UserRole.ADM
 
 ### DEV-only lab screens
 
-When the frontend is built with Vite DEV mode, additional admin routes remain available for engineering (users/roles, rule packs, department rules, MCP sync, RAG management, system configuration, audit logs, Document Lab). These are intentionally omitted from production builds so unfinished lab UIs are not exposed.
+When the frontend is built with Vite DEV mode, additional admin routes remain available for engineering (users/roles, rule packs, department rules, system configuration, audit logs, Document Lab). Legal Knowledge and RAG Evaluation are available in production admin nav. Legacy `/admin/mcp-sync` and `/admin/rag` redirect to the new pages.
 
 ---
 
@@ -927,6 +927,12 @@ Smoke: `GET /health`, guest assistant chat, document upload, guest/employee extr
 - AI Observability history (`/admin/ai/history`) with CloudWatch GetMetricData when available and process-local hourly fallback
 - System Dashboard trend charts and provider comparison; AI Models reliability comparison
 - Global popular questions (DynamoDB counters + landing sidebar)
+- Legal Knowledge platform: temporal rule catalog overlay, source registry, MCP/manual/scheduled sync service (proposals only), developer_admin approval, audit hooks
+- Durable legal sync/proposal/eval metadata in DynamoDB (`LEGAL#SYSTEM`); file adapter for tests via `LEGAL_KNOWLEDGE_STORE=file`
+- Version-aware Vector RAG via **persistent ChromaDB** (NumPy adapter retained for tests) with observable YAML fallback in LangGraph assistant
+- SSRF-hardened legal source fetch (HTTPS allowlist, private IP block, size/timeout limits)
+- RAG Evaluation vertical (RAGAS adapter + Temporal Retrieval Accuracy + benchmark_v1 with 24 cases) with separate Admin UI
+- Admin Legal Knowledge + RAG Evaluation pages (production nav)
 
 ### In progress / partial
 
@@ -936,13 +942,15 @@ Smoke: `GET /health`, guest assistant chat, document upload, guest/employee extr
 - Background Celery OCR on generic upload (interactive flows use sync extraction)
 - Prompt-version population on all AI call sites (plumbing exists; CloudWatch dimension not emitted)
 - Retry-context instrumentation completeness (rates under-report when callers omit `retry_count`)
+- Official watched legal source URLs (registry slots exist; **SOURCE_UNVERIFIED** — no invented gov URLs)
+- Scheduled legal sync hook exists; **LEGAL_SYNC_SCHEDULE_ENABLED=false** until official sources configured
+- Live RAGAS numeric scores require embedding + judge provider credentials in the environment
 
 ### Planned
 
-- Vector RAG over legal rules and contracts
 - Historical payroll comparison / richer employee trends beyond current salary series
 - Absolute uniqueness constraints beyond application-level period gates
-- MCP Kol Zchut sync automation in production
+- Verified official government watched-source URLs
 - In-app binary document viewer for side-by-side review
 - Stronger guest session durability (replace process-local ephemeral store if product requires it)
 - WebSocket batch progress, mobile app, payroll-system integrations, SOC 2 — product roadmap items

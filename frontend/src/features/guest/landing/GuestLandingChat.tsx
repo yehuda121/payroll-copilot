@@ -87,7 +87,6 @@ export function GuestLandingChat({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [documentConfirmed, setDocumentConfirmed] = useState(false);
-  const [typedFacts, setTypedFacts] = useState<string[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [reviewMessageId, setReviewMessageId] = useState<string | null>(null);
   const [reportMessageId, setReportMessageId] = useState<string | null>(null);
@@ -234,9 +233,6 @@ export function GuestLandingChat({
           prompt: trimmed,
           kind: 'text',
         });
-        if (/\b\d{8,9}\b/.test(trimmed) || /id\s*(number|#|no)/i.test(trimmed)) {
-          setTypedFacts((prev) => [...prev, trimmed]);
-        }
       }
 
       for (const item of pending) {

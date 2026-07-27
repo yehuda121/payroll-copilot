@@ -109,6 +109,8 @@ services:
     volumes:
       - ./backend/config:/app/config:ro
       - ./backend/tests/fixtures:/app/tests/fixtures:ro
+      - legal_chroma_data:/app/data/chroma_legal
+      - legal_knowledge_data:/app/data/legal_knowledge
     networks:
       - payroll_net
     command: ["uvicorn", "payroll_copilot.presentation.main:app", "--host", "0.0.0.0", "--port", "8000"]
@@ -138,6 +140,8 @@ services:
         condition: service_started
     volumes:
       - ./backend/config:/app/config:ro
+      - legal_chroma_data:/app/data/chroma_legal
+      - legal_knowledge_data:/app/data/legal_knowledge
     networks:
       - payroll_net
     command: ["celery", "-A", "payroll_copilot.infrastructure.tasks.celery_app", "worker", "-l", "info", "-c", "4"]
@@ -224,3 +228,5 @@ volumes:
   frontend_node_modules:
   ollama_data:
   n8n_data:
+  legal_chroma_data:
+  legal_knowledge_data:

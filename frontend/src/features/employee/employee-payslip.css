@@ -216,7 +216,8 @@ html[data-theme='dark'] .employee-review-tabs__tab.is-active {
   color: #b54708;
 }
 
-.employee-field-status.is-unchecked {
+.employee-field-status.is-unchecked,
+.employee-field-status.is-not-run {
   color: #667085;
 }
 
@@ -232,7 +233,8 @@ html[data-theme='dark'] .employee-field-status.is-uncertain {
   color: var(--color-warning);
 }
 
-html[data-theme='dark'] .employee-field-status.is-unchecked {
+html[data-theme='dark'] .employee-field-status.is-unchecked,
+html[data-theme='dark'] .employee-field-status.is-not-run {
   color: var(--color-neutral);
 }
 
@@ -293,7 +295,8 @@ html[data-theme='dark'] .employee-field-status.is-unchecked {
   border-color: #fedf89;
 }
 
-.employee-validation-summary__counts .is-unchecked {
+.employee-validation-summary__counts .is-unchecked,
+.employee-validation-summary__counts .is-not-run {
   background: #f9fafb;
   border-color: #d0d5dd;
 }
@@ -316,7 +319,8 @@ html[data-theme='dark'] .employee-validation-summary__counts .is-uncertain {
   color: var(--color-text);
 }
 
-html[data-theme='dark'] .employee-validation-summary__counts .is-unchecked {
+html[data-theme='dark'] .employee-validation-summary__counts .is-unchecked,
+html[data-theme='dark'] .employee-validation-summary__counts .is-not-run {
   background: var(--color-neutral-soft);
   border-color: var(--color-border-strong);
   color: var(--color-text);
