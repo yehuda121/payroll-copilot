@@ -12,6 +12,7 @@ export type EmployeeFieldType =
   | 'date'
   | 'boolean'
   | 'table'
+  | 'identifier'
   | 'unknown';
 
 const CURRENCY_KEYS = new Set([
@@ -28,6 +29,25 @@ const CURRENCY_KEYS = new Set([
   'training_fund',
   'total_deductions',
   'hourly_rate',
+]);
+
+/** Identifiers must never receive locale thousands separators. */
+const IDENTIFIER_KEYS = new Set([
+  'national_id',
+  'employee_id',
+  'employee_number',
+  'payroll_employee_id',
+  'employer_id',
+  'employer_number',
+  'bank_account',
+  'bank_account_number',
+  'account_number',
+  'branch_number',
+  'branch_id',
+  'iban',
+  'document_number',
+  'reference_number',
+  'tax_file_number',
 ]);
 
 const NUMBER_KEYS = new Set([
@@ -57,6 +77,9 @@ export function detectEmployeeFieldType(key: string, value: unknown): EmployeeFi
 
   if (Array.isArray(value) || (isPlainObject(value) && ('rows' in value || 'columns' in value))) {
     return 'table';
+  }
+  if (IDENTIFIER_KEYS.has(normalizedKey)) {
+    return 'identifier';
   }
   if (CURRENCY_KEYS.has(normalizedKey)) return 'currency';
   if (PERCENTAGE_KEYS.has(normalizedKey)) return 'percentage';
@@ -108,6 +131,11 @@ export function formatFieldPreview(
 ): string {
   const trimmed = value.trim();
   if (!trimmed) return '';
+
+  // Identifiers: never apply locale numeric grouping (no 313,366,783).
+  if (type === 'identifier') {
+    return trimmed;
+  }
 
   if (type === 'table') {
     return truncatePreview(trimmed);

@@ -243,6 +243,111 @@ html[data-theme='dark'] .employee-field-status.is-not-run {
   gap: 1.25rem;
 }
 
+.employee-validation-layout--with-summary {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .employee-validation-layout--with-summary {
+    grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr);
+  }
+}
+
+.employee-validation-summary--rail {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  font-size: 0.82rem;
+}
+
+.employee-validation-summary--rail h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.employee-validation-summary__coverage,
+.employee-validation-summary__doc {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  word-break: break-word;
+}
+
+.employee-validation-summary__compact-counts {
+  margin: 0.25rem 0 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.employee-validation-summary__compact-counts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.28rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+}
+
+.employee-validation-summary__compact-counts dt {
+  margin: 0;
+  font-weight: 500;
+}
+
+.employee-validation-summary__compact-counts dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.employee-validation-summary__compact-counts .is-passed {
+  background: var(--color-success-soft);
+  border-color: color-mix(in srgb, var(--color-success) 45%, var(--color-border));
+  color: var(--color-success);
+}
+
+.employee-validation-summary__compact-counts .is-failed {
+  background: var(--color-danger-soft);
+  border-color: color-mix(in srgb, var(--color-danger) 55%, var(--color-border));
+  color: var(--color-danger);
+}
+
+.employee-validation-summary__compact-counts .is-uncertain {
+  background: var(--color-warning-soft);
+  border-color: color-mix(in srgb, var(--color-warning) 55%, var(--color-border));
+  color: var(--color-warning);
+}
+
+.employee-validation-summary__compact-counts .is-not-run {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.employee-field-status.is-manually-approved,
+.employee-validation-check.is-manually-approved .employee-field-status {
+  color: var(--color-text);
+}
+
+.employee-validation-card.is-manually-approved {
+  border-inline-start: 3px solid color-mix(in srgb, var(--color-accent, #175cd3) 55%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent, #175cd3) 6%, var(--color-surface));
+}
+
+.employee-validation-check-action {
+  font-size: 0.78rem;
+  min-height: 2rem;
+  padding-inline: 0.55rem;
+}
+
+.employee-validation-error {
+  margin: 0;
+  color: var(--color-danger, #b42318);
+}
+
 .employee-validation-summary {
   display: grid;
   gap: 0.75rem;
@@ -281,42 +386,46 @@ html[data-theme='dark'] .employee-field-status.is-not-run {
 }
 
 .employee-validation-summary__counts .is-passed {
-  background: #ecfdf3;
-  border-color: #abefc6;
+  background: var(--color-success-soft);
+  border-color: color-mix(in srgb, var(--color-success) 40%, var(--color-border));
+  color: var(--color-success);
 }
 
 .employee-validation-summary__counts .is-failed {
-  background: #fef3f2;
-  border-color: #fecdca;
+  background: var(--color-danger-soft);
+  border-color: color-mix(in srgb, var(--color-danger) 45%, var(--color-border));
+  color: var(--color-danger);
 }
 
 .employee-validation-summary__counts .is-uncertain {
-  background: #fffaeb;
-  border-color: #fedf89;
+  background: var(--color-warning-soft);
+  border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border));
+  color: var(--color-warning);
 }
 
 .employee-validation-summary__counts .is-unchecked,
 .employee-validation-summary__counts .is-not-run {
-  background: #f9fafb;
-  border-color: #d0d5dd;
+  background: var(--color-neutral-soft);
+  border-color: var(--color-border);
+  color: var(--color-text);
 }
 
 html[data-theme='dark'] .employee-validation-summary__counts .is-passed {
   background: var(--color-success-soft);
   border-color: color-mix(in srgb, var(--color-success) 40%, var(--color-border));
-  color: var(--color-text);
+  color: var(--color-success);
 }
 
 html[data-theme='dark'] .employee-validation-summary__counts .is-failed {
   background: var(--color-danger-soft);
   border-color: color-mix(in srgb, var(--color-danger) 40%, var(--color-border));
-  color: var(--color-text);
+  color: var(--color-danger);
 }
 
 html[data-theme='dark'] .employee-validation-summary__counts .is-uncertain {
   background: var(--color-warning-soft);
   border-color: color-mix(in srgb, var(--color-warning) 40%, var(--color-border));
-  color: var(--color-text);
+  color: var(--color-warning);
 }
 
 html[data-theme='dark'] .employee-validation-summary__counts .is-unchecked,

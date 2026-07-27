@@ -1,0 +1,1320 @@
+{
+  "executive": "VALID BASELINE",
+  "blockers": {
+    "empty_vector_index": false,
+    "embed_probe_failed": false,
+    "embed_probe_error": null,
+    "ragas_import_error": null,
+    "all_cases_failed": false,
+    "no_ragas_ok_scores": false
+  },
+  "run": {
+    "run_id": "91cbde6f-ca42-4cba-a83c-3fce49ce08dd",
+    "dataset_version": "benchmark_v1",
+    "status": "COMPLETED",
+    "started_at": "2026-07-27T15:58:24.067498Z",
+    "completed_at": "2026-07-27T16:10:57.678695Z",
+    "provider": "ollama",
+    "model": "mistral-nemo:12b",
+    "prompt_version": "payroll_assistant_grounded_v1",
+    "case_count": 24,
+    "completed_cases": 24,
+    "failed_cases": 0,
+    "faithfulness": {
+      "value": 0.7291235334713595,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.06521739129782608,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.38636363636363635,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.2833643297393118,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_accuracy": {
+      "value": 0.9545454545454546,
+      "status": "ok",
+      "reason": null
+    },
+    "hit_rate_at_5": {
+      "value": 0.9545454545454546,
+      "status": "ok",
+      "reason": null
+    },
+    "recall_at_5": {
+      "value": 0.9545454545454546,
+      "status": "ok",
+      "reason": null
+    },
+    "mrr": {
+      "value": 0.9318181818181818,
+      "status": "ok",
+      "reason": null
+    },
+    "baseline_config": {
+      "phase": "baseline_before_rerank",
+      "legal_rag_enabled": true,
+      "legal_vector_backend": "numpy",
+      "legal_vector_collection": "approved_legal_knowledge_v1",
+      "legal_vector_persist_path": "data/chroma_legal",
+      "vector_index_status": "ready",
+      "vector_chunk_count": 65,
+      "vector_backend_runtime": "numpy_cosine_file",
+      "vector_embedding_model_recorded": "nomic-embed-text",
+      "embedding_capability_provider": "ollama",
+      "ollama_embedding_model_setting": "nomic-embed-text",
+      "retriever_model_provider": "ollama",
+      "retriever_model": "mistral-nemo:12b",
+      "embed_probe": {
+        "ok": true,
+        "error": null,
+        "dims": 768
+      },
+      "rag_top_k_setting": 5,
+      "rag_min_confidence_setting": 0.7,
+      "ragas_enabled_setting": true,
+      "ragas_import_error": null,
+      "ragas_version": "0.2.15",
+      "rerank_enabled": false,
+      "note_embedding_runtime": "VersionAwareLegalRetriever.embed uses the ASSISTANT ModelProvider instance; OllamaProvider.embed calls ollama_embedding_model.",
+      "benchmark_path": "C:\\Users\\yehud\\Desktop\\payroll-copilot\\backend\\config\\rag_eval\\benchmark_v1.json",
+      "dataset_version": "benchmark_v1",
+      "retrieval_top_k": 5,
+      "answer_provider": "ollama",
+      "answer_model": "mistral-nemo:12b",
+      "ragas_available": true,
+      "ragas_judge": {
+        "judge_provider": "openai",
+        "judge_llm_model": "gpt-4o-mini",
+        "judge_embedding_model": "text-embedding-3-small"
+      }
+    },
+    "triggered_by": "phase1_baseline_cli",
+    "error": null
+  },
+  "cases": [
+    {
+      "case_id": "mw_definition_current",
+      "expected_rule_ids": [
+        "legal.minimum_wage"
+      ],
+      "retrieved_rule_ids": [
+        "legal.minimum_wage",
+        "legal.minimum_wage",
+        "legal.pension.employer_contribution",
+        "legal.pension.contribution",
+        "legal.minimum_wage"
+      ],
+      "retrieval_scores": [
+        0.7513092348621959,
+        0.7029043311538534,
+        0.658921527111499,
+        0.6576873072084869,
+        0.6568690933736611
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.minimum_wage@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "mw_paraphrase",
+      "expected_rule_ids": [
+        "legal.minimum_wage"
+      ],
+      "retrieved_rule_ids": [
+        "legal.minimum_wage",
+        "legal.pension.employer_contribution",
+        "legal.minimum_wage",
+        "legal.overtime.rate_tier_2",
+        "legal.pension.contribution"
+      ],
+      "retrieval_scores": [
+        0.6561844007622103,
+        0.6124924125068236,
+        0.5924677714232788,
+        0.58795380992688,
+        0.5859821557629602
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 0.5,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.9591420246849428,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.minimum_wage@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "mw_historical_date",
+      "expected_rule_ids": [
+        "legal.minimum_wage"
+      ],
+      "retrieved_rule_ids": [],
+      "retrieval_scores": [],
+      "first_relevant_rank": null,
+      "hit_at_5": false,
+      "recall_at_5": 0.0,
+      "mrr": 0.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": null,
+        "status": "unavailable",
+        "reason": "no_retrieved_contexts"
+      },
+      "context_precision": {
+        "value": null,
+        "status": "unavailable",
+        "reason": "no_retrieved_contexts"
+      },
+      "context_recall": {
+        "value": null,
+        "status": "unavailable",
+        "reason": "no_retrieved_contexts"
+      },
+      "answer_relevancy": {
+        "value": 0.6142073258745684,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": false,
+      "temporal_detail": "no_hits",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "ot_daily_limit",
+      "expected_rule_ids": [
+        "legal.overtime.daily_limit"
+      ],
+      "retrieved_rule_ids": [
+        "legal.overtime.daily_limit",
+        "legal.overtime.daily_limit",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.rate_tier_2"
+      ],
+      "retrieval_scores": [
+        0.8312931265748437,
+        0.7680013410061505,
+        0.7597907905699535,
+        0.7358004631059516,
+        0.6746850376131264
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 0.2,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.overtime.daily_limit@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "ot_weekly_limit",
+      "expected_rule_ids": [
+        "legal.overtime.weekly_limit"
+      ],
+      "retrieved_rule_ids": [
+        "legal.overtime.weekly_limit",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.daily_limit",
+        "legal.overtime.daily_limit",
+        "legal.overtime.rate_tier_2"
+      ],
+      "retrieval_scores": [
+        0.7735554308778392,
+        0.7364407585733005,
+        0.7064482631677198,
+        0.6904678403456532,
+        0.6555212554379397
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 0.75,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.overtime.weekly_limit@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "ot_rate_tier_1",
+      "expected_rule_ids": [
+        "legal.overtime.rate_tier_1"
+      ],
+      "retrieved_rule_ids": [
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.daily_limit",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.rate_tier_2"
+      ],
+      "retrieval_scores": [
+        0.67802058063856,
+        0.6673076223679358,
+        0.6626294740435626,
+        0.6612390022307341,
+        0.6575288295187534
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.49999999995,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.8258331862765682,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.overtime.rate_tier_1@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "ot_rate_tier_2",
+      "expected_rule_ids": [
+        "legal.overtime.rate_tier_2"
+      ],
+      "retrieved_rule_ids": [
+        "legal.overtime.rate_tier_2",
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.rate_tier_2",
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.rate_tier_2"
+      ],
+      "retrieval_scores": [
+        0.7416176454636522,
+        0.709793977505594,
+        0.6607807457741594,
+        0.6587613324505394,
+        0.6542906607992645
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 0.6666666666666666,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.8772471649351682,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.overtime.rate_tier_2@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "ot_multi_chunk",
+      "expected_rule_ids": [
+        "legal.overtime.daily_limit",
+        "legal.overtime.rate_tier_1"
+      ],
+      "retrieved_rule_ids": [
+        "legal.overtime.daily_limit",
+        "legal.overtime.daily_limit",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.rate_tier_1"
+      ],
+      "retrieval_scores": [
+        0.7770001287173376,
+        0.7707961444768753,
+        0.7507809817792414,
+        0.7338484885996861,
+        0.7293179713836706
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": null,
+        "status": "unavailable",
+        "reason": "nan_score"
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.overtime.daily_limit@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "pension_employee",
+      "expected_rule_ids": [
+        "legal.pension.contribution"
+      ],
+      "retrieved_rule_ids": [
+        "legal.pension.employer_contribution",
+        "legal.pension.contribution",
+        "legal.pension.contribution",
+        "legal.pension.employer_contribution",
+        "legal.overtime.daily_limit"
+      ],
+      "retrieval_scores": [
+        0.7470744359879246,
+        0.7399756711859693,
+        0.7370118675233173,
+        0.71801311459303,
+        0.6091558994457779
+      ],
+      "first_relevant_rank": 2,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 0.5,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 0.5,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.pension.contribution@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "pension_employer",
+      "expected_rule_ids": [
+        "legal.pension.employer_contribution"
+      ],
+      "retrieved_rule_ids": [
+        "legal.pension.employer_contribution",
+        "legal.pension.contribution",
+        "legal.pension.employer_contribution",
+        "legal.pension.contribution",
+        "legal.pension.severance"
+      ],
+      "retrieval_scores": [
+        0.8342338681352938,
+        0.7888152895220848,
+        0.757598892251177,
+        0.7477465954345789,
+        0.637912681205481
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 0.8333333333333334,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.pension.employer_contribution@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "pension_severance",
+      "expected_rule_ids": [
+        "legal.pension.severance"
+      ],
+      "retrieved_rule_ids": [
+        "legal.pension.severance",
+        "legal.pension.severance",
+        "legal.pension.contribution",
+        "legal.pension.employer_contribution",
+        "legal.pension.contribution"
+      ],
+      "retrieval_scores": [
+        0.7997217694347182,
+        0.6684089994732086,
+        0.6575244044199476,
+        0.6501777674786139,
+        0.6448612294694928
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 0.8,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.9423766163042796,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.pension.severance@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "vacation_entitlement",
+      "expected_rule_ids": [
+        "legal.vacation.annual_entitlement"
+      ],
+      "retrieved_rule_ids": [
+        "legal.vacation.annual_entitlement",
+        "legal.vacation.annual_entitlement",
+        "legal.vacation.monthly_accrual",
+        "legal.vacation.monthly_accrual",
+        "legal.sick_leave.annual_entitlement"
+      ],
+      "retrieval_scores": [
+        0.749544832807932,
+        0.6834827087804429,
+        0.6573235852518529,
+        0.6223505416426849,
+        0.6132538179589344
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.vacation.annual_entitlement@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "vacation_accrual",
+      "expected_rule_ids": [
+        "legal.vacation.monthly_accrual"
+      ],
+      "retrieved_rule_ids": [
+        "legal.vacation.monthly_accrual",
+        "legal.vacation.monthly_accrual",
+        "legal.vacation.annual_entitlement",
+        "legal.vacation.annual_entitlement",
+        "legal.sick_leave.annual_entitlement"
+      ],
+      "retrieval_scores": [
+        0.8468557960097254,
+        0.7821124714357415,
+        0.7231713202813366,
+        0.6820522537568302,
+        0.63005553940781
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 0.75,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.7831015993082621,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.vacation.monthly_accrual@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "sick_leave",
+      "expected_rule_ids": [
+        "legal.sick_leave.annual_entitlement"
+      ],
+      "retrieved_rule_ids": [
+        "legal.sick_leave.annual_entitlement",
+        "legal.sick_leave.annual_entitlement",
+        "legal.vacation.annual_entitlement",
+        "legal.vacation.annual_entitlement",
+        "legal.overtime.daily_limit"
+      ],
+      "retrieval_scores": [
+        0.8820335000675469,
+        0.7965119782236177,
+        0.7354073477342241,
+        0.6584641195371754,
+        0.6401010112312299
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 0.5,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.sick_leave.annual_entitlement@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "transport_max",
+      "expected_rule_ids": [
+        "legal.transportation.max_allowance"
+      ],
+      "retrieved_rule_ids": [
+        "legal.transportation.max_allowance",
+        "legal.transportation.max_allowance",
+        "legal.transportation.public_transport",
+        "legal.overtime.daily_limit",
+        "legal.overtime.daily_limit"
+      ],
+      "retrieval_scores": [
+        0.8487957910243683,
+        0.8000084807930316,
+        0.6427911632103531,
+        0.6165527946672568,
+        0.6139779881326866
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 0.5,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.transportation.max_allowance@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "transport_public",
+      "expected_rule_ids": [
+        "legal.transportation.public_transport"
+      ],
+      "retrieved_rule_ids": [
+        "legal.transportation.public_transport",
+        "legal.transportation.public_transport",
+        "legal.transportation.public_transport",
+        "legal.transportation.max_allowance",
+        "legal.transportation.max_allowance"
+      ],
+      "retrieval_scores": [
+        0.715907627902266,
+        0.6540386852529672,
+        0.6100494048999148,
+        0.5914979695133655,
+        0.5728750218531288
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 0.75,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.transportation.public_transport@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "tax_credit_point",
+      "expected_rule_ids": [
+        "legal.tax.credit_point"
+      ],
+      "retrieved_rule_ids": [
+        "legal.tax.credit_point",
+        "legal.tax.credit_point",
+        "legal.pension.employer_contribution",
+        "legal.pension.contribution",
+        "legal.tax.income_brackets"
+      ],
+      "retrieval_scores": [
+        0.7405038932936432,
+        0.7331113631902049,
+        0.6069652482797583,
+        0.6064864056858803,
+        0.5899273016571284
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 0.5,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.tax.credit_point@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "tax_brackets",
+      "expected_rule_ids": [
+        "legal.tax.income_brackets"
+      ],
+      "retrieved_rule_ids": [
+        "legal.tax.income_brackets",
+        "legal.tax.income_brackets",
+        "legal.tax.credit_point",
+        "legal.tax.credit_point",
+        "legal.minimum_wage"
+      ],
+      "retrieval_scores": [
+        0.8220065210433339,
+        0.7783267037752802,
+        0.6390226149525087,
+        0.5982206704490626,
+        0.5980752974952214
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 0.42857142857142855,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.9999999999,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.tax.income_brackets@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "youth_age",
+      "expected_rule_ids": [
+        "legal.youth.minimum_age"
+      ],
+      "retrieved_rule_ids": [
+        "legal.youth.minimum_age",
+        "legal.youth.minimum_age",
+        "legal.youth.minimum_age",
+        "legal.youth.max_daily_hours",
+        "legal.youth.max_daily_hours"
+      ],
+      "retrieval_scores": [
+        0.809017288160857,
+        0.775790934312235,
+        0.6848036649790552,
+        0.6643992452968919,
+        0.652443253036391
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.8867555404837923,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.youth.minimum_age@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "youth_hours",
+      "expected_rule_ids": [
+        "legal.youth.max_daily_hours"
+      ],
+      "retrieved_rule_ids": [
+        "legal.youth.max_daily_hours",
+        "legal.youth.max_daily_hours",
+        "legal.overtime.daily_limit",
+        "legal.youth.minimum_age",
+        "legal.youth.max_daily_hours"
+      ],
+      "retrieval_scores": [
+        0.821674686509158,
+        0.7797877559774337,
+        0.7507059389063976,
+        0.7007985298885516,
+        0.6979189342239286
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.9120804558759016,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.youth.max_daily_hours@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "insufficient_context",
+      "expected_rule_ids": [],
+      "retrieved_rule_ids": [
+        "legal.youth.minimum_age",
+        "legal.overtime.weekly_limit",
+        "legal.youth.max_daily_hours",
+        "legal.vacation.annual_entitlement",
+        "legal.vacation.monthly_accrual"
+      ],
+      "retrieval_scores": [
+        0.6331456682138655,
+        0.6312035001684745,
+        0.6297054225585792,
+        0.6277600542995694,
+        0.6277600542995694
+      ],
+      "first_relevant_rank": null,
+      "hit_at_5": null,
+      "recall_at_5": null,
+      "mrr": null,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 0.75,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": null,
+      "temporal_detail": "no_expected_rule_ids",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "misleading_unrelated",
+      "expected_rule_ids": [
+        "legal.minimum_wage"
+      ],
+      "retrieved_rule_ids": [
+        "legal.minimum_wage",
+        "legal.minimum_wage",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.daily_limit",
+        "legal.overtime.rate_tier_1"
+      ],
+      "retrieval_scores": [
+        0.6633974028855446,
+        0.6574503883143127,
+        0.6248696602034909,
+        0.6247131300129183,
+        0.6245207097597567
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.minimum_wage@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "ambiguous_overtime",
+      "expected_rule_ids": [
+        "legal.overtime.daily_limit",
+        "legal.overtime.weekly_limit"
+      ],
+      "retrieved_rule_ids": [
+        "legal.overtime.weekly_limit",
+        "legal.overtime.daily_limit",
+        "legal.overtime.daily_limit",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.rate_tier_2"
+      ],
+      "retrieval_scores": [
+        0.6421770988627381,
+        0.6246334139308203,
+        0.6095784520350982,
+        0.5917317600181833,
+        0.5859552475173746
+      ],
+      "first_relevant_rank": 1,
+      "hit_at_5": true,
+      "recall_at_5": 1.0,
+      "mrr": 1.0,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 0.5555555555555556,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 1.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": true,
+      "temporal_detail": "matched:legal.overtime.weekly_limit@v1",
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "case_id": "unsupported_topic_weekly_rest",
+      "expected_rule_ids": [],
+      "retrieved_rule_ids": [
+        "legal.overtime.weekly_limit",
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.rate_tier_2",
+        "legal.overtime.daily_limit",
+        "legal.pension.employer_contribution"
+      ],
+      "retrieval_scores": [
+        0.6285773540077316,
+        0.6084135712365932,
+        0.6021468809956609,
+        0.5885147635238224,
+        0.5857618627342237
+      ],
+      "first_relevant_rank": null,
+      "hit_at_5": null,
+      "recall_at_5": null,
+      "mrr": null,
+      "retrieval_mode": "vector",
+      "fallback_occurred": false,
+      "retrieval_diagnostics_reason": null,
+      "faithfulness": {
+        "value": 0.2857142857142857,
+        "status": "ok",
+        "reason": null
+      },
+      "context_precision": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "context_recall": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "answer_relevancy": {
+        "value": 0.0,
+        "status": "ok",
+        "reason": null
+      },
+      "temporal_pass": null,
+      "temporal_detail": "no_expected_rule_ids",
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "notes": {
+    "context_recall_nan_repaired": 1,
+    "context_recall_finite_ok_count": 22
+  }
+}

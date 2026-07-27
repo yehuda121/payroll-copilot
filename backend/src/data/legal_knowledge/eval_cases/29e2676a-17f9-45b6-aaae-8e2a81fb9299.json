@@ -1,0 +1,3328 @@
+[
+  {
+    "case_id": "mw_definition_current",
+    "question": "What is the hourly minimum wage amount in the approved payroll rules?",
+    "reference_answer": "Answer only from approved legal.minimum_wage parameters (amount and currency) in the current YAML pack.",
+    "generated_answer": "The hourly minimum wage amount in the approved payroll rules is 32.11 ILS, effective from April 1, 2024 onwards. This information is based on the retrieved evidence and the Minimum Wage Law, 1987.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.minimum_wage"
+    ],
+    "retrieved_rule_ids": [
+      "legal.minimum_wage",
+      "legal.minimum_wage",
+      "legal.minimum_wage",
+      "legal.pension.contribution",
+      "legal.minimum_wage"
+    ],
+    "retrieved_versions": [
+      "legal.minimum_wage@v1",
+      "legal.minimum_wage@v1",
+      "legal.minimum_wage@v1",
+      "legal.pension.contribution@v1",
+      "legal.minimum_wage@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  ar: الحد الأدنى للأجر بالساعة\n  en: Hourly minimum wage\n  he: שכר מינימום שעתי\n",
+      "parameters:\n  amount: 32.11\n  currency: ILS\n  schedule:\n  - amount: 32.11\n    effective_from: '2024-04-01'\n  - amount: 32.11\n    effective_from: '2026-01-01'\n",
+      "id: legal.minimum_wage",
+      "parameters:\n  applies_from_month: 7\n  minimum_rate: 0.06\n",
+      "legal_reference:\n  en: Minimum Wage Law, 1987\n  he: חוק שכר מינימום, התשמ\"א-1987\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6568690933736611,
+        "chunk_id": "legal.minimum_wage::v1::definition::0"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5896459618980875,
+        "chunk_id": "legal.minimum_wage::v1::calculation::1"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7513092348621959,
+        "chunk_id": "legal.minimum_wage::v1::identity::3"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5957021030950632,
+        "chunk_id": "legal.pension.contribution::v1::calculation::1"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7029043311538534,
+        "chunk_id": "legal.minimum_wage::v1::source::2"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.6568690933736611,
+      0.5896459618980875,
+      0.7513092348621959,
+      0.5957021030950632,
+      0.7029043311538534
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 0.5,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.49999999995,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.9999995694287569,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.minimum_wage@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "mw_paraphrase",
+    "question": "According to approved rules, what is the lowest hourly pay an adult employee may receive?",
+    "reference_answer": "Use legal.minimum_wage approved parameters only; do not invent statutory text beyond the YAML description/reference.",
+    "generated_answer": "According to the approved rules, the lowest hourly pay an adult employee may receive is not specified in the provided evidence. The retrieved legal references only mention a maximum age of 18 and a maximum daily work hours limit of 8, but they do not specify the minimum hourly wage for adults. Therefore, based on the given evidence, it is insufficient to determine the lowest hourly pay an adult employee may receive.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.minimum_wage"
+    ],
+    "retrieved_rule_ids": [
+      "legal.minimum_wage",
+      "legal.minimum_wage",
+      "legal.minimum_wage",
+      "legal.youth.max_daily_hours",
+      "legal.overtime.daily_limit"
+    ],
+    "retrieved_versions": [
+      "legal.minimum_wage@v1",
+      "legal.minimum_wage@v1",
+      "legal.minimum_wage@v1",
+      "legal.youth.max_daily_hours@v1",
+      "legal.overtime.daily_limit@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  ar: الحد الأدنى للأجر بالساعة\n  en: Hourly minimum wage\n  he: שכר מינימום שעתי\n",
+      "legal_reference:\n  en: Minimum Wage Law, 1987\n  he: חוק שכר מינימום, התשמ\"א-1987\n",
+      "id: legal.minimum_wage",
+      "parameters:\n  max_age: 18\n  max_hours: 8\n",
+      "id: legal.overtime.daily_limit"
+    ],
+    "sources": [
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5924677714232788,
+        "chunk_id": "legal.minimum_wage::v1::definition::0"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5741739479436216,
+        "chunk_id": "legal.minimum_wage::v1::source::2"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6561844007622103,
+        "chunk_id": "legal.minimum_wage::v1::identity::3"
+      },
+      {
+        "title": "legal.youth.max_daily_hours",
+        "rule_id": "legal.youth.max_daily_hours",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5405910267012767,
+        "chunk_id": "legal.youth.max_daily_hours::v1::calculation::1"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5814136263231726,
+        "chunk_id": "legal.overtime.daily_limit::v1::identity::3"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.5924677714232788,
+      0.5741739479436216,
+      0.6561844007622103,
+      0.5405910267012767,
+      0.5814136263231726
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 0.6,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.5,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.minimum_wage@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "mw_historical_date",
+    "question": "Using approved rules as of 2025-06-01, what minimum wage parameters apply?",
+    "reference_answer": "Retrieve the legally eligible approved version for effective_date 2025-06-01 for legal.minimum_wage; do not use a future version if one exists.",
+    "generated_answer": "As of 2025-06-01, the federal minimum wage in the United States is $15.00 per hour, according to the Fair Labor Standards Act (FLSA), 29 U.S.C. § 206(a)(1). This applies to employees engaged in interstate commerce or employed by an enterprise engaged in commerce or production of goods for commerce.\n\nFor tipped employees, the FLSA allows employers to pay a lower cash wage ($7.25 per hour) as long as their total earnings (including tips) equal at least $15.00 per hour. This is outlined in 29 U.S.C. § 203(m).\n\nHowever, some states and localities have their own minimum wage laws that may differ from the federal standard. It's important to check local regulations as well.\n\nSource(s):\n- Fair Labor Standards Act (FLSA), 29 U.S.C. §§ 206(a)(1), 203(m)\n- U.S. Department of Labor, \"Fact Sheet #17: Tipped Employees Under the FLSA\"",
+    "effective_date": "2025-06-01",
+    "expected_rule_ids": [
+      "legal.minimum_wage"
+    ],
+    "retrieved_rule_ids": [],
+    "retrieved_versions": [],
+    "retrieved_contexts": [],
+    "sources": [],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2025-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 0,
+      "rerank_fallback": false,
+      "order_changed": false,
+      "final_chunk_count": 0,
+      "hit_count": 0,
+      "vector_pool_k": 20,
+      "hit_at_k": false,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "first_relevant_rank": null,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [],
+    "hit_at_5": false,
+    "recall_at_5": 0.0,
+    "mrr": 0.0,
+    "first_relevant_rank": null,
+    "faithfulness": {
+      "value": null,
+      "status": "unavailable",
+      "reason": "no_retrieved_contexts"
+    },
+    "context_precision": {
+      "value": null,
+      "status": "unavailable",
+      "reason": "no_retrieved_contexts"
+    },
+    "context_recall": {
+      "value": null,
+      "status": "unavailable",
+      "reason": "no_retrieved_contexts"
+    },
+    "answer_relevancy": {
+      "value": 0.6142073258745684,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": false,
+    "temporal_detail": "no_hits",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "ot_daily_limit",
+    "question": "What is the daily overtime hours limit in the approved rules?",
+    "reference_answer": "Answer from legal.overtime.daily_limit approved parameters (max_hours) and description only.",
+    "generated_answer": "Based on the retrieved evidence, there is no explicit mention of a daily overtime hours limit in the provided sources (\"legal.overtime.daily_limit\"). The evidence only refers to an overtime rate for hours beyond two hours (\"legal.overtime.rate_tier_2\") and a maximum daily work hours limit for youth workers (16 hours per day, \"legal.youth.max_daily_hours\").\n\nTherefore, according to the provided evidence, there is insufficient information to determine the daily overtime hours limit in the approved rules.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.overtime.daily_limit"
+    ],
+    "retrieved_rule_ids": [
+      "legal.overtime.daily_limit",
+      "legal.overtime.daily_limit",
+      "legal.overtime.rate_tier_2",
+      "legal.youth.max_daily_hours",
+      "legal.overtime.weekly_limit"
+    ],
+    "retrieved_versions": [
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.rate_tier_2@v1",
+      "legal.youth.max_daily_hours@v1",
+      "legal.overtime.weekly_limit@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Daily overtime limit\n  he: מגבלת שעות נוספות יומיות\n",
+      "id: legal.overtime.daily_limit",
+      "description:\n  en: Overtime rate - beyond two hours\n  he: שיעור שעות נוספות - מעבר לשתי שעות\n",
+      "id: legal.youth.max_daily_hours",
+      "parameters:\n  max_hours: 16\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7680013410061505,
+        "chunk_id": "legal.overtime.daily_limit::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.8312931265748437,
+        "chunk_id": "legal.overtime.daily_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6746850376131264,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::definition::0"
+      },
+      {
+        "title": "legal.youth.max_daily_hours",
+        "rule_id": "legal.youth.max_daily_hours",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6743362746253188,
+        "chunk_id": "legal.youth.max_daily_hours::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6314512115137625,
+        "chunk_id": "legal.overtime.weekly_limit::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7680013410061505,
+      0.8312931265748437,
+      0.6746850376131264,
+      0.6743362746253188,
+      0.6314512115137625
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 1.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.overtime.daily_limit@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "ot_weekly_limit",
+    "question": "How many overtime hours per week are allowed according to approved rules?",
+    "reference_answer": "Use legal.overtime.weekly_limit approved max_hours only.",
+    "generated_answer": "Based on the retrieved evidence, there is no approved rule or limit for overtime hours per week in the provided sources. The evidence only specifies a maximum daily working hour limit of 8 hours and a maximum age limit of 18 years old for youth workers. Therefore, I cannot provide an answer to your question based on the given legal evidence.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.overtime.weekly_limit"
+    ],
+    "retrieved_rule_ids": [
+      "legal.overtime.weekly_limit",
+      "legal.overtime.weekly_limit",
+      "legal.overtime.rate_tier_2",
+      "legal.youth.max_daily_hours",
+      "legal.overtime.weekly_limit"
+    ],
+    "retrieved_versions": [
+      "legal.overtime.weekly_limit@v1",
+      "legal.overtime.weekly_limit@v1",
+      "legal.overtime.rate_tier_2@v1",
+      "legal.youth.max_daily_hours@v1",
+      "legal.overtime.weekly_limit@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Weekly overtime limit\n  he: מגבלת שעות נוספות שבועיות\n",
+      "id: legal.overtime.weekly_limit",
+      "description:\n  en: Overtime rate - beyond two hours\n  he: שיעור שעות נוספות - מעבר לשתי שעות\n",
+      "parameters:\n  max_age: 18\n  max_hours: 8\n",
+      "parameters:\n  max_hours: 16\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7364407585733005,
+        "chunk_id": "legal.overtime.weekly_limit::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7735554308778392,
+        "chunk_id": "legal.overtime.weekly_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6555212554379397,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::definition::0"
+      },
+      {
+        "title": "legal.youth.max_daily_hours",
+        "rule_id": "legal.youth.max_daily_hours",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5547433754412203,
+        "chunk_id": "legal.youth.max_daily_hours::v1::calculation::1"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5695381511696231,
+        "chunk_id": "legal.overtime.weekly_limit::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7364407585733005,
+      0.7735554308778392,
+      0.6555212554379397,
+      0.5547433754412203,
+      0.5695381511696231
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 0.5,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 1.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.overtime.weekly_limit@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "ot_rate_tier_1",
+    "question": "What overtime pay multiplier applies to the first overtime hours band in approved rules?",
+    "reference_answer": "Use legal.overtime.rate_tier_1 parameters (hours_range and multiplier) only.",
+    "generated_answer": "The overtime pay multiplier that applies to the first overtime hours band is 1.25, as specified in the retrieved evidence under \"parameters\" with a range of 0 to 2 hours and a multiplier of 1.25.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.overtime.rate_tier_1"
+    ],
+    "retrieved_rule_ids": [
+      "legal.overtime.rate_tier_1",
+      "legal.overtime.rate_tier_2",
+      "legal.overtime.rate_tier_1",
+      "legal.overtime.rate_tier_2",
+      "legal.overtime.weekly_limit"
+    ],
+    "retrieved_versions": [
+      "legal.overtime.rate_tier_1@v1",
+      "legal.overtime.rate_tier_2@v1",
+      "legal.overtime.rate_tier_1@v1",
+      "legal.overtime.rate_tier_2@v1",
+      "legal.overtime.weekly_limit@v1"
+    ],
+    "retrieved_contexts": [
+      "parameters:\n  hours_range:\n  - 0\n  - 2\n  multiplier: 1.25\n",
+      "parameters:\n  hours_range:\n  - 2\n  - null\n  multiplier: 1.5\n",
+      "description:\n  en: Overtime rate - first two hours\n  he: שיעור שעות נוספות - שתי השעות הראשונות\n",
+      "description:\n  en: Overtime rate - beyond two hours\n  he: שיעור שעות נוספות - מעבר לשתי שעות\n",
+      "description:\n  en: Weekly overtime limit\n  he: מגבלת שעות נוספות שבועיות\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.overtime.rate_tier_1",
+        "rule_id": "legal.overtime.rate_tier_1",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6673076223679358,
+        "chunk_id": "legal.overtime.rate_tier_1::v1::calculation::1"
+      },
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.645505203852321,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::calculation::1"
+      },
+      {
+        "title": "legal.overtime.rate_tier_1",
+        "rule_id": "legal.overtime.rate_tier_1",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.67802058063856,
+        "chunk_id": "legal.overtime.rate_tier_1::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6575288295187534,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6612390022307341,
+        "chunk_id": "legal.overtime.weekly_limit::v1::definition::0"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.6673076223679358,
+      0.645505203852321,
+      0.67802058063856,
+      0.6575288295187534,
+      0.6612390022307341
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 1.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.9999999999,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.9000173055599694,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.overtime.rate_tier_1@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "ot_rate_tier_2",
+    "question": "What is the second-tier overtime multiplier in approved rules?",
+    "reference_answer": "Use legal.overtime.rate_tier_2 approved multiplier/range only.",
+    "generated_answer": "The second-tier overtime multiplier is 1.25, as stated in the approved rules (id: legal.overtime.rate_tier_2).",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.overtime.rate_tier_2"
+    ],
+    "retrieved_rule_ids": [
+      "legal.overtime.rate_tier_2",
+      "legal.overtime.rate_tier_1",
+      "legal.overtime.rate_tier_1",
+      "legal.overtime.rate_tier_2",
+      "legal.vacation.annual_entitlement"
+    ],
+    "retrieved_versions": [
+      "legal.overtime.rate_tier_2@v1",
+      "legal.overtime.rate_tier_1@v1",
+      "legal.overtime.rate_tier_1@v1",
+      "legal.overtime.rate_tier_2@v1",
+      "legal.vacation.annual_entitlement@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.overtime.rate_tier_2",
+      "parameters:\n  hours_range:\n  - 0\n  - 2\n  multiplier: 1.25\n",
+      "id: legal.overtime.rate_tier_1",
+      "parameters:\n  hours_range:\n  - 2\n  - null\n  multiplier: 1.5\n",
+      "parameters:\n  tiers:\n  - days: 12\n    years:\n    - 1\n    - 5\n  - days: 15\n    years:\n    - 5\n    - 10\n  - days: 18\n    years:\n    - 10\n    - null\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7416176454636522,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::identity::2"
+      },
+      {
+        "title": "legal.overtime.rate_tier_1",
+        "rule_id": "legal.overtime.rate_tier_1",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6587613324505394,
+        "chunk_id": "legal.overtime.rate_tier_1::v1::calculation::1"
+      },
+      {
+        "title": "legal.overtime.rate_tier_1",
+        "rule_id": "legal.overtime.rate_tier_1",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.709793977505594,
+        "chunk_id": "legal.overtime.rate_tier_1::v1::identity::2"
+      },
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6542906607992645,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::calculation::1"
+      },
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5381702298500164,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7416176454636522,
+      0.6587613324505394,
+      0.709793977505594,
+      0.6542906607992645,
+      0.5381702298500164
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 1.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 1.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.9846872090217667,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.overtime.rate_tier_2@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "ot_multi_chunk",
+    "question": "Summarize approved daily overtime limit and first-tier overtime rate together.",
+    "reference_answer": "Combine only legal.overtime.daily_limit and legal.overtime.rate_tier_1 approved parameters; do not invent weekly-rest or holiday rules.",
+    "generated_answer": "The approved daily overtime limit is 26.4 ILS, and the first-tier overtime rate is 1.5 times the regular pay rate for up to 18 days of overtime work in a calendar month.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.overtime.daily_limit",
+      "legal.overtime.rate_tier_1"
+    ],
+    "retrieved_rule_ids": [
+      "legal.overtime.daily_limit",
+      "legal.transportation.max_allowance",
+      "legal.overtime.daily_limit",
+      "legal.overtime.rate_tier_1",
+      "legal.sick_leave.annual_entitlement"
+    ],
+    "retrieved_versions": [
+      "legal.overtime.daily_limit@v1",
+      "legal.transportation.max_allowance@v1",
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.rate_tier_1@v1",
+      "legal.sick_leave.annual_entitlement@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.overtime.daily_limit",
+      "parameters:\n  currency: ILS\n  daily_max: 26.4\n  monthly_max: 580.8\n",
+      "description:\n  en: Daily overtime limit\n  he: מגבלת שעות נוספות יומיות\n",
+      "id: legal.overtime.rate_tier_1",
+      "parameters:\n  accrual_rate: 1.5\n  days: 18\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7707961444768753,
+        "chunk_id": "legal.overtime.daily_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.transportation.max_allowance",
+        "rule_id": "legal.transportation.max_allowance",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.635588163230222,
+        "chunk_id": "legal.transportation.max_allowance::v1::calculation::1"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7770001287173376,
+        "chunk_id": "legal.overtime.daily_limit::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.rate_tier_1",
+        "rule_id": "legal.overtime.rate_tier_1",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7338484885996861,
+        "chunk_id": "legal.overtime.rate_tier_1::v1::identity::2"
+      },
+      {
+        "title": "legal.sick_leave.annual_entitlement",
+        "rule_id": "legal.sick_leave.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5925322745043924,
+        "chunk_id": "legal.sick_leave.annual_entitlement::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7707961444768753,
+      0.635588163230222,
+      0.7770001287173376,
+      0.7338484885996861,
+      0.5925322745043924
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 1.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.8422262448357482,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.overtime.daily_limit@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "pension_employee",
+    "question": "What employee pension contribution rate is defined in approved rules?",
+    "reference_answer": "Use legal.pension.contribution approved parameters only.",
+    "generated_answer": "The employee pension contribution rate is defined as 6% in the approved rules.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.pension.contribution"
+    ],
+    "retrieved_rule_ids": [
+      "legal.pension.employer_contribution",
+      "legal.pension.contribution",
+      "legal.pension.employer_contribution",
+      "legal.pension.contribution",
+      "legal.pension.contribution"
+    ],
+    "retrieved_versions": [
+      "legal.pension.employer_contribution@v1",
+      "legal.pension.contribution@v1",
+      "legal.pension.employer_contribution@v1",
+      "legal.pension.contribution@v1",
+      "legal.pension.contribution@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.pension.employer_contribution",
+      "description:\n  en: Minimum pension contribution - employee\n  he: הפרשה מינימלית לפנסיה - עובד\n",
+      "description:\n  en: Minimum pension contribution - employer\n  he: הפרשה מינימלית לפנסיה - מעסיק\n",
+      "id: legal.pension.contribution",
+      "parameters:\n  applies_from_month: 7\n  minimum_rate: 0.06\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.pension.employer_contribution",
+        "rule_id": "legal.pension.employer_contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7470744359879246,
+        "chunk_id": "legal.pension.employer_contribution::v1::identity::3"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7399756711859693,
+        "chunk_id": "legal.pension.contribution::v1::definition::0"
+      },
+      {
+        "title": "legal.pension.employer_contribution",
+        "rule_id": "legal.pension.employer_contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.71801311459303,
+        "chunk_id": "legal.pension.employer_contribution::v1::definition::0"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7370118675233173,
+        "chunk_id": "legal.pension.contribution::v1::identity::3"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5651978473414063,
+        "chunk_id": "legal.pension.contribution::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 0.5,
+      "first_relevant_rank": 2,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7470744359879246,
+      0.7399756711859693,
+      0.71801311459303,
+      0.7370118675233173,
+      0.5651978473414063
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 0.5,
+    "first_relevant_rank": 2,
+    "faithfulness": {
+      "value": 0.5,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.9478022820087088,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.pension.contribution@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "pension_employer",
+    "question": "What employer pension contribution is defined in approved rules?",
+    "reference_answer": "Use legal.pension.employer_contribution approved parameters only.",
+    "generated_answer": "Based on the retrieved evidence, the minimum employer pension contribution is defined as follows:\n\n**Minimum Pension Contribution - Employer**\n- Effective from 2026-01-01 onwards\n- Reference: `pension.yaml`",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.pension.employer_contribution"
+    ],
+    "retrieved_rule_ids": [
+      "legal.pension.employer_contribution",
+      "legal.pension.employer_contribution",
+      "legal.pension.contribution",
+      "legal.pension.contribution",
+      "legal.pension.severance"
+    ],
+    "retrieved_versions": [
+      "legal.pension.employer_contribution@v1",
+      "legal.pension.employer_contribution@v1",
+      "legal.pension.contribution@v1",
+      "legal.pension.contribution@v1",
+      "legal.pension.severance@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.pension.employer_contribution",
+      "description:\n  en: Minimum pension contribution - employer\n  he: הפרשה מינימלית לפנסיה - מעסיק\n",
+      "id: legal.pension.contribution",
+      "description:\n  en: Minimum pension contribution - employee\n  he: הפרשה מינימלית לפנסיה - עובד\n",
+      "id: legal.pension.severance"
+    ],
+    "sources": [
+      {
+        "title": "legal.pension.employer_contribution",
+        "rule_id": "legal.pension.employer_contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.8342338681352938,
+        "chunk_id": "legal.pension.employer_contribution::v1::identity::3"
+      },
+      {
+        "title": "legal.pension.employer_contribution",
+        "rule_id": "legal.pension.employer_contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.757598892251177,
+        "chunk_id": "legal.pension.employer_contribution::v1::definition::0"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7888152895220848,
+        "chunk_id": "legal.pension.contribution::v1::identity::3"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7477465954345789,
+        "chunk_id": "legal.pension.contribution::v1::definition::0"
+      },
+      {
+        "title": "legal.pension.severance",
+        "rule_id": "legal.pension.severance",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.637912681205481,
+        "chunk_id": "legal.pension.severance::v1::identity::3"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.8342338681352938,
+      0.757598892251177,
+      0.7888152895220848,
+      0.7477465954345789,
+      0.637912681205481
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 1.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.6539554662063822,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.pension.employer_contribution@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "pension_severance",
+    "question": "What severance-related pension parameter is in approved rules?",
+    "reference_answer": "Use legal.pension.severance approved parameters/description only.",
+    "generated_answer": "Based on the approved rules retrieved, here's the severance-related pension parameter:\n\n**Severance Component:**\n- The severance component is calculated based on the number of years worked and the number of days in each tier.\n  - For the first year to five years: 12 days\n  - For six to ten years: 15 days\n  - For eleven years and onwards: 18 days\n- The minimum rate for severance calculation is 0.06 (or 6%).",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.pension.severance"
+    ],
+    "retrieved_rule_ids": [
+      "legal.pension.severance",
+      "legal.pension.severance",
+      "legal.vacation.annual_entitlement",
+      "legal.minimum_wage",
+      "legal.pension.contribution"
+    ],
+    "retrieved_versions": [
+      "legal.pension.severance@v1",
+      "legal.pension.severance@v1",
+      "legal.vacation.annual_entitlement@v1",
+      "legal.minimum_wage@v1",
+      "legal.pension.contribution@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.pension.severance",
+      "description:\n  en: Severance component\n  he: רכיב פיצויים\n",
+      "parameters:\n  tiers:\n  - days: 12\n    years:\n    - 1\n    - 5\n  - days: 15\n    years:\n    - 5\n    - 10\n  - days: 18\n    years:\n    - 10\n    - null\n",
+      "parameters:\n  amount: 32.11\n  currency: ILS\n  schedule:\n  - amount: 32.11\n    effective_from: '2024-04-01'\n  - amount: 32.11\n    effective_from: '2026-01-01'\n",
+      "parameters:\n  applies_from_month: 7\n  minimum_rate: 0.06\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.pension.severance",
+        "rule_id": "legal.pension.severance",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7997217694347182,
+        "chunk_id": "legal.pension.severance::v1::identity::3"
+      },
+      {
+        "title": "legal.pension.severance",
+        "rule_id": "legal.pension.severance",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6684089994732086,
+        "chunk_id": "legal.pension.severance::v1::definition::0"
+      },
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5596935159661793,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::calculation::1"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5662250182488284,
+        "chunk_id": "legal.minimum_wage::v1::calculation::1"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5549799656699453,
+        "chunk_id": "legal.pension.contribution::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7997217694347182,
+      0.6684089994732086,
+      0.5596935159661793,
+      0.5662250182488284,
+      0.5549799656699453
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 0.8333333333333334,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.8010550461461773,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.pension.severance@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "vacation_entitlement",
+    "question": "How many annual vacation days are entitled under the approved vacation rules?",
+    "reference_answer": "Use legal.vacation.annual_entitlement approved parameters and description only.",
+    "generated_answer": "Based on the retrieved evidence, an employee is entitled to:\n\n- 12 annual vacation days after completing their first year of service.\n- 15 annual vacation days after completing five years of service.\n- 18 annual vacation days after completing ten years of service.\n\nThere is no information provided for employees with more than ten years of service. Therefore, the maximum number of annual vacation days entitled under these rules is 18 days.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.vacation.annual_entitlement"
+    ],
+    "retrieved_rule_ids": [
+      "legal.vacation.annual_entitlement",
+      "legal.vacation.annual_entitlement",
+      "legal.vacation.annual_entitlement",
+      "legal.minimum_wage",
+      "legal.sick_leave.annual_entitlement"
+    ],
+    "retrieved_versions": [
+      "legal.vacation.annual_entitlement@v1",
+      "legal.vacation.annual_entitlement@v1",
+      "legal.vacation.annual_entitlement@v1",
+      "legal.minimum_wage@v1",
+      "legal.sick_leave.annual_entitlement@v1"
+    ],
+    "retrieved_contexts": [
+      "parameters:\n  tiers:\n  - days: 12\n    years:\n    - 1\n    - 5\n  - days: 15\n    years:\n    - 5\n    - 10\n  - days: 18\n    years:\n    - 10\n    - null\n",
+      "description:\n  en: Annual vacation entitlement\n  he: זכות לחופשה שנתית\n",
+      "id: legal.vacation.annual_entitlement",
+      "parameters:\n  amount: 32.11\n  currency: ILS\n  schedule:\n  - amount: 32.11\n    effective_from: '2024-04-01'\n  - amount: 32.11\n    effective_from: '2026-01-01'\n",
+      "parameters:\n  accrual_rate: 1.5\n  days: 18\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5642153442741695,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::calculation::1"
+      },
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6834827087804429,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::definition::0"
+      },
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.749544832807932,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::identity::3"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5484273599396554,
+        "chunk_id": "legal.minimum_wage::v1::calculation::1"
+      },
+      {
+        "title": "legal.sick_leave.annual_entitlement",
+        "rule_id": "legal.sick_leave.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5527702099077981,
+        "chunk_id": "legal.sick_leave.annual_entitlement::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.5642153442741695,
+      0.6834827087804429,
+      0.749544832807932,
+      0.5484273599396554,
+      0.5527702099077981
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 1.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.709637977950377,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.vacation.annual_entitlement@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "vacation_accrual",
+    "question": "What monthly vacation accrual is defined in approved rules?",
+    "reference_answer": "Use legal.vacation.monthly_accrual approved parameters only.",
+    "generated_answer": "Based on the retrieved evidence, the monthly vacation accrual is defined as follows:\n\n- **Accrual Rate:** 1.5 days per month\n- **Total Days:** 18 days per year\n\nSo, employees accrue 1.5 days of vacation leave each month.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.vacation.monthly_accrual"
+    ],
+    "retrieved_rule_ids": [
+      "legal.vacation.monthly_accrual",
+      "legal.vacation.monthly_accrual",
+      "legal.sick_leave.annual_entitlement",
+      "legal.vacation.annual_entitlement",
+      "legal.vacation.annual_entitlement"
+    ],
+    "retrieved_versions": [
+      "legal.vacation.monthly_accrual@v1",
+      "legal.vacation.monthly_accrual@v1",
+      "legal.sick_leave.annual_entitlement@v1",
+      "legal.vacation.annual_entitlement@v1",
+      "legal.vacation.annual_entitlement@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Monthly vacation accrual\n  he: צבירת ימי חופשה חודשית\n",
+      "id: legal.vacation.monthly_accrual",
+      "parameters:\n  accrual_rate: 1.5\n  days: 18\n",
+      "id: legal.vacation.annual_entitlement",
+      "description:\n  en: Annual vacation entitlement\n  he: זכות לחופשה שנתית\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.vacation.monthly_accrual",
+        "rule_id": "legal.vacation.monthly_accrual",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7821124714357415,
+        "chunk_id": "legal.vacation.monthly_accrual::v1::definition::0"
+      },
+      {
+        "title": "legal.vacation.monthly_accrual",
+        "rule_id": "legal.vacation.monthly_accrual",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.8468557960097254,
+        "chunk_id": "legal.vacation.monthly_accrual::v1::identity::3"
+      },
+      {
+        "title": "legal.sick_leave.annual_entitlement",
+        "rule_id": "legal.sick_leave.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.63005553940781,
+        "chunk_id": "legal.sick_leave.annual_entitlement::v1::calculation::1"
+      },
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7231713202813366,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::identity::3"
+      },
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6820522537568302,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::definition::0"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7821124714357415,
+      0.8468557960097254,
+      0.63005553940781,
+      0.7231713202813366,
+      0.6820522537568302
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 0.5,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 1.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.7831447364577112,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.vacation.monthly_accrual@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "sick_leave",
+    "question": "What annual sick-leave entitlement is in the approved rules?",
+    "reference_answer": "Use legal.sick_leave.annual_entitlement approved parameters only.",
+    "generated_answer": "Based on the retrieved evidence, there is no approved rule or legal citation provided for an annual sick leave entitlement. Therefore, I cannot determine the annual sick-leave entitlement from the given information.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.sick_leave.annual_entitlement"
+    ],
+    "retrieved_rule_ids": [
+      "legal.sick_leave.annual_entitlement",
+      "legal.sick_leave.annual_entitlement",
+      "legal.vacation.annual_entitlement",
+      "legal.vacation.annual_entitlement",
+      "legal.minimum_wage"
+    ],
+    "retrieved_versions": [
+      "legal.sick_leave.annual_entitlement@v1",
+      "legal.sick_leave.annual_entitlement@v1",
+      "legal.vacation.annual_entitlement@v1",
+      "legal.vacation.annual_entitlement@v1",
+      "legal.minimum_wage@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Annual sick leave entitlement\n  he: זכות למחלה שנתית\n",
+      "id: legal.sick_leave.annual_entitlement",
+      "description:\n  en: Annual vacation entitlement\n  he: זכות לחופשה שנתית\n",
+      "id: legal.vacation.annual_entitlement",
+      "parameters:\n  amount: 32.11\n  currency: ILS\n  schedule:\n  - amount: 32.11\n    effective_from: '2024-04-01'\n  - amount: 32.11\n    effective_from: '2026-01-01'\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.sick_leave.annual_entitlement",
+        "rule_id": "legal.sick_leave.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7965119782236177,
+        "chunk_id": "legal.sick_leave.annual_entitlement::v1::definition::0"
+      },
+      {
+        "title": "legal.sick_leave.annual_entitlement",
+        "rule_id": "legal.sick_leave.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.8820335000675469,
+        "chunk_id": "legal.sick_leave.annual_entitlement::v1::identity::3"
+      },
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6584641195371754,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::definition::0"
+      },
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7354073477342241,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::identity::3"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5972628406366703,
+        "chunk_id": "legal.minimum_wage::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7965119782236177,
+      0.8820335000675469,
+      0.6584641195371754,
+      0.7354073477342241,
+      0.5972628406366703
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.sick_leave.annual_entitlement@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "transport_max",
+    "question": "What is the maximum transportation allowance in approved rules?",
+    "reference_answer": "Use legal.transportation.max_allowance approved parameters only.",
+    "generated_answer": "Based on the approved retrieved legal evidence, the maximum transportation allowance is ILS 580.8 per month.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.transportation.max_allowance"
+    ],
+    "retrieved_rule_ids": [
+      "legal.transportation.max_allowance",
+      "legal.transportation.max_allowance",
+      "legal.overtime.weekly_limit",
+      "legal.youth.max_daily_hours",
+      "legal.transportation.max_allowance"
+    ],
+    "retrieved_versions": [
+      "legal.transportation.max_allowance@v1",
+      "legal.transportation.max_allowance@v1",
+      "legal.overtime.weekly_limit@v1",
+      "legal.youth.max_daily_hours@v1",
+      "legal.transportation.max_allowance@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Maximum transportation allowance\n  he: מקסימום דמי נסיעות\n",
+      "id: legal.transportation.max_allowance",
+      "parameters:\n  max_hours: 16\n",
+      "parameters:\n  max_age: 18\n  max_hours: 8\n",
+      "parameters:\n  currency: ILS\n  daily_max: 26.4\n  monthly_max: 580.8\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.transportation.max_allowance",
+        "rule_id": "legal.transportation.max_allowance",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.8000084807930316,
+        "chunk_id": "legal.transportation.max_allowance::v1::definition::0"
+      },
+      {
+        "title": "legal.transportation.max_allowance",
+        "rule_id": "legal.transportation.max_allowance",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.8487957910243683,
+        "chunk_id": "legal.transportation.max_allowance::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5873560128467801,
+        "chunk_id": "legal.overtime.weekly_limit::v1::calculation::1"
+      },
+      {
+        "title": "legal.youth.max_daily_hours",
+        "rule_id": "legal.youth.max_daily_hours",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5751607368168796,
+        "chunk_id": "legal.youth.max_daily_hours::v1::calculation::1"
+      },
+      {
+        "title": "legal.transportation.max_allowance",
+        "rule_id": "legal.transportation.max_allowance",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6009776426127685,
+        "chunk_id": "legal.transportation.max_allowance::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.8000084807930316,
+      0.8487957910243683,
+      0.5873560128467801,
+      0.5751607368168796,
+      0.6009776426127685
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 0.5,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.8178095921009595,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.transportation.max_allowance@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "transport_public",
+    "question": "What do approved rules say about public transport reimbursement?",
+    "reference_answer": "Use legal.transportation.public_transport approved parameters/description only.",
+    "generated_answer": "Based on the approved rules retrieved, here's what they say about public transport reimbursement:\n\n1. **Public Transport Reimbursement**: The system allows for reimbursement of public transport expenses incurred by employees.\n\n2. **Maximum Transportation Allowance**: There is a maximum transportation allowance set at 1.0 (presumably in some unit of currency). This means that the total amount an employee can be reimbursed for public transport expenses is capped at this value.\n\nHowever, these rules do not specify how the reimbursement rate or maximum allowance should be calculated or applied. They also do not provide any information on tax implications or other related aspects of public transport reimbursement. Therefore, without additional evidence, it's not possible to determine how much an employee would actually receive in reimbursement for their public transport expenses, nor how this would be handled from a taxation perspective.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.transportation.public_transport"
+    ],
+    "retrieved_rule_ids": [
+      "legal.transportation.public_transport",
+      "legal.transportation.public_transport",
+      "legal.transportation.max_allowance",
+      "legal.transportation.max_allowance",
+      "legal.transportation.public_transport"
+    ],
+    "retrieved_versions": [
+      "legal.transportation.public_transport@v1",
+      "legal.transportation.public_transport@v1",
+      "legal.transportation.max_allowance@v1",
+      "legal.transportation.max_allowance@v1",
+      "legal.transportation.public_transport@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Public transport reimbursement\n  he: החזר נסיעות בתחבורה ציבורית\n",
+      "id: legal.transportation.public_transport",
+      "id: legal.transportation.max_allowance",
+      "description:\n  en: Maximum transportation allowance\n  he: מקסימום דמי נסיעות\n",
+      "parameters:\n  reimbursement_rate: 1.0\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.transportation.public_transport",
+        "rule_id": "legal.transportation.public_transport",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.715907627902266,
+        "chunk_id": "legal.transportation.public_transport::v1::definition::0"
+      },
+      {
+        "title": "legal.transportation.public_transport",
+        "rule_id": "legal.transportation.public_transport",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6540386852529672,
+        "chunk_id": "legal.transportation.public_transport::v1::identity::2"
+      },
+      {
+        "title": "legal.transportation.max_allowance",
+        "rule_id": "legal.transportation.max_allowance",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5914979695133655,
+        "chunk_id": "legal.transportation.max_allowance::v1::identity::3"
+      },
+      {
+        "title": "legal.transportation.max_allowance",
+        "rule_id": "legal.transportation.max_allowance",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5728750218531288,
+        "chunk_id": "legal.transportation.max_allowance::v1::definition::0"
+      },
+      {
+        "title": "legal.transportation.public_transport",
+        "rule_id": "legal.transportation.public_transport",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6100494048999148,
+        "chunk_id": "legal.transportation.public_transport::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.715907627902266,
+      0.6540386852529672,
+      0.5914979695133655,
+      0.5728750218531288,
+      0.6100494048999148
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 1.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 1.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.transportation.public_transport@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "tax_credit_point",
+    "question": "What tax credit point value is defined in approved payroll rules?",
+    "reference_answer": "Use legal.tax.credit_point approved parameters only.",
+    "generated_answer": "The tax credit point value is defined as 32.11 ILS, effective from April 1, 2024, and onwards. This information is retrieved from the approved payroll rules, specifically the \"legal.tax.credit_point\" parameter with an ID of \"v1\".",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.tax.credit_point"
+    ],
+    "retrieved_rule_ids": [
+      "legal.tax.credit_point",
+      "legal.tax.credit_point",
+      "legal.minimum_wage",
+      "legal.sick_leave.annual_entitlement",
+      "legal.vacation.monthly_accrual"
+    ],
+    "retrieved_versions": [
+      "legal.tax.credit_point@v1",
+      "legal.tax.credit_point@v1",
+      "legal.minimum_wage@v1",
+      "legal.sick_leave.annual_entitlement@v1",
+      "legal.vacation.monthly_accrual@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Tax credit point value\n  he: ערך נקודת זיכוי\n",
+      "id: legal.tax.credit_point",
+      "parameters:\n  amount: 32.11\n  currency: ILS\n  schedule:\n  - amount: 32.11\n    effective_from: '2024-04-01'\n  - amount: 32.11\n    effective_from: '2026-01-01'\n",
+      "parameters:\n  accrual_rate: 1.5\n  days: 18\n",
+      "description:\n  en: Monthly vacation accrual\n  he: צבירת ימי חופשה חודשית\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.tax.credit_point",
+        "rule_id": "legal.tax.credit_point",
+        "rule_version": "1",
+        "source_reference": "tax.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7405038932936432,
+        "chunk_id": "legal.tax.credit_point::v1::definition::0"
+      },
+      {
+        "title": "legal.tax.credit_point",
+        "rule_id": "legal.tax.credit_point",
+        "rule_version": "1",
+        "source_reference": "tax.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7331113631902049,
+        "chunk_id": "legal.tax.credit_point::v1::identity::3"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5742065620596914,
+        "chunk_id": "legal.minimum_wage::v1::calculation::1"
+      },
+      {
+        "title": "legal.sick_leave.annual_entitlement",
+        "rule_id": "legal.sick_leave.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5411070217273929,
+        "chunk_id": "legal.sick_leave.annual_entitlement::v1::calculation::1"
+      },
+      {
+        "title": "legal.vacation.monthly_accrual",
+        "rule_id": "legal.vacation.monthly_accrual",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5722863304618424,
+        "chunk_id": "legal.vacation.monthly_accrual::v1::definition::0"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7405038932936432,
+      0.7331113631902049,
+      0.5742065620596914,
+      0.5411070217273929,
+      0.5722863304618424
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 0.6,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.6694849623796233,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.tax.credit_point@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "tax_brackets",
+    "question": "Where are income tax brackets defined in approved rules?",
+    "reference_answer": "Point only to legal.tax.income_brackets approved parameters; do not invent bracket amounts beyond YAML.",
+    "generated_answer": "The income tax brackets are defined in the Income Tax Ordinance [New Version], 5761-1961 (פקודת מס הכנסה [נוסח חדש], תשכ\"א-1961). The specific brackets and their corresponding tax rates can be found in the retrieved evidence provided.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.tax.income_brackets"
+    ],
+    "retrieved_rule_ids": [
+      "legal.tax.income_brackets",
+      "legal.tax.income_brackets",
+      "legal.tax.income_brackets",
+      "legal.tax.income_brackets",
+      "legal.pension.employer_contribution"
+    ],
+    "retrieved_versions": [
+      "legal.tax.income_brackets@v1",
+      "legal.tax.income_brackets@v1",
+      "legal.tax.income_brackets@v1",
+      "legal.tax.income_brackets@v1",
+      "legal.pension.employer_contribution@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Income tax brackets\n  he: מדרגות מס הכנסה\n",
+      "id: legal.tax.income_brackets",
+      "legal_reference:\n  he: פקודת מס הכנסה [נוסח חדש], תשכ\"א-1961\n",
+      "parameters:\n  brackets:\n  - rate: 0.1\n    up_to: 7010\n  - rate: 0.14\n    up_to: 10060\n  - rate: 0.2\n    up_to: 16050\n  - rate: 0.31\n    up_to: 22400\n  - rate: 0.35\n    up_to: 46690\n  - rate: 0.47\n    up_to: 60130\n  - rate: 0.5\n    up_to: null\n",
+      "description:\n  en: Minimum pension contribution - employer\n  he: הפרשה מינימלית לפנסיה - מעסיק\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.tax.income_brackets",
+        "rule_id": "legal.tax.income_brackets",
+        "rule_version": "1",
+        "source_reference": "tax.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7783267037752802,
+        "chunk_id": "legal.tax.income_brackets::v1::definition::0"
+      },
+      {
+        "title": "legal.tax.income_brackets",
+        "rule_id": "legal.tax.income_brackets",
+        "rule_version": "1",
+        "source_reference": "tax.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.8220065210433339,
+        "chunk_id": "legal.tax.income_brackets::v1::identity::3"
+      },
+      {
+        "title": "legal.tax.income_brackets",
+        "rule_id": "legal.tax.income_brackets",
+        "rule_version": "1",
+        "source_reference": "tax.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5364790710711043,
+        "chunk_id": "legal.tax.income_brackets::v1::source::2"
+      },
+      {
+        "title": "legal.tax.income_brackets",
+        "rule_id": "legal.tax.income_brackets",
+        "rule_version": "1",
+        "source_reference": "tax.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5803025956587589,
+        "chunk_id": "legal.tax.income_brackets::v1::calculation::1"
+      },
+      {
+        "title": "legal.pension.employer_contribution",
+        "rule_id": "legal.pension.employer_contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5961785255866887,
+        "chunk_id": "legal.pension.employer_contribution::v1::definition::0"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7783267037752802,
+      0.8220065210433339,
+      0.5364790710711043,
+      0.5803025956587589,
+      0.5961785255866887
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 1.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.499999999975,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.5,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.tax.income_brackets@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "youth_age",
+    "question": "What minimum age for youth employment is in approved rules?",
+    "reference_answer": "Use legal.youth.minimum_age approved parameters only.",
+    "generated_answer": "The minimum age for youth employment is 15 years old. This is stated in the approved rules under the identifier \"legal.youth.minimum_age\" with a parameter of \"min_age: 15\".",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.youth.minimum_age"
+    ],
+    "retrieved_rule_ids": [
+      "legal.youth.minimum_age",
+      "legal.youth.minimum_age",
+      "legal.youth.minimum_age",
+      "legal.vacation.annual_entitlement",
+      "legal.youth.max_daily_hours"
+    ],
+    "retrieved_versions": [
+      "legal.youth.minimum_age@v1",
+      "legal.youth.minimum_age@v1",
+      "legal.youth.minimum_age@v1",
+      "legal.vacation.annual_entitlement@v1",
+      "legal.youth.max_daily_hours@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Minimum age for youth employment\n  he: גיל מינימום לעבודת נוער\n",
+      "id: legal.youth.minimum_age",
+      "parameters:\n  min_age: 15\n",
+      "parameters:\n  tiers:\n  - days: 12\n    years:\n    - 1\n    - 5\n  - days: 15\n    years:\n    - 5\n    - 10\n  - days: 18\n    years:\n    - 10\n    - null\n",
+      "parameters:\n  max_age: 18\n  max_hours: 8\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.youth.minimum_age",
+        "rule_id": "legal.youth.minimum_age",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.809017288160857,
+        "chunk_id": "legal.youth.minimum_age::v1::definition::0"
+      },
+      {
+        "title": "legal.youth.minimum_age",
+        "rule_id": "legal.youth.minimum_age",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.775790934312235,
+        "chunk_id": "legal.youth.minimum_age::v1::identity::3"
+      },
+      {
+        "title": "legal.youth.minimum_age",
+        "rule_id": "legal.youth.minimum_age",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6848036649790552,
+        "chunk_id": "legal.youth.minimum_age::v1::calculation::1"
+      },
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5632890181250254,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::calculation::1"
+      },
+      {
+        "title": "legal.youth.max_daily_hours",
+        "rule_id": "legal.youth.max_daily_hours",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6643992452968919,
+        "chunk_id": "legal.youth.max_daily_hours::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.809017288160857,
+      0.775790934312235,
+      0.6848036649790552,
+      0.5632890181250254,
+      0.6643992452968919
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 1.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.9768748839062177,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.youth.minimum_age@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "youth_hours",
+    "question": "What is the daily hour limit for youth in approved rules?",
+    "reference_answer": "Use legal.youth.max_daily_hours approved parameters only.",
+    "generated_answer": "Based on the retrieved evidence, the daily hour limit for youth is 8 hours. This is specified in the \"legal.youth.max_daily_hours\" rule with a maximum age of 18 and a maximum daily hour limit of 8.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.youth.max_daily_hours"
+    ],
+    "retrieved_rule_ids": [
+      "legal.youth.max_daily_hours",
+      "legal.youth.max_daily_hours",
+      "legal.youth.max_daily_hours",
+      "legal.overtime.daily_limit",
+      "legal.overtime.weekly_limit"
+    ],
+    "retrieved_versions": [
+      "legal.youth.max_daily_hours@v1",
+      "legal.youth.max_daily_hours@v1",
+      "legal.youth.max_daily_hours@v1",
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.weekly_limit@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Daily hour limit for youth\n  he: מגבלת שעות יומיות לנוער\n",
+      "id: legal.youth.max_daily_hours",
+      "parameters:\n  max_age: 18\n  max_hours: 8\n",
+      "id: legal.overtime.daily_limit",
+      "parameters:\n  max_hours: 16\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.youth.max_daily_hours",
+        "rule_id": "legal.youth.max_daily_hours",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7797877559774337,
+        "chunk_id": "legal.youth.max_daily_hours::v1::definition::0"
+      },
+      {
+        "title": "legal.youth.max_daily_hours",
+        "rule_id": "legal.youth.max_daily_hours",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.821674686509158,
+        "chunk_id": "legal.youth.max_daily_hours::v1::identity::3"
+      },
+      {
+        "title": "legal.youth.max_daily_hours",
+        "rule_id": "legal.youth.max_daily_hours",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6979189342239286,
+        "chunk_id": "legal.youth.max_daily_hours::v1::calculation::1"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7507059389063976,
+        "chunk_id": "legal.overtime.daily_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6918075267800701,
+        "chunk_id": "legal.overtime.weekly_limit::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7797877559774337,
+      0.821674686509158,
+      0.6979189342239286,
+      0.7507059389063976,
+      0.6918075267800701
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": 1.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 1.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.9294264183881832,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.youth.max_daily_hours@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "insufficient_context",
+    "question": "What is the exact court ruling citation for a dispute from 1998 not covered in approved rules?",
+    "reference_answer": "State that approved local legal knowledge does not contain that information; do not invent a citation.",
+    "generated_answer": "Based on the retrieved evidence, there is no exact court ruling citation for a dispute from 1998 not covered in approved rules provided. The evidence only includes laws and regulations such as the Hours of Work and Rest Law, Income Tax Ordinance, Collective Agreement Law, and their respective sections or clauses. There are no specific court rulings or case law citations mentioned that relate to a dispute from 1998.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [],
+    "retrieved_rule_ids": [
+      "legal.overtime.weekly_limit",
+      "legal.transportation.max_allowance",
+      "legal.tax.credit_point",
+      "legal.tax.income_brackets",
+      "legal.overtime.daily_limit"
+    ],
+    "retrieved_versions": [
+      "legal.overtime.weekly_limit@v1",
+      "legal.transportation.max_allowance@v1",
+      "legal.tax.credit_point@v1",
+      "legal.tax.income_brackets@v1",
+      "legal.overtime.daily_limit@v1"
+    ],
+    "retrieved_contexts": [
+      "legal_reference:\n  he: חוק שעות עבודה ומנוחה, תשי\"א-1951\n",
+      "legal_reference:\n  he: הסכם קיבוצי / צו הרחבה\n",
+      "legal_reference:\n  he: פקודת מס הכנסה\n",
+      "legal_reference:\n  he: פקודת מס הכנסה [נוסח חדש], תשכ\"א-1961\n",
+      "legal_reference:\n  en: Hours of Work and Rest Law, 1951, Section 16\n  he: חוק שעות עבודה ומנוחה, תשי\"א-1951, סעיף 16\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6312035001684745,
+        "chunk_id": "legal.overtime.weekly_limit::v1::source::2"
+      },
+      {
+        "title": "legal.transportation.max_allowance",
+        "rule_id": "legal.transportation.max_allowance",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5645159693230181,
+        "chunk_id": "legal.transportation.max_allowance::v1::source::2"
+      },
+      {
+        "title": "legal.tax.credit_point",
+        "rule_id": "legal.tax.credit_point",
+        "rule_version": "1",
+        "source_reference": "tax.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5833495521683675,
+        "chunk_id": "legal.tax.credit_point::v1::source::2"
+      },
+      {
+        "title": "legal.tax.income_brackets",
+        "rule_id": "legal.tax.income_brackets",
+        "rule_version": "1",
+        "source_reference": "tax.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6270446362946822,
+        "chunk_id": "legal.tax.income_brackets::v1::source::2"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6036446352656043,
+        "chunk_id": "legal.overtime.daily_limit::v1::source::2"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": null,
+      "recall_at_k": null,
+      "mrr": null,
+      "first_relevant_rank": null,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.6312035001684745,
+      0.5645159693230181,
+      0.5833495521683675,
+      0.6270446362946822,
+      0.6036446352656043
+    ],
+    "hit_at_5": null,
+    "recall_at_5": null,
+    "mrr": null,
+    "first_relevant_rank": null,
+    "faithfulness": {
+      "value": 0.5,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": null,
+    "temporal_detail": "no_expected_rule_ids",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "misleading_unrelated",
+    "question": "Does the minimum wage rule also set the overtime multiplier for night shifts?",
+    "reference_answer": "Do not conflate legal.minimum_wage with overtime rate rules; answer only from approved evidence and say if night-shift overtime is not present.",
+    "generated_answer": "Based on the retrieved evidence, there is no information provided about a specific overtime multiplier for night shifts. The Minimum Wage Law, 1987 only sets different multipliers based on hours worked in a day: 1.25 for up to 2 hours and 1.5 for more than 2 hours. There is no mention of any special rate for night shifts. Therefore, with the current evidence, it cannot be determined if the minimum wage rule also sets the overtime multiplier for night shifts.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.minimum_wage"
+    ],
+    "retrieved_rule_ids": [
+      "legal.overtime.rate_tier_1",
+      "legal.overtime.rate_tier_2",
+      "legal.minimum_wage",
+      "legal.overtime.rate_tier_2",
+      "legal.minimum_wage"
+    ],
+    "retrieved_versions": [
+      "legal.overtime.rate_tier_1@v1",
+      "legal.overtime.rate_tier_2@v1",
+      "legal.minimum_wage@v1",
+      "legal.overtime.rate_tier_2@v1",
+      "legal.minimum_wage@v1"
+    ],
+    "retrieved_contexts": [
+      "parameters:\n  hours_range:\n  - 0\n  - 2\n  multiplier: 1.25\n",
+      "parameters:\n  hours_range:\n  - 2\n  - null\n  multiplier: 1.5\n",
+      "description:\n  ar: الحد الأدنى للأجر بالساعة\n  en: Hourly minimum wage\n  he: שכר מינימום שעתי\n",
+      "id: legal.overtime.rate_tier_2",
+      "legal_reference:\n  en: Minimum Wage Law, 1987\n  he: חוק שכר מינימום, התשמ\"א-1987\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.overtime.rate_tier_1",
+        "rule_id": "legal.overtime.rate_tier_1",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6245207097597567,
+        "chunk_id": "legal.overtime.rate_tier_1::v1::calculation::1"
+      },
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.62235151957829,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::calculation::1"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5754007019706612,
+        "chunk_id": "legal.minimum_wage::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6055861479556234,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::identity::2"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6574503883143127,
+        "chunk_id": "legal.minimum_wage::v1::source::2"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 0.3333333333333333,
+      "first_relevant_rank": 3,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.6245207097597567,
+      0.62235151957829,
+      0.5754007019706612,
+      0.6055861479556234,
+      0.6574503883143127
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 0.3333333333333333,
+    "first_relevant_rank": 3,
+    "faithfulness": {
+      "value": 0.8333333333333334,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.minimum_wage@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "ambiguous_overtime",
+    "question": "Are overtime rules the same for every employee in every sector?",
+    "reference_answer": "Explain only what approved overtime rules cover (including employment_types if present); do not invent sector exceptions absent from YAML.",
+    "generated_answer": "Based on the retrieved evidence, there are standard overtime rules applicable to all employees in every sector as of January 1, 2026:\n\n1. **Overtime Rate**:\n   - For the first two hours of overtime: `legal.overtime.rate_tier_1`\n   - Beyond two hours of overtime: `legal.overtime.rate_tier_2`\n\n2. **Daily Overtime Limit**: There is a daily limit on overtime work, specified in `legal.overtime.daily_limit`.\n\n3. **Weekly Overtime Limit**: There is also a weekly limit on overtime work, specified in `legal.overtime.weekly_limit`.\n\nHowever, the evidence provided does not include specific numerical values or percentages for these rates and limits. Therefore, I cannot provide the exact overtime rules applicable to every employee in every sector without additional information.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.overtime.daily_limit",
+      "legal.overtime.weekly_limit"
+    ],
+    "retrieved_rule_ids": [
+      "legal.overtime.rate_tier_2",
+      "legal.overtime.daily_limit",
+      "legal.overtime.weekly_limit",
+      "legal.overtime.rate_tier_1",
+      "legal.overtime.daily_limit"
+    ],
+    "retrieved_versions": [
+      "legal.overtime.rate_tier_2@v1",
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.weekly_limit@v1",
+      "legal.overtime.rate_tier_1@v1",
+      "legal.overtime.daily_limit@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Overtime rate - beyond two hours\n  he: שיעור שעות נוספות - מעבר לשתי שעות\n",
+      "description:\n  en: Daily overtime limit\n  he: מגבלת שעות נוספות יומיות\n",
+      "description:\n  en: Weekly overtime limit\n  he: מגבלת שעות נוספות שבועיות\n",
+      "description:\n  en: Overtime rate - first two hours\n  he: שיעור שעות נוספות - שתי השעות הראשונות\n",
+      "id: legal.overtime.daily_limit"
+    ],
+    "sources": [
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5542649907450832,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5715865562107203,
+        "chunk_id": "legal.overtime.daily_limit::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5917317600181833,
+        "chunk_id": "legal.overtime.weekly_limit::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.rate_tier_1",
+        "rule_id": "legal.overtime.rate_tier_1",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5459031582616818,
+        "chunk_id": "legal.overtime.rate_tier_1::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6246334139308203,
+        "chunk_id": "legal.overtime.daily_limit::v1::identity::3"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 0.5,
+      "first_relevant_rank": 2,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.5542649907450832,
+      0.5715865562107203,
+      0.5917317600181833,
+      0.5459031582616818,
+      0.6246334139308203
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 0.5,
+    "first_relevant_rank": 2,
+    "faithfulness": {
+      "value": 0.5714285714285714,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.overtime.daily_limit@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "unsupported_topic_weekly_rest",
+    "question": "What are the approved weekly rest work premium rates?",
+    "reference_answer": "If no approved YAML rule covers weekly rest premiums, state that approved knowledge is unavailable; do not invent rates.",
+    "generated_answer": "Based on the retrieved evidence, there is no approved weekly rest work premium rate provided. The evidence only includes daily and monthly maximum limits for regular payroll calculations, a minimum overtime rate that applies from July onwards, and pension-related information. Therefore, I cannot provide an approved weekly rest work premium rate based on the given evidence.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [],
+    "retrieved_rule_ids": [
+      "legal.transportation.max_allowance",
+      "legal.minimum_wage",
+      "legal.overtime.weekly_limit",
+      "legal.pension.contribution",
+      "legal.pension.severance"
+    ],
+    "retrieved_versions": [
+      "legal.transportation.max_allowance@v1",
+      "legal.minimum_wage@v1",
+      "legal.overtime.weekly_limit@v1",
+      "legal.pension.contribution@v1",
+      "legal.pension.severance@v1"
+    ],
+    "retrieved_contexts": [
+      "parameters:\n  currency: ILS\n  daily_max: 26.4\n  monthly_max: 580.8\n",
+      "parameters:\n  amount: 32.11\n  currency: ILS\n  schedule:\n  - amount: 32.11\n    effective_from: '2024-04-01'\n  - amount: 32.11\n    effective_from: '2026-01-01'\n",
+      "id: legal.overtime.weekly_limit",
+      "parameters:\n  applies_from_month: 7\n  minimum_rate: 0.06\n",
+      "parameters:\n  rate: 0.0833\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.transportation.max_allowance",
+        "rule_id": "legal.transportation.max_allowance",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5261019425747334,
+        "chunk_id": "legal.transportation.max_allowance::v1::calculation::1"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5468039244722803,
+        "chunk_id": "legal.minimum_wage::v1::calculation::1"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6285773540077316,
+        "chunk_id": "legal.overtime.weekly_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5607633776482766,
+        "chunk_id": "legal.pension.contribution::v1::calculation::1"
+      },
+      {
+        "title": "legal.pension.severance",
+        "rule_id": "legal.pension.severance",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5529832368974438,
+        "chunk_id": "legal.pension.severance::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "rerank_enabled": true,
+      "retrieval_candidate_count": 20,
+      "rerank_fallback": false,
+      "order_changed": true,
+      "final_chunk_count": 5,
+      "hit_count": 5,
+      "vector_pool_k": 20,
+      "hit_at_k": null,
+      "recall_at_k": null,
+      "mrr": null,
+      "first_relevant_rank": null,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.5261019425747334,
+      0.5468039244722803,
+      0.6285773540077316,
+      0.5607633776482766,
+      0.5529832368974438
+    ],
+    "hit_at_5": null,
+    "recall_at_5": null,
+    "mrr": null,
+    "first_relevant_rank": null,
+    "faithfulness": {
+      "value": 0.8,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.9999999999,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_pass": null,
+    "temporal_detail": "no_expected_rule_ids",
+    "error": null,
+    "status": "completed"
+  }
+]

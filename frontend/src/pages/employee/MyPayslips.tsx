@@ -79,7 +79,9 @@ export function MyPayslipsPage() {
         setData(response);
         setYear(response.year);
       } catch (err) {
-        setError(getDisplayError(err, t('common.error')));
+        setError(getDisplayError(err, t('common.error'), {
+          networkFallback: t('common.networkUnavailable'),
+        }));
         if (!cached && !session.getPayrollMonths(nextYear)) {
           setData((prev) => (prev?.year === nextYear ? null : prev));
         }

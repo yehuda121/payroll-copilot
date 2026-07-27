@@ -1,0 +1,443 @@
+[
+  {
+    "run_id": "29e2676a-17f9-45b6-aaae-8e2a81fb9299",
+    "dataset_version": "benchmark_v1",
+    "status": "COMPLETED",
+    "started_at": "2026-07-27T16:31:54.921493Z",
+    "completed_at": "2026-07-27T16:38:29.806932Z",
+    "provider": "ollama",
+    "model": "mistral-nemo:12b",
+    "prompt_version": "payroll_assistant_grounded_v1",
+    "case_count": 24,
+    "completed_cases": 24,
+    "failed_cases": 0,
+    "faithfulness": {
+      "value": 0.7060041407867494,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.13043478259673913,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.30434782608695654,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.4845970425110479,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_accuracy": {
+      "value": 0.9545454545454546,
+      "status": "ok",
+      "reason": null
+    },
+    "hit_rate_at_5": {
+      "value": 0.9545454545454546,
+      "status": "ok",
+      "reason": null
+    },
+    "recall_at_5": {
+      "value": 0.9545454545454546,
+      "status": "ok",
+      "reason": null
+    },
+    "mrr": {
+      "value": 0.8787878787878788,
+      "status": "ok",
+      "reason": null
+    },
+    "baseline_config": {
+      "phase": "phase3_ab_after_rerank",
+      "rerank_enabled": false,
+      "legal_rag_retrieval_top_k": 20,
+      "legal_rag_rerank_top_n": 5,
+      "legal_rag_rerank_model": "BAAI/bge-reranker-v2-m3",
+      "legal_rag_rerank_timeout_ms": 120000,
+      "legal_rag_rerank_device": "cpu",
+      "model_warm_ms": 8622.09709995659,
+      "compare_to_baseline": "data\\rag_eval_baselines\\baseline_91cbde6f-ca42-4cba-a83c-3fce49ce08dd.json",
+      "benchmark_path": "C:\\Users\\yehud\\Desktop\\payroll-copilot\\backend\\config\\rag_eval\\benchmark_v1.json",
+      "dataset_version": "benchmark_v1",
+      "retrieval_top_k": 5,
+      "answer_provider": "ollama",
+      "answer_model": "mistral-nemo:12b",
+      "ragas_available": true,
+      "ragas_version": "0.2.15",
+      "ragas_import_error": null,
+      "ragas_judge": {
+        "judge_provider": "openai",
+        "judge_llm_model": "gpt-4o-mini",
+        "judge_embedding_model": "text-embedding-3-small"
+      }
+    },
+    "triggered_by": "phase3_ab_cli",
+    "error": null
+  },
+  {
+    "run_id": "91cbde6f-ca42-4cba-a83c-3fce49ce08dd",
+    "dataset_version": "benchmark_v1",
+    "status": "COMPLETED",
+    "started_at": "2026-07-27T15:58:24.067498Z",
+    "completed_at": "2026-07-27T16:10:57.678695Z",
+    "provider": "ollama",
+    "model": "mistral-nemo:12b",
+    "prompt_version": "payroll_assistant_grounded_v1",
+    "case_count": 24,
+    "completed_cases": 24,
+    "failed_cases": 0,
+    "faithfulness": {
+      "value": 0.7291235334713595,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.06521739129782608,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": NaN,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.2833643297393118,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_accuracy": {
+      "value": 0.9545454545454546,
+      "status": "ok",
+      "reason": null
+    },
+    "hit_rate_at_5": {
+      "value": 0.9545454545454546,
+      "status": "ok",
+      "reason": null
+    },
+    "recall_at_5": {
+      "value": 0.9545454545454546,
+      "status": "ok",
+      "reason": null
+    },
+    "mrr": {
+      "value": 0.9318181818181818,
+      "status": "ok",
+      "reason": null
+    },
+    "baseline_config": {
+      "phase": "baseline_before_rerank",
+      "legal_rag_enabled": true,
+      "legal_vector_backend": "numpy",
+      "legal_vector_collection": "approved_legal_knowledge_v1",
+      "legal_vector_persist_path": "data/chroma_legal",
+      "vector_index_status": "ready",
+      "vector_chunk_count": 65,
+      "vector_backend_runtime": "numpy_cosine_file",
+      "vector_embedding_model_recorded": "nomic-embed-text",
+      "embedding_capability_provider": "ollama",
+      "ollama_embedding_model_setting": "nomic-embed-text",
+      "retriever_model_provider": "ollama",
+      "retriever_model": "mistral-nemo:12b",
+      "embed_probe": {
+        "ok": true,
+        "error": null,
+        "dims": 768
+      },
+      "rag_top_k_setting": 5,
+      "rag_min_confidence_setting": 0.7,
+      "ragas_enabled_setting": true,
+      "ragas_import_error": null,
+      "ragas_version": "0.2.15",
+      "rerank_enabled": false,
+      "note_embedding_runtime": "VersionAwareLegalRetriever.embed uses the ASSISTANT ModelProvider instance; OllamaProvider.embed calls ollama_embedding_model.",
+      "benchmark_path": "C:\\Users\\yehud\\Desktop\\payroll-copilot\\backend\\config\\rag_eval\\benchmark_v1.json",
+      "dataset_version": "benchmark_v1",
+      "retrieval_top_k": 5,
+      "answer_provider": "ollama",
+      "answer_model": "mistral-nemo:12b",
+      "ragas_available": true,
+      "ragas_judge": {
+        "judge_provider": "openai",
+        "judge_llm_model": "gpt-4o-mini",
+        "judge_embedding_model": "text-embedding-3-small"
+      }
+    },
+    "triggered_by": "phase1_baseline_cli",
+    "error": null
+  },
+  {
+    "run_id": "6a54f937-a6d4-420d-bfe2-4d59777e2cd3",
+    "dataset_version": "benchmark_v1",
+    "status": "RUNNING",
+    "started_at": "2026-07-27T15:46:09.287306Z",
+    "completed_at": null,
+    "provider": "ollama",
+    "model": "mistral-nemo:12b",
+    "prompt_version": "payroll_assistant_grounded_v1",
+    "case_count": 24,
+    "completed_cases": 23,
+    "failed_cases": 0,
+    "faithfulness": {
+      "value": null,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": null,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": null,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_accuracy": {
+      "value": null,
+      "status": "ok",
+      "reason": null
+    },
+    "hit_rate_at_5": {
+      "value": null,
+      "status": "ok",
+      "reason": null
+    },
+    "recall_at_5": {
+      "value": null,
+      "status": "ok",
+      "reason": null
+    },
+    "mrr": {
+      "value": null,
+      "status": "ok",
+      "reason": null
+    },
+    "baseline_config": {
+      "phase": "baseline_before_rerank",
+      "legal_rag_enabled": true,
+      "legal_vector_backend": "numpy",
+      "legal_vector_collection": "approved_legal_knowledge_v1",
+      "legal_vector_persist_path": "data/chroma_legal",
+      "vector_index_status": "ready",
+      "vector_chunk_count": 65,
+      "vector_backend_runtime": "numpy_cosine_file",
+      "vector_embedding_model_recorded": "nomic-embed-text",
+      "embedding_capability_provider": "ollama",
+      "ollama_embedding_model_setting": "nomic-embed-text",
+      "retriever_model_provider": "ollama",
+      "retriever_model": "mistral-nemo:12b",
+      "embed_probe": {
+        "ok": true,
+        "error": null,
+        "dims": 768
+      },
+      "rag_top_k_setting": 5,
+      "rag_min_confidence_setting": 0.7,
+      "ragas_enabled_setting": true,
+      "ragas_import_error": null,
+      "ragas_version": "0.2.15",
+      "rerank_enabled": false,
+      "note_embedding_runtime": "VersionAwareLegalRetriever.embed uses the ASSISTANT ModelProvider instance; OllamaProvider.embed calls ollama_embedding_model.",
+      "benchmark_path": "C:\\Users\\yehud\\Desktop\\payroll-copilot\\backend\\config\\rag_eval\\benchmark_v1.json",
+      "dataset_version": "benchmark_v1",
+      "retrieval_top_k": 5,
+      "answer_provider": "ollama",
+      "answer_model": "mistral-nemo:12b",
+      "ragas_available": true,
+      "ragas_judge": {
+        "judge_provider": "openai",
+        "judge_llm_model": "gpt-4o-mini",
+        "judge_embedding_model": "text-embedding-3-small"
+      }
+    },
+    "triggered_by": "phase1_baseline_cli",
+    "error": null
+  },
+  {
+    "run_id": "5bd74506-0066-4a85-bd77-7c28b4e49554",
+    "dataset_version": "benchmark_v1",
+    "status": "COMPLETED",
+    "started_at": "2026-07-27T15:39:47.894078Z",
+    "completed_at": "2026-07-27T15:41:47.533532Z",
+    "provider": "ollama",
+    "model": "mistral-nemo:12b",
+    "prompt_version": "payroll_assistant_grounded_v1",
+    "case_count": 24,
+    "completed_cases": 24,
+    "failed_cases": 0,
+    "faithfulness": {
+      "value": null,
+      "status": "unavailable",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable.; OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable.; no_retrieved_contexts; OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable.; OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "unavailable",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable.; OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable.; no_retrieved_contexts; OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable.; OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "unavailable",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable.; OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable.; no_retrieved_contexts; OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable.; OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "unavailable",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable.; OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable.; OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable.; OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable.; OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_accuracy": {
+      "value": 0.9545454545454546,
+      "status": "ok",
+      "reason": null
+    },
+    "hit_rate_at_5": {
+      "value": 0.9545454545454546,
+      "status": "ok",
+      "reason": null
+    },
+    "recall_at_5": {
+      "value": 0.9545454545454546,
+      "status": "ok",
+      "reason": null
+    },
+    "mrr": {
+      "value": 0.9318181818181818,
+      "status": "ok",
+      "reason": null
+    },
+    "baseline_config": {
+      "phase": "baseline_before_rerank",
+      "legal_rag_enabled": true,
+      "legal_vector_backend": "numpy",
+      "legal_vector_collection": "approved_legal_knowledge_v1",
+      "legal_vector_persist_path": "data/chroma_legal",
+      "vector_index_status": "ready",
+      "vector_chunk_count": 65,
+      "vector_backend_runtime": "numpy_cosine_file",
+      "vector_embedding_model_recorded": "nomic-embed-text",
+      "embedding_capability_provider": "ollama",
+      "ollama_embedding_model_setting": "nomic-embed-text",
+      "retriever_model_provider": "ollama",
+      "retriever_model": "mistral-nemo:12b",
+      "embed_probe": {
+        "ok": true,
+        "error": null,
+        "dims": 768
+      },
+      "rag_top_k_setting": 5,
+      "rag_min_confidence_setting": 0.7,
+      "ragas_enabled_setting": true,
+      "ragas_import_error": null,
+      "ragas_version": "0.2.15",
+      "rerank_enabled": false,
+      "note_embedding_runtime": "VersionAwareLegalRetriever.embed uses the ASSISTANT ModelProvider instance; OllamaProvider.embed calls ollama_embedding_model.",
+      "benchmark_path": "C:\\Users\\yehud\\Desktop\\payroll-copilot\\backend\\config\\rag_eval\\benchmark_v1.json",
+      "dataset_version": "benchmark_v1",
+      "retrieval_top_k": 5,
+      "answer_provider": "ollama",
+      "answer_model": "mistral-nemo:12b",
+      "ragas_available": true
+    },
+    "triggered_by": "phase1_baseline_cli",
+    "error": null
+  },
+  {
+    "run_id": "93f423d3-1145-4b7d-a28a-d9e4bebbdd8e",
+    "dataset_version": "benchmark_v1",
+    "status": "COMPLETED",
+    "started_at": "2026-07-27T15:35:33.574732Z",
+    "completed_at": "2026-07-27T15:35:33.708994Z",
+    "provider": "ollama",
+    "model": "mistral-nemo:12b",
+    "prompt_version": "payroll_assistant_grounded_v1",
+    "case_count": 24,
+    "completed_cases": 0,
+    "failed_cases": 24,
+    "faithfulness": {
+      "value": null,
+      "status": "unavailable",
+      "reason": "vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable"
+    },
+    "context_precision": {
+      "value": null,
+      "status": "unavailable",
+      "reason": "vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable"
+    },
+    "context_recall": {
+      "value": null,
+      "status": "unavailable",
+      "reason": "vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable"
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "unavailable",
+      "reason": "vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable; vector_retrieval_invalid:unavailable"
+    },
+    "temporal_accuracy": {
+      "value": null,
+      "status": "unavailable",
+      "reason": "no_temporal_cases"
+    },
+    "hit_rate_at_5": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "recall_at_5": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "mrr": {
+      "value": 0.0,
+      "status": "ok",
+      "reason": null
+    },
+    "baseline_config": {
+      "phase": "baseline_before_rerank",
+      "legal_rag_enabled": true,
+      "legal_vector_backend": "numpy",
+      "legal_vector_collection": "approved_legal_knowledge_v1",
+      "legal_vector_persist_path": "data/chroma_legal",
+      "vector_index_status": "empty",
+      "vector_chunk_count": 0,
+      "vector_backend_runtime": "numpy_cosine_file",
+      "vector_embedding_model_recorded": null,
+      "embedding_capability_provider": "ollama",
+      "ollama_embedding_model_setting": "nomic-embed-text",
+      "retriever_model_provider": "ollama",
+      "retriever_model": "mistral-nemo:12b",
+      "embed_probe": {
+        "ok": false,
+        "error": "HTTPStatusError: Client error '404 Not Found' for url 'http://127.0.0.1:11434/api/embeddings'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404",
+        "dims": null
+      },
+      "rag_top_k_setting": 5,
+      "rag_min_confidence_setting": 0.7,
+      "ragas_enabled_setting": true,
+      "ragas_import_error": "ModuleNotFoundError: No module named 'langchain_community.chat_models.vertexai'",
+      "ragas_version": null,
+      "rerank_enabled": false,
+      "note_embedding_runtime": "VersionAwareLegalRetriever.embed uses the ASSISTANT ModelProvider instance; OllamaProvider.embed calls ollama_embedding_model.",
+      "benchmark_path": "C:\\Users\\yehud\\Desktop\\payroll-copilot\\backend\\config\\rag_eval\\benchmark_v1.json",
+      "dataset_version": "benchmark_v1",
+      "retrieval_top_k": 5,
+      "answer_provider": "ollama",
+      "answer_model": "mistral-nemo:12b",
+      "ragas_available": false
+    },
+    "triggered_by": "phase1_baseline_cli",
+    "error": null
+  }
+]

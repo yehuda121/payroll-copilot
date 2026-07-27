@@ -10,6 +10,19 @@ export type RuleEvaluationOutcome = {
   message?: string | null;
 };
 
+export type ManualApprovalMeta = {
+  finding_id?: string | null;
+  rule_id?: string | null;
+  original_severity?: string | null;
+  original_deterministic_status?: string | null;
+  deterministic_status?: string | null;
+  review_status?: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  reason?: string | null;
+  validation_run_id?: string | null;
+};
+
 export type GuestValidationReport = {
   runId: string;
   documentId: string;
@@ -25,4 +38,6 @@ export type GuestValidationReport = {
   extractionConnected: boolean;
   /** Authoritative per-rule outcomes when the run persisted them. */
   ruleOutcomes?: RuleEvaluationOutcome[];
+  /** Human review overlays — never rewrite deterministic outcomes. */
+  manualApprovals?: ManualApprovalMeta[];
 };

@@ -423,6 +423,23 @@ html[data-theme='dark'] .employee-month-workspace__upload-shell .drag-drop__zone
   overflow: hidden;
 }
 
+.employee-digital-form__value-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.employee-digital-form__value-row .digital-form__value-btn,
+.employee-digital-form__value-row .digital-form__readonly {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.employee-digital-form__value-row .employee-digital-form__icon-btn {
+  flex: 0 0 auto;
+}
+
 .employee-digital-form__card-footer {
   display: flex;
   flex-wrap: nowrap;

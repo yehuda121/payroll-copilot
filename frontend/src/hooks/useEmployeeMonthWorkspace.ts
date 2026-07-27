@@ -12,6 +12,7 @@ import { validateUploadFile } from '../lib/guest/upload-guardrails';
 import { adaptValidationReport } from '../lib/guest/validation-report-adapter';
 import { useAppLocale } from './useAppLocale';
 import { ApiClientError } from '../services/api';
+import { isNetworkFetchError } from '../lib/getDisplayError';
 import {
   type EmployeePayslipExtraction,
   type IdentityCheck,
@@ -53,7 +54,10 @@ function parseDraftValue(raw: string): unknown {
   return trimmed;
 }
 
-function toUserFacingError(err: unknown, fallback: string): string {
+function toUserFacingError(err: unknown, fallback: string, networkFallback?: string): string {
+  if (networkFallback && isNetworkFetchError(err)) {
+    return networkFallback;
+  }
   if (err instanceof ApiClientError) {
     const raw = err.message || '';
     if (
@@ -62,9 +66,15 @@ function toUserFacingError(err: unknown, fallback: string): string {
     ) {
       return fallback;
     }
-    if (raw.trim()) return raw;
+    if (raw.trim()) {
+      if (networkFallback && /failed to fetch/i.test(raw)) return networkFallback;
+      return raw;
+    }
   }
-  if (err instanceof Error && err.message.trim()) return err.message;
+  if (err instanceof Error && err.message.trim()) {
+    if (networkFallback && /failed to fetch/i.test(err.message)) return networkFallback;
+    return err.message;
+  }
   return fallback;
 }
 
@@ -199,6 +209,9 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
   const [report, setReport] = useState<GuestValidationReport | null>(null);
   const [validationOutdated, setValidationOutdated] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [originalPreviewError, setOriginalPreviewError] = useState<string | null>(null);
+  const [originalPreviewLoading, setOriginalPreviewLoading] = useState(false);
+  const originalPreviewRequestId = useRef(0);
   const [pendingExtraction, setPendingExtraction] = useState<EmployeePayslipExtraction | null>(null);
   const [previousFieldsForCompare, setPreviousFieldsForCompare] = useState<ExtractedPayslipField[] | null>(
     null,
@@ -349,26 +362,51 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     };
   }, [previewUrl]);
 
+  // Drop stale server preview when the payslip document changes; keep local pendingFile preview.
   useEffect(() => {
-    if (!documentId || pendingFile) return;
-    const controller = new AbortController();
-    void workspaceApi
-      .fetchDocumentContentBlob(documentId, controller.signal)
-      .then((blob) => {
-        if (controller.signal.aborted) return;
-        const url = URL.createObjectURL(blob);
-        setPreviewUrl((previous) => {
-          if (previous) URL.revokeObjectURL(previous);
-          return url;
-        });
-      })
-      .catch((reason: unknown) => {
-        if (!controller.signal.aborted && !isAbortError(reason)) {
-          setError(toUserFacingError(reason, t('employee.upload.originalUnavailable')));
-        }
+    setOriginalPreviewError(null);
+    if (pendingFile) return;
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }, [documentId, pendingFile]);
+
+  const ensureOriginalPreview = useCallback(async () => {
+    if (pendingFile) return;
+    if (!documentId) {
+      setOriginalPreviewError(t('employee.upload.originalUnavailable'));
+      return;
+    }
+    if (previewUrl) return;
+
+    const requestId = ++originalPreviewRequestId.current;
+    setOriginalPreviewLoading(true);
+    setOriginalPreviewError(null);
+    try {
+      const blob = await workspaceApi.fetchDocumentContentBlob(documentId);
+      if (requestId !== originalPreviewRequestId.current) return;
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl((previous) => {
+        if (previous) URL.revokeObjectURL(previous);
+        return url;
       });
-    return () => controller.abort();
-  }, [documentId, pendingFile, t, workspaceApi]);
+    } catch (reason: unknown) {
+      if (requestId !== originalPreviewRequestId.current || isAbortError(reason)) return;
+      // Scoped to Original Document only — never poison Digital / Checks tabs.
+      setOriginalPreviewError(
+        toUserFacingError(
+          reason,
+          t('employee.upload.originalUnavailable'),
+          t('common.networkUnavailable'),
+        ),
+      );
+    } finally {
+      if (requestId === originalPreviewRequestId.current) {
+        setOriginalPreviewLoading(false);
+      }
+    }
+  }, [documentId, pendingFile, previewUrl, t, workspaceApi]);
 
   const selectFile = useCallback(
     async (file: File) => {
@@ -382,6 +420,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       setPendingFile(file);
       setFileError(null);
       setError(null);
+      setOriginalPreviewError(null);
       const url = URL.createObjectURL(file);
       setPreviewUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
@@ -401,6 +440,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     setPendingFile(null);
     setFileError(null);
     setError(null);
+    setOriginalPreviewError(null);
     setPreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return null;
@@ -466,7 +506,9 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
           setError(t('employee.upload.duplicatePeriod'));
           return;
         }
-        setError(toUserFacingError(err, t('validate.extractionFailed')));
+        setError(
+          toUserFacingError(err, t('validate.extractionFailed'), t('common.networkUnavailable')),
+        );
         await refresh({ force: true });
       }
     },
@@ -606,7 +648,10 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     workspaceApi,
   ]);
 
-  const runValidation = useCallback(async (rerunScope?: 'full' | 'employee_checks' | 'law_checks') => {
+  const runValidation = useCallback(async (
+    rerunScope?: 'full' | 'employee_checks' | 'law_checks' | 'rules',
+    ruleIds?: string[],
+  ) => {
     if (!documentId) {
       setError(t('employee.upload.confirmBeforeValidate'));
       return;
@@ -624,7 +669,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
           : t('employee.workspace.processing.checkingData', { defaultValue: 'Checking payslip data…' }),
     );
     if (rerunScope === 'law_checks') setTab('law_checks');
-    else setTab('employee_checks');
+    else if (rerunScope !== 'rules') setTab('employee_checks');
     try {
       const supporting = detail?.attendance.document_id
         ? [detail.attendance.document_id]
@@ -634,6 +679,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
         locale,
         supportingDocumentIds: supporting,
         rerunScope: rerunScope ?? 'full',
+        ruleIds: ruleIds ?? [],
         signal,
       });
       validateSubmission.current.end();
@@ -658,7 +704,9 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
         setError(t('employee.upload.validationCancelled'));
         return;
       }
-      setError(toUserFacingError(err, t('validate.validationFailed')));
+      setError(
+        toUserFacingError(err, t('validate.validationFailed'), t('common.networkUnavailable')),
+      );
     }
   }, [documentId, detail, locale, refresh, t, workspaceApi]);
 
@@ -755,6 +803,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       setPeriodPrompt(null);
       setPendingExtraction(null);
       setPendingFile(null);
+      setOriginalPreviewError(null);
       setPreviewUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return null;
@@ -763,7 +812,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       await refresh({ force: true });
       return true;
     } catch (err) {
-      setError(toUserFacingError(err, t('common.error')));
+      setError(toUserFacingError(err, t('common.error'), t('common.networkUnavailable')));
       return false;
     } finally {
       setBusyPhase(null);
@@ -827,6 +876,9 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     report,
     validationOutdated,
     previewUrl,
+    originalPreviewError,
+    originalPreviewLoading,
+    ensureOriginalPreview,
     hasPayslip,
     hasExtraction,
     documentId,

@@ -46,6 +46,10 @@ ocr-paddle = [
     "paddlepaddle>=2.6.0",
     "paddleocr>=2.8.0",
 ]
+legal-rerank = [
+    # Local multilingual cross-encoder (BAAI/bge-reranker-v2-m3). Pulls torch.
+    "sentence-transformers>=3.0.0",
+]
 dev = [
     "pytest>=8.3.0",
     "pytest-asyncio>=0.24.0",
@@ -89,3 +93,7 @@ asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
 filterwarnings = ["ignore::DeprecationWarning"]
+markers = [
+    "integration: heavier integration tests",
+    "real_model: downloads/loads local HF reranker weights (opt-in)",
+]

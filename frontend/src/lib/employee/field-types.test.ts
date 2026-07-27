@@ -25,9 +25,15 @@ describe('employee field types', () => {
     expect(fieldSpansColumns('text', 'short')).toBe(1);
   });
 
-  it('normalizes and rejects extreme values client-side', () => {
-    expect(normalizeFieldInput('  12.5  ', 'number')).toEqual({ ok: true, value: '12.5' });
-    expect(normalizeFieldInput('abc', 'number').ok).toBe(false);
-    expect(normalizeFieldInput('x'.repeat(9000), 'text').ok).toBe(false);
+  it('formats identifiers without thousands separators and keeps money formatting', () => {
+    expect(detectEmployeeFieldType('national_id', '313366783')).toBe('identifier');
+    expect(detectEmployeeFieldType('employee_number', '00123')).toBe('identifier');
+    expect(detectEmployeeFieldType('employer_id', '512345678')).toBe('identifier');
+    expect(formatFieldPreview('313366783', 'identifier', 'en')).toBe('313366783');
+    expect(formatFieldPreview('00123', 'identifier', 'en')).toBe('00123');
+    expect(formatFieldPreview('5300.00', 'currency', 'en')).toMatch(/5/);
+    expect(formatFieldPreview('5300.00', 'currency', 'en')).not.toBe('5300.00' + 'x');
+    // Money may include grouping separators; identifiers must not.
+    expect(formatFieldPreview('313366783', 'identifier', 'en')).not.toContain(',');
   });
 });

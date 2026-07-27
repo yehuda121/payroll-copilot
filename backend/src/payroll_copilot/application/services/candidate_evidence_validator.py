@@ -206,6 +206,14 @@ def _value_matches_candidate(model_value: object, value_text: str) -> bool:
         right = normalize_numeric_token(value_text)
         if left is not None and right is not None:
             return abs(left - right) < 1e-9
+        # Order-insensitive person-name token match (Hebrew family/given reorder).
+        # Document-grounded: does not invent values; only accepts when evidence tokens match.
+        from payroll_copilot.application.services.payslip_identity_comparison import (
+            person_name_tokens_equal,
+        )
+
+        if person_name_tokens_equal(model_value, value_text):
+            return True
         return value_text.strip() in model_value or model_value.strip() in value_text
     return False
 

@@ -301,43 +301,42 @@ export function EmployeeDigitalForm({
                   </div>
 
                   <div className="employee-digital-form__card-body">
-                    {editable ? (
-                      <button
-                        type="button"
-                        className="digital-form__value-btn"
-                        onClick={() => openEditor(field.key, field.value)}
-                        disabled={busy}
-                        aria-invalid={meta?.status === 'failed'}
-                        aria-label={`${field.label}: ${preview}`}
-                      >
-                        <span className="digital-form__value-text">{preview}</span>
-                      </button>
-                    ) : (
-                      <p className="digital-form__readonly digital-form__value-text">{preview}</p>
-                    )}
+                    <div className="employee-digital-form__value-row">
+                      {editable ? (
+                        <button
+                          type="button"
+                          className="digital-form__value-btn"
+                          onClick={() => openEditor(field.key, field.value)}
+                          disabled={busy}
+                          aria-invalid={meta?.status === 'failed'}
+                          aria-label={`${field.label}: ${preview}`}
+                        >
+                          <span className="digital-form__value-text">{preview}</span>
+                        </button>
+                      ) : (
+                        <p className="digital-form__readonly digital-form__value-text">{preview}</p>
+                      )}
+                      {editable && onRemoveField && (
+                        <button
+                          type="button"
+                          className="employee-digital-form__icon-btn employee-digital-form__icon-btn--danger"
+                          onClick={() => {
+                            void requestDeleteField(field.key);
+                          }}
+                          disabled={busy}
+                          title={t('employee.digitalForm.deleteField')}
+                          aria-label={t('employee.digitalForm.deleteField')}
+                        >
+                          <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
+                        </button>
+                      )}
+                    </div>
                     {missingRequired && (
                       <p className="digital-form__missing-hint" role="status">
                         {t('employee.digitalForm.missingRequiredHint')}
                       </p>
                     )}
                   </div>
-
-                  {editable && onRemoveField && (
-                    <div className="employee-digital-form__card-footer">
-                      <button
-                        type="button"
-                        className="employee-digital-form__icon-btn employee-digital-form__icon-btn--danger"
-                        onClick={() => {
-                          void requestDeleteField(field.key);
-                        }}
-                        disabled={busy}
-                        title={t('employee.digitalForm.deleteField')}
-                        aria-label={t('employee.digitalForm.deleteField')}
-                      >
-                        <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
-                      </button>
-                    </div>
-                  )}
                 </div>
               );
             })}

@@ -266,7 +266,21 @@ def _build_labor_law_search(settings, model_provider):
     if not getattr(settings, "legal_rag_enabled", True):
         return yaml_search
     store = get_legal_knowledge_store()
-    retriever = VersionAwareLegalRetriever(model=model_provider, store=store)
+    from payroll_copilot.infrastructure.rag.legal_reranker_factory import (
+        build_legal_chunk_reranker,
+    )
+
+    rerank_enabled = bool(getattr(settings, "legal_rag_rerank_enabled", False))
+    reranker = build_legal_chunk_reranker(settings) if rerank_enabled else None
+    retriever = VersionAwareLegalRetriever(
+        model=model_provider,
+        store=store,
+        reranker=reranker,
+        rerank_enabled=rerank_enabled,
+        retrieval_top_k=int(getattr(settings, "legal_rag_retrieval_top_k", 20) or 20),
+        rerank_top_n=int(getattr(settings, "legal_rag_rerank_top_n", 5) or 5),
+        rerank_timeout_ms=int(getattr(settings, "legal_rag_rerank_timeout_ms", 250) or 250),
+    )
     return HybridApprovedLaborLawSearch(
         settings.legal_rules_path,
         retriever=retriever,

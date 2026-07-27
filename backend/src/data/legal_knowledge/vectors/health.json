@@ -1,0 +1,10 @@
+{
+  "backend": "numpy_cosine_file",
+  "embedding_model": "nomic-embed-text",
+  "indexed_rules": 17,
+  "indexed_versions": 17,
+  "chunk_count": 65,
+  "last_indexed_at": "2026-07-27T15:39:31.960088+00:00",
+  "last_error": null,
+  "status": "ready"
+}

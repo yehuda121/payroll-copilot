@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
 
+from payroll_copilot.application.ports.employee_audit import AuditLogEntry
 from payroll_copilot.application.exceptions import (
     ConfirmationBlockedError,
     DocumentNotFoundError,
@@ -82,6 +83,7 @@ from payroll_copilot.presentation.api.routes.batch_schemas import (
     BatchPublishResponse,
     BatchReportResponse,
     BatchReviewCorrectionRequest,
+    BatchValidateRequest,
     StageProgressResponse,
 )
 
@@ -357,6 +359,11 @@ async def get_batch_item_review(
         extraction_id=str(extraction.id) if extraction else None,
         extraction_version=extraction.extraction_version if extraction else None,
         validation_history=validation_history,
+        manual_approvals=list(
+            (document.metadata or {}).get("manual_approvals") or []
+            if isinstance((document.metadata or {}).get("manual_approvals"), list)
+            else []
+        ),
         explainability_enabled=explainability_enabled,
     )
 
@@ -426,26 +433,47 @@ async def correct_batch_item_review(
 async def validate_batch_item_review(
     batch_job_id: str,
     item_id: str,
+    request: BatchValidateRequest | None = None,
     principal: AuthPrincipal = Depends(require_accountant),
     validation: RunPersistedValidationUseCase = Depends(
         get_run_persisted_validation_use_case
     ),
 ) -> BatchItemReviewResponse:
-    """Create a new validation run for this payslip only."""
+    """Create a new validation run for this payslip only (optional scoped rule rerun)."""
     _, item = _require_batch_item(batch_job_id, item_id, principal)
     if not item.document_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     document = await get_document_repository().get_by_id(UUID(item.document_id))
     if document is None or document.organization_id != principal.organization_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    body = request or BatchValidateRequest()
     await validation.execute(
         RunPersistedValidationCommand(
             document_id=document.id,
             employee_id=document.employee_id,
             include_historical=True,
             include_contract_rag=document.employee_id is not None,
+            locale=body.locale,
+            rerun_scope=body.rerun_scope,
+            rule_ids=tuple(body.rule_ids or ()),
         )
     )
+    if body.rerun_scope == "rules" and body.rule_ids:
+        await get_audit_log_repository().append(
+            AuditLogEntry(
+                action="validation.rule_rerun",
+                resource_type="document",
+                resource_id=document.id,
+                organization_id=principal.organization_id,
+                user_id=principal.user_id,
+                details={
+                    "batch_job_id": batch_job_id,
+                    "item_id": item_id,
+                    "rule_ids": list(body.rule_ids),
+                    "rerun_scope": body.rerun_scope,
+                },
+            )
+        )
     return await get_batch_item_review(batch_job_id, item_id, principal)
 
 

@@ -90,6 +90,12 @@ class BatchReviewCorrectionRequest(BaseModel):
     corrections: list[BatchReviewCorrection] = Field(default_factory=list)
 
 
+class BatchValidateRequest(BaseModel):
+    rerun_scope: str | None = None
+    rule_ids: list[str] = Field(default_factory=list)
+    locale: str | None = Field(default=None, pattern="^(he|en|ar)$")
+
+
 class BatchItemReviewResponse(BaseModel):
     item: BatchExtractedItemResponse
     document_id: str
@@ -100,4 +106,5 @@ class BatchItemReviewResponse(BaseModel):
     extraction_id: str | None = None
     extraction_version: int | None = None
     validation_history: list[dict] = Field(default_factory=list)
+    manual_approvals: list[dict] = Field(default_factory=list)
     explainability_enabled: bool = False

@@ -28,10 +28,12 @@ import {
   validateEmailFormat,
 } from '../../lib/validation';
 import { reviewFieldsFromExtractionPayload } from '../../lib/guest/extraction-review';
+import { getDisplayError } from '../../lib/getDisplayError';
 import type { GuestValidationReport } from '../../types/validation-report';
 import { TruncatedText } from '../../components/ui/TruncatedText';
 import './UnknownEmployeeResolution.css';
 import '../employee/PayslipMonthWorkspace.css';
+import '../../features/employee/employee-payslip.css';
 
 type PrimaryTab = 'digital' | 'employee_checks' | 'law_checks';
 type ResolutionMode = 'search' | 'create';
@@ -54,6 +56,7 @@ const fieldText = (review: BatchItemReview | null, ...keys: string[]): string =>
 function reportFromBatchHistory(
   latest: BatchValidationHistoryRun | null,
   documentId: string,
+  manualApprovals?: Array<Record<string, unknown>> | null,
 ): GuestValidationReport | null {
   if (!latest) return null;
   const severity = (value: string): 'info' | 'warning' | 'critical' => {
@@ -100,6 +103,21 @@ function reportFromBatchHistory(
       reason_code: item.reason_code ?? null,
       message: item.message ?? null,
     })),
+    manualApprovals: (manualApprovals ?? []).map((row) => ({
+      finding_id: (row.finding_id as string | null | undefined) ?? null,
+      rule_id: (row.rule_id as string | null | undefined) ?? null,
+      original_severity: (row.original_severity as string | null | undefined) ?? null,
+      original_deterministic_status:
+        (row.original_deterministic_status as string | null | undefined) ??
+        (row.deterministic_status as string | null | undefined) ??
+        null,
+      deterministic_status: (row.deterministic_status as string | null | undefined) ?? null,
+      review_status: (row.review_status as string | null | undefined) ?? 'manually_approved',
+      approved_by: (row.approved_by as string | null | undefined) ?? null,
+      approved_at: (row.approved_at as string | null | undefined) ?? null,
+      reason: (row.reason as string | null | undefined) ?? null,
+      validation_run_id: (row.validation_run_id as string | null | undefined) ?? null,
+    })),
   };
 }
 
@@ -117,7 +135,11 @@ export function BatchItemReviewWorkspacePage() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<EmployeeRecord[]>([]);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [busyRuleId, setBusyRuleId] = useState<string | null>(null);
+  /** Load/refresh failures — page chrome only (not duplicated in Validation). */
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null);
+  /** Validate / rerun / approve failures — Validation tab only. */
+  const [actionError, setActionError] = useState<string | null>(null);
   const [createValues, setCreateValues] = useState<CreateValues>({
     employeeNumber: '',
     firstName: '',
@@ -181,12 +203,17 @@ export function BatchItemReviewWorkspacePage() {
   }, []);
 
   const refresh = useCallback(async () => {
-    setError(null);
+    setWorkspaceError(null);
+    setActionError(null);
     setReviewLoading(true);
     try {
       applyReview(await batchService.getItemReview(jobId, itemId));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : t('common.error'));
+      setWorkspaceError(
+        getDisplayError(reason, t('common.error'), {
+          networkFallback: t('common.networkUnavailable'),
+        }),
+      );
     } finally {
       setReviewLoading(false);
     }
@@ -200,18 +227,84 @@ export function BatchItemReviewWorkspacePage() {
   const needsResolution =
     review?.item.status === 'unknown_employee' || !review?.item.employee_number;
   const dirty = Object.values(drafts).some((draft) => draft.dirty);
+  const validationReport = useMemo(
+    () =>
+      review
+        ? reportFromBatchHistory(latest, review.document_id, review.manual_approvals)
+        : null,
+    [latest, review],
+  );
+
   const validationMap = useMemo(() => {
     if (dirty || !review) return {};
-    return buildEmployeeFieldValidationMap(
-      review.fields,
-      reportFromBatchHistory(latest, review.document_id),
-    );
-  }, [dirty, latest, review]);
+    return buildEmployeeFieldValidationMap(review.fields, validationReport);
+  }, [dirty, review, validationReport]);
 
+  const mapError = (reason: unknown, fallback: string) =>
+    getDisplayError(reason, fallback, { networkFallback: t('common.networkUnavailable') });
+
+  const rerunSingleRule = async (ruleId: string) => {
+    if (!review) return;
+    setBusyRuleId(ruleId);
+    setActionError(null);
+    try {
+      let next = review;
+      const corrections = Object.entries(drafts)
+        .filter(([, draft]) => draft.dirty)
+        .map(([key, draft]) => ({
+          key,
+          value: draft.clear ? null : draft.value,
+          clear: draft.clear,
+        }));
+      if (corrections.length) {
+        next = await batchService.correctItemReview(jobId, itemId, corrections);
+      }
+      next = await batchService.validateItemReview(jobId, itemId, {
+        rerunScope: 'rules',
+        ruleIds: [ruleId],
+        locale: i18n.language?.slice(0, 2),
+      });
+      applyReview(next);
+    } catch (reason) {
+      setActionError(mapError(reason, t('employee.validation.actions.rerunFailed')));
+    } finally {
+      setBusyRuleId(null);
+    }
+  };
+
+  const approveCheck = async (input: { ruleId: string; findingId?: string | null }) => {
+    if (!review || !latest) return;
+    const reason = window.prompt(
+      t('employee.validation.actions.approveReasonPrompt'),
+    );
+    if (reason == null) return;
+    const trimmed = reason.trim();
+    if (!trimmed) {
+      setActionError(t('employee.validation.actions.approveReasonRequired'));
+      return;
+    }
+    setBusyRuleId(input.ruleId);
+    setActionError(null);
+    try {
+      await batchService.approveCheck({
+        documentId: review.document_id,
+        validationRunId: latest.validation_run_id,
+        ruleId: input.ruleId,
+        findingId: input.findingId,
+        acknowledgement: true,
+        reason: trimmed.slice(0, 500),
+      });
+      await refresh();
+    } catch (reason) {
+      setActionError(mapError(reason, t('employee.validation.actions.approveFailed')));
+    } finally {
+      setBusyRuleId(null);
+    }
+  };
   const saveAndValidate = async () => {
     if (!review) return;
     setBusy(true);
-    setError(null);
+    setActionError(null);
     try {
       let next = review;
       const corrections = Object.entries(drafts)
@@ -228,7 +321,7 @@ export function BatchItemReviewWorkspacePage() {
       applyReview(next);
       setTab('employee_checks');
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : t('common.error'));
+      setActionError(mapError(reason, t('validate.validationFailed')));
     } finally {
       setBusy(false);
     }
@@ -236,7 +329,7 @@ export function BatchItemReviewWorkspacePage() {
 
   const attach = async (employee: EmployeeRecord) => {
     setBusy(true);
-    setError(null);
+    setWorkspaceError(null);
     try {
       const item = await batchService.resolveItem(jobId, itemId, {
         action: 'attach_employee',
@@ -250,7 +343,7 @@ export function BatchItemReviewWorkspacePage() {
         { state: { backTo: '/accountant/bulk-upload' } },
       );
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : t('common.error'));
+      setWorkspaceError(mapError(reason, t('common.error')));
     } finally {
       setBusy(false);
     }
@@ -258,7 +351,7 @@ export function BatchItemReviewWorkspacePage() {
 
   const search = async () => {
     setBusy(true);
-    setError(null);
+    setWorkspaceError(null);
     try {
       setResults(
         await employeesService.list({
@@ -267,7 +360,7 @@ export function BatchItemReviewWorkspacePage() {
         }),
       );
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : t('common.error'));
+      setWorkspaceError(mapError(reason, t('common.error')));
     } finally {
       setBusy(false);
     }
@@ -280,12 +373,12 @@ export function BatchItemReviewWorkspacePage() {
       !createValues.lastName.trim() ||
       !createValues.nationalId.trim()
     ) {
-      setError(t('accountant.unknown.required'));
+      setWorkspaceError(t('accountant.unknown.required'));
       return;
     }
     const first = validatePersonName(createValues.firstName);
     if (!first.ok) {
-      setError(
+      setWorkspaceError(
         t(
           first.code === 'digits'
             ? 'common.validation.nameNoDigits'
@@ -298,7 +391,7 @@ export function BatchItemReviewWorkspacePage() {
     }
     const last = validatePersonName(createValues.lastName);
     if (!last.ok) {
-      setError(
+      setWorkspaceError(
         t(
           last.code === 'digits'
             ? 'common.validation.nameNoDigits'
@@ -311,12 +404,12 @@ export function BatchItemReviewWorkspacePage() {
     }
     const emailResult = validateEmailFormat(createValues.email, { allowEmpty: true });
     if (!emailResult.ok) {
-      setError(t('common.validation.invalidEmail'));
+      setWorkspaceError(t('common.validation.invalidEmail'));
       return;
     }
     const nid = validateNationalId(createValues.nationalId);
     if (!nid.ok) {
-      setError(
+      setWorkspaceError(
         t(
           nid.code === 'digits_only'
             ? 'common.validation.nationalIdDigits'
@@ -328,7 +421,7 @@ export function BatchItemReviewWorkspacePage() {
       return;
     }
     setBusy(true);
-    setError(null);
+    setWorkspaceError(null);
     try {
       const created = await employeesService.create({
         employee_number: clampFreeTextInput(
@@ -352,7 +445,7 @@ export function BatchItemReviewWorkspacePage() {
       });
       await attach(created);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : t('common.error'));
+      setWorkspaceError(mapError(reason, t('common.error')));
       setBusy(false);
     }
   };
@@ -371,7 +464,7 @@ export function BatchItemReviewWorkspacePage() {
       await batchService.resolveItem(jobId, itemId, { action: 'ignore' });
       navigate('/accountant/bulk-upload');
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : t('common.error'));
+      setWorkspaceError(mapError(reason, t('common.error')));
       setBusy(false);
     }
   };
@@ -381,10 +474,6 @@ export function BatchItemReviewWorkspacePage() {
     ['employee_checks', 'employee.workspace.tabEmployeeChecks'],
     ['law_checks', 'employee.workspace.tabLawChecks'],
   ];
-  const validationReport = useMemo(
-    () => (review ? reportFromBatchHistory(latest, review.document_id) : null),
-    [latest, review],
-  );
   const monthTitle =
     review?.item.payroll_year && review.item.payroll_month
       ? new Intl.DateTimeFormat(i18n.language, { month: 'long', year: 'numeric' }).format(
@@ -571,7 +660,18 @@ export function BatchItemReviewWorkspacePage() {
         </section>
         )}
 
-        {error && <p className="chat-panel__error">{error}</p>}
+        {!reviewLoading && workspaceError && (
+          <p className="chat-panel__error" role="alert">
+            {workspaceError}
+          </p>
+        )}
+        {!reviewLoading &&
+          actionError &&
+          tab === 'digital' && (
+            <p className="chat-panel__error" role="alert">
+              {actionError}
+            </p>
+          )}
 
         <div className="batch-review-view-chrome">
           <div
@@ -648,10 +748,22 @@ export function BatchItemReviewWorkspacePage() {
               report={validationReport}
               identity={null}
               period={null}
+              fileName={review?.original_filename}
               checkGroup={tab}
               presentation="checkRows"
               hideRunAction
               validating={busy}
+              loading={reviewLoading}
+              errorMessage={
+                tab === 'employee_checks' || tab === 'law_checks' ? actionError : null
+              }
+              checkActions={{
+                canRerun: true,
+                canManualApprove: true,
+                busyRuleId,
+                onRerunRule: rerunSingleRule,
+                onManualApprove: approveCheck,
+              }}
             />
             {tab === 'employee_checks' && (
               <ValidationHistory runs={review?.validation_history ?? []} />

@@ -1,0 +1,3184 @@
+[
+  {
+    "case_id": "mw_definition_current",
+    "question": "What is the hourly minimum wage amount in the approved payroll rules?",
+    "reference_answer": "Answer only from approved legal.minimum_wage parameters (amount and currency) in the current YAML pack.",
+    "generated_answer": "The hourly minimum wage amount is not provided in the retrieved evidence. The evidence only mentions \"Hourly minimum wage\" but does not specify the actual amount. Therefore, based on the approved retrieved legal evidence, it is insufficient to determine the current hourly minimum wage amount.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.minimum_wage"
+    ],
+    "retrieved_rule_ids": [
+      "legal.minimum_wage",
+      "legal.minimum_wage",
+      "legal.pension.employer_contribution",
+      "legal.pension.contribution",
+      "legal.minimum_wage"
+    ],
+    "retrieved_versions": [
+      "legal.minimum_wage@v1",
+      "legal.minimum_wage@v1",
+      "legal.pension.employer_contribution@v1",
+      "legal.pension.contribution@v1",
+      "legal.minimum_wage@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.minimum_wage",
+      "legal_reference:\n  en: Minimum Wage Law, 1987\n  he: חוק שכר מינימום, התשמ\"א-1987\n",
+      "description:\n  en: Minimum pension contribution - employer\n  he: הפרשה מינימלית לפנסיה - מעסיק\n",
+      "description:\n  en: Minimum pension contribution - employee\n  he: הפרשה מינימלית לפנסיה - עובד\n",
+      "description:\n  ar: الحد الأدنى للأجر بالساعة\n  en: Hourly minimum wage\n  he: שכר מינימום שעתי\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7513092348621959,
+        "chunk_id": "legal.minimum_wage::v1::identity::3"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7029043311538534,
+        "chunk_id": "legal.minimum_wage::v1::source::2"
+      },
+      {
+        "title": "legal.pension.employer_contribution",
+        "rule_id": "legal.pension.employer_contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.658921527111499,
+        "chunk_id": "legal.pension.employer_contribution::v1::definition::0"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6576873072084869,
+        "chunk_id": "legal.pension.contribution::v1::definition::0"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6568690933736611,
+        "chunk_id": "legal.minimum_wage::v1::definition::0"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7513092348621959,
+      0.7029043311538534,
+      0.658921527111499,
+      0.6576873072084869,
+      0.6568690933736611
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.minimum_wage@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "mw_paraphrase",
+    "question": "According to approved rules, what is the lowest hourly pay an adult employee may receive?",
+    "reference_answer": "Use legal.minimum_wage approved parameters only; do not invent statutory text beyond the YAML description/reference.",
+    "generated_answer": "Based on the approved rules provided, the lowest hourly pay an adult employee may receive is $0.065 per hour. This is according to the \"Hourly minimum wage\" evidence with the ID: legal.minimum_wage.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.minimum_wage"
+    ],
+    "retrieved_rule_ids": [
+      "legal.minimum_wage",
+      "legal.pension.employer_contribution",
+      "legal.minimum_wage",
+      "legal.overtime.rate_tier_2",
+      "legal.pension.contribution"
+    ],
+    "retrieved_versions": [
+      "legal.minimum_wage@v1",
+      "legal.pension.employer_contribution@v1",
+      "legal.minimum_wage@v1",
+      "legal.overtime.rate_tier_2@v1",
+      "legal.pension.contribution@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.minimum_wage",
+      "parameters:\n  minimum_rate: 0.065\n",
+      "description:\n  ar: الحد الأدنى للأجر بالساعة\n  en: Hourly minimum wage\n  he: שכר מינימום שעתי\n",
+      "id: legal.overtime.rate_tier_2",
+      "description:\n  en: Minimum pension contribution - employee\n  he: הפרשה מינימלית לפנסיה - עובד\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6561844007622103,
+        "chunk_id": "legal.minimum_wage::v1::identity::3"
+      },
+      {
+        "title": "legal.pension.employer_contribution",
+        "rule_id": "legal.pension.employer_contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6124924125068236,
+        "chunk_id": "legal.pension.employer_contribution::v1::calculation::1"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5924677714232788,
+        "chunk_id": "legal.minimum_wage::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.58795380992688,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::identity::2"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5859821557629602,
+        "chunk_id": "legal.pension.contribution::v1::definition::0"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.6561844007622103,
+      0.6124924125068236,
+      0.5924677714232788,
+      0.58795380992688,
+      0.5859821557629602
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.minimum_wage@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "mw_historical_date",
+    "question": "Using approved rules as of 2025-06-01, what minimum wage parameters apply?",
+    "reference_answer": "Retrieve the legally eligible approved version for effective_date 2025-06-01 for legal.minimum_wage; do not use a future version if one exists.",
+    "generated_answer": "As of 2025-06-01, the federal minimum wage in the United States is $15.00 per hour, according to the Fair Labor Standards Act (FLSA), 29 U.S.C. § 206(a)(1). This applies to employees engaged in interstate commerce or employed by an enterprise engaged in commerce or production of goods for commerce.\n\nFor tipped employees, the FLSA allows employers to pay a lower cash wage ($7.25 per hour) as long as their total earnings (including tips) equal at least $15.00 per hour. This is outlined in 29 U.S.C. § 203(m).\n\nHowever, some states and localities have their own minimum wage laws that may differ from the federal standard. It's important to check local regulations as well.\n\nSource(s):\n- Fair Labor Standards Act (FLSA), 29 U.S.C. §§ 206(a)(1), 203(m)\n- U.S. Department of Labor, \"Fact Sheet #17: Tipped Employees Under the FLSA\"",
+    "effective_date": "2025-06-01",
+    "expected_rule_ids": [
+      "legal.minimum_wage"
+    ],
+    "retrieved_rule_ids": [],
+    "retrieved_versions": [],
+    "retrieved_contexts": [],
+    "sources": [],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2025-06-01",
+      "scope": "general",
+      "hit_count": 0,
+      "hit_at_k": false,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "first_relevant_rank": null,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [],
+    "hit_at_5": false,
+    "recall_at_5": 0.0,
+    "mrr": 0.0,
+    "first_relevant_rank": null,
+    "faithfulness": {
+      "value": null,
+      "status": "unavailable",
+      "reason": "no_retrieved_contexts"
+    },
+    "context_precision": {
+      "value": null,
+      "status": "unavailable",
+      "reason": "no_retrieved_contexts"
+    },
+    "context_recall": {
+      "value": null,
+      "status": "unavailable",
+      "reason": "no_retrieved_contexts"
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": false,
+    "temporal_detail": "no_hits",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "ot_daily_limit",
+    "question": "What is the daily overtime hours limit in the approved rules?",
+    "reference_answer": "Answer from legal.overtime.daily_limit approved parameters (max_hours) and description only.",
+    "generated_answer": "Based on the retrieved evidence, there is no specific information provided about a daily overtime hours limit in the approved rules. The evidence only mentions weekly overtime limits and overtime rates beyond two hours. Therefore, I cannot provide an answer to your question based on the given evidence.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.overtime.daily_limit"
+    ],
+    "retrieved_rule_ids": [
+      "legal.overtime.daily_limit",
+      "legal.overtime.daily_limit",
+      "legal.overtime.weekly_limit",
+      "legal.overtime.weekly_limit",
+      "legal.overtime.rate_tier_2"
+    ],
+    "retrieved_versions": [
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.weekly_limit@v1",
+      "legal.overtime.weekly_limit@v1",
+      "legal.overtime.rate_tier_2@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.overtime.daily_limit",
+      "description:\n  en: Daily overtime limit\n  he: מגבלת שעות נוספות יומיות\n",
+      "id: legal.overtime.weekly_limit",
+      "description:\n  en: Weekly overtime limit\n  he: מגבלת שעות נוספות שבועיות\n",
+      "description:\n  en: Overtime rate - beyond two hours\n  he: שיעור שעות נוספות - מעבר לשתי שעות\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.8312931265748437,
+        "chunk_id": "legal.overtime.daily_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7680013410061505,
+        "chunk_id": "legal.overtime.daily_limit::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7597907905699535,
+        "chunk_id": "legal.overtime.weekly_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7358004631059516,
+        "chunk_id": "legal.overtime.weekly_limit::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6746850376131264,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::definition::0"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.8312931265748437,
+      0.7680013410061505,
+      0.7597907905699535,
+      0.7358004631059516,
+      0.6746850376131264
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.overtime.daily_limit@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "ot_weekly_limit",
+    "question": "How many overtime hours per week are allowed according to approved rules?",
+    "reference_answer": "Use legal.overtime.weekly_limit approved max_hours only.",
+    "generated_answer": "Based on the retrieved evidence, there is no information provided about a specific number of overtime hours allowed per week according to approved rules. The evidence only mentions weekly and daily limits without specifying the actual numbers. Therefore, I cannot provide an answer based on the given evidence.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.overtime.weekly_limit"
+    ],
+    "retrieved_rule_ids": [
+      "legal.overtime.weekly_limit",
+      "legal.overtime.weekly_limit",
+      "legal.overtime.daily_limit",
+      "legal.overtime.daily_limit",
+      "legal.overtime.rate_tier_2"
+    ],
+    "retrieved_versions": [
+      "legal.overtime.weekly_limit@v1",
+      "legal.overtime.weekly_limit@v1",
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.rate_tier_2@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.overtime.weekly_limit",
+      "description:\n  en: Weekly overtime limit\n  he: מגבלת שעות נוספות שבועיות\n",
+      "id: legal.overtime.daily_limit",
+      "description:\n  en: Daily overtime limit\n  he: מגבלת שעות נוספות יומיות\n",
+      "description:\n  en: Overtime rate - beyond two hours\n  he: שיעור שעות נוספות - מעבר לשתי שעות\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7735554308778392,
+        "chunk_id": "legal.overtime.weekly_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7364407585733005,
+        "chunk_id": "legal.overtime.weekly_limit::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7064482631677198,
+        "chunk_id": "legal.overtime.daily_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6904678403456532,
+        "chunk_id": "legal.overtime.daily_limit::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6555212554379397,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::definition::0"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7735554308778392,
+      0.7364407585733005,
+      0.7064482631677198,
+      0.6904678403456532,
+      0.6555212554379397
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.overtime.weekly_limit@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "ot_rate_tier_1",
+    "question": "What overtime pay multiplier applies to the first overtime hours band in approved rules?",
+    "reference_answer": "Use legal.overtime.rate_tier_1 parameters (hours_range and multiplier) only.",
+    "generated_answer": "The overtime pay multiplier that applies to the first two hours of overtime is 1.25, as stated in the retrieved evidence for \"Overtime rate - first two hours\".",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.overtime.rate_tier_1"
+    ],
+    "retrieved_rule_ids": [
+      "legal.overtime.rate_tier_1",
+      "legal.overtime.rate_tier_1",
+      "legal.overtime.daily_limit",
+      "legal.overtime.weekly_limit",
+      "legal.overtime.rate_tier_2"
+    ],
+    "retrieved_versions": [
+      "legal.overtime.rate_tier_1@v1",
+      "legal.overtime.rate_tier_1@v1",
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.weekly_limit@v1",
+      "legal.overtime.rate_tier_2@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Overtime rate - first two hours\n  he: שיעור שעות נוספות - שתי השעות הראשונות\n",
+      "parameters:\n  hours_range:\n  - 0\n  - 2\n  multiplier: 1.25\n",
+      "parameters:\n  applies_to_employment_types:\n  - full_time\n  - part_time\n  max_hours: 2\n",
+      "description:\n  en: Weekly overtime limit\n  he: מגבלת שעות נוספות שבועיות\n",
+      "description:\n  en: Overtime rate - beyond two hours\n  he: שיעור שעות נוספות - מעבר לשתי שעות\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.overtime.rate_tier_1",
+        "rule_id": "legal.overtime.rate_tier_1",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.67802058063856,
+        "chunk_id": "legal.overtime.rate_tier_1::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.rate_tier_1",
+        "rule_id": "legal.overtime.rate_tier_1",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6673076223679358,
+        "chunk_id": "legal.overtime.rate_tier_1::v1::calculation::1"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6626294740435626,
+        "chunk_id": "legal.overtime.daily_limit::v1::calculation::1"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6612390022307341,
+        "chunk_id": "legal.overtime.weekly_limit::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6575288295187534,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::definition::0"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.67802058063856,
+      0.6673076223679358,
+      0.6626294740435626,
+      0.6612390022307341,
+      0.6575288295187534
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.overtime.rate_tier_1@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "ot_rate_tier_2",
+    "question": "What is the second-tier overtime multiplier in approved rules?",
+    "reference_answer": "Use legal.overtime.rate_tier_2 approved multiplier/range only.",
+    "generated_answer": "The second-tier overtime multiplier is 1.5, as specified in the retrieved evidence with id \"legal.overtime.rate_tier_2\". This means that for hours worked beyond two hours, the pay rate is multiplied by 1.5.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.overtime.rate_tier_2"
+    ],
+    "retrieved_rule_ids": [
+      "legal.overtime.rate_tier_2",
+      "legal.overtime.rate_tier_1",
+      "legal.overtime.rate_tier_2",
+      "legal.overtime.rate_tier_1",
+      "legal.overtime.rate_tier_2"
+    ],
+    "retrieved_versions": [
+      "legal.overtime.rate_tier_2@v1",
+      "legal.overtime.rate_tier_1@v1",
+      "legal.overtime.rate_tier_2@v1",
+      "legal.overtime.rate_tier_1@v1",
+      "legal.overtime.rate_tier_2@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.overtime.rate_tier_2",
+      "id: legal.overtime.rate_tier_1",
+      "description:\n  en: Overtime rate - beyond two hours\n  he: שיעור שעות נוספות - מעבר לשתי שעות\n",
+      "parameters:\n  hours_range:\n  - 0\n  - 2\n  multiplier: 1.25\n",
+      "parameters:\n  hours_range:\n  - 2\n  - null\n  multiplier: 1.5\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7416176454636522,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::identity::2"
+      },
+      {
+        "title": "legal.overtime.rate_tier_1",
+        "rule_id": "legal.overtime.rate_tier_1",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.709793977505594,
+        "chunk_id": "legal.overtime.rate_tier_1::v1::identity::2"
+      },
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6607807457741594,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.rate_tier_1",
+        "rule_id": "legal.overtime.rate_tier_1",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6587613324505394,
+        "chunk_id": "legal.overtime.rate_tier_1::v1::calculation::1"
+      },
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6542906607992645,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7416176454636522,
+      0.709793977505594,
+      0.6607807457741594,
+      0.6587613324505394,
+      0.6542906607992645
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.overtime.rate_tier_2@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "ot_multi_chunk",
+    "question": "Summarize approved daily overtime limit and first-tier overtime rate together.",
+    "reference_answer": "Combine only legal.overtime.daily_limit and legal.overtime.rate_tier_1 approved parameters; do not invent weekly-rest or holiday rules.",
+    "generated_answer": "The approved daily overtime limit is not provided in the retrieved evidence.\n\nThe first-tier overtime rate applies to the first two hours of overtime worked in a day, and it is not specified in the retrieved evidence.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.overtime.daily_limit",
+      "legal.overtime.rate_tier_1"
+    ],
+    "retrieved_rule_ids": [
+      "legal.overtime.daily_limit",
+      "legal.overtime.daily_limit",
+      "legal.overtime.weekly_limit",
+      "legal.overtime.rate_tier_1",
+      "legal.overtime.rate_tier_1"
+    ],
+    "retrieved_versions": [
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.weekly_limit@v1",
+      "legal.overtime.rate_tier_1@v1",
+      "legal.overtime.rate_tier_1@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Daily overtime limit\n  he: מגבלת שעות נוספות יומיות\n",
+      "id: legal.overtime.daily_limit",
+      "description:\n  en: Weekly overtime limit\n  he: מגבלת שעות נוספות שבועיות\n",
+      "id: legal.overtime.rate_tier_1",
+      "description:\n  en: Overtime rate - first two hours\n  he: שיעור שעות נוספות - שתי השעות הראשונות\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7770001287173376,
+        "chunk_id": "legal.overtime.daily_limit::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7707961444768753,
+        "chunk_id": "legal.overtime.daily_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7507809817792414,
+        "chunk_id": "legal.overtime.weekly_limit::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.rate_tier_1",
+        "rule_id": "legal.overtime.rate_tier_1",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7338484885996861,
+        "chunk_id": "legal.overtime.rate_tier_1::v1::identity::2"
+      },
+      {
+        "title": "legal.overtime.rate_tier_1",
+        "rule_id": "legal.overtime.rate_tier_1",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7293179713836706,
+        "chunk_id": "legal.overtime.rate_tier_1::v1::definition::0"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7770001287173376,
+      0.7707961444768753,
+      0.7507809817792414,
+      0.7338484885996861,
+      0.7293179713836706
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.overtime.daily_limit@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "pension_employee",
+    "question": "What employee pension contribution rate is defined in approved rules?",
+    "reference_answer": "Use legal.pension.contribution approved parameters only.",
+    "generated_answer": "Based on the provided evidence, there is no approved rule or rate defined for employee pension contribution in the retrieved legal references. The Hours of Work and Rest Law, 1951, Section 16 does not specify an employee contribution rate for pensions. Therefore, I cannot provide a specific employee pension contribution rate as it is insufficiently addressed in the given evidence.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.pension.contribution"
+    ],
+    "retrieved_rule_ids": [
+      "legal.pension.employer_contribution",
+      "legal.pension.contribution",
+      "legal.pension.contribution",
+      "legal.pension.employer_contribution",
+      "legal.overtime.daily_limit"
+    ],
+    "retrieved_versions": [
+      "legal.pension.employer_contribution@v1",
+      "legal.pension.contribution@v1",
+      "legal.pension.contribution@v1",
+      "legal.pension.employer_contribution@v1",
+      "legal.overtime.daily_limit@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.pension.employer_contribution",
+      "description:\n  en: Minimum pension contribution - employee\n  he: הפרשה מינימלית לפנסיה - עובד\n",
+      "id: legal.pension.contribution",
+      "description:\n  en: Minimum pension contribution - employer\n  he: הפרשה מינימלית לפנסיה - מעסיק\n",
+      "legal_reference:\n  en: Hours of Work and Rest Law, 1951, Section 16\n  he: חוק שעות עבודה ומנוחה, תשי\"א-1951, סעיף 16\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.pension.employer_contribution",
+        "rule_id": "legal.pension.employer_contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7470744359879246,
+        "chunk_id": "legal.pension.employer_contribution::v1::identity::3"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7399756711859693,
+        "chunk_id": "legal.pension.contribution::v1::definition::0"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7370118675233173,
+        "chunk_id": "legal.pension.contribution::v1::identity::3"
+      },
+      {
+        "title": "legal.pension.employer_contribution",
+        "rule_id": "legal.pension.employer_contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.71801311459303,
+        "chunk_id": "legal.pension.employer_contribution::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6091558994457779,
+        "chunk_id": "legal.overtime.daily_limit::v1::source::2"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 0.5,
+      "first_relevant_rank": 2,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7470744359879246,
+      0.7399756711859693,
+      0.7370118675233173,
+      0.71801311459303,
+      0.6091558994457779
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 0.5,
+    "first_relevant_rank": 2,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.pension.contribution@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "pension_employer",
+    "question": "What employer pension contribution is defined in approved rules?",
+    "reference_answer": "Use legal.pension.employer_contribution approved parameters only.",
+    "generated_answer": "Based on the retrieved evidence, the minimum employer pension contribution is defined as follows:\n\n- **Minimum Pension Contribution - Employer** (id: legal.pension.employer_contribution): This rule is effective from 2026-01-01 to the current date. The specific percentage or amount for this contribution is not provided in the given evidence, so it cannot be determined based on the available information.\n\nTherefore, without additional approved rules or evidence, we cannot specify the exact defined employer pension contribution.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.pension.employer_contribution"
+    ],
+    "retrieved_rule_ids": [
+      "legal.pension.employer_contribution",
+      "legal.pension.contribution",
+      "legal.pension.employer_contribution",
+      "legal.pension.contribution",
+      "legal.pension.severance"
+    ],
+    "retrieved_versions": [
+      "legal.pension.employer_contribution@v1",
+      "legal.pension.contribution@v1",
+      "legal.pension.employer_contribution@v1",
+      "legal.pension.contribution@v1",
+      "legal.pension.severance@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.pension.employer_contribution",
+      "id: legal.pension.contribution",
+      "description:\n  en: Minimum pension contribution - employer\n  he: הפרשה מינימלית לפנסיה - מעסיק\n",
+      "description:\n  en: Minimum pension contribution - employee\n  he: הפרשה מינימלית לפנסיה - עובד\n",
+      "id: legal.pension.severance"
+    ],
+    "sources": [
+      {
+        "title": "legal.pension.employer_contribution",
+        "rule_id": "legal.pension.employer_contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.8342338681352938,
+        "chunk_id": "legal.pension.employer_contribution::v1::identity::3"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7888152895220848,
+        "chunk_id": "legal.pension.contribution::v1::identity::3"
+      },
+      {
+        "title": "legal.pension.employer_contribution",
+        "rule_id": "legal.pension.employer_contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.757598892251177,
+        "chunk_id": "legal.pension.employer_contribution::v1::definition::0"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7477465954345789,
+        "chunk_id": "legal.pension.contribution::v1::definition::0"
+      },
+      {
+        "title": "legal.pension.severance",
+        "rule_id": "legal.pension.severance",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.637912681205481,
+        "chunk_id": "legal.pension.severance::v1::identity::3"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.8342338681352938,
+      0.7888152895220848,
+      0.757598892251177,
+      0.7477465954345789,
+      0.637912681205481
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.pension.employer_contribution@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "pension_severance",
+    "question": "What severance-related pension parameter is in approved rules?",
+    "reference_answer": "Use legal.pension.severance approved parameters/description only.",
+    "generated_answer": "Based on the approved rules retrieved, there is no severance-related pension parameter specified. The provided evidence only includes descriptions for \"Severance component\", \"Minimum pension contribution - employee\", and \"Minimum pension contribution - employer\". There are no specific parameters or calculations related to severance and pensions in the given evidence.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.pension.severance"
+    ],
+    "retrieved_rule_ids": [
+      "legal.pension.severance",
+      "legal.pension.severance",
+      "legal.pension.contribution",
+      "legal.pension.employer_contribution",
+      "legal.pension.contribution"
+    ],
+    "retrieved_versions": [
+      "legal.pension.severance@v1",
+      "legal.pension.severance@v1",
+      "legal.pension.contribution@v1",
+      "legal.pension.employer_contribution@v1",
+      "legal.pension.contribution@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.pension.severance",
+      "description:\n  en: Severance component\n  he: רכיב פיצויים\n",
+      "description:\n  en: Minimum pension contribution - employee\n  he: הפרשה מינימלית לפנסיה - עובד\n",
+      "description:\n  en: Minimum pension contribution - employer\n  he: הפרשה מינימלית לפנסיה - מעסיק\n",
+      "id: legal.pension.contribution"
+    ],
+    "sources": [
+      {
+        "title": "legal.pension.severance",
+        "rule_id": "legal.pension.severance",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7997217694347182,
+        "chunk_id": "legal.pension.severance::v1::identity::3"
+      },
+      {
+        "title": "legal.pension.severance",
+        "rule_id": "legal.pension.severance",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6684089994732086,
+        "chunk_id": "legal.pension.severance::v1::definition::0"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6575244044199476,
+        "chunk_id": "legal.pension.contribution::v1::definition::0"
+      },
+      {
+        "title": "legal.pension.employer_contribution",
+        "rule_id": "legal.pension.employer_contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6501777674786139,
+        "chunk_id": "legal.pension.employer_contribution::v1::definition::0"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6448612294694928,
+        "chunk_id": "legal.pension.contribution::v1::identity::3"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7997217694347182,
+      0.6684089994732086,
+      0.6575244044199476,
+      0.6501777674786139,
+      0.6448612294694928
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.pension.severance@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "vacation_entitlement",
+    "question": "How many annual vacation days are entitled under the approved vacation rules?",
+    "reference_answer": "Use legal.vacation.annual_entitlement approved parameters and description only.",
+    "generated_answer": "Based on the retrieved evidence, there is no information provided regarding the number of annual vacation days entitled under the approved vacation rules. The evidence only refers to \"annual vacation entitlement\" and \"monthly vacation accrual,\" but it does not specify the exact number of days for either category. Therefore, I cannot determine how many annual vacation days are entitled based on the provided evidence alone.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.vacation.annual_entitlement"
+    ],
+    "retrieved_rule_ids": [
+      "legal.vacation.annual_entitlement",
+      "legal.vacation.annual_entitlement",
+      "legal.vacation.monthly_accrual",
+      "legal.vacation.monthly_accrual",
+      "legal.sick_leave.annual_entitlement"
+    ],
+    "retrieved_versions": [
+      "legal.vacation.annual_entitlement@v1",
+      "legal.vacation.annual_entitlement@v1",
+      "legal.vacation.monthly_accrual@v1",
+      "legal.vacation.monthly_accrual@v1",
+      "legal.sick_leave.annual_entitlement@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.vacation.annual_entitlement",
+      "description:\n  en: Annual vacation entitlement\n  he: זכות לחופשה שנתית\n",
+      "id: legal.vacation.monthly_accrual",
+      "description:\n  en: Monthly vacation accrual\n  he: צבירת ימי חופשה חודשית\n",
+      "id: legal.sick_leave.annual_entitlement"
+    ],
+    "sources": [
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.749544832807932,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::identity::3"
+      },
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6834827087804429,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::definition::0"
+      },
+      {
+        "title": "legal.vacation.monthly_accrual",
+        "rule_id": "legal.vacation.monthly_accrual",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6573235852518529,
+        "chunk_id": "legal.vacation.monthly_accrual::v1::identity::3"
+      },
+      {
+        "title": "legal.vacation.monthly_accrual",
+        "rule_id": "legal.vacation.monthly_accrual",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6223505416426849,
+        "chunk_id": "legal.vacation.monthly_accrual::v1::definition::0"
+      },
+      {
+        "title": "legal.sick_leave.annual_entitlement",
+        "rule_id": "legal.sick_leave.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6132538179589344,
+        "chunk_id": "legal.sick_leave.annual_entitlement::v1::identity::3"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.749544832807932,
+      0.6834827087804429,
+      0.6573235852518529,
+      0.6223505416426849,
+      0.6132538179589344
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.vacation.annual_entitlement@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "vacation_accrual",
+    "question": "What monthly vacation accrual is defined in approved rules?",
+    "reference_answer": "Use legal.vacation.monthly_accrual approved parameters only.",
+    "generated_answer": "Based on the approved rules retrieved, the monthly vacation accrual is defined as follows:\n\n- **Accrual Rate:** 1.5 days per month\n- **Total Days:** 18 days annually\n\nSo, an employee would accrue 1.5 days of vacation time each month.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.vacation.monthly_accrual"
+    ],
+    "retrieved_rule_ids": [
+      "legal.vacation.monthly_accrual",
+      "legal.vacation.monthly_accrual",
+      "legal.vacation.annual_entitlement",
+      "legal.vacation.annual_entitlement",
+      "legal.sick_leave.annual_entitlement"
+    ],
+    "retrieved_versions": [
+      "legal.vacation.monthly_accrual@v1",
+      "legal.vacation.monthly_accrual@v1",
+      "legal.vacation.annual_entitlement@v1",
+      "legal.vacation.annual_entitlement@v1",
+      "legal.sick_leave.annual_entitlement@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.vacation.monthly_accrual",
+      "description:\n  en: Monthly vacation accrual\n  he: צבירת ימי חופשה חודשית\n",
+      "id: legal.vacation.annual_entitlement",
+      "description:\n  en: Annual vacation entitlement\n  he: זכות לחופשה שנתית\n",
+      "parameters:\n  accrual_rate: 1.5\n  days: 18\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.vacation.monthly_accrual",
+        "rule_id": "legal.vacation.monthly_accrual",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.8468557960097254,
+        "chunk_id": "legal.vacation.monthly_accrual::v1::identity::3"
+      },
+      {
+        "title": "legal.vacation.monthly_accrual",
+        "rule_id": "legal.vacation.monthly_accrual",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7821124714357415,
+        "chunk_id": "legal.vacation.monthly_accrual::v1::definition::0"
+      },
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7231713202813366,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::identity::3"
+      },
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6820522537568302,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::definition::0"
+      },
+      {
+        "title": "legal.sick_leave.annual_entitlement",
+        "rule_id": "legal.sick_leave.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.63005553940781,
+        "chunk_id": "legal.sick_leave.annual_entitlement::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.8468557960097254,
+      0.7821124714357415,
+      0.7231713202813366,
+      0.6820522537568302,
+      0.63005553940781
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.vacation.monthly_accrual@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "sick_leave",
+    "question": "What annual sick-leave entitlement is in the approved rules?",
+    "reference_answer": "Use legal.sick_leave.annual_entitlement approved parameters only.",
+    "generated_answer": "Based on the provided evidence, specifically the \"Hours of Work and Rest Law, 1951, Section 16\", there is no mention or approval of an annual sick-leave entitlement. The retrieved evidence only refers to an annual vacation entitlement. Therefore, according to the approved rules in this context, there is no specified annual sick-leave entitlement.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.sick_leave.annual_entitlement"
+    ],
+    "retrieved_rule_ids": [
+      "legal.sick_leave.annual_entitlement",
+      "legal.sick_leave.annual_entitlement",
+      "legal.vacation.annual_entitlement",
+      "legal.vacation.annual_entitlement",
+      "legal.overtime.daily_limit"
+    ],
+    "retrieved_versions": [
+      "legal.sick_leave.annual_entitlement@v1",
+      "legal.sick_leave.annual_entitlement@v1",
+      "legal.vacation.annual_entitlement@v1",
+      "legal.vacation.annual_entitlement@v1",
+      "legal.overtime.daily_limit@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.sick_leave.annual_entitlement",
+      "description:\n  en: Annual sick leave entitlement\n  he: זכות למחלה שנתית\n",
+      "id: legal.vacation.annual_entitlement",
+      "description:\n  en: Annual vacation entitlement\n  he: זכות לחופשה שנתית\n",
+      "legal_reference:\n  en: Hours of Work and Rest Law, 1951, Section 16\n  he: חוק שעות עבודה ומנוחה, תשי\"א-1951, סעיף 16\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.sick_leave.annual_entitlement",
+        "rule_id": "legal.sick_leave.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.8820335000675469,
+        "chunk_id": "legal.sick_leave.annual_entitlement::v1::identity::3"
+      },
+      {
+        "title": "legal.sick_leave.annual_entitlement",
+        "rule_id": "legal.sick_leave.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7965119782236177,
+        "chunk_id": "legal.sick_leave.annual_entitlement::v1::definition::0"
+      },
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7354073477342241,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::identity::3"
+      },
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6584641195371754,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6401010112312299,
+        "chunk_id": "legal.overtime.daily_limit::v1::source::2"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.8820335000675469,
+      0.7965119782236177,
+      0.7354073477342241,
+      0.6584641195371754,
+      0.6401010112312299
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.sick_leave.annual_entitlement@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "transport_max",
+    "question": "What is the maximum transportation allowance in approved rules?",
+    "reference_answer": "Use legal.transportation.max_allowance approved parameters only.",
+    "generated_answer": "The maximum transportation allowance is not provided in the retrieved evidence. Therefore, based on the available information, it cannot be determined what the maximum transportation allowance is according to approved rules.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.transportation.max_allowance"
+    ],
+    "retrieved_rule_ids": [
+      "legal.transportation.max_allowance",
+      "legal.transportation.max_allowance",
+      "legal.transportation.public_transport",
+      "legal.overtime.daily_limit",
+      "legal.overtime.daily_limit"
+    ],
+    "retrieved_versions": [
+      "legal.transportation.max_allowance@v1",
+      "legal.transportation.max_allowance@v1",
+      "legal.transportation.public_transport@v1",
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.daily_limit@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.transportation.max_allowance",
+      "description:\n  en: Maximum transportation allowance\n  he: מקסימום דמי נסיעות\n",
+      "id: legal.transportation.public_transport",
+      "id: legal.overtime.daily_limit",
+      "description:\n  en: Daily overtime limit\n  he: מגבלת שעות נוספות יומיות\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.transportation.max_allowance",
+        "rule_id": "legal.transportation.max_allowance",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.8487957910243683,
+        "chunk_id": "legal.transportation.max_allowance::v1::identity::3"
+      },
+      {
+        "title": "legal.transportation.max_allowance",
+        "rule_id": "legal.transportation.max_allowance",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.8000084807930316,
+        "chunk_id": "legal.transportation.max_allowance::v1::definition::0"
+      },
+      {
+        "title": "legal.transportation.public_transport",
+        "rule_id": "legal.transportation.public_transport",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6427911632103531,
+        "chunk_id": "legal.transportation.public_transport::v1::identity::2"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6165527946672568,
+        "chunk_id": "legal.overtime.daily_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6139779881326866,
+        "chunk_id": "legal.overtime.daily_limit::v1::definition::0"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.8487957910243683,
+      0.8000084807930316,
+      0.6427911632103531,
+      0.6165527946672568,
+      0.6139779881326866
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.transportation.max_allowance@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "transport_public",
+    "question": "What do approved rules say about public transport reimbursement?",
+    "reference_answer": "Use legal.transportation.public_transport approved parameters/description only.",
+    "generated_answer": "Based on the retrieved evidence, here's what the approved rules say about public transport reimbursement:\n\n1. **Reimbursement Rate**: The reimbursement rate for public transport is 100% of the actual cost incurred (reimbursement_rate: 1.0).\n\n2. **Maximum Transportation Allowance**: There is no specified maximum transportation allowance in the provided evidence.\n\nSo, according to these rules, employees can be fully reimbursed for their public transport costs with no cap on the amount that can be claimed. However, it's important to note that this information might not cover all aspects of public transport reimbursement and may not include tax implications or other relevant considerations. If you need more comprehensive information, please consult additional legal sources or a professional in payroll law.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.transportation.public_transport"
+    ],
+    "retrieved_rule_ids": [
+      "legal.transportation.public_transport",
+      "legal.transportation.public_transport",
+      "legal.transportation.public_transport",
+      "legal.transportation.max_allowance",
+      "legal.transportation.max_allowance"
+    ],
+    "retrieved_versions": [
+      "legal.transportation.public_transport@v1",
+      "legal.transportation.public_transport@v1",
+      "legal.transportation.public_transport@v1",
+      "legal.transportation.max_allowance@v1",
+      "legal.transportation.max_allowance@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Public transport reimbursement\n  he: החזר נסיעות בתחבורה ציבורית\n",
+      "id: legal.transportation.public_transport",
+      "parameters:\n  reimbursement_rate: 1.0\n",
+      "id: legal.transportation.max_allowance",
+      "description:\n  en: Maximum transportation allowance\n  he: מקסימום דמי נסיעות\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.transportation.public_transport",
+        "rule_id": "legal.transportation.public_transport",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.715907627902266,
+        "chunk_id": "legal.transportation.public_transport::v1::definition::0"
+      },
+      {
+        "title": "legal.transportation.public_transport",
+        "rule_id": "legal.transportation.public_transport",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6540386852529672,
+        "chunk_id": "legal.transportation.public_transport::v1::identity::2"
+      },
+      {
+        "title": "legal.transportation.public_transport",
+        "rule_id": "legal.transportation.public_transport",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6100494048999148,
+        "chunk_id": "legal.transportation.public_transport::v1::calculation::1"
+      },
+      {
+        "title": "legal.transportation.max_allowance",
+        "rule_id": "legal.transportation.max_allowance",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5914979695133655,
+        "chunk_id": "legal.transportation.max_allowance::v1::identity::3"
+      },
+      {
+        "title": "legal.transportation.max_allowance",
+        "rule_id": "legal.transportation.max_allowance",
+        "rule_version": "1",
+        "source_reference": "transportation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5728750218531288,
+        "chunk_id": "legal.transportation.max_allowance::v1::definition::0"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.715907627902266,
+      0.6540386852529672,
+      0.6100494048999148,
+      0.5914979695133655,
+      0.5728750218531288
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.transportation.public_transport@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "tax_credit_point",
+    "question": "What tax credit point value is defined in approved payroll rules?",
+    "reference_answer": "Use legal.tax.credit_point approved parameters only.",
+    "generated_answer": "Based on the retrieved evidence, there is no approved payroll rule that defines a specific tax credit point value. The provided evidence includes information about minimum pension contributions for employers and employees, income tax brackets, but it does not specify a tax credit point value.\n\nTherefore, I cannot provide an answer to your question based on the given evidence.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.tax.credit_point"
+    ],
+    "retrieved_rule_ids": [
+      "legal.tax.credit_point",
+      "legal.tax.credit_point",
+      "legal.pension.employer_contribution",
+      "legal.pension.contribution",
+      "legal.tax.income_brackets"
+    ],
+    "retrieved_versions": [
+      "legal.tax.credit_point@v1",
+      "legal.tax.credit_point@v1",
+      "legal.pension.employer_contribution@v1",
+      "legal.pension.contribution@v1",
+      "legal.tax.income_brackets@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Tax credit point value\n  he: ערך נקודת זיכוי\n",
+      "id: legal.tax.credit_point",
+      "description:\n  en: Minimum pension contribution - employer\n  he: הפרשה מינימלית לפנסיה - מעסיק\n",
+      "description:\n  en: Minimum pension contribution - employee\n  he: הפרשה מינימלית לפנסיה - עובד\n",
+      "description:\n  en: Income tax brackets\n  he: מדרגות מס הכנסה\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.tax.credit_point",
+        "rule_id": "legal.tax.credit_point",
+        "rule_version": "1",
+        "source_reference": "tax.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7405038932936432,
+        "chunk_id": "legal.tax.credit_point::v1::definition::0"
+      },
+      {
+        "title": "legal.tax.credit_point",
+        "rule_id": "legal.tax.credit_point",
+        "rule_version": "1",
+        "source_reference": "tax.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7331113631902049,
+        "chunk_id": "legal.tax.credit_point::v1::identity::3"
+      },
+      {
+        "title": "legal.pension.employer_contribution",
+        "rule_id": "legal.pension.employer_contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6069652482797583,
+        "chunk_id": "legal.pension.employer_contribution::v1::definition::0"
+      },
+      {
+        "title": "legal.pension.contribution",
+        "rule_id": "legal.pension.contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6064864056858803,
+        "chunk_id": "legal.pension.contribution::v1::definition::0"
+      },
+      {
+        "title": "legal.tax.income_brackets",
+        "rule_id": "legal.tax.income_brackets",
+        "rule_version": "1",
+        "source_reference": "tax.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5899273016571284,
+        "chunk_id": "legal.tax.income_brackets::v1::definition::0"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.7405038932936432,
+      0.7331113631902049,
+      0.6069652482797583,
+      0.6064864056858803,
+      0.5899273016571284
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.tax.credit_point@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "tax_brackets",
+    "question": "Where are income tax brackets defined in approved rules?",
+    "reference_answer": "Point only to legal.tax.income_brackets approved parameters; do not invent bracket amounts beyond YAML.",
+    "generated_answer": "Based on the approved retrieved legal evidence, income tax brackets are defined in the \"Income Tax Law\" (Hebrew: חוק מס הכנסה), not the Minimum Wage Law. The provided evidence does not include a specific reference to where income tax brackets are defined in the law. Therefore, I cannot provide a direct citation for this information.\n\nHowever, it is widely known and accepted that income tax brackets are defined in the Income Tax Law, which is the primary legislation governing taxation of income in Israel. If you need further clarification or have additional evidence, please provide it so I can assist you better.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.tax.income_brackets"
+    ],
+    "retrieved_rule_ids": [
+      "legal.tax.income_brackets",
+      "legal.tax.income_brackets",
+      "legal.tax.credit_point",
+      "legal.tax.credit_point",
+      "legal.minimum_wage"
+    ],
+    "retrieved_versions": [
+      "legal.tax.income_brackets@v1",
+      "legal.tax.income_brackets@v1",
+      "legal.tax.credit_point@v1",
+      "legal.tax.credit_point@v1",
+      "legal.minimum_wage@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.tax.income_brackets",
+      "description:\n  en: Income tax brackets\n  he: מדרגות מס הכנסה\n",
+      "description:\n  en: Tax credit point value\n  he: ערך נקודת זיכוי\n",
+      "id: legal.tax.credit_point",
+      "legal_reference:\n  en: Minimum Wage Law, 1987\n  he: חוק שכר מינימום, התשמ\"א-1987\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.tax.income_brackets",
+        "rule_id": "legal.tax.income_brackets",
+        "rule_version": "1",
+        "source_reference": "tax.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.8220065210433339,
+        "chunk_id": "legal.tax.income_brackets::v1::identity::3"
+      },
+      {
+        "title": "legal.tax.income_brackets",
+        "rule_id": "legal.tax.income_brackets",
+        "rule_version": "1",
+        "source_reference": "tax.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7783267037752802,
+        "chunk_id": "legal.tax.income_brackets::v1::definition::0"
+      },
+      {
+        "title": "legal.tax.credit_point",
+        "rule_id": "legal.tax.credit_point",
+        "rule_version": "1",
+        "source_reference": "tax.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6390226149525087,
+        "chunk_id": "legal.tax.credit_point::v1::definition::0"
+      },
+      {
+        "title": "legal.tax.credit_point",
+        "rule_id": "legal.tax.credit_point",
+        "rule_version": "1",
+        "source_reference": "tax.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5982206704490626,
+        "chunk_id": "legal.tax.credit_point::v1::identity::3"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5980752974952214,
+        "chunk_id": "legal.minimum_wage::v1::source::2"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.8220065210433339,
+      0.7783267037752802,
+      0.6390226149525087,
+      0.5982206704490626,
+      0.5980752974952214
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.tax.income_brackets@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "youth_age",
+    "question": "What minimum age for youth employment is in approved rules?",
+    "reference_answer": "Use legal.youth.minimum_age approved parameters only.",
+    "generated_answer": "The minimum age for youth employment is 15 years old.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.youth.minimum_age"
+    ],
+    "retrieved_rule_ids": [
+      "legal.youth.minimum_age",
+      "legal.youth.minimum_age",
+      "legal.youth.minimum_age",
+      "legal.youth.max_daily_hours",
+      "legal.youth.max_daily_hours"
+    ],
+    "retrieved_versions": [
+      "legal.youth.minimum_age@v1",
+      "legal.youth.minimum_age@v1",
+      "legal.youth.minimum_age@v1",
+      "legal.youth.max_daily_hours@v1",
+      "legal.youth.max_daily_hours@v1"
+    ],
+    "retrieved_contexts": [
+      "description:\n  en: Minimum age for youth employment\n  he: גיל מינימום לעבודת נוער\n",
+      "id: legal.youth.minimum_age",
+      "parameters:\n  min_age: 15\n",
+      "parameters:\n  max_age: 18\n  max_hours: 8\n",
+      "id: legal.youth.max_daily_hours"
+    ],
+    "sources": [
+      {
+        "title": "legal.youth.minimum_age",
+        "rule_id": "legal.youth.minimum_age",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.809017288160857,
+        "chunk_id": "legal.youth.minimum_age::v1::definition::0"
+      },
+      {
+        "title": "legal.youth.minimum_age",
+        "rule_id": "legal.youth.minimum_age",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.775790934312235,
+        "chunk_id": "legal.youth.minimum_age::v1::identity::3"
+      },
+      {
+        "title": "legal.youth.minimum_age",
+        "rule_id": "legal.youth.minimum_age",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6848036649790552,
+        "chunk_id": "legal.youth.minimum_age::v1::calculation::1"
+      },
+      {
+        "title": "legal.youth.max_daily_hours",
+        "rule_id": "legal.youth.max_daily_hours",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6643992452968919,
+        "chunk_id": "legal.youth.max_daily_hours::v1::calculation::1"
+      },
+      {
+        "title": "legal.youth.max_daily_hours",
+        "rule_id": "legal.youth.max_daily_hours",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.652443253036391,
+        "chunk_id": "legal.youth.max_daily_hours::v1::identity::3"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.809017288160857,
+      0.775790934312235,
+      0.6848036649790552,
+      0.6643992452968919,
+      0.652443253036391
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.youth.minimum_age@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "youth_hours",
+    "question": "What is the daily hour limit for youth in approved rules?",
+    "reference_answer": "Use legal.youth.max_daily_hours approved parameters only.",
+    "generated_answer": "The daily hour limit for youth is 8 hours.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.youth.max_daily_hours"
+    ],
+    "retrieved_rule_ids": [
+      "legal.youth.max_daily_hours",
+      "legal.youth.max_daily_hours",
+      "legal.overtime.daily_limit",
+      "legal.youth.minimum_age",
+      "legal.youth.max_daily_hours"
+    ],
+    "retrieved_versions": [
+      "legal.youth.max_daily_hours@v1",
+      "legal.youth.max_daily_hours@v1",
+      "legal.overtime.daily_limit@v1",
+      "legal.youth.minimum_age@v1",
+      "legal.youth.max_daily_hours@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.youth.max_daily_hours",
+      "description:\n  en: Daily hour limit for youth\n  he: מגבלת שעות יומיות לנוער\n",
+      "id: legal.overtime.daily_limit",
+      "id: legal.youth.minimum_age",
+      "parameters:\n  max_age: 18\n  max_hours: 8\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.youth.max_daily_hours",
+        "rule_id": "legal.youth.max_daily_hours",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.821674686509158,
+        "chunk_id": "legal.youth.max_daily_hours::v1::identity::3"
+      },
+      {
+        "title": "legal.youth.max_daily_hours",
+        "rule_id": "legal.youth.max_daily_hours",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7797877559774337,
+        "chunk_id": "legal.youth.max_daily_hours::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7507059389063976,
+        "chunk_id": "legal.overtime.daily_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.youth.minimum_age",
+        "rule_id": "legal.youth.minimum_age",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.7007985298885516,
+        "chunk_id": "legal.youth.minimum_age::v1::identity::3"
+      },
+      {
+        "title": "legal.youth.max_daily_hours",
+        "rule_id": "legal.youth.max_daily_hours",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6979189342239286,
+        "chunk_id": "legal.youth.max_daily_hours::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.821674686509158,
+      0.7797877559774337,
+      0.7507059389063976,
+      0.7007985298885516,
+      0.6979189342239286
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.youth.max_daily_hours@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "insufficient_context",
+    "question": "What is the exact court ruling citation for a dispute from 1998 not covered in approved rules?",
+    "reference_answer": "State that approved local legal knowledge does not contain that information; do not invent a citation.",
+    "generated_answer": "Based on the provided evidence, there is no court ruling citation for a dispute from 1998 covered in the approved rules. The retrieved evidence only includes laws and their sections without any specific case law or dispute resolution details. Therefore, I cannot provide an exact court ruling citation for a dispute from 1998 as it is not included in the approved rules.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [],
+    "retrieved_rule_ids": [
+      "legal.youth.minimum_age",
+      "legal.overtime.weekly_limit",
+      "legal.youth.max_daily_hours",
+      "legal.vacation.annual_entitlement",
+      "legal.vacation.monthly_accrual"
+    ],
+    "retrieved_versions": [
+      "legal.youth.minimum_age@v1",
+      "legal.overtime.weekly_limit@v1",
+      "legal.youth.max_daily_hours@v1",
+      "legal.vacation.annual_entitlement@v1",
+      "legal.vacation.monthly_accrual@v1"
+    ],
+    "retrieved_contexts": [
+      "legal_reference:\n  he: חוק עבודת הנוער, התשי\"ג-1953\n",
+      "legal_reference:\n  he: חוק שעות עבודה ומנוחה, תשי\"א-1951\n",
+      "legal_reference:\n  he: חוק עבודת הנוער, התשי\"ג-1953, סעיף 16\n",
+      "legal_reference:\n  he: חוק חופשה שנתית, התשי\"א-1951\n",
+      "legal_reference:\n  he: חוק חופשה שנתית, התשי\"א-1951\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.youth.minimum_age",
+        "rule_id": "legal.youth.minimum_age",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6331456682138655,
+        "chunk_id": "legal.youth.minimum_age::v1::source::2"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6312035001684745,
+        "chunk_id": "legal.overtime.weekly_limit::v1::source::2"
+      },
+      {
+        "title": "legal.youth.max_daily_hours",
+        "rule_id": "legal.youth.max_daily_hours",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6297054225585792,
+        "chunk_id": "legal.youth.max_daily_hours::v1::source::2"
+      },
+      {
+        "title": "legal.vacation.annual_entitlement",
+        "rule_id": "legal.vacation.annual_entitlement",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6277600542995694,
+        "chunk_id": "legal.vacation.annual_entitlement::v1::source::2"
+      },
+      {
+        "title": "legal.vacation.monthly_accrual",
+        "rule_id": "legal.vacation.monthly_accrual",
+        "rule_version": "1",
+        "source_reference": "vacation.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6277600542995694,
+        "chunk_id": "legal.vacation.monthly_accrual::v1::source::2"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": null,
+      "recall_at_k": null,
+      "mrr": null,
+      "first_relevant_rank": null,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.6331456682138655,
+      0.6312035001684745,
+      0.6297054225585792,
+      0.6277600542995694,
+      0.6277600542995694
+    ],
+    "hit_at_5": null,
+    "recall_at_5": null,
+    "mrr": null,
+    "first_relevant_rank": null,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": null,
+    "temporal_detail": "no_expected_rule_ids",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "misleading_unrelated",
+    "question": "Does the minimum wage rule also set the overtime multiplier for night shifts?",
+    "reference_answer": "Do not conflate legal.minimum_wage with overtime rate rules; answer only from approved evidence and say if night-shift overtime is not present.",
+    "generated_answer": "Based on the retrieved evidence, there is no information provided that directly links the minimum wage rule to setting the overtime multiplier for night shifts. The evidence only specifies the weekly and daily overtime limits and a multiplier of 1.25 for overtime hours worked within those limits.\n\nTherefore, based solely on the provided evidence, it cannot be determined whether the minimum wage rule also sets the overtime multiplier for night shifts. To answer this question accurately, additional legal evidence specific to night shift overtime would need to be retrieved and reviewed.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.minimum_wage"
+    ],
+    "retrieved_rule_ids": [
+      "legal.minimum_wage",
+      "legal.minimum_wage",
+      "legal.overtime.weekly_limit",
+      "legal.overtime.daily_limit",
+      "legal.overtime.rate_tier_1"
+    ],
+    "retrieved_versions": [
+      "legal.minimum_wage@v1",
+      "legal.minimum_wage@v1",
+      "legal.overtime.weekly_limit@v1",
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.rate_tier_1@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.minimum_wage",
+      "legal_reference:\n  en: Minimum Wage Law, 1987\n  he: חוק שכר מינימום, התשמ\"א-1987\n",
+      "id: legal.overtime.weekly_limit",
+      "id: legal.overtime.daily_limit",
+      "parameters:\n  hours_range:\n  - 0\n  - 2\n  multiplier: 1.25\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6633974028855446,
+        "chunk_id": "legal.minimum_wage::v1::identity::3"
+      },
+      {
+        "title": "legal.minimum_wage",
+        "rule_id": "legal.minimum_wage",
+        "rule_version": "1",
+        "source_reference": "labor_law.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6574503883143127,
+        "chunk_id": "legal.minimum_wage::v1::source::2"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6248696602034909,
+        "chunk_id": "legal.overtime.weekly_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6247131300129183,
+        "chunk_id": "legal.overtime.daily_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.rate_tier_1",
+        "rule_id": "legal.overtime.rate_tier_1",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6245207097597567,
+        "chunk_id": "legal.overtime.rate_tier_1::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.6633974028855446,
+      0.6574503883143127,
+      0.6248696602034909,
+      0.6247131300129183,
+      0.6245207097597567
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.minimum_wage@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "ambiguous_overtime",
+    "question": "Are overtime rules the same for every employee in every sector?",
+    "reference_answer": "Explain only what approved overtime rules cover (including employment_types if present); do not invent sector exceptions absent from YAML.",
+    "generated_answer": "No, overtime rules are not the same for every employee in every sector. The provided evidence only specifies that full-time and part-time employees have a weekly overtime limit of 2 hours per week, with no distinction made between sectors or industries. Therefore, based on the retrieved legal evidence alone, it is not possible to determine if overtime rules differ across various sectors or employment types other than full-time and part-time.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [
+      "legal.overtime.daily_limit",
+      "legal.overtime.weekly_limit"
+    ],
+    "retrieved_rule_ids": [
+      "legal.overtime.weekly_limit",
+      "legal.overtime.daily_limit",
+      "legal.overtime.daily_limit",
+      "legal.overtime.weekly_limit",
+      "legal.overtime.rate_tier_2"
+    ],
+    "retrieved_versions": [
+      "legal.overtime.weekly_limit@v1",
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.daily_limit@v1",
+      "legal.overtime.weekly_limit@v1",
+      "legal.overtime.rate_tier_2@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.overtime.weekly_limit",
+      "id: legal.overtime.daily_limit",
+      "parameters:\n  applies_to_employment_types:\n  - full_time\n  - part_time\n  max_hours: 2\n",
+      "description:\n  en: Weekly overtime limit\n  he: מגבלת שעות נוספות שבועיות\n",
+      "id: legal.overtime.rate_tier_2"
+    ],
+    "sources": [
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6421770988627381,
+        "chunk_id": "legal.overtime.weekly_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6246334139308203,
+        "chunk_id": "legal.overtime.daily_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6095784520350982,
+        "chunk_id": "legal.overtime.daily_limit::v1::calculation::1"
+      },
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5917317600181833,
+        "chunk_id": "legal.overtime.weekly_limit::v1::definition::0"
+      },
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5859552475173746,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::identity::2"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": true,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "first_relevant_rank": 1,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.6421770988627381,
+      0.6246334139308203,
+      0.6095784520350982,
+      0.5917317600181833,
+      0.5859552475173746
+    ],
+    "hit_at_5": true,
+    "recall_at_5": 1.0,
+    "mrr": 1.0,
+    "first_relevant_rank": 1,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": true,
+    "temporal_detail": "matched:legal.overtime.weekly_limit@v1",
+    "error": null,
+    "status": "completed"
+  },
+  {
+    "case_id": "unsupported_topic_weekly_rest",
+    "question": "What are the approved weekly rest work premium rates?",
+    "reference_answer": "If no approved YAML rule covers weekly rest premiums, state that approved knowledge is unavailable; do not invent rates.",
+    "generated_answer": "Based on the provided evidence, here are the approved weekly rest work premium rates:\n\n1. **Rate Tier 1**: For hours worked beyond the daily limit but within the weekly limit.\n   - Rate: `legal.overtime.rate_tier_1` = 1.5 times the regular hourly wage.\n\n2. **Rate Tier 2**: For hours worked beyond the weekly limit.\n   - Rate: `legal.overtime.rate_tier_2` = 2 times the regular hourly wage.\n\nHowever, there is no specific information provided about the approved premium rates for weekly rest work in the given evidence. Therefore, I cannot provide a direct answer to your question based on the retrieved legal evidence alone.",
+    "effective_date": "2026-06-01",
+    "expected_rule_ids": [],
+    "retrieved_rule_ids": [
+      "legal.overtime.weekly_limit",
+      "legal.overtime.rate_tier_1",
+      "legal.overtime.rate_tier_2",
+      "legal.overtime.daily_limit",
+      "legal.pension.employer_contribution"
+    ],
+    "retrieved_versions": [
+      "legal.overtime.weekly_limit@v1",
+      "legal.overtime.rate_tier_1@v1",
+      "legal.overtime.rate_tier_2@v1",
+      "legal.overtime.daily_limit@v1",
+      "legal.pension.employer_contribution@v1"
+    ],
+    "retrieved_contexts": [
+      "id: legal.overtime.weekly_limit",
+      "id: legal.overtime.rate_tier_1",
+      "id: legal.overtime.rate_tier_2",
+      "legal_reference:\n  en: Hours of Work and Rest Law, 1951, Section 16\n  he: חוק שעות עבודה ומנוחה, תשי\"א-1951, סעיף 16\n",
+      "parameters:\n  minimum_rate: 0.065\n"
+    ],
+    "sources": [
+      {
+        "title": "legal.overtime.weekly_limit",
+        "rule_id": "legal.overtime.weekly_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6285773540077316,
+        "chunk_id": "legal.overtime.weekly_limit::v1::identity::3"
+      },
+      {
+        "title": "legal.overtime.rate_tier_1",
+        "rule_id": "legal.overtime.rate_tier_1",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6084135712365932,
+        "chunk_id": "legal.overtime.rate_tier_1::v1::identity::2"
+      },
+      {
+        "title": "legal.overtime.rate_tier_2",
+        "rule_id": "legal.overtime.rate_tier_2",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.6021468809956609,
+        "chunk_id": "legal.overtime.rate_tier_2::v1::identity::2"
+      },
+      {
+        "title": "legal.overtime.daily_limit",
+        "rule_id": "legal.overtime.daily_limit",
+        "rule_version": "1",
+        "source_reference": "overtime.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5885147635238224,
+        "chunk_id": "legal.overtime.daily_limit::v1::source::2"
+      },
+      {
+        "title": "legal.pension.employer_contribution",
+        "rule_id": "legal.pension.employer_contribution",
+        "rule_version": "1",
+        "source_reference": "pension.yaml",
+        "valid_from": "2026-01-01",
+        "valid_to": null,
+        "authority_level": "OFFICIAL",
+        "score": 0.5857618627342237,
+        "chunk_id": "legal.pension.employer_contribution::v1::calculation::1"
+      }
+    ],
+    "retrieval_mode": "vector",
+    "retrieval_diagnostics": {
+      "retrieval_mode": "vector",
+      "effective_date_mode": "explicit",
+      "effective_date": "2026-06-01",
+      "scope": "general",
+      "hit_count": 5,
+      "hit_at_k": null,
+      "recall_at_k": null,
+      "mrr": null,
+      "first_relevant_rank": null,
+      "fallback_occurred": false
+    },
+    "retrieval_scores": [
+      0.6285773540077316,
+      0.6084135712365932,
+      0.6021468809956609,
+      0.5885147635238224,
+      0.5857618627342237
+    ],
+    "hit_at_5": null,
+    "recall_at_5": null,
+    "mrr": null,
+    "first_relevant_rank": null,
+    "faithfulness": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_precision": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "context_recall": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "answer_relevancy": {
+      "value": null,
+      "status": "error",
+      "reason": "OpenAIError: Missing credentials. Please pass an `api_key`, `workload_identity`, `admin_api_key`, or set the `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY` environment variable."
+    },
+    "temporal_pass": null,
+    "temporal_detail": "no_expected_rule_ids",
+    "error": null,
+    "status": "completed"
+  }
+]

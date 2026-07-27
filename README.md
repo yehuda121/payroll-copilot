@@ -854,8 +854,10 @@ Admin-only debugger (`/admin/document-lab`) for OCR → parser → validation on
 | `CLOUDWATCH_METRICS_NAMESPACE` | Custom metrics namespace (default `PayrollCopilot`) |
 | `CLOUDWATCH_LOG_GROUP` | Log group name for platform log shipping |
 | `DATABASE_URL` | Optional legacy Postgres only |
+| `LEGAL_RAG_RERANK_ENABLED` | Optional legal-chunk rerank (`false` by default; keep off until Phase 4) |
+| `LEGAL_RAG_RERANK_MODEL` | Default `BAAI/bge-reranker-v2-m3` (requires `pip install '.[legal-rerank]'`) |
 
-Full lists: `.env.production.example`, `.env.docker.example`.
+Legal RAG rerank details: [docs/legal-rag-rerank.md](docs/legal-rag-rerank.md). Full lists: `.env.production.example`, `.env.docker.example`.
 
 ---
 
@@ -930,6 +932,7 @@ Smoke: `GET /health`, guest assistant chat, document upload, guest/employee extr
 - Legal Knowledge platform: temporal rule catalog overlay, source registry, MCP/manual/scheduled sync service (proposals only), developer_admin approval, audit hooks
 - Durable legal sync/proposal/eval metadata in DynamoDB (`LEGAL#SYSTEM`); file adapter for tests via `LEGAL_KNOWLEDGE_STORE=file`
 - Version-aware Vector RAG via **persistent ChromaDB** (NumPy adapter retained for tests) with observable YAML fallback in LangGraph assistant
+- Optional **local multilingual legal-chunk reranker** (`BAAI/bge-reranker-v2-m3` behind `LegalChunkReranker`) — **disabled by default**; fail-open to vector order. See [docs/legal-rag-rerank.md](docs/legal-rag-rerank.md)
 - SSRF-hardened legal source fetch (HTTPS allowlist, private IP block, size/timeout limits)
 - RAG Evaluation vertical (RAGAS adapter + Temporal Retrieval Accuracy + benchmark_v1 with 24 cases) with separate Admin UI
 - Admin Legal Knowledge + RAG Evaluation pages (production nav)
@@ -945,6 +948,7 @@ Smoke: `GET /health`, guest assistant chat, document upload, guest/employee extr
 - Official watched legal source URLs (registry slots exist; **SOURCE_UNVERIFIED** — no invented gov URLs)
 - Scheduled legal sync hook exists; **LEGAL_SYNC_SCHEDULE_ENABLED=false** until official sources configured
 - Live RAGAS numeric scores require embedding + judge provider credentials in the environment
+- Legal RAG reranker integrated and A/B’d vs Phase 1 baseline; **kept off by default** after MRR regression on the 24-case benchmark (see [docs/legal-rag-rerank.md](docs/legal-rag-rerank.md))
 
 ### Planned
 
@@ -961,6 +965,7 @@ Smoke: `GET /health`, guest assistant chat, document upload, guest/employee extr
 
 | Document | Description |
 |----------|-------------|
+| [docs/legal-rag-rerank.md](docs/legal-rag-rerank.md) | Legal vector RAG reranker (Phases 1–3): model choice, config, fail-open, A/B |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture (DynamoDB, AWS, auth) — preferred source of truth |
 | [docs/vacation-email.md](docs/vacation-email.md) | VacationRequest SoT, n8n vs PC responsibilities, dual-gate cutover |
 | [docs/n8n-vacation-workflow.md](docs/n8n-vacation-workflow.md) | Node-by-node Gmail unread-safe n8n build guide |

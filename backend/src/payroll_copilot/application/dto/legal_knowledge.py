@@ -189,6 +189,12 @@ class EvaluationCaseResult(BaseModel):
     sources: list[dict[str, Any]] = Field(default_factory=list)
     retrieval_mode: str | None = None
     retrieval_diagnostics: dict[str, Any] = Field(default_factory=dict)
+    # Deterministic retrieval metrics (rule-id based; no extra deps).
+    retrieval_scores: list[float] = Field(default_factory=list)
+    hit_at_5: bool | None = None
+    recall_at_5: float | None = None
+    mrr: float | None = None
+    first_relevant_rank: int | None = None
     faithfulness: RagEvalMetricValue = Field(default_factory=RagEvalMetricValue)
     context_precision: RagEvalMetricValue = Field(default_factory=RagEvalMetricValue)
     context_recall: RagEvalMetricValue = Field(default_factory=RagEvalMetricValue)
@@ -216,5 +222,11 @@ class EvaluationRun(BaseModel):
     context_recall: RagEvalMetricValue = Field(default_factory=RagEvalMetricValue)
     answer_relevancy: RagEvalMetricValue = Field(default_factory=RagEvalMetricValue)
     temporal_accuracy: RagEvalMetricValue = Field(default_factory=RagEvalMetricValue)
+    # Aggregate retrieval metrics across cases that have expected_rule_ids.
+    hit_rate_at_5: RagEvalMetricValue = Field(default_factory=RagEvalMetricValue)
+    recall_at_5: RagEvalMetricValue = Field(default_factory=RagEvalMetricValue)
+    mrr: RagEvalMetricValue = Field(default_factory=RagEvalMetricValue)
+    # Non-secret reproducibility snapshot for BEFORE/AFTER comparisons.
+    baseline_config: dict[str, Any] = Field(default_factory=dict)
     triggered_by: str | None = None
     error: str | None = None

@@ -523,7 +523,8 @@ export const employeePortalService = {
   async approveFinding(input: {
     documentId: string;
     validationRunId: string;
-    findingId: string;
+    findingId?: string;
+    ruleId?: string;
     acknowledgement: boolean;
     reason?: string;
   }): Promise<unknown> {
@@ -533,6 +534,7 @@ export const employeePortalService = {
         document_id: input.documentId,
         validation_run_id: input.validationRunId,
         finding_id: input.findingId,
+        rule_id: input.ruleId,
         acknowledgement: input.acknowledgement,
         reason: input.reason,
       }),

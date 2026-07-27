@@ -64,6 +64,7 @@ export function EmployeeValidationAiButton({
         setRecommendation(result.recommended_action);
       }
     } catch {
+      // Network/"Failed to fetch" must not surface as a validation-area hard error.
       setError(t('employee.validation.aiUnavailable'));
       setExplanation(staticExplanation ?? null);
     } finally {

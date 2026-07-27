@@ -67,6 +67,7 @@ export type ValidationRunResponse = {
     reason_code?: string | null;
     message?: string | null;
   }>;
+  manual_approvals?: Array<Record<string, unknown>>;
 };
 
 export type DocumentLanguage = 'he' | 'en' | 'ar' | 'auto';

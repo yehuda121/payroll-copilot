@@ -400,10 +400,42 @@ def validate_extracted_field_evidence(
     )
 
 
+_EMPLOYEE_NAME_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", re.UNICODE)
+_EMPLOYEE_NAME_URL_RE = re.compile(
+    r"(?i)^(https?://|www\.)|[a-z0-9.-]+\.(com|org|net|il|co\.il|org\.il)\b"
+)
+_EMPLOYEE_NAME_DATE_RE = re.compile(
+    r"^\d{1,2}[./\-]\d{1,2}[./\-]\d{2,4}$|^\d{4}[./\-]\d{1,2}[./\-]\d{1,2}$"
+)
+_EMPLOYEE_NAME_MONEY_RE = re.compile(
+    r"^[₪$€£]?\s*-?\d{1,3}(?:[,\s]\d{3})*(?:\.\d+)?\s*[₪$€£]?$|^-?\d+(?:\.\d+)?$"
+)
+_EMPLOYEE_NAME_EMPLOYER_MARKERS_RE = re.compile(
+    r"(?i)\b(ltd|llc|inc|corp|gmbh|plc|limited|company)\b"
+    r"|בע\"?מ|בעמ|ע\.?\s*מ\.?|ח\.?\s*פ\.?|עמותה|שותפות|חברה\s+לתועלת"
+)
+_EMPLOYEE_NAME_FIELD_CAPTION_RE = re.compile(
+    r"(?i)^(שם(\s*ה?עובד)?|employee\s*name|full\s*name|שם\s*פרטי|שם\s*משפחה"
+    r"|ת\.?\s*ז\.?|תעודת\s*זהות|national\s*id|id\s*number"
+    r"|מספר\s*עובד|employee\s*(no\.?|number|id)|מחלקה|department)$"
+)
+
+
+def employee_name_looks_like_field_caption(value: object) -> bool:
+    """True when text is a payslip field caption rather than a person name."""
+    if value is None:
+        return False
+    text = str(value).strip()
+    if not text:
+        return False
+    return bool(_EMPLOYEE_NAME_FIELD_CAPTION_RE.match(text))
+
+
 def employee_name_implausible_reason(value: object) -> str | None:
     """Return a warning code when employee_name is semantically implausible.
 
-    Never suggests a replacement value — callers must only downgrade honesty.
+    Never suggests a replacement value — callers must only downgrade honesty /
+    reject at grounding. Unicode-aware (Hebrew / Arabic / Latin letters).
     """
     if value is None:
         return None
@@ -412,15 +444,29 @@ def employee_name_implausible_reason(value: object) -> str | None:
     text = str(value).strip()
     if not text:
         return None
-    compact = re.sub(r"\s+", "", text)
-    if not compact:
-        return None
-    letters = [ch for ch in text if ch.isalpha()]
-    if not letters:
-        if any(ch.isdigit() for ch in compact):
+    if employee_name_looks_like_field_caption(text):
+        return "implausible_employee_name_field_caption"
+    if _EMPLOYEE_NAME_EMAIL_RE.match(text):
+        return "implausible_employee_name_email"
+    compact_ws = re.sub(r"\s+", "", text)
+    if _EMPLOYEE_NAME_URL_RE.search(text) or _EMPLOYEE_NAME_URL_RE.search(compact_ws):
+        return "implausible_employee_name_url"
+    if _EMPLOYEE_NAME_DATE_RE.match(text) or _EMPLOYEE_NAME_DATE_RE.match(compact_ws):
+        return "implausible_employee_name_date"
+    # NID / employee-number shaped digit strings (no letters).
+    digits_only = re.sub(r"\D", "", text)
+    letter_chars = [ch for ch in text if ch.isalpha()]
+    if not letter_chars:
+        if digits_only and digits_only == re.sub(r"[\s\-./]", "", text):
             return "implausible_employee_name_numeric_only"
+        if any(ch.isdigit() for ch in text):
+            return "implausible_employee_name_numeric_only"
+        if _EMPLOYEE_NAME_MONEY_RE.match(text.strip()):
+            return "implausible_employee_name_monetary"
         return "implausible_employee_name_no_letters"
-    if len(letters) == 1:
+    if _EMPLOYEE_NAME_EMPLOYER_MARKERS_RE.search(text):
+        return "implausible_employee_name_employer_like"
+    if len(letter_chars) == 1:
         return "implausible_employee_name_too_short"
     return None
 

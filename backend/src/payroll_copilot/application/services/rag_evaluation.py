@@ -21,6 +21,9 @@ from payroll_copilot.infrastructure.persistence.legal_knowledge_store import Leg
 
 logger = logging.getLogger(__name__)
 
+# Modes that are not a valid vector-RAG baseline (must not silently score).
+_INVALID_VECTOR_MODES = frozenset({"yaml_fallback", "unavailable", "unknown", ""})
+
 
 class RagEvaluationService:
     def __init__(
@@ -31,11 +34,15 @@ class RagEvaluationService:
         model: ModelProvider | None,
         ragas: RagasAdapter | None = None,
         benchmark_path: Path | str | None = None,
+        baseline_config: dict[str, Any] | None = None,
+        retrieval_top_k: int = 5,
     ) -> None:
         self._store = store
         self._retriever = retriever
         self._model = model
         self._ragas = ragas or RagasAdapter()
+        self._baseline_config = dict(baseline_config or {})
+        self._retrieval_top_k = max(1, int(retrieval_top_k))
         if benchmark_path is None:
             root = Path(__file__).resolve().parents[4]
             benchmark_path = root / "config" / "rag_eval" / "benchmark_v1.json"
@@ -51,16 +58,35 @@ class RagEvaluationService:
             raise RuntimeError("evaluation_already_running")
 
         dataset = self.load_benchmark()
+        provider = getattr(self._model, "_provider_name", None) or getattr(
+            self._model, "provider_name", None
+        )
+        model_name = getattr(self._model, "_default_model", None) or getattr(
+            self._model, "model_name", None
+        )
         run = EvaluationRun(
             run_id=str(uuid4()),
             dataset_version=str(dataset.get("dataset_version") or "unknown"),
             status="RUNNING",
             started_at=datetime.now(timezone.utc),
-            provider=getattr(self._model, "provider_name", None) if self._model else None,
-            model=getattr(self._model, "model_name", None) if self._model else None,
+            provider=str(provider) if provider else None,
+            model=str(model_name) if model_name else None,
             prompt_version="payroll_assistant_grounded_v1",
             case_count=0,
             triggered_by=triggered_by,
+            baseline_config={
+                **self._baseline_config,
+                "benchmark_path": str(self._benchmark_path),
+                "dataset_version": str(dataset.get("dataset_version") or "unknown"),
+                "retrieval_top_k": self._retrieval_top_k,
+                "rerank_enabled": False,
+                "answer_provider": str(provider) if provider else None,
+                "answer_model": str(model_name) if model_name else None,
+                "ragas_available": bool(self._ragas.available),
+                "ragas_version": self._ragas.version,
+                "ragas_import_error": getattr(self._ragas, "_import_error", None),
+                "ragas_judge": getattr(self._ragas, "judge_config", None),
+            },
         )
         if not self._store.acquire_eval_lock(run.run_id):
             raise RuntimeError("evaluation_already_running")
@@ -86,6 +112,9 @@ class RagEvaluationService:
             run.context_recall = _aggregate([c.context_recall for c in cases_out])
             run.answer_relevancy = _aggregate([c.answer_relevancy for c in cases_out])
             run.temporal_accuracy = _temporal_aggregate(cases_out)
+            run.hit_rate_at_5 = _aggregate_bool([c.hit_at_5 for c in cases_out])
+            run.recall_at_5 = _aggregate_float([c.recall_at_5 for c in cases_out])
+            run.mrr = _aggregate_float([c.mrr for c in cases_out])
             run.status = "COMPLETED"
             run.completed_at = datetime.now(timezone.utc)
             self._store.save_evaluation_run(run)
@@ -126,35 +155,58 @@ class RagEvaluationService:
             retrieval = await self._retriever.retrieve(
                 question,
                 effective_date=effective,
-                top_k=5,
+                top_k=self._retrieval_top_k,
             )
             hits = retrieval.get("hits") or []
             diagnostics = dict(retrieval.get("diagnostics") or {})
             result.retrieval_diagnostics = diagnostics
             result.retrieval_mode = str(diagnostics.get("retrieval_mode") or "unknown")
-            if result.retrieval_mode == "yaml_fallback":
-                # Evaluation must use the real vector RAG path — mark case error honestly.
-                result.error = "evaluation_used_yaml_fallback"
-                result.status = "error"
-                result.faithfulness = RagEvalMetricValue(
-                    status="unavailable", reason="yaml_fallback_not_allowed_in_eval"
-                )
-                result.context_precision = RagEvalMetricValue(
-                    status="unavailable", reason="yaml_fallback_not_allowed_in_eval"
-                )
-                result.context_recall = RagEvalMetricValue(
-                    status="unavailable", reason="yaml_fallback_not_allowed_in_eval"
-                )
-                result.answer_relevancy = RagEvalMetricValue(
-                    status="unavailable", reason="yaml_fallback_not_allowed_in_eval"
-                )
-                return result
-            contexts = [str(h.get("text") or "") for h in hits if h.get("text")]
-            result.retrieved_contexts = contexts
+
+            # Persist retrieval ordering metadata without inventing scores.
+            result.retrieval_scores = [
+                float(h["score"]) for h in hits if h.get("score") is not None
+            ]
             result.retrieved_rule_ids = [str(h.get("rule_id")) for h in hits if h.get("rule_id")]
             result.retrieved_versions = [
                 f"{h.get('rule_id')}@v{h.get('rule_version')}" for h in hits if h.get("rule_id")
             ]
+            hit_metrics = _retrieval_metrics(
+                expected_rules=expected_rules,
+                retrieved_rule_ids=result.retrieved_rule_ids,
+                k=self._retrieval_top_k,
+            )
+            result.hit_at_5 = hit_metrics["hit_at_k"]
+            result.recall_at_5 = hit_metrics["recall_at_k"]
+            result.mrr = hit_metrics["mrr"]
+            result.first_relevant_rank = hit_metrics["first_relevant_rank"]
+            diagnostics["hit_at_k"] = hit_metrics["hit_at_k"]
+            diagnostics["recall_at_k"] = hit_metrics["recall_at_k"]
+            diagnostics["mrr"] = hit_metrics["mrr"]
+            diagnostics["first_relevant_rank"] = hit_metrics["first_relevant_rank"]
+            diagnostics["fallback_occurred"] = result.retrieval_mode in _INVALID_VECTOR_MODES
+            result.retrieval_diagnostics = diagnostics
+
+            if result.retrieval_mode in _INVALID_VECTOR_MODES:
+                reason = (
+                    "yaml_fallback_not_allowed_in_eval"
+                    if result.retrieval_mode == "yaml_fallback"
+                    else f"vector_retrieval_invalid:{result.retrieval_mode}"
+                )
+                result.error = (
+                    "evaluation_used_yaml_fallback"
+                    if result.retrieval_mode == "yaml_fallback"
+                    else f"evaluation_vector_unavailable:{diagnostics.get('reason') or result.retrieval_mode}"
+                )
+                result.status = "error"
+                unavailable = RagEvalMetricValue(status="unavailable", reason=reason)
+                result.faithfulness = unavailable
+                result.context_precision = unavailable
+                result.context_recall = unavailable
+                result.answer_relevancy = unavailable
+                return result
+
+            contexts = [str(h.get("text") or "") for h in hits if h.get("text")]
+            result.retrieved_contexts = contexts
             result.sources = [
                 {
                     "title": h.get("title"),
@@ -164,6 +216,8 @@ class RagEvaluationService:
                     "valid_from": h.get("valid_from"),
                     "valid_to": h.get("valid_to"),
                     "authority_level": h.get("authority_level"),
+                    "score": h.get("score"),
+                    "chunk_id": h.get("chunk_id"),
                 }
                 for h in hits
             ]
@@ -230,6 +284,36 @@ class RagEvaluationService:
         return result.content or ""
 
 
+def _retrieval_metrics(
+    *,
+    expected_rules: list[str],
+    retrieved_rule_ids: list[str],
+    k: int,
+) -> dict[str, Any]:
+    """HitRate@k / Recall@k / MRR from expected rule ids (no external deps)."""
+    if not expected_rules:
+        return {
+            "hit_at_k": None,
+            "recall_at_k": None,
+            "mrr": None,
+            "first_relevant_rank": None,
+        }
+    expected = set(expected_rules)
+    top = retrieved_rule_ids[:k]
+    hits = [rid for rid in top if rid in expected]
+    first_rank: int | None = None
+    for idx, rid in enumerate(top, start=1):
+        if rid in expected:
+            first_rank = idx
+            break
+    return {
+        "hit_at_k": bool(hits),
+        "recall_at_k": (len(set(hits)) / len(expected)) if expected else None,
+        "mrr": (1.0 / first_rank) if first_rank else 0.0,
+        "first_relevant_rank": first_rank,
+    }
+
+
 def _temporal_check(
     *,
     expected_rules: list[str],
@@ -265,14 +349,51 @@ def _temporal_check(
 
 
 def _aggregate(values: list[RagEvalMetricValue]) -> RagEvalMetricValue:
-    ok = [v.value for v in values if v.status == "ok" and v.value is not None]
+    import math
+
+    ok = [
+        v.value
+        for v in values
+        if v.status == "ok"
+        and v.value is not None
+        and not (isinstance(v.value, float) and math.isnan(v.value))
+    ]
     if not ok:
         reasons = [v.reason or v.status for v in values if v.status != "ok"]
+        nan_count = sum(
+            1
+            for v in values
+            if v.status == "ok"
+            and isinstance(v.value, float)
+            and math.isnan(v.value)
+        )
+        if nan_count and not reasons:
+            reasons = [f"nan_scores:{nan_count}"]
         return RagEvalMetricValue(
             status="unavailable",
             reason="; ".join(reasons[:5]) or "no_ok_scores",
         )
     return RagEvalMetricValue(value=sum(ok) / len(ok), status="ok")
+
+
+def _aggregate_bool(values: list[bool | None]) -> RagEvalMetricValue:
+    scored = [v for v in values if v is not None]
+    if not scored:
+        return RagEvalMetricValue(status="unavailable", reason="no_retrieval_metric_cases")
+    return RagEvalMetricValue(value=sum(1 for v in scored if v) / len(scored), status="ok")
+
+
+def _aggregate_float(values: list[float | None]) -> RagEvalMetricValue:
+    import math
+
+    scored = [
+        v
+        for v in values
+        if v is not None and not (isinstance(v, float) and math.isnan(v))
+    ]
+    if not scored:
+        return RagEvalMetricValue(status="unavailable", reason="no_retrieval_metric_cases")
+    return RagEvalMetricValue(value=sum(scored) / len(scored), status="ok")
 
 
 def _temporal_aggregate(cases: list[EvaluationCaseResult]) -> RagEvalMetricValue:

@@ -65,6 +65,7 @@ export type BatchItemReview = {
   extraction_id: string | null;
   extraction_version: number | null;
   validation_history: BatchValidationHistoryRun[];
+  manual_approvals?: Array<Record<string, unknown>>;
   explainability_enabled?: boolean;
 };
 
@@ -157,10 +158,51 @@ export const batchService = {
     );
   },
 
-  async validateItemReview(jobId: string, itemId: string): Promise<BatchItemReview> {
+  async validateItemReview(
+    jobId: string,
+    itemId: string,
+    options?: {
+      rerunScope?: 'full' | 'employee_checks' | 'law_checks' | 'rules';
+      ruleIds?: string[];
+      locale?: string;
+    },
+  ): Promise<BatchItemReview> {
     return apiRequest<BatchItemReview>(
       `/batch/jobs/${encodeURIComponent(jobId)}/items/${encodeURIComponent(itemId)}/validate`,
-      { method: 'POST', portalAuth: true },
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          rerun_scope: options?.rerunScope,
+          rule_ids: options?.ruleIds ?? [],
+          locale: options?.locale,
+        }),
+        portalAuth: true,
+      },
+    );
+  },
+
+  async approveCheck(input: {
+    documentId: string;
+    validationRunId: string;
+    ruleId: string;
+    findingId?: string | null;
+    acknowledgement: boolean;
+    reason?: string;
+  }): Promise<unknown> {
+    return apiRequest(
+      `/validation/accountant/documents/${encodeURIComponent(input.documentId)}/checks/approve`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          document_id: input.documentId,
+          validation_run_id: input.validationRunId,
+          finding_id: input.findingId ?? undefined,
+          rule_id: input.ruleId,
+          acknowledgement: input.acknowledgement,
+          reason: input.reason,
+        }),
+        portalAuth: true,
+      },
     );
   },
 

@@ -208,7 +208,11 @@ function PayslipMonthWorkspace({
         <div className="sr-only" aria-live="polite">
           {flow.statusMessage || flow.error || ''}
         </div>
-        {flow.error && (
+        {flow.error &&
+          !flow.loading &&
+          flow.tab !== 'employee_checks' &&
+          flow.tab !== 'law_checks' &&
+          flow.tab !== 'validation' && (
           <p className="chat-panel__error" role="alert">
             {flow.error}
           </p>
@@ -514,7 +518,7 @@ function ValidationTab({
   checkGroup?: 'employee_checks' | 'law_checks';
 }) {
   const { t, i18n } = useTranslation();
-  const { batchReview } = useEmployeeWorkspace();
+  const { batchReview, api: workspaceApi } = useEmployeeWorkspace();
   const history = flow.detail?.validation_history ?? [];
 
   return (
@@ -595,8 +599,40 @@ function ValidationTab({
           canRunValidation={flow.isConfirmed && !flow.isBusy && !flow.blocksConfirmation}
           validating={false}
           checkGroup={checkGroup}
-          presentation={batchReview ? 'checkRows' : 'default'}
+          presentation="checkRows"
           hideRunAction={Boolean(batchReview)}
+          errorMessage={
+            flow.tab === 'employee_checks' ||
+            flow.tab === 'law_checks' ||
+            flow.tab === 'validation'
+              ? flow.error
+              : null
+          }
+          checkActions={{
+            canRerun: true,
+            canManualApprove: true,
+            onRerunRule: async (ruleId) => {
+              await flow.runValidation('rules', [ruleId]);
+            },
+            onManualApprove: async ({ ruleId, findingId }) => {
+              if (!flow.documentId || !flow.report?.runId) return;
+              const reason = window.prompt(
+                t('employee.validation.actions.approveReasonPrompt'),
+              );
+              if (reason == null) return;
+              const trimmed = reason.trim();
+              if (!trimmed) return;
+              await workspaceApi.approveFinding({
+                documentId: flow.documentId,
+                validationRunId: flow.report.runId,
+                findingId: findingId ?? undefined,
+                ruleId,
+                acknowledgement: true,
+                reason: trimmed.slice(0, 500),
+              });
+              await flow.runValidation();
+            },
+          }}
           onRunValidation={() => {
             void flow.runValidation();
           }}
@@ -744,6 +780,10 @@ function OriginalTab({ flow }: { flow: Flow }) {
   const payslip = flow.detail?.payslip;
   const fileName = payslip?.original_filename;
 
+  useEffect(() => {
+    void flow.ensureOriginalPreview();
+  }, [flow.ensureOriginalPreview]);
+
   if (!flow.hasPayslip && !flow.documentId) {
     return <p>{t('employee.upload.originalUnavailable')}</p>;
   }
@@ -762,15 +802,25 @@ function OriginalTab({ flow }: { flow: Flow }) {
     >
       <div className="employee-original-compare__document">
         <h3>{t('employee.upload.tabOriginal')}</h3>
+        {flow.originalPreviewLoading && !flow.previewUrl ? (
+          <p className="employee-workspace-hint" role="status">
+            {t('common.loading')}
+          </p>
+        ) : null}
+        {flow.originalPreviewError ? (
+          <p className="chat-panel__error" role="alert">
+            {flow.originalPreviewError}
+          </p>
+        ) : null}
         {flow.previewUrl ? (
           <iframe
             className="employee-original-compare__frame"
             src={flow.previewUrl}
             title={fileName || t('employee.upload.tabOriginal')}
           />
-        ) : (
+        ) : !flow.originalPreviewLoading && !flow.originalPreviewError ? (
           <p>{t('employee.upload.originalUnavailable')}</p>
-        )}
+        ) : null}
       </div>
       <div className="employee-original-compare__digital">
         <EmployeeDigitalForm

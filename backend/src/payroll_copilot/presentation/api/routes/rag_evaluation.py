@@ -38,16 +38,79 @@ def _service() -> RagEvaluationService:
     settings = get_settings()
     store = get_legal_knowledge_store()
     model = None
+    answer_provider = None
+    answer_model = None
+    embedding_provider = None
+    embedding_model = None
     try:
-        model = AIProviderRouter(settings).provider_for(AICapability.ASSISTANT)
+        router = AIProviderRouter(settings)
+        # Production eval + Legal RAG retrieve embeds via the same ModelProvider
+        # instance passed into VersionAwareLegalRetriever (ASSISTANT capability).
+        route = router.route(AICapability.ASSISTANT)
+        model = route.provider
+        answer_provider = route.provider_name
+        answer_model = route.model
+        emb_route = router.route(AICapability.EMBEDDINGS)
+        embedding_provider = emb_route.provider_name
+        embedding_model = emb_route.model
     except Exception:  # noqa: BLE001
         model = None
-    retriever = VersionAwareLegalRetriever(model=model, store=store)
+    from payroll_copilot.infrastructure.rag.legal_reranker_factory import (
+        build_legal_chunk_reranker,
+    )
+
+    rerank_enabled = bool(getattr(settings, "legal_rag_rerank_enabled", False))
+    reranker = build_legal_chunk_reranker(settings) if rerank_enabled else None
+    retriever = VersionAwareLegalRetriever(
+        model=model,
+        store=store,
+        reranker=reranker,
+        rerank_enabled=rerank_enabled,
+        retrieval_top_k=int(getattr(settings, "legal_rag_retrieval_top_k", 20) or 20),
+        rerank_top_n=int(getattr(settings, "legal_rag_rerank_top_n", 5) or 5),
+        rerank_timeout_ms=int(getattr(settings, "legal_rag_rerank_timeout_ms", 250) or 250),
+    )
+    health = store.vector_health()
+    baseline_config = {
+        "phase": "baseline_before_rerank",
+        "legal_rag_enabled": bool(getattr(settings, "legal_rag_enabled", True)),
+        "legal_vector_backend": getattr(settings, "legal_vector_backend", None),
+        "legal_vector_collection": getattr(settings, "legal_vector_collection", None),
+        "legal_vector_persist_path": getattr(settings, "legal_vector_persist_path", None),
+        "vector_index_status": getattr(health, "status", None),
+        "vector_chunk_count": getattr(health, "chunk_count", None),
+        "vector_embedding_model_recorded": getattr(health, "embedding_model", None),
+        "embedding_capability_provider": embedding_provider,
+        "embedding_capability_model": embedding_model,
+        "retriever_model_provider": answer_provider,
+        "retriever_model": answer_model,
+        "note_embedding_runtime": (
+            "VersionAwareLegalRetriever.embed uses the ASSISTANT ModelProvider "
+            "instance passed to the eval service (same as chat legal RAG)."
+        ),
+        "rag_top_k_setting": getattr(settings, "rag_top_k", 5),
+        "rag_min_confidence_setting": getattr(settings, "rag_min_confidence", None),
+        "ragas_enabled_setting": bool(getattr(settings, "ragas_enabled", True)),
+        "rerank_enabled": rerank_enabled,
+        "legal_rag_retrieval_top_k": int(
+            getattr(settings, "legal_rag_retrieval_top_k", 20) or 20
+        ),
+        "legal_rag_rerank_top_n": int(getattr(settings, "legal_rag_rerank_top_n", 5) or 5),
+        "legal_rag_rerank_model": str(
+            getattr(settings, "legal_rag_rerank_model", "") or ""
+        )
+        or None,
+        "legal_rag_rerank_timeout_ms": int(
+            getattr(settings, "legal_rag_rerank_timeout_ms", 250) or 250
+        ),
+    }
     return RagEvaluationService(
         store=store,
         retriever=retriever,
         model=model,
         ragas=RagasAdapter(enabled=settings.ragas_enabled),
+        baseline_config=baseline_config,
+        retrieval_top_k=int(getattr(settings, "rag_top_k", 5) or 5),
     )
 
 

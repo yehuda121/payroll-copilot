@@ -1,0 +1,716 @@
+{
+  "executive": "REJECT RERANKER",
+  "phase1_baseline": "data\\rag_eval_baselines\\baseline_91cbde6f-ca42-4cba-a83c-3fce49ce08dd.json",
+  "after_run_id": "29e2676a-17f9-45b6-aaae-8e2a81fb9299",
+  "elapsed_ms": 394892.9165999871,
+  "model_warm_ms": 8622.09709995659,
+  "comparison": {
+    "hit_rate_at_5": {
+      "before": 0.9545454545454546,
+      "after": 0.9545454545454546,
+      "delta": 0.0,
+      "before_status": "ok",
+      "after_status": "ok"
+    },
+    "recall_at_5": {
+      "before": 0.9545454545454546,
+      "after": 0.9545454545454546,
+      "delta": 0.0,
+      "before_status": "ok",
+      "after_status": "ok"
+    },
+    "mrr": {
+      "before": 0.9318181818181818,
+      "after": 0.8787878787878788,
+      "delta": -0.05303030303030298,
+      "before_status": "ok",
+      "after_status": "ok"
+    },
+    "temporal_accuracy": {
+      "before": 0.9545454545454546,
+      "after": 0.9545454545454546,
+      "delta": 0.0,
+      "before_status": "ok",
+      "after_status": "ok"
+    },
+    "faithfulness": {
+      "before": 0.7291235334713595,
+      "after": 0.7060041407867494,
+      "delta": -0.02311939268461005,
+      "before_status": "ok",
+      "after_status": "ok"
+    },
+    "context_recall": {
+      "before": 0.38636363636363635,
+      "after": 0.30434782608695654,
+      "delta": -0.08201581027667981,
+      "before_status": "ok",
+      "after_status": "ok"
+    },
+    "answer_relevancy": {
+      "before": 0.2833643297393118,
+      "after": 0.4845970425110479,
+      "delta": 0.2012327127717361,
+      "before_status": "ok",
+      "after_status": "ok"
+    },
+    "context_precision": {
+      "before": 0.06521739129782608,
+      "after": 0.13043478259673913,
+      "delta": 0.06521739129891305,
+      "before_status": "ok",
+      "after_status": "ok"
+    }
+  },
+  "ranking_changes": {
+    "order_changed_cases": 23,
+    "first_relevant_rank_improved": 0,
+    "first_relevant_rank_regressed": 2,
+    "rerank_fallback_count": 0
+  },
+  "per_case": [
+    {
+      "case_id": "mw_definition_current",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.minimum_wage",
+        "legal.minimum_wage",
+        "legal.pension.employer_contribution",
+        "legal.pension.contribution",
+        "legal.minimum_wage"
+      ],
+      "after_retrieved": [
+        "legal.minimum_wage",
+        "legal.minimum_wage",
+        "legal.minimum_wage",
+        "legal.pension.contribution",
+        "legal.minimum_wage"
+      ]
+    },
+    {
+      "case_id": "mw_paraphrase",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.minimum_wage",
+        "legal.pension.employer_contribution",
+        "legal.minimum_wage",
+        "legal.overtime.rate_tier_2",
+        "legal.pension.contribution"
+      ],
+      "after_retrieved": [
+        "legal.minimum_wage",
+        "legal.minimum_wage",
+        "legal.minimum_wage",
+        "legal.youth.max_daily_hours",
+        "legal.overtime.daily_limit"
+      ]
+    },
+    {
+      "case_id": "mw_historical_date",
+      "order_changed": false,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": null,
+      "after_first_relevant_rank": null,
+      "rank_delta": null,
+      "before_hit_at_5": false,
+      "after_hit_at_5": false,
+      "before_retrieved": [],
+      "after_retrieved": []
+    },
+    {
+      "case_id": "ot_daily_limit",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.overtime.daily_limit",
+        "legal.overtime.daily_limit",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.rate_tier_2"
+      ],
+      "after_retrieved": [
+        "legal.overtime.daily_limit",
+        "legal.overtime.daily_limit",
+        "legal.overtime.rate_tier_2",
+        "legal.youth.max_daily_hours",
+        "legal.overtime.weekly_limit"
+      ]
+    },
+    {
+      "case_id": "ot_weekly_limit",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.overtime.weekly_limit",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.daily_limit",
+        "legal.overtime.daily_limit",
+        "legal.overtime.rate_tier_2"
+      ],
+      "after_retrieved": [
+        "legal.overtime.weekly_limit",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.rate_tier_2",
+        "legal.youth.max_daily_hours",
+        "legal.overtime.weekly_limit"
+      ]
+    },
+    {
+      "case_id": "ot_rate_tier_1",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.daily_limit",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.rate_tier_2"
+      ],
+      "after_retrieved": [
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.rate_tier_2",
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.rate_tier_2",
+        "legal.overtime.weekly_limit"
+      ]
+    },
+    {
+      "case_id": "ot_rate_tier_2",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.overtime.rate_tier_2",
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.rate_tier_2",
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.rate_tier_2"
+      ],
+      "after_retrieved": [
+        "legal.overtime.rate_tier_2",
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.rate_tier_2",
+        "legal.vacation.annual_entitlement"
+      ]
+    },
+    {
+      "case_id": "ot_multi_chunk",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.overtime.daily_limit",
+        "legal.overtime.daily_limit",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.rate_tier_1"
+      ],
+      "after_retrieved": [
+        "legal.overtime.daily_limit",
+        "legal.transportation.max_allowance",
+        "legal.overtime.daily_limit",
+        "legal.overtime.rate_tier_1",
+        "legal.sick_leave.annual_entitlement"
+      ]
+    },
+    {
+      "case_id": "pension_employee",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 2,
+      "after_first_relevant_rank": 2,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.pension.employer_contribution",
+        "legal.pension.contribution",
+        "legal.pension.contribution",
+        "legal.pension.employer_contribution",
+        "legal.overtime.daily_limit"
+      ],
+      "after_retrieved": [
+        "legal.pension.employer_contribution",
+        "legal.pension.contribution",
+        "legal.pension.employer_contribution",
+        "legal.pension.contribution",
+        "legal.pension.contribution"
+      ]
+    },
+    {
+      "case_id": "pension_employer",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.pension.employer_contribution",
+        "legal.pension.contribution",
+        "legal.pension.employer_contribution",
+        "legal.pension.contribution",
+        "legal.pension.severance"
+      ],
+      "after_retrieved": [
+        "legal.pension.employer_contribution",
+        "legal.pension.employer_contribution",
+        "legal.pension.contribution",
+        "legal.pension.contribution",
+        "legal.pension.severance"
+      ]
+    },
+    {
+      "case_id": "pension_severance",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.pension.severance",
+        "legal.pension.severance",
+        "legal.pension.contribution",
+        "legal.pension.employer_contribution",
+        "legal.pension.contribution"
+      ],
+      "after_retrieved": [
+        "legal.pension.severance",
+        "legal.pension.severance",
+        "legal.vacation.annual_entitlement",
+        "legal.minimum_wage",
+        "legal.pension.contribution"
+      ]
+    },
+    {
+      "case_id": "vacation_entitlement",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.vacation.annual_entitlement",
+        "legal.vacation.annual_entitlement",
+        "legal.vacation.monthly_accrual",
+        "legal.vacation.monthly_accrual",
+        "legal.sick_leave.annual_entitlement"
+      ],
+      "after_retrieved": [
+        "legal.vacation.annual_entitlement",
+        "legal.vacation.annual_entitlement",
+        "legal.vacation.annual_entitlement",
+        "legal.minimum_wage",
+        "legal.sick_leave.annual_entitlement"
+      ]
+    },
+    {
+      "case_id": "vacation_accrual",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.vacation.monthly_accrual",
+        "legal.vacation.monthly_accrual",
+        "legal.vacation.annual_entitlement",
+        "legal.vacation.annual_entitlement",
+        "legal.sick_leave.annual_entitlement"
+      ],
+      "after_retrieved": [
+        "legal.vacation.monthly_accrual",
+        "legal.vacation.monthly_accrual",
+        "legal.sick_leave.annual_entitlement",
+        "legal.vacation.annual_entitlement",
+        "legal.vacation.annual_entitlement"
+      ]
+    },
+    {
+      "case_id": "sick_leave",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.sick_leave.annual_entitlement",
+        "legal.sick_leave.annual_entitlement",
+        "legal.vacation.annual_entitlement",
+        "legal.vacation.annual_entitlement",
+        "legal.overtime.daily_limit"
+      ],
+      "after_retrieved": [
+        "legal.sick_leave.annual_entitlement",
+        "legal.sick_leave.annual_entitlement",
+        "legal.vacation.annual_entitlement",
+        "legal.vacation.annual_entitlement",
+        "legal.minimum_wage"
+      ]
+    },
+    {
+      "case_id": "transport_max",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.transportation.max_allowance",
+        "legal.transportation.max_allowance",
+        "legal.transportation.public_transport",
+        "legal.overtime.daily_limit",
+        "legal.overtime.daily_limit"
+      ],
+      "after_retrieved": [
+        "legal.transportation.max_allowance",
+        "legal.transportation.max_allowance",
+        "legal.overtime.weekly_limit",
+        "legal.youth.max_daily_hours",
+        "legal.transportation.max_allowance"
+      ]
+    },
+    {
+      "case_id": "transport_public",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.transportation.public_transport",
+        "legal.transportation.public_transport",
+        "legal.transportation.public_transport",
+        "legal.transportation.max_allowance",
+        "legal.transportation.max_allowance"
+      ],
+      "after_retrieved": [
+        "legal.transportation.public_transport",
+        "legal.transportation.public_transport",
+        "legal.transportation.max_allowance",
+        "legal.transportation.max_allowance",
+        "legal.transportation.public_transport"
+      ]
+    },
+    {
+      "case_id": "tax_credit_point",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.tax.credit_point",
+        "legal.tax.credit_point",
+        "legal.pension.employer_contribution",
+        "legal.pension.contribution",
+        "legal.tax.income_brackets"
+      ],
+      "after_retrieved": [
+        "legal.tax.credit_point",
+        "legal.tax.credit_point",
+        "legal.minimum_wage",
+        "legal.sick_leave.annual_entitlement",
+        "legal.vacation.monthly_accrual"
+      ]
+    },
+    {
+      "case_id": "tax_brackets",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.tax.income_brackets",
+        "legal.tax.income_brackets",
+        "legal.tax.credit_point",
+        "legal.tax.credit_point",
+        "legal.minimum_wage"
+      ],
+      "after_retrieved": [
+        "legal.tax.income_brackets",
+        "legal.tax.income_brackets",
+        "legal.tax.income_brackets",
+        "legal.tax.income_brackets",
+        "legal.pension.employer_contribution"
+      ]
+    },
+    {
+      "case_id": "youth_age",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.youth.minimum_age",
+        "legal.youth.minimum_age",
+        "legal.youth.minimum_age",
+        "legal.youth.max_daily_hours",
+        "legal.youth.max_daily_hours"
+      ],
+      "after_retrieved": [
+        "legal.youth.minimum_age",
+        "legal.youth.minimum_age",
+        "legal.youth.minimum_age",
+        "legal.vacation.annual_entitlement",
+        "legal.youth.max_daily_hours"
+      ]
+    },
+    {
+      "case_id": "youth_hours",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 1,
+      "rank_delta": 0,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.youth.max_daily_hours",
+        "legal.youth.max_daily_hours",
+        "legal.overtime.daily_limit",
+        "legal.youth.minimum_age",
+        "legal.youth.max_daily_hours"
+      ],
+      "after_retrieved": [
+        "legal.youth.max_daily_hours",
+        "legal.youth.max_daily_hours",
+        "legal.youth.max_daily_hours",
+        "legal.overtime.daily_limit",
+        "legal.overtime.weekly_limit"
+      ]
+    },
+    {
+      "case_id": "insufficient_context",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": null,
+      "after_first_relevant_rank": null,
+      "rank_delta": null,
+      "before_hit_at_5": null,
+      "after_hit_at_5": null,
+      "before_retrieved": [
+        "legal.youth.minimum_age",
+        "legal.overtime.weekly_limit",
+        "legal.youth.max_daily_hours",
+        "legal.vacation.annual_entitlement",
+        "legal.vacation.monthly_accrual"
+      ],
+      "after_retrieved": [
+        "legal.overtime.weekly_limit",
+        "legal.transportation.max_allowance",
+        "legal.tax.credit_point",
+        "legal.tax.income_brackets",
+        "legal.overtime.daily_limit"
+      ]
+    },
+    {
+      "case_id": "misleading_unrelated",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 3,
+      "rank_delta": -2,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.minimum_wage",
+        "legal.minimum_wage",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.daily_limit",
+        "legal.overtime.rate_tier_1"
+      ],
+      "after_retrieved": [
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.rate_tier_2",
+        "legal.minimum_wage",
+        "legal.overtime.rate_tier_2",
+        "legal.minimum_wage"
+      ]
+    },
+    {
+      "case_id": "ambiguous_overtime",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": 1,
+      "after_first_relevant_rank": 2,
+      "rank_delta": -1,
+      "before_hit_at_5": true,
+      "after_hit_at_5": true,
+      "before_retrieved": [
+        "legal.overtime.weekly_limit",
+        "legal.overtime.daily_limit",
+        "legal.overtime.daily_limit",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.rate_tier_2"
+      ],
+      "after_retrieved": [
+        "legal.overtime.rate_tier_2",
+        "legal.overtime.daily_limit",
+        "legal.overtime.weekly_limit",
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.daily_limit"
+      ]
+    },
+    {
+      "case_id": "unsupported_topic_weekly_rest",
+      "order_changed": true,
+      "rerank_fallback": false,
+      "before_first_relevant_rank": null,
+      "after_first_relevant_rank": null,
+      "rank_delta": null,
+      "before_hit_at_5": null,
+      "after_hit_at_5": null,
+      "before_retrieved": [
+        "legal.overtime.weekly_limit",
+        "legal.overtime.rate_tier_1",
+        "legal.overtime.rate_tier_2",
+        "legal.overtime.daily_limit",
+        "legal.pension.employer_contribution"
+      ],
+      "after_retrieved": [
+        "legal.transportation.max_allowance",
+        "legal.minimum_wage",
+        "legal.overtime.weekly_limit",
+        "legal.pension.contribution",
+        "legal.pension.severance"
+      ]
+    }
+  ],
+  "run": {
+    "run_id": "29e2676a-17f9-45b6-aaae-8e2a81fb9299",
+    "dataset_version": "benchmark_v1",
+    "status": "COMPLETED",
+    "started_at": "2026-07-27T16:31:54.921493Z",
+    "completed_at": "2026-07-27T16:38:29.806932Z",
+    "provider": "ollama",
+    "model": "mistral-nemo:12b",
+    "prompt_version": "payroll_assistant_grounded_v1",
+    "case_count": 24,
+    "completed_cases": 24,
+    "failed_cases": 0,
+    "faithfulness": {
+      "value": 0.7060041407867494,
+      "status": "ok",
+      "reason": null
+    },
+    "context_precision": {
+      "value": 0.13043478259673913,
+      "status": "ok",
+      "reason": null
+    },
+    "context_recall": {
+      "value": 0.30434782608695654,
+      "status": "ok",
+      "reason": null
+    },
+    "answer_relevancy": {
+      "value": 0.4845970425110479,
+      "status": "ok",
+      "reason": null
+    },
+    "temporal_accuracy": {
+      "value": 0.9545454545454546,
+      "status": "ok",
+      "reason": null
+    },
+    "hit_rate_at_5": {
+      "value": 0.9545454545454546,
+      "status": "ok",
+      "reason": null
+    },
+    "recall_at_5": {
+      "value": 0.9545454545454546,
+      "status": "ok",
+      "reason": null
+    },
+    "mrr": {
+      "value": 0.8787878787878788,
+      "status": "ok",
+      "reason": null
+    },
+    "baseline_config": {
+      "phase": "phase3_ab_after_rerank",
+      "rerank_enabled": false,
+      "legal_rag_retrieval_top_k": 20,
+      "legal_rag_rerank_top_n": 5,
+      "legal_rag_rerank_model": "BAAI/bge-reranker-v2-m3",
+      "legal_rag_rerank_timeout_ms": 120000,
+      "legal_rag_rerank_device": "cpu",
+      "model_warm_ms": 8622.09709995659,
+      "compare_to_baseline": "data\\rag_eval_baselines\\baseline_91cbde6f-ca42-4cba-a83c-3fce49ce08dd.json",
+      "benchmark_path": "C:\\Users\\yehud\\Desktop\\payroll-copilot\\backend\\config\\rag_eval\\benchmark_v1.json",
+      "dataset_version": "benchmark_v1",
+      "retrieval_top_k": 5,
+      "answer_provider": "ollama",
+      "answer_model": "mistral-nemo:12b",
+      "ragas_available": true,
+      "ragas_version": "0.2.15",
+      "ragas_import_error": null,
+      "ragas_judge": {
+        "judge_provider": "openai",
+        "judge_llm_model": "gpt-4o-mini",
+        "judge_embedding_model": "text-embedding-3-small"
+      }
+    },
+    "triggered_by": "phase3_ab_cli",
+    "error": null
+  }
+}

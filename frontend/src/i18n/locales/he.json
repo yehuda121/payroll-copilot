@@ -14,6 +14,7 @@
     "themeToDark": "מעבר למצב כהה",
     "loading": "טוען…",
     "error": "משהו השתבש.",
+    "networkUnavailable": "לא ניתן להתחבר לשרת. בדקו את החיבור ונסו שוב.",
     "errorBoundaryMessage": "הקטע הזה נכשל בטעינה. אפשר לנסות שוב או להמשיך להשתמש בשאר האפליקציה.",
     "required": "חובה",
     "optional": "אופציונלי",
@@ -580,6 +581,15 @@
         "manuallyApproved": "אושר ידנית"
       },
       "coverageSummary": "{{executed}} מתוך {{total}} בדיקות הורצו",
+      "originalCheck": "תוצאה מקורית: {{status}}",
+      "actions": {
+        "runAgain": "הרץ שוב",
+        "approveManually": "אשר ידנית",
+        "approveReasonPrompt": "סיבה קצרה לאישור ידני:",
+        "approveReasonRequired": "נדרשת סיבה קצרה.",
+        "rerunFailed": "הרצת הבדיקה מחדש נכשלה.",
+        "approveFailed": "האישור הידני נכשל."
+      },
       "notRunReasons": {
         "employee_not_identified": "לא הורץ — העובד לא זוהה",
         "no_confirmed_contract": "לא הורץ — אין חוזה מאושר",

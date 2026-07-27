@@ -268,6 +268,14 @@ class Settings(BaseSettings):
     legal_vector_backend: str = "chroma"  # chroma | numpy
     legal_vector_persist_path: str = "data/chroma_legal"
     legal_vector_collection: str = "approved_legal_knowledge_v1"
+    # Optional legal-chunk rerank (Phase 2+ plumbing). Default OFF = Phase 1 behavior.
+    legal_rag_rerank_enabled: bool = False
+    legal_rag_retrieval_top_k: int = 20
+    legal_rag_rerank_top_n: int = 5
+    legal_rag_rerank_model: str = "BAAI/bge-reranker-v2-m3"
+    # CPU cross-encoder over ~20 pairs needs seconds; keep fail-open via this budget.
+    legal_rag_rerank_timeout_ms: int = 15000
+    legal_rag_rerank_device: str = ""  # empty = auto (cpu/cuda)
     legal_fetch_max_bytes: int = 2_000_000
     legal_fetch_timeout_seconds: float = 30.0
     # Scheduled legal sync (proposals only; never auto-approves). Disabled by default.

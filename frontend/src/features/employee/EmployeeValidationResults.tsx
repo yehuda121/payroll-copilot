@@ -46,6 +46,17 @@ type ValidationCard = {
 
 export type ValidationResultsGroup = 'all' | 'employee_checks' | 'law_checks';
 
+export type ValidationCheckActions = {
+  canRerun?: boolean;
+  canManualApprove?: boolean;
+  busyRuleId?: string | null;
+  onRerunRule?: (ruleId: string) => void | Promise<void>;
+  onManualApprove?: (input: {
+    ruleId: string;
+    findingId?: string | null;
+  }) => void | Promise<void>;
+};
+
 type EmployeeValidationResultsProps = {
   report: GuestValidationReport | null;
   identity: IdentityCheck | null;
@@ -58,12 +69,18 @@ type EmployeeValidationResultsProps = {
   /** Filter cards for Employee Checks / Law Checks tabs. */
   checkGroup?: ValidationResultsGroup;
   /**
-   * checkRows — Batch polish: checks are primary; summary/history metadata secondary.
-   * default — legacy compact summary-first layout.
+   * checkRows — shared Employee/Accountant layout: check cards + compact rail summary.
+   * default — legacy summary-first layout (retained for compatibility).
    */
   presentation?: 'default' | 'checkRows';
   /** When true, hide the embedded Run/Rerun control (parent owns top chrome). */
   hideRunAction?: boolean;
+  /** Per-check rerun / manual approve (Employee + Accountant). */
+  checkActions?: ValidationCheckActions;
+  /** When true, validation request is in flight — do not show empty "no results". */
+  loading?: boolean;
+  /** Surface a validation request error without clearing cards. */
+  errorMessage?: string | null;
 };
 
 export function EmployeeValidationResults({
@@ -78,6 +95,9 @@ export function EmployeeValidationResults({
   checkGroup = 'all',
   presentation = 'default',
   hideRunAction = false,
+  checkActions,
+  loading = false,
+  errorMessage = null,
 }: EmployeeValidationResultsProps) {
   const { t } = useTranslation();
   const checkFocused = presentation === 'checkRows';
@@ -253,6 +273,13 @@ export function EmployeeValidationResults({
             ? t(`employee.validation.notRunReasons.${row.skipReasonKey}`)
             : t('employee.validation.status.notRun'))
         : row.explanation;
+    const originalDeterministicLabel =
+      row.status === 'manually_approved' && row.deterministicStatus
+        ? t(`employee.validation.status.${row.deterministicStatus}`, {
+            defaultValue: row.deterministicStatus,
+          })
+        : null;
+    const busy = checkActions?.busyRuleId === row.ruleId;
     return (
       <article
         key={row.key}
@@ -267,17 +294,62 @@ export function EmployeeValidationResults({
             <span>{visual.label}</span>
           </span>
         </header>
-        {support && <p className="employee-validation-card__explain">{support}</p>}
-        {row.findingId && (
-          <div className="employee-validation-card__actions">
+        {originalDeterministicLabel && (
+          <p className="employee-validation-card__explain employee-validation-card__original">
+            {t('employee.validation.originalCheck', {
+              status: originalDeterministicLabel,
+            })}
+          </p>
+        )}
+        {row.approvalReason && (
+          <p className="employee-validation-card__explain">{row.approvalReason}</p>
+        )}
+        {support && row.status !== 'manually_approved' && (
+          <p className="employee-validation-card__explain">{support}</p>
+        )}
+        <div className="employee-validation-card__actions">
+          {checkActions?.canRerun && checkActions.onRerunRule && (
+            <button
+              type="button"
+              className="btn btn--ghost employee-validation-check-action"
+              disabled={busy || validating}
+              aria-label={t('employee.validation.actions.runAgain')}
+              title={t('employee.validation.actions.runAgain')}
+              onClick={() => {
+                void checkActions.onRerunRule?.(row.ruleId);
+              }}
+            >
+              {busy
+                ? t('employee.upload.validatingPayroll')
+                : t('employee.validation.actions.runAgain')}
+            </button>
+          )}
+          {checkActions?.canManualApprove && checkActions.onManualApprove && (
+            <button
+              type="button"
+              className="btn btn--ghost employee-validation-check-action"
+              disabled={busy || validating || row.status === 'manually_approved'}
+              aria-label={t('employee.validation.actions.approveManually')}
+              title={t('employee.validation.actions.approveManually')}
+              onClick={() => {
+                void checkActions.onManualApprove?.({
+                  ruleId: row.ruleId,
+                  findingId: row.findingId,
+                });
+              }}
+            >
+              {t('employee.validation.actions.approveManually')}
+            </button>
+          )}
+          {row.findingId && (
             <EmployeeValidationAiButton
               cardTitle={row.title}
               findingId={row.findingId}
               validationRunId={report?.runId}
               staticExplanation={row.explanation}
             />
-          </div>
-        )}
+          )}
+        </div>
       </article>
     );
   };
@@ -410,87 +482,103 @@ export function EmployeeValidationResults({
         </div>
       )}
 
-      {validating && (
+      {(validating || loading) && (
         <p className="employee-workspace-hint" role="status">
           {t('employee.upload.validatingPayroll')}
         </p>
       )}
 
-      <section
-        className="employee-validation-cards"
-        aria-label={t('employee.validation.rulesTitle')}
+      {errorMessage && !loading && !validating && (
+        <p className="employee-validation-error" role="alert">
+          {errorMessage}
+        </p>
+      )}
+
+      <div
+        className={
+          checkFocused
+            ? 'employee-validation-layout employee-validation-layout--with-summary'
+            : undefined
+        }
       >
-        {checkFocused ? (
-          catalogRows.length === 0 ? (
+        {checkFocused && (
+          <aside
+            className="employee-validation-summary employee-validation-summary--rail"
+            aria-label={t('employee.validation.summaryTitle')}
+          >
+            <h3>{t('employee.validation.summaryTitle')}</h3>
+            {report && counts.total > 0 && (
+              <p className="employee-validation-summary__coverage">
+                {t('employee.validation.coverageSummary', {
+                  executed: counts.executed,
+                  total: counts.total,
+                })}
+              </p>
+            )}
+            {fileName && (
+              <p className="employee-validation-summary__doc">
+                {t('validate.uploadedDocument')}: {fileName}
+              </p>
+            )}
+            {!report && !loading && !validating && (
+              <p className="employee-workspace-hint">{t('employee.workspace.noValidationYet')}</p>
+            )}
+            <dl className="employee-validation-summary__compact-counts">
+              <div className="is-passed">
+                <dt>{t('employee.validation.status.passed')}</dt>
+                <dd>{counts.passed}</dd>
+              </div>
+              <div className="is-failed">
+                <dt>{t('employee.validation.status.failed')}</dt>
+                <dd>{counts.failed}</dd>
+              </div>
+              <div className="is-uncertain">
+                <dt>{t('employee.validation.status.uncertain')}</dt>
+                <dd>{counts.uncertain}</dd>
+              </div>
+              <div className="is-not-run">
+                <dt>{t('employee.validation.status.notRun')}</dt>
+                <dd>{counts.unchecked}</dd>
+              </div>
+            </dl>
+          </aside>
+        )}
+
+        <section
+          className="employee-validation-cards"
+          aria-label={t('employee.validation.rulesTitle')}
+        >
+          {checkFocused ? (
+            loading || validating ? (
+              <p role="status">{t('employee.upload.validatingPayroll')}</p>
+            ) : catalogRows.length === 0 ? (
+              <p>{t('employee.validation.noRules')}</p>
+            ) : catalogGroups ? (
+              catalogGroups.map((group) => (
+                <section key={group.id} className="employee-validation-group">
+                  <h4>{t(`employee.validation.groups.${group.id}`)}</h4>
+                  {group.rows.map(renderCatalogRow)}
+                </section>
+              ))
+            ) : (
+              catalogRows.map(renderCatalogRow)
+            )
+          ) : cards.length === 0 ? (
             <p>{t('employee.validation.noRules')}</p>
-          ) : catalogGroups ? (
-            catalogGroups.map((group) => (
-              <section key={group.id} className="employee-validation-group">
-                <h4>{t(`employee.validation.groups.${group.id}`)}</h4>
-                {group.rows.map(renderCatalogRow)}
+          ) : (
+            categoryGroups.map((group) => (
+              <section key={group.category} className="employee-validation-group">
+                <h4>
+                  {t(`employee.validation.groups.${group.category}`, {
+                    defaultValue: group.category,
+                  })}
+                </h4>
+                {group.cards.map(renderCard)}
               </section>
             ))
-          ) : (
-            catalogRows.map(renderCatalogRow)
-          )
-        ) : cards.length === 0 ? (
-          <p>{t('employee.validation.noRules')}</p>
-        ) : (
-          categoryGroups.map((group) => (
-            <section key={group.category} className="employee-validation-group">
-              <h4>
-                {t(`employee.validation.groups.${group.category}`, {
-                  defaultValue: group.category,
-                })}
-              </h4>
-              {group.cards.map(renderCard)}
-            </section>
-          ))
-        )}
-      </section>
-
-      {checkFocused && (
-        <footer
-          className="employee-validation-summary employee-validation-summary--secondary"
-          aria-label={t('employee.validation.summaryTitle')}
-        >
-          {overallLabel && (
-            <p className="employee-validation-summary__overall">{overallLabel}</p>
           )}
-          {report && counts.total > 0 && (
-            <p className="employee-workspace-hint">
-              {t('employee.validation.coverageSummary', {
-                executed: counts.executed,
-                total: counts.total,
-              })}
-            </p>
-          )}
-          {report?.summary && <p className="employee-workspace-hint">{report.summary}</p>}
-          {!report && <p className="employee-workspace-hint">{t('employee.workspace.noValidationYet')}</p>}
-          <ul className="employee-validation-summary__counts" aria-label={t('employee.validation.legend')}>
-            <li className="is-passed">
-              <span aria-hidden="true">✔</span>
-              <span>{t('employee.validation.status.passed')}</span>
-              <strong>{counts.passed}</strong>
-            </li>
-            <li className="is-failed">
-              <span aria-hidden="true">❌</span>
-              <span>{t('employee.validation.status.failed')}</span>
-              <strong>{counts.failed}</strong>
-            </li>
-            <li className="is-uncertain">
-              <span aria-hidden="true">⚠</span>
-              <span>{t('employee.validation.status.uncertain')}</span>
-              <strong>{counts.uncertain}</strong>
-            </li>
-            <li className="is-not-run">
-              <span aria-hidden="true">➖</span>
-              <span>{t('employee.validation.status.notRun')}</span>
-              <strong>{counts.unchecked}</strong>
-            </li>
-          </ul>
-        </footer>
-      )}
+        </section>
+      </div>
     </div>
   );
 }

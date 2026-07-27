@@ -30,7 +30,11 @@ from payroll_copilot.application.services.dynamic_document import (
     entries_have_usable_values,
     new_entry,
 )
-from payroll_copilot.application.services.parser_evidence import normalize_numeric_token
+from payroll_copilot.application.services.parser_evidence import (
+    employee_name_implausible_reason,
+    employee_name_looks_like_field_caption,
+    normalize_numeric_token,
+)
 from payroll_copilot.application.services.payslip_field_registry import (
     FieldRequirementCategory,
     requirement_category_for_key,
@@ -71,14 +75,24 @@ You are NOT validating legal correctness (checksums, minimum wage, etc.).
 You MUST NOT invent values that are not supported by the evidence candidates or OCR text.
 You MUST NOT use employee profile / HR / account data — only the document evidence provided.
 
-Unlabeled values are valid. Header blocks often contain:
-- person name without "employee name" label
-- national ID without "ID" label
-- department / period nearby
+Unlabeled values are valid. Header / personal-details blocks often contain:
+- person name WITHOUT an explicit "שם" / "שם העובד" / "Employee Name" label
+- national ID without an "ID" label
+- employee number / employment start date / department / period nearby
+
+employee_name means the person who receives this salary — not the employer, payroll provider,
+bank, website, address, heading, or organization name.
+
+When identifying employee_name:
+- Prefer a letter-bearing person name near national_id / employee_number / personal details
+- Never use national_id digits, employee numbers, money amounts, dates, emails, or URLs as the name
+- Never use company/employer legal names (e.g. Ltd / בע"מ / company registration) as employee_name
+- Return employee_name only when a document evidence candidate supports the exact name text
 
 Distinguish carefully:
 - national_id = government Teudat Zehut (usually 9 digits)
 - employee_number / employee_id = employer payroll identifiers (NOT national ID)
+- employer_name = business / company issuing the payslip
 
 Priority:
 1. REQUIRED catalog concepts
@@ -178,15 +192,36 @@ def _normalize_status(raw: Any, confidence: float | None) -> str:
     return "FOUND"
 
 
+def _prompt_priority_tier(item: dict[str, Any]) -> int:
+    """Lower = earlier in the prompt. Prefer unlabeled person-name-like lines."""
+    label = str(item.get("label") or item.get("label_text") or "").strip()
+    value = str(item.get("value") or item.get("value_text") or "").strip()
+    relation = str(item.get("relation") or "")
+    if not value:
+        return 3
+    if employee_name_implausible_reason(value) is None and not label:
+        # Unlabeled letter-bearing OCR / unresolved values — critical for header names.
+        if relation.startswith("ocr") or relation in {"unresolved_value", "unlabeled_value"}:
+            return 0
+        return 1
+    if employee_name_implausible_reason(value) is None:
+        return 2
+    return 3
+
+
 def _compact_candidates_for_prompt(
     llm_candidates: list[dict[str, Any]],
     *,
     max_items: int = 220,
 ) -> list[dict[str, Any]]:
+    indexed = [
+        (idx, item)
+        for idx, item in enumerate(llm_candidates)
+        if isinstance(item, dict)
+    ]
+    ordered = [item for _, item in sorted(indexed, key=lambda pair: (_prompt_priority_tier(pair[1]), pair[0]))]
     compact: list[dict[str, Any]] = []
-    for item in llm_candidates[:max_items]:
-        if not isinstance(item, dict):
-            continue
+    for item in ordered[:max_items]:
         row = {
             "id": item.get("candidate_id") or item.get("id"),
             "label": item.get("label"),
@@ -200,6 +235,64 @@ def _compact_candidates_for_prompt(
         # Omit nulls to keep prompt compact.
         compact.append({k: v for k, v in row.items() if v not in (None, "", [])})
     return compact
+
+
+def _employee_name_reject_warning(reason: str) -> str:
+    if reason in {
+        "implausible_employee_name_numeric_only",
+        "implausible_employee_name_monetary",
+        "implausible_employee_name_date",
+    }:
+        return f"employee_name_rejected_numeric:{reason}"
+    if reason == "implausible_employee_name_employer_like":
+        return f"employee_name_rejected_employer_like:{reason}"
+    if reason in {
+        "implausible_employee_name_url",
+        "implausible_employee_name_email",
+    }:
+        return f"employee_name_rejected_url:{reason}"
+    return f"employee_name_rejected_unsupported:{reason}"
+
+
+def _employee_name_outcome_from_warnings(
+    warnings: list[str],
+    *,
+    has_entry: bool,
+    listed_not_found: bool,
+) -> str:
+    """Non-PII diagnostic category for employee_name grounding."""
+    joined = " ".join(warnings)
+    if has_entry and "employee_name_grounded" in joined:
+        return "employee_name_grounded"
+    if "employee_name_rejected_numeric" in joined:
+        return "employee_name_rejected_numeric"
+    if "employee_name_rejected_employer_like" in joined:
+        return "employee_name_rejected_employer_like"
+    if "employee_name_rejected_url" in joined:
+        return "employee_name_rejected_url"
+    if "employee_name_rejected_unsupported" in joined or "unsupported_model_value_rejected" in joined:
+        return "employee_name_rejected_unsupported"
+    if listed_not_found or not has_entry:
+        return "employee_name_missing"
+    return "employee_name_candidate_found"
+
+
+def _hydrate_employee_name_from_candidates(
+    resolved: list[dict[str, Any]],
+) -> tuple[dict[str, Any] | None, Any, str | None, str, str]:
+    """Pick a plausible person-name side from cited candidates (value or label)."""
+    for cand in resolved:
+        value_text = str(cand.get("value_text") or "").strip()
+        label_text = str(cand.get("label_text") or "").strip()
+        if value_text and employee_name_implausible_reason(value_text) is None:
+            return cand, value_text, "value", value_text, label_text
+        if (
+            label_text
+            and not employee_name_looks_like_field_caption(label_text)
+            and employee_name_implausible_reason(label_text) is None
+        ):
+            return cand, label_text, "label", value_text, label_text
+    return None, None, None, "", ""
 
 
 def ground_semantic_field(
@@ -234,6 +327,16 @@ def ground_semantic_field(
     if not resolved:
         # Allow OCR-text support without IDs only as low-confidence review when value present.
         if model_value not in (None, "") and not cited:
+            if canonical_key == "employee_name":
+                reason = employee_name_implausible_reason(model_value)
+                if reason:
+                    warnings.append(_employee_name_reject_warning(reason))
+                    warnings.append("ungrounded_rejected")
+                    return None, warnings, True
+                # employee_name still requires citeable document evidence — do not accept bare LLM guess.
+                warnings.append("employee_name_rejected_unsupported:missing_evidence_ids")
+                warnings.append("ungrounded_rejected")
+                return None, warnings, True
             warnings.append("missing_evidence_ids")
             entry = new_entry(
                 key=canonical_key,
@@ -259,6 +362,10 @@ def ground_semantic_field(
     if model_has_value:
         # Ground if ANY cited candidate supports the model via value_text OR label_text.
         # Association candidates often hold two concepts (e.g. name on label, NID on value).
+        from payroll_copilot.application.services.payslip_identity_comparison import (
+            person_name_tokens_equal,
+        )
+
         for cand in resolved:
             cand_value = str(cand.get("value_text") or "").strip()
             cand_label = str(cand.get("label_text") or "").strip()
@@ -268,19 +375,44 @@ def ground_semantic_field(
                 primary = cand
                 value_text = cand_value
                 label_text = cand_label
-                hydrated = model_value
+                # Prefer OCR/evidence text when model only reorders name tokens.
+                if (
+                    isinstance(model_value, str)
+                    and person_name_tokens_equal(model_value, cand_value)
+                    and str(model_value).strip() != cand_value
+                ):
+                    hydrated = cand_value
+                else:
+                    hydrated = model_value
                 supported_by = "value"
                 break
             if cand_label and _value_matches_candidate(model_value, cand_label):
                 primary = cand
                 value_text = cand_value
                 label_text = cand_label
-                hydrated = model_value
+                if (
+                    isinstance(model_value, str)
+                    and person_name_tokens_equal(model_value, cand_label)
+                    and str(model_value).strip() != cand_label
+                ):
+                    hydrated = cand_label
+                else:
+                    hydrated = model_value
                 supported_by = "label"
                 break
         if primary is None:
             # Do NOT replace with value_text — that may be a different concept.
             warnings.append("unsupported_model_value_rejected")
+            if canonical_key == "employee_name":
+                warnings.append("employee_name_rejected_unsupported:model_value_mismatch")
+            return None, warnings, True
+    elif canonical_key == "employee_name":
+        primary, hydrated, supported_by, value_text, label_text = (
+            _hydrate_employee_name_from_candidates(resolved)
+        )
+        if primary is None or hydrated in (None, ""):
+            warnings.append("employee_name_rejected_unsupported:empty_plausible_candidate")
+            warnings.append("empty_candidate_value")
             return None, warnings, True
     else:
         # Model cited evidence without a value — hydrate from the first usable value_text.
@@ -295,16 +427,23 @@ def ground_semantic_field(
 
     # Prefer numeric hydration only when the grounded side is value_text.
     if supported_by == "value":
-        normalized = primary.get("normalized_value")
+        normalized = primary.get("normalized_value") if primary else None
         if normalized is None:
             normalized = normalize_numeric_token(value_text)
         if normalized is not None and _looks_numeric_key(canonical_key):
             hydrated = int(normalized) if float(normalized).is_integer() else float(normalized)
 
+    if canonical_key == "employee_name":
+        reason = employee_name_implausible_reason(hydrated)
+        if reason:
+            warnings.append(_employee_name_reject_warning(reason))
+            return None, warnings, True
+        warnings.append("employee_name_grounded")
+
     out_confidence = confidence
     if out_confidence is None:
         out_confidence = 0.75
-    if bool(primary.get("conflict")):
+    if primary and bool(primary.get("conflict")):
         out_confidence = min(out_confidence, 0.55)
         status = "FOUND_LOW_CONFIDENCE"
         warnings.append("conflicted_candidate")
@@ -314,7 +453,7 @@ def ground_semantic_field(
 
     page = None
     try:
-        page = int(primary["page"]) if primary.get("page") is not None else None
+        page = int(primary["page"]) if primary and primary.get("page") is not None else None
     except (TypeError, ValueError):
         page = None
 
@@ -538,6 +677,11 @@ class PayslipSemanticExtractor:
 
         catalog_rows = catalog_as_prompt_rows()
         compact = _compact_candidates_for_prompt(llm_candidates)
+        if any(
+            isinstance(item, dict) and _prompt_priority_tier(item) <= 1
+            for item in llm_candidates
+        ):
+            warnings.append("employee_name_candidate_found")
 
         pages_block = ""
         if pages_text:
@@ -676,6 +820,11 @@ class PayslipSemanticExtractor:
             "low_confidence_count": low_conf,
             "not_found": list(dict.fromkeys(not_found)),
             "candidate_count": len(candidate_index),
+            "employee_name_outcome": _employee_name_outcome_from_warnings(
+                warnings,
+                has_entry=any(e.key == "employee_name" for e in entries),
+                listed_not_found="employee_name" in not_found,
+            ),
         }
         return SemanticExtractionResult(
             entries=entries,

@@ -14,6 +14,7 @@
     "themeToDark": "التبديل إلى الوضع الداكن",
     "loading": "جارٍ التحميل…",
     "error": "حدث خطأ ما.",
+    "networkUnavailable": "تعذر الوصول إلى الخادم. تحقق من الاتصال وحاول مرة أخرى.",
     "errorBoundaryMessage": "تعذر تحميل هذا القسم. يمكنك المحاولة مرة أخرى أو متابعة استخدام بقية التطبيق.",
     "required": "مطلوب",
     "optional": "اختياري",
@@ -578,6 +579,15 @@
         "manuallyApproved": "تمت الموافقة يدويًا"
       },
       "coverageSummary": "{{executed}} من أصل {{total}} فحوصات نُفِّذت",
+      "originalCheck": "النتيجة الأصلية: {{status}}",
+      "actions": {
+        "runAgain": "أعد التشغيل",
+        "approveManually": "موافقة يدوية",
+        "approveReasonPrompt": "سبب قصير للموافقة اليدوية:",
+        "approveReasonRequired": "يلزم سبب قصير.",
+        "rerunFailed": "فشلت إعادة تشغيل هذا الفحص.",
+        "approveFailed": "فشلت الموافقة اليدوية على هذا الفحص."
+      },
       "notRunReasons": {
         "employee_not_identified": "لم يُنفَّذ — لم يتم التعرف على الموظف",
         "no_confirmed_contract": "لم يُنفَّذ — لا يوجد عقد مؤكد",

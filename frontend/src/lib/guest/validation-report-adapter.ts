@@ -178,6 +178,21 @@ export function adaptValidationReport(
       reason_code: item.reason_code ?? null,
       message: item.message ?? null,
     })),
+    manualApprovals: (response.manual_approvals ?? []).map((row) => ({
+      finding_id: (row.finding_id as string | null | undefined) ?? null,
+      rule_id: (row.rule_id as string | null | undefined) ?? null,
+      original_severity: (row.original_severity as string | null | undefined) ?? null,
+      original_deterministic_status:
+        (row.original_deterministic_status as string | null | undefined) ??
+        (row.deterministic_status as string | null | undefined) ??
+        null,
+      deterministic_status: (row.deterministic_status as string | null | undefined) ?? null,
+      review_status: (row.review_status as string | null | undefined) ?? 'manually_approved',
+      approved_by: (row.approved_by as string | null | undefined) ?? null,
+      approved_at: (row.approved_at as string | null | undefined) ?? null,
+      reason: (row.reason as string | null | undefined) ?? null,
+      validation_run_id: (row.validation_run_id as string | null | undefined) ?? null,
+    })),
   };
 }
 

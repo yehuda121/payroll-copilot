@@ -30,6 +30,11 @@ describe('Batch UI polish source contracts', () => {
     expect(page).toContain('batch-review-rerun');
     expect(page).toContain('employee-review-tabs--product');
     expect(page).toContain("presentation=\"checkRows\"");
+    expect(page).toContain('employee-payslip.css');
+    expect(page).toContain('canRerun: true');
+    expect(page).toContain('canManualApprove: true');
+    expect(page).toContain('onRerunRule: rerunSingleRule');
+    expect(page).toContain('onManualApprove: approveCheck');
   });
 
   it('keeps exactly three primary batch result tabs', () => {

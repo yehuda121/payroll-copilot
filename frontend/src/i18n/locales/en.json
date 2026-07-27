@@ -14,6 +14,8 @@
     "themeToDark": "Switch to dark theme",
     "loading": "Loading…",
     "error": "Something went wrong.",
+    "networkUnavailable": "Unable to reach the server. Check your connection and try again.",
+    "retry": "Retry",
     "errorBoundaryMessage": "This section failed to load. You can try again or continue using the rest of the app.",
     "required": "Required",
     "optional": "Optional",
@@ -580,6 +582,15 @@
         "manuallyApproved": "Manually approved"
       },
       "coverageSummary": "{{executed}} of {{total}} checks executed",
+      "originalCheck": "Original check: {{status}}",
+      "actions": {
+        "runAgain": "Run again",
+        "approveManually": "Approve manually",
+        "approveReasonPrompt": "Short reason for manual approval:",
+        "approveReasonRequired": "A short reason is required.",
+        "rerunFailed": "Failed to rerun this check.",
+        "approveFailed": "Failed to approve this check."
+      },
       "notRunReasons": {
         "employee_not_identified": "Not run — employee not identified",
         "no_confirmed_contract": "Not run — no confirmed contract",

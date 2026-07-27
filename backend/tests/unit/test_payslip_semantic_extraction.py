@@ -79,6 +79,47 @@ def test_unlabeled_employee_name_grounds_to_canonical() -> None:
     assert not any(w.startswith("ungrounded") for w in warnings)
 
 
+def test_employee_name_hebrew_token_order_grounds_to_document_text() -> None:
+    """LLM may reorder family/given; hydrate from OCR evidence, never profile name."""
+    index = {
+        "c_name": _cand("c_name", "סבירסקי אורית"),
+    }
+    consumed: dict[str, str] = {}
+    entry, warnings, rejected = ground_semantic_field(
+        canonical_key="employee_name",
+        model_value="אורית סבירסקי",
+        status="FOUND",
+        confidence=0.91,
+        evidence_ids=["c_name"],
+        label_as_printed=None,
+        candidate_index=index,
+        consumed=consumed,
+    )
+    assert rejected is False
+    assert entry is not None
+    assert entry.value == "סבירסקי אורית"
+    assert entry.value != "Profile Name From HR"
+    assert not any("unsupported_model_value_rejected" in w for w in warnings)
+
+
+def test_employee_name_does_not_accept_unrelated_profile_substitution() -> None:
+    index = {"c_name": _cand("c_name", "סבירסקי אורית")}
+    consumed: dict[str, str] = {}
+    entry, warnings, rejected = ground_semantic_field(
+        canonical_key="employee_name",
+        model_value="Profile Name From HR",
+        status="FOUND",
+        confidence=0.9,
+        evidence_ids=["c_name"],
+        label_as_printed=None,
+        candidate_index=index,
+        consumed=consumed,
+    )
+    assert rejected is True
+    assert entry is None
+    assert any("unsupported_model_value_rejected" in w for w in warnings)
+
+
 def test_national_id_vs_employee_number_consumed_evidence() -> None:
     index = {
         "c_nid": _cand("c_nid", "123456782", label=None),

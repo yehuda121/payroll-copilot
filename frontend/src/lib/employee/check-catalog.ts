@@ -73,10 +73,13 @@ export type CheckCatalogRow = {
   uiGroup: 'employee_checks' | 'law_checks';
   title: string;
   status: CheckRowStatus;
+  /** Immutable deterministic outcome when review overlay is present. */
+  deterministicStatus: CheckRowStatus | null;
   explanation: string | null;
   skipReasonKey: string | null;
   reasonCode: string | null;
   findingId?: string | null;
+  approvalReason?: string | null;
 };
 
 function catalogUiGroup(ruleId: string): 'employee_checks' | 'law_checks' {
@@ -175,6 +178,11 @@ export function buildCheckCatalogRows(
   for (const item of report?.ruleOutcomes ?? []) {
     if (item.rule_id) outcomes.set(item.rule_id, item);
   }
+  const approvalsByRule = new Map<string, NonNullable<GuestValidationReport['manualApprovals']>[number]>();
+  for (const item of report?.manualApprovals ?? []) {
+    const rid = (item.rule_id || '').trim();
+    if (rid) approvalsByRule.set(rid, item);
+  }
   const hasAuthoritativeOutcomes = outcomes.size > 0;
 
   const rows: CheckCatalogRow[] = [];
@@ -249,6 +257,20 @@ export function buildCheckCatalogRows(
       explanation = t('employee.validation.status.notRun');
     }
 
+    const deterministicStatus = status === 'manually_approved' ? null : status;
+    const approval = approvalsByRule.get(ruleId);
+    let approvalReason: string | null = null;
+    if (approval && status !== 'manually_approved') {
+      // Overlay review without rewriting deterministic status semantics in data.
+      approvalReason = approval.reason ?? null;
+      status = 'manually_approved';
+    } else if (status === 'manually_approved' && finding?.manual_approval) {
+      approvalReason =
+        typeof finding.manual_approval.reason === 'string'
+          ? finding.manual_approval.reason
+          : null;
+    }
+
     rows.push({
       key: `check-${ruleId}`,
       ruleId,
@@ -256,10 +278,20 @@ export function buildCheckCatalogRows(
       uiGroup,
       title,
       status,
+      deterministicStatus:
+        status === 'manually_approved'
+          ? deterministicStatus ??
+            (normalizeOutcome(
+              (approval?.original_deterministic_status ||
+                approval?.deterministic_status ||
+                outcome?.outcome) as string,
+            ) as CheckRowStatus)
+          : null,
       explanation,
       skipReasonKey,
       reasonCode,
       findingId: finding?.id ?? null,
+      approvalReason,
     });
   }
 
@@ -273,13 +305,15 @@ export function buildCheckCatalogRows(
     if (group === 'digital') continue;
     const uiGroup = group === 'law_checks' ? 'law_checks' : 'employee_checks';
     if (checkGroup !== 'all' && uiGroup !== checkGroup) continue;
+    const status = statusFromFinding(finding);
     rows.push({
       key: `finding-extra-${finding.id}`,
       ruleId,
       taxonomy,
       uiGroup,
       title: translateFindingTitle(finding.message_key, t, ruleId),
-      status: statusFromFinding(finding),
+      status,
+      deterministicStatus: status === 'manually_approved' ? 'failed' : null,
       explanation:
         (finding.explanation && !/^[a-z][a-z0-9_.-]*$/i.test(finding.explanation)
           ? finding.explanation
@@ -287,6 +321,10 @@ export function buildCheckCatalogRows(
       skipReasonKey: null,
       reasonCode: null,
       findingId: finding.id,
+      approvalReason:
+        finding.manual_approval && typeof finding.manual_approval.reason === 'string'
+          ? finding.manual_approval.reason
+          : null,
     });
   }
 
@@ -300,6 +338,7 @@ export function summarizeCheckRows(rows: CheckCatalogRow[]): {
   failed: number;
   uncertain: number;
   not_run: number;
+  manually_approved: number;
 } {
   const summary = {
     total: rows.length,
@@ -308,15 +347,19 @@ export function summarizeCheckRows(rows: CheckCatalogRow[]): {
     failed: 0,
     uncertain: 0,
     not_run: 0,
+    manually_approved: 0,
   };
   for (const row of rows) {
-    if (row.status === 'passed' || row.status === 'manually_approved') {
+    if (row.status === 'manually_approved') summary.manually_approved += 1;
+    const effective =
+      row.status === 'manually_approved' ? row.deterministicStatus || 'not_run' : row.status;
+    if (effective === 'passed') {
       summary.passed += 1;
       summary.executed += 1;
-    } else if (row.status === 'failed') {
+    } else if (effective === 'failed') {
       summary.failed += 1;
       summary.executed += 1;
-    } else if (row.status === 'uncertain') {
+    } else if (effective === 'uncertain') {
       summary.uncertain += 1;
       summary.executed += 1;
     } else {
@@ -343,7 +386,7 @@ export function checkRowStatusVisual(
         label: t('employee.validation.status.manuallyApproved', {
           defaultValue: t('employee.validation.status.passed'),
         }),
-        css: 'is-passed',
+        css: 'is-manually-approved',
       };
     default:
       return {

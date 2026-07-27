@@ -220,9 +220,29 @@ export function createAccountantEmployeeWorkspaceApi(
             document_id: input.documentId,
             supporting_document_ids: input.supportingDocumentIds ?? [],
             locale: input.locale,
+            rerun_scope: input.rerunScope,
+            rule_ids: input.ruleIds ?? [],
           }),
           portalAuth: true,
           signal: input.signal,
+        },
+      );
+    },
+
+    async approveFinding(input) {
+      return apiRequest(
+        `/validation/accountant/${encodeURIComponent(employeeNumber)}/checks/approve`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            document_id: input.documentId,
+            validation_run_id: input.validationRunId,
+            finding_id: input.findingId,
+            rule_id: input.ruleId,
+            acknowledgement: input.acknowledgement,
+            reason: input.reason,
+          }),
+          portalAuth: true,
         },
       );
     },

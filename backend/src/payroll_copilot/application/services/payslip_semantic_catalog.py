@@ -22,8 +22,10 @@ EXTRACTOR_VERSION = "semantic_v1"
 # Concise concept descriptions for the LLM (English — works across HE/AR/EN docs).
 _SEMANTIC_MEANINGS: dict[str, str] = {
     "employee_name": (
-        "Full name of the employee who receives this salary payment. "
-        "Often appears in the header without a label. Not the employer name."
+        "Full name of the employee/person who receives this salary payment. "
+        "Often appears unlabeled in the personal-details or header region "
+        "(no 'שם' / 'שם העובד' / 'Employee Name' required). "
+        "Not the employer/company name, payroll provider, website, address, or organization."
     ),
     "national_id": (
         "Israeli national identity number (Teudat Zehut) of the employee. "

@@ -8,6 +8,8 @@ from typing import Any
 
 from payroll_copilot.application.ports import ModelProvider
 from payroll_copilot.application.ports.assistant import ApprovedLaborLawSearchPort, LaborLawSearchHit
+from payroll_copilot.application.ports.legal_chunk_reranker import LegalChunkReranker
+from payroll_copilot.application.services.legal_chunk_reranker import apply_rerank_fail_open
 from payroll_copilot.infrastructure.ai.agents.approved_labor_law_search import YamlApprovedLaborLawSearch
 from payroll_copilot.infrastructure.persistence.legal_knowledge_store import get_legal_knowledge_store
 
@@ -23,6 +25,11 @@ class VersionAwareLegalRetriever:
         model: ModelProvider | None,
         store: Any | None = None,
         vector_store: Any | None = None,
+        reranker: LegalChunkReranker | None = None,
+        rerank_enabled: bool = False,
+        retrieval_top_k: int = 20,
+        rerank_top_n: int = 5,
+        rerank_timeout_ms: int = 15000,
     ) -> None:
         self._model = model
         self._store = store or get_legal_knowledge_store()
@@ -31,6 +38,12 @@ class VersionAwareLegalRetriever:
             from payroll_copilot.infrastructure.rag.vector_store_factory import get_legal_vector_store
 
             self._vectors = get_legal_vector_store()
+        # When disabled, reranker must remain unloaded (caller passes None).
+        self._rerank_enabled = bool(rerank_enabled) and reranker is not None
+        self._reranker = reranker if self._rerank_enabled else None
+        self._retrieval_top_k = max(1, int(retrieval_top_k))
+        self._rerank_top_n = max(1, int(rerank_top_n))
+        self._rerank_timeout_ms = max(1, int(rerank_timeout_ms))
 
     async def retrieve(
         self,
@@ -41,15 +54,21 @@ class VersionAwareLegalRetriever:
         top_k: int = 5,
     ) -> dict[str, Any]:
         """Return hits and diagnostics. Never fabricates contexts."""
+        final_n = max(1, int(top_k))
         diagnostics: dict[str, Any] = {
             "retrieval_mode": "vector",
             "effective_date_mode": "explicit" if effective_date else "current_default",
             "effective_date": effective_date.isoformat() if effective_date else None,
             "scope": scope or "general",
+            "rerank_enabled": bool(self._rerank_enabled),
         }
         if self._model is None:
             diagnostics["retrieval_mode"] = "unavailable"
             diagnostics["reason"] = "embedding_provider_unavailable"
+            diagnostics["retrieval_candidate_count"] = 0
+            diagnostics["final_chunk_count"] = 0
+            diagnostics["rerank_fallback"] = False
+            diagnostics["order_changed"] = False
             return {"hits": [], "diagnostics": diagnostics}
 
         health = self._store.vector_health()
@@ -62,6 +81,10 @@ class VersionAwareLegalRetriever:
         if chunk_count <= 0 or health.status == "empty":
             diagnostics["retrieval_mode"] = "unavailable"
             diagnostics["reason"] = "vector_index_empty"
+            diagnostics["retrieval_candidate_count"] = 0
+            diagnostics["final_chunk_count"] = 0
+            diagnostics["rerank_fallback"] = False
+            diagnostics["order_changed"] = False
             return {"hits": [], "diagnostics": diagnostics}
 
         as_of = effective_date or date.today()
@@ -75,23 +98,39 @@ class VersionAwareLegalRetriever:
         except Exception as exc:  # noqa: BLE001
             diagnostics["retrieval_mode"] = "unavailable"
             diagnostics["reason"] = f"embed_failed:{type(exc).__name__}"
+            diagnostics["retrieval_candidate_count"] = 0
+            diagnostics["final_chunk_count"] = 0
+            diagnostics["rerank_fallback"] = False
+            diagnostics["order_changed"] = False
             return {"hits": [], "diagnostics": diagnostics}
 
         if not embeddings:
             diagnostics["retrieval_mode"] = "unavailable"
             diagnostics["reason"] = "empty_embedding"
+            diagnostics["retrieval_candidate_count"] = 0
+            diagnostics["final_chunk_count"] = 0
+            diagnostics["rerank_fallback"] = False
+            diagnostics["order_changed"] = False
             return {"hits": [], "diagnostics": diagnostics}
+
+        # Disabled path: pool size == caller top_k (Phase 1 equivalence).
+        # Enabled path: larger authorized candidate pool, then Top-N after rerank.
+        if self._rerank_enabled:
+            pool_k = max(self._retrieval_top_k, final_n)
+            final_n = min(final_n, self._rerank_top_n)
+        else:
+            pool_k = final_n
 
         scored = self._vectors.search(
             embeddings[0],
-            top_k=top_k,
+            top_k=pool_k,
             effective_date=as_of,
             scope=scope,
             approved_only=True,
         )
-        hits = []
+        candidates: list[dict[str, Any]] = []
         for score, row in scored:
-            hits.append(
+            candidates.append(
                 {
                     "score": score,
                     "rule_id": row.get("rule_id"),
@@ -105,9 +144,19 @@ class VersionAwareLegalRetriever:
                     "source_reference": row.get("source_reference"),
                     "authority_level": row.get("authority_level"),
                     "chunk_id": row.get("chunk_id"),
+                    "approval_status": row.get("approval_status"),
                 }
             )
+
+        hits, rerank_diag = apply_rerank_fail_open(
+            query=query,
+            candidates=candidates,
+            reranker=self._reranker,
+            final_n=final_n,
+        )
+        diagnostics.update(rerank_diag)
         diagnostics["hit_count"] = len(hits)
+        diagnostics["vector_pool_k"] = pool_k
         return {"hits": hits, "diagnostics": diagnostics}
 
 

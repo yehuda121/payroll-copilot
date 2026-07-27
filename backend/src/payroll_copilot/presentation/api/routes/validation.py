@@ -79,7 +79,8 @@ class ValidationRunRequest(BaseModel):
 class ManualApprovalRequest(BaseModel):
     document_id: str
     validation_run_id: str
-    finding_id: str
+    finding_id: str | None = None
+    rule_id: str | None = None
     acknowledgement: bool = False
     reason: str | None = None
     locale: str | None = Field(default=None, pattern="^(he|en|ar)$")
@@ -137,6 +138,7 @@ class ValidationRunResponse(BaseModel):
     extraction_connected: bool = False
     findings: list[FindingResponse] = Field(default_factory=list)
     rule_outcomes: list[RuleOutcomeResponse] = Field(default_factory=list)
+    manual_approvals: list[dict] = Field(default_factory=list)
 
 def _parse_uuid(value: str, field_name: str) -> UUID:
     try:
@@ -243,6 +245,7 @@ def _to_response(record: ValidationRunRecord, *, locale: str, document_metadata:
         extraction_connected=extraction_connected,
         findings=[FindingResponse(**row) for row in annotated],
         rule_outcomes=rule_outcomes,
+        manual_approvals=approvals_from_document_metadata(document_metadata),
     )
 
     return response
@@ -471,6 +474,12 @@ async def approve_employee_finding(
         ManualApprovalError,
     )
 
+    if not request.finding_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "finding_id_required", "message": "finding_id is required."},
+        )
+
     use_case = ApproveValidationFindingUseCase(
         documents=get_document_repository(),
         validation_runs=get_validation_run_repository(),
@@ -485,6 +494,114 @@ async def approve_employee_finding(
             employee=bound.employee,
             actor_user_id=bound.principal.user_id,
             actor_role=bound.principal.role,
+            acknowledgement=request.acknowledgement,
+            reason=request.reason,
+        )
+    except ManualApprovalError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+    except DocumentNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except DocumentNotOwnedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    return result
+
+
+@router.post("/accountant/{employee_number}/checks/approve", status_code=200)
+async def approve_accountant_check(
+    employee_number: str,
+    request: ManualApprovalRequest,
+    _: None = Depends(limit_validation_by_user),
+    principal: AuthPrincipal = Depends(require_accountant),
+) -> dict:
+    """Accountant check-level manual approval. Does not rewrite deterministic outcomes."""
+    from payroll_copilot.application.use_cases.approve_validation_finding import (
+        ApproveValidationFindingUseCase,
+        ManualApprovalError,
+    )
+
+    selected = await bind_accountant_selected_employee(
+        employee_number=employee_number,
+        principal=principal,
+    )
+    use_case = ApproveValidationFindingUseCase(
+        documents=get_document_repository(),
+        validation_runs=get_validation_run_repository(),
+        validation_findings=get_validation_finding_repository(),
+        audit_logs=get_audit_log_repository(),
+    )
+    rule_id = (request.rule_id or "").strip()
+    if not rule_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "rule_id_required", "message": "rule_id is required."},
+        )
+    try:
+        result = await use_case.execute_check(
+            document_id=_parse_uuid(request.document_id, "document_id"),
+            validation_run_id=_parse_uuid(request.validation_run_id, "validation_run_id"),
+            rule_id=rule_id,
+            finding_id=(
+                _parse_uuid(request.finding_id, "finding_id") if request.finding_id else None
+            ),
+            organization_id=selected.employee.organization_id,
+            actor_user_id=principal.user_id,
+            actor_role=principal.role,
+            acknowledgement=request.acknowledgement,
+            reason=request.reason,
+        )
+    except ManualApprovalError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+    except DocumentNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except DocumentNotOwnedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    return result
+
+
+@router.post("/accountant/documents/{document_id}/checks/approve", status_code=200)
+async def approve_accountant_document_check(
+    document_id: str,
+    request: ManualApprovalRequest,
+    _: None = Depends(limit_validation_by_user),
+    principal: AuthPrincipal = Depends(require_accountant),
+) -> dict:
+    """Org-scoped check approval for batch review (document may lack employee bind)."""
+    from payroll_copilot.application.use_cases.approve_validation_finding import (
+        ApproveValidationFindingUseCase,
+        ManualApprovalError,
+    )
+
+    if principal.organization_id is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="organization_required")
+    use_case = ApproveValidationFindingUseCase(
+        documents=get_document_repository(),
+        validation_runs=get_validation_run_repository(),
+        validation_findings=get_validation_finding_repository(),
+        audit_logs=get_audit_log_repository(),
+    )
+    rule_id = (request.rule_id or "").strip()
+    if not rule_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "rule_id_required", "message": "rule_id is required."},
+        )
+    try:
+        result = await use_case.execute_check(
+            document_id=_parse_uuid(document_id, "document_id"),
+            validation_run_id=_parse_uuid(request.validation_run_id, "validation_run_id"),
+            rule_id=rule_id,
+            finding_id=(
+                _parse_uuid(request.finding_id, "finding_id") if request.finding_id else None
+            ),
+            organization_id=principal.organization_id,
+            actor_user_id=principal.user_id,
+            actor_role=principal.role,
             acknowledgement=request.acknowledgement,
             reason=request.reason,
         )
