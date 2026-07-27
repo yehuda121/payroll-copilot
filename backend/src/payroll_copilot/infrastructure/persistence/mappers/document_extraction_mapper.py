@@ -30,6 +30,9 @@ def extraction_to_entity(model: DocumentExtractionModel) -> DocumentExtraction:
         # Runtime persistence is DynamoDB; legacy SQL may lack this column.
         layout_snapshot=dict(getattr(model, "layout_snapshot", None) or {}),
         layout_analysis=dict(getattr(model, "layout_analysis", None) or {}),
+        ocr_result_storage_key=getattr(model, "ocr_result_storage_key", None),
+        layout_snapshot_storage_key=getattr(model, "layout_snapshot_storage_key", None),
+        layout_analysis_storage_key=getattr(model, "layout_analysis_storage_key", None),
         parser_model=model.parser_model,
         language=model.language or "auto",
         ocr_status=model.ocr_status,

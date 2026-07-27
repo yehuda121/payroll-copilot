@@ -12,7 +12,11 @@ from payroll_copilot.application.services.dynamic_document import (
     project_structured_from_entries,
 )
 from payroll_copilot.application.services.ocr_line_evidence import (
+    DEFAULT_HIGH_PRIORITY_OCR_RESERVE,
+    DEFAULT_MERGE_MAX_CANDIDATES,
     build_ocr_line_evidence_bundle,
+    evidence_candidate_priority_tier,
+    merge_evidence_bundles,
 )
 from payroll_copilot.application.services.parser_evidence import (
     employee_name_implausible_reason,
@@ -343,3 +347,163 @@ def test_materialize_records_employee_name_outcome_without_pii() -> None:
     result = extractor._materialize(payload, candidate_index=index)
     assert result.meta.get("employee_name_outcome") == "employee_name_rejected_numeric"
     assert not any(e.key == "employee_name" for e in result.entries)
+
+
+def _layout_bundle(n: int) -> dict[str, Any]:
+    cands = [
+        _cand(f"lay_{i}", f"amt-{i}", label=f"lbl-{i}", relation="association")
+        for i in range(n)
+    ]
+    return {
+        "binder": "evidence_binder_v1",
+        "candidate_count": len(cands),
+        "candidates": cands,
+        "candidate_index": {c["candidate_id"]: c for c in cands},
+        "llm_candidates": [
+            {
+                "candidate_id": c["candidate_id"],
+                "label": c.get("label_text"),
+                "value": c.get("value_text"),
+                "relation": c.get("relation"),
+                "page": c.get("page"),
+            }
+            for c in cands
+        ],
+        "warnings": ["evidence_binder_candidates_truncated"] if n >= 400 else [],
+    }
+
+
+def _ocr_bundle_with_name(*, name: str = "שמולביץ יהודה") -> dict[str, Any]:
+    cands = [
+        _cand("ocr_p1_l0", "ברוטו", relation="ocr_line"),
+        _cand("ocr_p1_l16", name, relation="ocr_line"),
+        _cand("ocr_p1_l20", "313366783", relation="ocr_line"),
+        _cand("ocr_p2_l3", name, relation="ocr_line"),
+    ]
+    return {
+        "binder": "ocr_line_candidates_v1",
+        "candidate_count": len(cands),
+        "candidates": cands,
+        "candidate_index": {c["candidate_id"]: c for c in cands},
+        "llm_candidates": [
+            {
+                "candidate_id": c["candidate_id"],
+                "label": c.get("label_text"),
+                "value": c.get("value_text"),
+                "relation": c.get("relation"),
+                "page": c.get("page"),
+            }
+            for c in cands
+        ],
+        "warnings": [],
+    }
+
+
+def test_saturated_layout_merge_preserves_ocr_employee_name_candidate() -> None:
+    """Real failure shape: layout fills 400; OCR name must still survive merge."""
+    layout = _layout_bundle(400)
+    ocr = _ocr_bundle_with_name()
+    assert "ocr_p1_l16" not in {c["candidate_id"] for c in layout["candidates"]}
+    assert any(
+        c["candidate_id"] == "ocr_p1_l16" for c in ocr["candidates"]
+    )
+
+    merged = merge_evidence_bundles(layout, ocr, max_candidates=DEFAULT_MERGE_MAX_CANDIDATES)
+    ids = [str(c.get("candidate_id")) for c in merged["candidates"]]
+
+    assert merged["candidate_count"] <= DEFAULT_MERGE_MAX_CANDIDATES
+    assert len(merged["candidates"]) <= DEFAULT_MERGE_MAX_CANDIDATES
+    assert "ocr_p1_l16" in ids
+    assert "ocr_p1_l16" in merged["candidate_index"]
+    assert evidence_candidate_priority_tier(merged["candidate_index"]["ocr_p1_l16"]) == 0
+    assert "merged_evidence_layout_trimmed_for_ocr_reserve" in merged["warnings"]
+    # Layout still dominates the budget (not OCR-only).
+    layout_ids = [i for i in ids if i.startswith("lay_")]
+    assert len(layout_ids) >= DEFAULT_MERGE_MAX_CANDIDATES - DEFAULT_HIGH_PRIORITY_OCR_RESERVE
+
+
+def test_saturated_merge_name_survives_prompt_compaction() -> None:
+    layout = _layout_bundle(400)
+    ocr = _ocr_bundle_with_name()
+    merged = merge_evidence_bundles(layout, ocr)
+    compact = _compact_candidates_for_prompt(merged["llm_candidates"], max_items=220)
+    compact_ids = [row["id"] for row in compact]
+    assert "ocr_p1_l16" in compact_ids
+    # Name-like OCR should rank ahead of layout association rows.
+    assert compact_ids.index("ocr_p1_l16") < 40
+
+
+def test_saturated_merge_grounding_with_reversed_hebrew_name() -> None:
+    layout = _layout_bundle(400)
+    ocr = _ocr_bundle_with_name(name="שמולביץ יהודה")
+    merged = merge_evidence_bundles(layout, ocr)
+    index = merged["candidate_index"]
+    entry, warnings, rejected = ground_semantic_field(
+        canonical_key="employee_name",
+        model_value="יהודה שמולביץ",
+        status="FOUND",
+        confidence=0.93,
+        evidence_ids=["ocr_p1_l16"],
+        label_as_printed=None,
+        candidate_index=index,
+        consumed={},
+    )
+    assert rejected is False
+    assert entry is not None
+    assert entry.value == "שמולביץ יהודה"
+    assert "employee_name_grounded" in warnings
+
+
+def test_small_one_page_merge_unchanged_when_under_budget() -> None:
+    layout = _layout_bundle(80)
+    ocr = _ocr_bundle_with_name()
+    merged = merge_evidence_bundles(layout, ocr)
+    ids = [str(c.get("candidate_id")) for c in merged["candidates"]]
+    assert merged["candidate_count"] == 80 + 4
+    assert ids[:80] == [f"lay_{i}" for i in range(80)]
+    assert "ocr_p1_l16" in ids
+    assert "merged_evidence_layout_trimmed_for_ocr_reserve" not in merged["warnings"]
+
+
+def test_merge_never_exceeds_configured_maximum() -> None:
+    layout = _layout_bundle(500)
+    ocr = _ocr_bundle_with_name()
+    # Plus many extra OCR lines.
+    for i in range(200):
+        ocr["candidates"].append(_cand(f"ocr_extra_{i}", f"line-{i}", relation="ocr_line"))
+    ocr["candidate_count"] = len(ocr["candidates"])
+    merged = merge_evidence_bundles(layout, ocr, max_candidates=400)
+    assert merged["candidate_count"] == 400
+    assert len(merged["candidates"]) == 400
+    assert "merged_evidence_candidates_truncated" in merged["warnings"]
+
+
+def test_merge_preserves_majority_layout_evidence() -> None:
+    layout = _layout_bundle(400)
+    ocr = _ocr_bundle_with_name()
+    merged = merge_evidence_bundles(layout, ocr)
+    layout_kept = sum(1 for c in merged["candidates"] if str(c["candidate_id"]).startswith("lay_"))
+    assert layout_kept >= 360
+    assert layout_kept < 400
+
+
+def test_numeric_ocr_lines_do_not_consume_name_reserve() -> None:
+    layout = _layout_bundle(400)
+    ocr = {
+        "binder": "ocr_line_candidates_v1",
+        "candidate_count": 3,
+        "candidates": [
+            _cand("ocr_nid", "313366783", relation="ocr_line"),
+            _cand("ocr_money", "8854.90", relation="ocr_line"),
+            _cand("ocr_url", "WWW.EXAMPLE.ORG", relation="ocr_line"),
+        ],
+        "warnings": [],
+    }
+    for c in ocr["candidates"]:
+        assert evidence_candidate_priority_tier(c) == 3
+    merged = merge_evidence_bundles(layout, ocr)
+    ids = {str(c.get("candidate_id")) for c in merged["candidates"]}
+    # No tier-0 OCR → full layout budget retained; implausible OCR dropped when saturated.
+    assert "ocr_nid" not in ids
+    assert "merged_evidence_layout_trimmed_for_ocr_reserve" not in merged["warnings"]
+    assert sum(1 for i in ids if i.startswith("lay_")) == 400

@@ -5,10 +5,17 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
+from payroll_copilot.application.ports.object_storage import ObjectStoragePort
 from payroll_copilot.application.ports.repositories import DocumentExtractionRepository
 from payroll_copilot.domain.entities import DocumentExtraction
 from payroll_copilot.infrastructure.persistence.dynamodb import keys
 from payroll_copilot.infrastructure.persistence.dynamodb.client import GSI1, DynamoTable
+from payroll_copilot.infrastructure.persistence.dynamodb.extraction_artifacts import (
+    STORAGE_KEY_FIELDS,
+    best_effort_delete_keys,
+    hydrate_extraction_artifacts,
+    prepare_extraction_item_for_put,
+)
 from payroll_copilot.infrastructure.persistence.dynamodb.serde import (
     dumps_value,
     is_empty_for_storage,
@@ -39,8 +46,14 @@ _REQUIRED_EXTRACTION_KEYS = frozenset(
 
 
 class DynamoDocumentExtractionRepository(DocumentExtractionRepository):
-    def __init__(self, table: DynamoTable) -> None:
+    def __init__(
+        self,
+        table: DynamoTable,
+        *,
+        object_storage: ObjectStoragePort | None = None,
+    ) -> None:
         self._table = table
+        self._storage = object_storage
 
     def _to_item(self, extraction: DocumentExtraction) -> dict:
         now = datetime.now(UTC).isoformat()
@@ -66,6 +79,9 @@ class DynamoDocumentExtractionRepository(DocumentExtractionRepository):
             "layout_analysis": dumps_value(extraction.layout_analysis)
             if extraction.layout_analysis
             else None,
+            "ocr_result_storage_key": extraction.ocr_result_storage_key,
+            "layout_snapshot_storage_key": extraction.layout_snapshot_storage_key,
+            "layout_analysis_storage_key": extraction.layout_analysis_storage_key,
             "parser_model": extraction.parser_model,
             "language": extraction.language or "auto",
             "ocr_status": extraction.ocr_status,
@@ -118,6 +134,9 @@ class DynamoDocumentExtractionRepository(DocumentExtractionRepository):
             ocr_result=dict(item.get("ocr_result") or {}),
             layout_snapshot=dict(item.get("layout_snapshot") or {}),
             layout_analysis=dict(item.get("layout_analysis") or {}),
+            ocr_result_storage_key=item.get("ocr_result_storage_key"),
+            layout_snapshot_storage_key=item.get("layout_snapshot_storage_key"),
+            layout_analysis_storage_key=item.get("layout_analysis_storage_key"),
             parser_model=item.get("parser_model"),
             language=str(item.get("language") or "auto"),
             ocr_status=str(item.get("ocr_status") or "completed"),
@@ -130,11 +149,40 @@ class DynamoDocumentExtractionRepository(DocumentExtractionRepository):
             confirmed_by=loads_uuid(item.get("confirmed_by")),
         )
 
+    async def _hydrate(self, entity: DocumentExtraction) -> DocumentExtraction:
+        storage_keys = {
+            "ocr_result_storage_key": entity.ocr_result_storage_key,
+            "layout_snapshot_storage_key": entity.layout_snapshot_storage_key,
+            "layout_analysis_storage_key": entity.layout_analysis_storage_key,
+        }
+        if not any(storage_keys.values()):
+            return entity
+        needs_load = (
+            (entity.ocr_result_storage_key and not entity.ocr_result)
+            or (entity.layout_analysis_storage_key and not entity.layout_analysis)
+            or (entity.layout_snapshot_storage_key and not entity.layout_snapshot)
+        )
+        if not needs_load:
+            return entity
+        hydrated = await hydrate_extraction_artifacts(
+            entity_fields={
+                "ocr_result": entity.ocr_result,
+                "layout_snapshot": entity.layout_snapshot,
+                "layout_analysis": entity.layout_analysis,
+            },
+            storage_keys=storage_keys,
+            object_storage=self._storage,
+        )
+        entity.ocr_result = dict(hydrated.get("ocr_result") or {})
+        entity.layout_snapshot = dict(hydrated.get("layout_snapshot") or {})
+        entity.layout_analysis = dict(hydrated.get("layout_analysis") or {})
+        return entity
+
     async def get_by_id(self, extraction_id: UUID) -> DocumentExtraction | None:
         items = await self._table.query_eq_pk(keys.gsi1_ext(extraction_id), index_name=GSI1, limit=1)
         if not items:
             return None
-        return self._to_entity(items[0])
+        return await self._hydrate(self._to_entity(items[0]))
 
     async def get_latest_for_document(self, document_id: UUID) -> DocumentExtraction | None:
         items = await self._table.query_eq_pk(
@@ -145,7 +193,7 @@ class DynamoDocumentExtractionRepository(DocumentExtractionRepository):
         )
         if not items:
             return None
-        return self._to_entity(items[0])
+        return await self._hydrate(self._to_entity(items[0]))
 
     async def save(self, extraction: DocumentExtraction) -> DocumentExtraction:
         existing = await self.get_by_id(extraction.id)
@@ -158,7 +206,25 @@ class DynamoDocumentExtractionRepository(DocumentExtractionRepository):
             )
             for old in old_items:
                 await self._table.delete_item({"PK": old["PK"], "SK": old["SK"]})
-        await self._table.put_item(self._to_item(extraction))
+        item = self._to_item(extraction)
+        # When building from a fully hydrated entity, prefer current inline payloads
+        # over stale pointer-only writes for size decisions.
+        uploaded_keys: list[str] = []
+        try:
+            item, uploaded_keys = await prepare_extraction_item_for_put(
+                item=item,
+                document_id=str(extraction.document_id),
+                extraction_id=str(extraction.id),
+                extraction_version=extraction.extraction_version,
+                object_storage=self._storage,
+            )
+            await self._table.put_item(item)
+        except Exception:
+            await best_effort_delete_keys(self._storage, uploaded_keys)
+            raise
+        # Keep caller's in-memory extraction payloads intact; sync pointer metadata.
+        for _field, key_field in STORAGE_KEY_FIELDS.items():
+            setattr(extraction, key_field, item.get(key_field))
         return extraction
 
     async def delete_for_document_ids(self, document_ids: list[UUID]) -> int:
@@ -168,6 +234,13 @@ class DynamoDocumentExtractionRepository(DocumentExtractionRepository):
                 keys.gsi1_doc(document_id),
                 sk_begins_with="EXT#",
             )
+            artifact_keys: list[str] = []
+            for item in items:
+                for key_field in STORAGE_KEY_FIELDS.values():
+                    key = item.get(key_field)
+                    if isinstance(key, str) and key:
+                        artifact_keys.append(key)
             keys_to_delete = [{"PK": item["PK"], "SK": item["SK"]} for item in items]
             deleted += await self._table.batch_delete(keys_to_delete)
+            await best_effort_delete_keys(self._storage, artifact_keys)
         return deleted

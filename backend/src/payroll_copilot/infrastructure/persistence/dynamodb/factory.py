@@ -45,7 +45,12 @@ def get_document_repository() -> DynamoDocumentRepository:
 
 @lru_cache
 def get_document_extraction_repository() -> DynamoDocumentExtractionRepository:
-    return DynamoDocumentExtractionRepository(get_dynamo_table())
+    from payroll_copilot.infrastructure.storage import create_object_storage
+
+    return DynamoDocumentExtractionRepository(
+        get_dynamo_table(),
+        object_storage=create_object_storage(get_settings()),
+    )
 
 
 @lru_cache

@@ -128,6 +128,11 @@ class DocumentExtraction:
     layout_snapshot: dict[str, Any] = field(default_factory=dict)
     # Additive Phase 2 structure + associations. Parallel to LLM; not consumed by portals yet.
     layout_analysis: dict[str, Any] = field(default_factory=dict)
+    # Object-storage pointers when large artifacts are offloaded from DynamoDB.
+    # Dual-read: prefer inline payloads; otherwise load via these keys.
+    ocr_result_storage_key: str | None = None
+    layout_snapshot_storage_key: str | None = None
+    layout_analysis_storage_key: str | None = None
     parser_model: str | None = None
     language: str = "auto"
     ocr_status: str = "completed"

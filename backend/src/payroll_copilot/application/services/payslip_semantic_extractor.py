@@ -35,6 +35,9 @@ from payroll_copilot.application.services.parser_evidence import (
     employee_name_looks_like_field_caption,
     normalize_numeric_token,
 )
+from payroll_copilot.application.services.ocr_line_evidence import (
+    evidence_candidate_priority_tier,
+)
 from payroll_copilot.application.services.payslip_field_registry import (
     FieldRequirementCategory,
     requirement_category_for_key,
@@ -194,20 +197,7 @@ def _normalize_status(raw: Any, confidence: float | None) -> str:
 
 def _prompt_priority_tier(item: dict[str, Any]) -> int:
     """Lower = earlier in the prompt. Prefer unlabeled person-name-like lines."""
-    label = str(item.get("label") or item.get("label_text") or "").strip()
-    value = str(item.get("value") or item.get("value_text") or "").strip()
-    relation = str(item.get("relation") or "")
-    if not value:
-        return 3
-    if employee_name_implausible_reason(value) is None and not label:
-        # Unlabeled letter-bearing OCR / unresolved values — critical for header names.
-        if relation.startswith("ocr") or relation in {"unresolved_value", "unlabeled_value"}:
-            return 0
-        return 1
-    if employee_name_implausible_reason(value) is None:
-        return 2
-    return 3
-
+    return evidence_candidate_priority_tier(item)
 
 def _compact_candidates_for_prompt(
     llm_candidates: list[dict[str, Any]],
