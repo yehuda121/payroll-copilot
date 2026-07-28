@@ -1,68 +1,130 @@
 # Payroll Copilot
 
-**A payroll validation platform for Israeli labor-law compliance, built around a deterministic rule engine.**
+**Deterministic Israeli labor-law payroll validation, with AI for extraction, explanation, and source-bound assistance.**
 
-Payroll Copilot helps guests and employees upload payslips, reconstruct them as editable digital documents, and receive structured validation from a **deterministic backend rule engine**. AI assists with OCR, document reconstruction, explanations, and a source-bound payroll assistant — it never decides pass/fail.
+Payroll Copilot is a multi-tenant platform that turns payslip documents into auditable compliance results. Humans review an editable Document Model before anything reaches the rule engine. **AI never decides pass/fail.**
 
-> **Status: work in progress.** Guest landing, Employee monthly workspace (including salary analytics), Accountant portal (employees, bulk pipeline, org payroll + AI quality analytics), DynamoDB/S3 persistence, Cognito adapters, local Docker development, Admin organization census and quality dashboards, and developer AI monitoring (telemetry emit, CloudWatch historical read, System Dashboard trends, model comparison) are in place. Several capabilities remain partial or planned. See [Project status](#project-status).
+> **Status:** Production-oriented modular monolith under active development. Guest, Employee, Accountant, and Admin surfaces are operational. Several supporting-document analyzers and ops integrations remain partial. See [Project status](#project-status).
 
 ---
 
 ## Table of contents
 
-- [Business overview](#business-overview)
-- [Architecture](#architecture)
-- [Architecture decisions](#architecture-decisions)
-- [Project structure](#project-structure)
-- [Features](#features)
-- [Employee Portal](#employee-portal)
-- [Public Landing](#public-landing)
-- [Accountant Portal](#accountant-portal)
-- [Admin Portal](#admin-portal)
-- [Analytics](#analytics)
-- [AI, OCR, extraction, and validation](#ai-ocr-extraction-and-validation)
-- [AI Observability and monitoring](#ai-observability-and-monitoring)
-- [AWS](#aws)
-- [DynamoDB](#dynamodb)
-- [Storage](#storage)
-- [Security](#security)
-- [Docker and development setup](#docker-and-development-setup)
-- [Configuration](#configuration)
-- [API](#api)
-- [Testing](#testing)
-- [Project status](#project-status)
-- [Documentation](#documentation)
-- [Troubleshooting](#troubleshooting)
+1. [Executive summary](#executive-summary)
+2. [Design principles](#design-principles)
+3. [Why These Decisions](#why-these-decisions)
+4. [Architecture](#architecture)
+5. [Document processing pipeline](#document-processing-pipeline)
+6. [Domain model and terminology](#domain-model-and-terminology)
+7. [AI engineering](#ai-engineering)
+8. [Portals](#portals)
+9. [Analytics and observability](#analytics-and-observability)
+10. [Persistence](#persistence)
+11. [Security and tenancy](#security-and-tenancy)
+12. [Jobs and integrations](#jobs-and-integrations)
+13. [Repository layout](#repository-layout)
+14. [Local development](#local-development)
+15. [Configuration](#configuration)
+16. [API and testing](#api-and-testing)
+17. [Project status](#project-status)
+18. [Documentation](#documentation)
+19. [Troubleshooting](#troubleshooting)
 
 ---
 
-## Business overview
+## Executive summary
 
-Payroll Copilot validates payroll against:
+### Problem
 
-- Israeli labor law (YAML-configured, locally authoritative)
-- Department-specific rule profiles (lawyers, interns, and similar)
-- Company / organization parameters (where configured)
-- Employment contracts and historical payroll (planned / partial)
+Israeli payroll compliance depends on labor law, department profiles, and employment context. Today that work is mostly:
 
-### Target users
+- Manual reading of PDF/image payslips
+- Spreadsheet checks that do not version findings
+- Tribal knowledge that does not scale across accountants or tenants
+- AI chatbots that invent legal outcomes without evidence or audit trails
 
-| Role | Capabilities today |
-|------|-------------------|
-| **Guest** | Upload a payslip without registration; review a Document Model; confirm; receive deterministic validation; chat with the Payroll Assistant |
-| **Employee** | Authenticated monthly workspace: upload → extract → edit Digital Payslip → confirm → validate → history; Document Center for supporting files; **Salary Analytics** tab on My Payslips (net/gross by payroll month) |
-| **Payroll accountant** | Employee master data, profile, bulk upload UI, batch pipeline, org **Payroll Analytics** and **AI Quality Analytics**, rules browse/edit (legacy routes), review queue, audit logs (pipeline wiring still incremental) |
-| **Admin / developer** | System Dashboard (AI KPIs + historical trends), AI Models comparison, Organization census analytics, cross-org AI Quality Analytics, Document Lab and other lab screens (many lab pages are Vite DEV-only) |
+Mistakes are expensive, hard to reproduce, and difficult to defend in review.
 
-### Document types
+### Why deterministic validation alone is insufficient
 
-Payslips · Attendance reports · Employment agreements · Israeli ID · ID appendix · Employee master Excel · Bulk payslip PDFs
+A rule engine can evaluate clean, structured payroll facts. It cannot:
+
+- Recover text from scanned or image-heavy PDFs
+- Reconstruct arbitrary payslip layouts into editable fields
+- Explain findings in the user’s language
+- Answer labor-law questions grounded in an approved corpus
+
+Those gaps require AI **around** the rules — not instead of them.
+
+### Why AI alone is insufficient
+
+Unconstrained LLMs are a poor compliance engine:
+
+- Non-deterministic pass/fail
+- Hallucinated rules and invented line items
+- No stable audit artifact
+- No hard boundary between “what appeared on the slip” and “what the engine evaluated”
+
+### What this system does
+
+| Layer | Responsibility |
+|-------|----------------|
+| **OCR / extraction (AI-assisted)** | Reconstruct what appears on the document into a Document Model / Digital Payslip |
+| **Human review** | Edit and confirm before canonicalization |
+| **Canonical mapping (deterministic)** | Project confirmed fields into the rule-engine input model |
+| **Validation (deterministic)** | YAML + Python rule packs decide outcomes and findings |
+| **Explanation / assistant (AI)** | Explain findings and answer source-bound questions; never override results |
+
+### Differentiation
+
+1. **Document Model ≠ Canonical Model** — review edits the document reconstruction; the engine only sees a post-confirm projection.
+2. **Confirm-before-validate** — identity/period gates can block confirmation; validation requires a confirmed extraction.
+3. **Honest partiality** — missing or unverifiable fields stay `MISSING` / `partial` / `not_available` instead of invented values.
+4. **Tenant-bound AI context** — employee chat context is derived from auth bindings on the server; browser-supplied IDs are not trusted as LLM context.
+5. **Legal RAG with a hard source of truth** — version-aware retrieval over an approved labor-law index; YAML rule packs remain authoritative for validation.
+
+Authoritative architecture detail: [ARCHITECTURE.md](ARCHITECTURE.md).
+
+---
+
+## Design principles
+
+These invariants are intentional product constraints, not style preferences.
+
+| # | Principle | Implication |
+|---|-----------|-------------|
+| 1 | **Determinism over spectacle** | Compliance outcomes come only from the rule engine. |
+| 2 | **Document-first extraction** | Reconstruct the slip completely; map to canonical later. |
+| 3 | **Confirm before canonicalize** | Humans review the Document Model before Canonical Payroll Model mapping. |
+| 4 | **Ports over vendors** | Cognito, Bedrock, DynamoDB, S3, OCR, and LLM providers sit behind interfaces. |
+| 5 | **Access patterns over tables** | Single-table DynamoDB keyed by real query paths. |
+| 6 | **Modular monolith first** | One deployable API with Clean Architecture layers; no premature service split. |
+| 7 | **Tenant isolation always** | Org-scoped keys and application-layer authorization on every owned resource. |
+| 8 | **Honest partiality** | Prefer `MISSING` / unable-to-verify over fabricated completeness. |
+| 9 | **Audit sensitive mutations** | Append-only audit events for high-risk actions. |
+| 10 | **Legal sync is proposals-only** | Sync never auto-approves rule changes; YAML remains validation SoT. |
+| 11 | **Batch drafts stay invisible** | `publication_status=draft` is a hard Employee Portal visibility boundary. |
+| 12 | **Leave domains stay separate** | `VacationRequest` and `SickLeaveRequest` do not share a generic leave entity. |
+
+---
+
+## Why These Decisions
+
+- **Document Model ≠ Canonical Payroll Model.** Payslips are reconstructed as they appear so humans can review real evidence. The rule engine needs a stable schema. Separating the two prevents review edits and layout quirks from leaking into rule packs, and prevents schema-first filtering from silently dropping fields before confirmation.
+- **Human confirmation before validation.** Identity and payroll-period trust are product gates, not model confidence scores. Confirmation makes the reviewed Document Model an explicit checkpoint; validation then runs only on a confirmed, mapped input.
+- **AI for extraction and explanation; deterministic compliance.** OCR and heterogeneous layouts need probabilistic reconstruction. Findings need plain-language explanation. Pass/fail must remain repeatable, versioned, and independent of model temperature—so YAML + Python rules own outcomes.
+- **Evidence-first, not schema-first.** Filling a fixed DTO from the LLM first drops line items the engine may need after human edit. Reconstruct evidence completely, then project to canonical after confirm.
+- **YAML rule packs validate; Legal RAG retrieves.** Compliance SoT must be editable, reviewable, and proposal-gated. The vector index serves assistants for version-aware retrieval; it is not an alternate rule engine and never auto-approves legal changes.
+- **Immutable validation runs over in-place updates.** Re-validation creates a new run so prior outcomes remain auditable. Sensitive mutations append audit events instead of rewriting history—required for dispute and review trails.
+- **Modular monolith before microservices.** Clean Architecture boundaries already isolate domain, use cases, and adapters. Early service splits would multiply deploy, auth, and data-consistency cost before access patterns and team scale justify them.
 
 ---
 
 ## Architecture
 
-Modular monolith with Clean Architecture and Domain-Driven Design.
+### Shape
+
+Modular monolith: FastAPI API + React SPA + Celery workers (Redis broker). Persistence is DynamoDB (business state) + S3/MinIO (document bytes). Identity is Cognito when configured, with a local dev role picker otherwise.
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
@@ -73,665 +135,383 @@ Modular monolith with Clean Architecture and Domain-Driven Design.
                             ▼
                      ┌──────────────┐
                      │Infrastructure│
-                     │ DynamoDB · S3 · Cognito · OCR · AI · CloudWatch · Redis │
+                     │ DynamoDB · S3 · Cognito · OCR · AI · Redis · CloudWatch │
                      └──────────────┘
 ```
 
-**Key principle:** The validation engine is deterministic. AI handles OCR, document reconstruction, explanations, and assistant orchestration — never compliance outcomes.
-
-**Operational surfaces:** Business **Analytics** (on-demand rollups over existing document/extraction/validation SoT) and **AI Observability** (telemetry wrapper → process-local aggregates + CloudWatch custom metrics) sit beside the portals. They do not replace the rule engine and do not introduce a separate event warehouse.
-
-| Concern | Choice |
-|---------|--------|
+| Concern | Runtime choice |
+|---------|----------------|
 | API | FastAPI (`/api/v1`) |
-| Frontend | React + TypeScript + Vite |
-| Primary DB | Amazon DynamoDB (single-table) |
+| Frontend | React 19 + TypeScript + Vite |
+| Primary DB | Amazon DynamoDB (single-table; DynamoDB Local in Compose) |
 | Objects | Amazon S3 (MinIO locally) |
-| Identity | Amazon Cognito (dev role picker when Cognito unset) |
-| LLM | Capability-routed OpenAI / Ollama / Bedrock behind `ModelProvider` + telemetry wrapper |
-| Analytics | On-demand `AnalyticsService` + registry (no aggregation tables / jobs) |
-| AI metrics history | CloudWatch GetMetricData when enabled; process-local hourly buckets as local/dev fallback |
+| Identity | Amazon Cognito (+ guest JWT; local `/auth/dev/*` sessions) |
 | Workers | Celery + Redis |
+| LLM | Capability-routed Ollama / OpenAI / Bedrock behind `ModelProvider` + telemetry |
+| Legal vector index | ChromaDB (version-aware retriever; YAML keyword fallback) |
 | i18n | Hebrew / English / Arabic (RTL-aware) |
 
-Authoritative architecture detail: [ARCHITECTURE.md](ARCHITECTURE.md). Analytics contracts: [docs/analytics.md](docs/analytics.md).
+**Note on production target vs local runtime:** [ARCHITECTURE.md](ARCHITECTURE.md) describes the AWS target (including SQS-style async). The **current Compose/runtime path** uses Celery + Redis. Do not assume SQS, API Gateway, or CloudFront are wired in local development.
+
+### Component boundaries
+
+| Component | Owns | Does not own |
+|-----------|------|--------------|
+| OCR adapters | Text / layout evidence | Compliance decisions |
+| Payslip parser / Document Model | Structured reconstruction + confidence | Pass/fail |
+| Confirmation use cases | Trust gates, versioned confirm state | Rule evaluation |
+| Canonical mapper | Projection into engine input | UI field editing |
+| `ValidationOrchestrator` | Findings, overall result, run persistence | LLM calls |
+| Assistants / explainers | Grounded natural language | Changing stored findings |
+| Analytics | On-demand rollups over existing SoT | Pipeline writes |
+| AI observability | Tokens, cost, latency, reliability | Document quality KPIs |
 
 ---
 
-## Architecture decisions
+## Document processing pipeline
 
-| Decision | Why |
-|----------|-----|
-| **DynamoDB single-table** | Access-pattern–driven keys and GSIs fit multi-tenant payroll reads (employee months, document/extraction lookup, validation history) without joining across many tables. One table per environment keeps ops simple while entity types remain explicit via `entity_type`. |
-| **S3 for documents** | Payslip binaries are large, versioned, and rarely queried as rows. Object storage keeps DynamoDB items small and lets encryption, versioning, and Block Public Access sit at the bucket boundary. |
-| **Cognito for authentication** | Managed identity (email auth, verification, JWTs) without owning password storage. Application code still owns org scope, employee binding, and role authorization after the token is verified. |
-| **Deterministic validation** | Compliance pass/fail must be auditable and repeatable. AI extracts and explains; the rule engine alone decides outcomes against versioned YAML rule packs. |
-| **Evidence-first Document Model** | Extraction reconstructs what appears on the slip (dynamic fields/tables) before mapping to a Canonical Payroll Model. Review edits the Document Model; the rule engine only sees the post-confirm canonical mapping — preventing schema-first filtering from silently dropping evidence. |
-| **On-demand analytics (no warehouse)** | Dashboards answer operational questions from existing documents, extractions, validation runs/findings, and employee bindings. Avoiding aggregation tables and cron jobs keeps a single source of truth and reduces drift risk while volume remains manageable. |
-| **CloudWatch for AI historical metrics** | AI call telemetry is emitted as CloudWatch custom metrics for production history and multi-instance visibility. The UI reads GetMetricData when enabled and falls back to process-local hourly buckets for local/dev — without inventing a DynamoDB AI event store. |
-| **Bedrock prepared, optional at runtime** | AWS region and provider adapters support managed inference when a capability is routed to `bedrock`. Local/Docker development commonly uses Ollama (and/or OpenAI) via capability-specific `*_PROVIDER` settings. |
-| **Employee session in-memory cache** | Authenticated employee UI may reuse data already loaded in the current browser session (e.g. payroll month detail). The cache never fetches on its own, never persists to storage, clears on logout, and does not bypass backend authorization. |
-| **Employee AI context boundary** | The authenticated Employee Chat inspects the frontend session inventory, then calls a dedicated employee-authorized endpoint. The backend derives the employee identity from authentication, loads only intent-required structured resources, sanitizes them, and appends that prepared context to the unchanged labor-law RAG context. Browser values and identifiers are never trusted as LLM context; Public Landing Chat remains on its existing endpoint. |
+### End-to-end payslip path (guest and employee)
+
+Deterministic stages are marked **[D]**. AI-assisted stages are marked **[AI]**.
+
+```
+Upload [D]  (type/size guardrails)
+    ↓
+OCR [AI/D]  (embedded PDF text preferred; OCR when needed)
+    ↓
+Document Model / Digital Payslip extraction [AI]
+    ↓
+Human review & edit [D]
+    ↓
+Confirm extraction [D]  (identity / period gates)
+    ↓
+Canonical Payroll Model mapping [D]
+    ↓
+Deterministic validation [D]
+    ↓
+Optional AI explanation of findings [AI]
+    ↓
+Persistence [D]  (employee/accountant: DynamoDB + S3; guest: ephemeral)
+```
+
+Guest LangGraph node sequence (simplified):  
+`input_guardrails` → `file_guardrails` → `ocr` → `extraction` → `human_review` → `deterministic_validation` → `ai_explanation` → `final_response` (plus RAG / explain-finding branches).
+
+Employee UI timeline: **Upload → Extract → Review → Validate → Completed**.
+
+### Why the split exists
+
+| Stage | Why it is not collapsed into “one AI call” |
+|-------|-------------------------------------------|
+| OCR | Needs specialized engines and embedded-text shortcuts; language fallbacks (Hebrew → Tesseract) are operational, not prompt tricks. |
+| Document Model | Layouts vary; evidence-first reconstruction must survive human edit without silently dropping fields that rules need later. |
+| Confirm | Compliance and identity trust require an explicit server gate, not a model “I’m sure.” |
+| Canonical map | Rules need a stable schema; dynamic slip keys must not leak into rule packs. |
+| Validation | Must be repeatable, versioned, and independent of model temperature. |
+| Explanation | Language layer only; findings already exist as structured artifacts. |
+
+### Accountant batch pipeline
+
+```
+Queued → Split PDF pages → OCR/Extract per page → Match employee
+      → Draft Digital Payslip + draft validation → Accountant review
+      → Approve & Publish (employee-visible)
+```
+
+Matching: national ID first, employee number fallback. Failures are isolated per page. Progress is polled from Redis-backed job state. Drafts use `publication_status=draft` until publish.
+
+### Extraction status fields (persistence)
+
+| Field | Meaning |
+|-------|---------|
+| `ocr_status` | OCR lifecycle |
+| `parser_status` | Document Model / parser lifecycle |
+| `confirmation_status` | `review_required` \| `confirmed` \| `missing` |
+| `overall_confidence` | Aggregated extraction confidence |
+| `extraction_version` | Immutable version lineage for edits |
 
 ---
 
-## Project structure
+## Domain model and terminology
+
+Use these terms consistently in code, UI, and LLM context.
+
+| Term | Meaning |
+|------|---------|
+| **Organization** | Tenant boundary |
+| **Employee** | Org-scoped worker record (number, employment/salary type, optional accountant assignment) |
+| **Document** | Metadata + S3 object key + period + lifecycle (`publication_status`, processing stage) |
+| **Document Model / Digital Payslip** | Evidence-bound reconstruction of what appears on the slip; human-editable SoT before confirm |
+| **Canonical Payroll Model** | Post-confirm projection consumed by the rule engine only |
+| **Validation run** | Immutable deterministic execution; re-validate creates a new run |
+| **Validation finding** | Structured issue attached to a run |
+| **User binding** | Cognito (or dev) subject → org / role / employee |
+| **VacationRequest / SickLeaveRequest** | Separate leave domains (`VAC#` / `SICK#` key families) |
+| **Legal rule pack (YAML)** | Authoritative source for validation |
+| **Legal vector index** | Retrieval projection for assistants; not the validation SoT |
+
+### Document types
+
+`payslip` · `attendance` · `contract` · `national_id` · `id_appendix` · `employee_excel` · `bulk_payslip_pdf`
+
+### Roles
+
+| Domain role | Typical API / UI label | Portal |
+|-------------|------------------------|--------|
+| `guest` | guest JWT | Public landing |
+| `employee` | employee | `/employee` |
+| `accountant` | `payroll_accountant` | `/accountant` |
+| `admin` | `developer_admin` | `/admin` |
+
+---
+
+## AI engineering
+
+### Capability routing
+
+Providers are selected **per capability** (e.g. `PAYSLIP_EXTRACTION_PROVIDER`, `ASSISTANT_PROVIDER`, RAG / embeddings) with fallback to `MODEL_PROVIDER`.
+
+Supported providers in code: **Ollama**, **OpenAI**, **Amazon Bedrock**.
+
+Every completion passes through `TelemetryModelProvider` (tokens, estimated cost, latency, success/error, retry/fallback flags, capability tags).
+
+### Where AI is used — and why
+
+| Capability | Why AI | Guardrail / boundary |
+|------------|--------|----------------------|
+| **OCR assist** | Scans and image PDFs are not structured tables | Embedded text preferred; Hebrew Tesseract fallback; OCR text guardrails |
+| **Payslip / Document Model extraction** | Layouts are heterogeneous; schema-first parsers drop evidence | Semantic checks + controlled retry; prefer `MISSING` over invention; structured outputs via provider APIs |
+| **Finding explanation** | Users need plain language over rule codes | Explains existing findings only; does not mutate outcomes |
+| **Payroll assistant** | Labor-law Q&A at scale | Source-bound retrieval + guardrails; LangGraph orchestration; graceful degradation if LLM unreachable |
+| **Employee chat context** | Personalized answers need employee facts | Server loads intent-required structured resources from **auth binding**; never trusts client-supplied employee selectors as LLM context |
+| **Legal RAG** | Assistants need temporal, version-aware retrieval | Chroma index over approved legal chunks; YAML keyword fallback; proposals-only sync into the catalog |
+| **Leave email extraction (n8n)** | Inbox text → structured leave draft | PC stores immutable `ai_extraction_original`; accountant corrections do not erase AI evidence |
+
+### Evidence-first extraction
+
+1. Recover evidence (embedded text or OCR).
+2. Reconstruct dynamic fields/tables as they appear.
+3. Persist as a versioned extraction with confidence.
+4. Allow human edit.
+5. Confirm.
+6. Map to canonical **after** confirm.
+7. Validate.
+
+Schema-first “fill our DTO from the LLM” is rejected because it silently drops evidence the engine may need after review.
+
+### Hallucination and grounding controls
+
+- Structured completion schemas where providers support them
+- Semantic validation on parser output with one controlled retry
+- Explicit `MISSING` stubs instead of plausible fabrications
+- Assistant answers grounded in approved legal corpus / findings — not free-form statute invention
+- Legal knowledge sync creates **proposals**; admins approve; validation continues to read YAML SoT
+- Optional legal-chunk reranker exists but is **disabled by default** (benchmark MRR regression); fail-open to vector order when enabled
+
+### Confidence and review-before-persist
+
+- Field / overall confidence is stored on extractions and surfaces in quality analytics.
+- Employee and guest flows require **confirm** before validation.
+- Accountant batch writes **drafts** until **Approve & Publish**.
+- Leave inbound stores an immutable AI extraction snapshot for audit.
+
+### What AI must not do
+
+- Decide compliance pass/fail
+- Auto-approve legal rule proposals
+- Accept browser-supplied employee IDs as authoritative chat context
+- Invent official government source URLs (registry slots remain `SOURCE_UNVERIFIED` until configured)
+
+---
+
+## Portals
+
+### Public landing (`/`)
+
+1. **Payroll Assistant** — `POST /assistant/chat` (LangGraph + guardrails + version-aware legal RAG with YAML fallback).
+2. **Validate My Payslip** — document-first guest pipeline (upload → OCR → Document Model → review → confirm → canonical → validate → optional explanation).
+
+Guest state is **ephemeral** (Redis shared store with in-memory fallback), not the employee DynamoDB ownership model.
+
+### Employee portal (`/employee`)
+
+Primary nav (code of truth): **Chat → Documents → Payslips**.
+
+| Area | Behavior |
+|------|----------|
+| **Payroll AI Chat** | Labor-law RAG + backend-authorized employee context |
+| **My Documents** | ID Card, ID Appendix, Employment Contract — Upload / Digital Form / Original Document |
+| **My Payslips** | Monthly workspace: Upload → Digital Payslip → Validation → Original Document; **Salary Analytics** (net/gross by payroll period) |
+
+**Digital Payslip** is the editable SoT after extraction. **Run Validation** saves dirty fields, confirms, then runs the rule engine. Re-validation creates a new immutable run; older runs remain for audit.
+
+Attendance validation is out of scope on the Validation tab. Original Document is metadata + delete — no in-app binary viewer yet.
+
+### Accountant portal (`/accountant`)
+
+Nav: **Employees · Vacations · Sick Leaves · Bulk Upload · Analytics**.
+
+- Opens employee workspaces via org-scoped selected-employee APIs (backend resolves by employee number inside the accountant’s org).
+- **Bulk Upload:** split → extract → match → draft validate → review → publish.
+- **Leave:** separate Vacation / Sick Leave domains; n8n owns IMAP + AI extract + send instruction; PC owns match, overlap/duplicate, review lifecycle, notifications. Prefer `POST /api/v1/integrations/email/inbound-leave/batch`. Details: [docs/vacation-email.md](docs/vacation-email.md).
+
+### Admin portal (`/admin`)
+
+Role: `developer_admin` / `UserRole.ADMIN`.
+
+| Group | Surfaces |
+|-------|----------|
+| **Monitoring** | System Dashboard (AI ops KPIs + trends) |
+| **Analytics** | Organization census; cross-org AI quality |
+| **AI Platform** | AI Models comparison |
+| **Knowledge** | Legal Knowledge; RAG Evaluation |
+| **Document Processing (DEV)** | Developer Console / Document Lab (Vite DEV only) |
+
+Census/quality analytics answer pipeline-quality questions from DynamoDB SoT. System Dashboard / AI Models answer LLM ops questions from telemetry + CloudWatch.
+
+---
+
+## Analytics and observability
+
+### Business analytics (on-demand)
+
+No aggregation warehouse. `AnalyticsService` derives metrics from documents, extractions, validation runs/findings, and bindings.
+
+| Endpoint | Audience |
+|----------|----------|
+| `GET /analytics/employee/salary` | Bound employee |
+| `GET /analytics/org/payroll` | Org accountant |
+| `GET /analytics/org/quality` | Org accountant |
+| `GET /analytics/admin/census` | Admin |
+| `GET /analytics/admin/quality` | Admin |
+
+Period grouping uses document `period_year` / `period_month` only (never upload timestamps). Contracts: [docs/analytics.md](docs/analytics.md).
+
+**Quality metric definitions (existing SoT):**
+
+| Metric | Source |
+|--------|--------|
+| Extraction success | Latest extraction `ocr_status` + `parser_status` both completed |
+| OCR success/fail | Latest `ocr_status` |
+| Validation success | Latest run `overall_result == pass` |
+| Confidence | Extraction `overall_confidence`, else validation run |
+| Manual review | Document outcome / confirmation review (not Redis match-queue depth) |
+
+### AI observability
+
+| Path | Role |
+|------|------|
+| Emit | Every routed LLM call → process-local aggregates + optional CloudWatch PutMetricData |
+| `GET /admin/ai/dashboard` | Snapshot KPIs (process-local) |
+| `GET /admin/ai/models/comparison` | Provider/model operational rows |
+| `GET /admin/ai/history` | Trends via CloudWatch GetMetricData when available; else real process-local hourly buckets (never fabricated) |
+
+Emit failures never break AI calls. Retry rates under-report when callers omit `AICallContext.retry_count`. `prompt_version` is counted locally when set; it is not a CloudWatch dimension today.
+
+---
+
+## Persistence
+
+### DynamoDB (primary business database)
+
+Single table per environment (default `PayrollCopilot`). Document **bytes** stay in S3.
+
+| `entity_type` | Stores |
+|---------------|--------|
+| `organization` | Tenant |
+| `department` | Unit + rule profile |
+| `employee` | Master data |
+| `user_binding` | Subject → org/role/employee |
+| `document` | Metadata, S3 key, period, lifecycle |
+| `extraction` | Versioned Document Model + confirmation |
+| `validation_run` / `validation_finding` | Immutable engine results |
+| `audit_event` | Sensitive-action trail |
+| Leave + legal meta | `vacation_request` / `sick_leave_request`; `LEGAL#SYSTEM` sync/proposal/eval metadata |
+
+GSIs support lookup by id (GSI1), employee number (GSI2), national-ID hash / dataset queries (GSI3).
+
+PostgreSQL/Alembic remain as **optional legacy tooling** (`legacy-postgres` Compose profile), not the active runtime path.
+
+### Object storage
+
+| Environment | Objects | Metadata |
+|-------------|---------|----------|
+| Production | Private S3 (encryption, versioning, Block Public Access) | DynamoDB |
+| Local | MinIO | DynamoDB Local |
+
+Employee keys: `organizations/{org}/employees/{emp}/…`.
+
+---
+
+## Security and tenancy
+
+- Cognito JWTs when configured; guest JWT for landing; local `/auth/dev/*` blocked when Cognito is set or `APP_ENV=production`
+- Application-layer RBAC and org/employee binding checks (frontend routes are not sufficient)
+- Encrypted national ID at rest; APIs return masked IDs
+- Upload guardrails (type/size); OCR/assistant guardrails
+- Tenant-prefixed DynamoDB/S3 keys
+- Append-only audit for sensitive mutations
+- SSRF-hardened legal source fetch (HTTPS allowlist, private IP block, size/timeouts)
+- Production secret placeholder refusal (`production_guards`)
+
+Some accountant/guest mutation routes still have **partial** RBAC coverage — treat as an active hardening area, not complete.
+
+Module notes: [docs/security-and-deployment.md](docs/security-and-deployment.md) (may still mention legacy Postgres; prefer this README + ARCHITECTURE for persistence posture).
+
+---
+
+## Jobs and integrations
+
+| Concern | Implementation |
+|---------|----------------|
+| Async work | Celery workers + beat (Redis) |
+| Batch payslips | Worker pipeline; Redis job state; browser polls |
+| Legal sync schedule | Beat hook; **disabled until official sources configured** (`LEGAL_SYNC_SCHEDULE_ENABLED=false`) |
+| Leave email | Optional n8n Compose profile; batch inbound API |
+| Email send | SES adapter; console fallback when unset |
+| MCP | `backend/mcp/` legal sync tooling (compare/proposal foundation) |
+
+---
+
+## Repository layout
 
 ```
 payroll-copilot/
 ├── README.md
 ├── ARCHITECTURE.md
-├── .env.example / .env.docker.example / .env.local.example / .env.production.example
+├── .env.*.example
 ├── docker-compose.yml
-├── docs/                          # Module docs (some still lag DynamoDB migration)
+├── docs/                          # Module docs (some lag DynamoDB migration)
 ├── backend/
-│   ├── pyproject.toml
-│   ├── Dockerfile
-│   ├── alembic/                   # Optional legacy PostgreSQL tooling only
-│   ├── config/
-│   │   ├── rules/labor_law/       # YAML legal rules (source of truth)
-│   │   ├── rules/departments/
-│   │   ├── prompts/
-│   │   └── ai_models.yaml
-│   ├── mcp/                       # Legal-rule sync tooling (foundation)
+│   ├── config/rules/labor_law/    # YAML SoT for validation
+│   ├── config/prompts/
+│   ├── config/ai_models.yaml
+│   ├── mcp/
 │   └── src/payroll_copilot/
 │       ├── domain/
-│       ├── application/           # Use cases, ports, services
-│       ├── infrastructure/        # DynamoDB, S3, Cognito, OCR, AI, Celery
+│       ├── application/           # Use cases, ports, validation, services
+│       ├── infrastructure/        # DynamoDB, S3, Cognito, OCR, AI, Celery, RAG
 │       └── presentation/          # FastAPI routes
 └── frontend/
     └── src/
         ├── app/                   # Routing
-        ├── auth/                  # Cognito + dev auth
-        ├── features/              # Guest landing, employee digital form, analytics kit, …
-        ├── pages/                 # public / employee / accountant / admin
-        ├── services/              # Typed API clients (incl. analytics, AI monitoring)
-        ├── hooks/                 # Portal + analytics/monitoring resource hooks
-        └── i18n/locales/          # en, he, ar
+        ├── auth/
+        ├── layouts/portalConfig.ts
+        ├── pages/{public,employee,accountant,admin}/
+        ├── features/
+        ├── services/
+        └── i18n/locales/{en,he,ar}.json
 ```
 
 ---
 
-## Features
-
-### Deterministic validation
-
-- Rule evaluation, findings, confidence aggregation
-- Persistence of validation runs and findings in DynamoDB
-- Guest and employee validation entry points
-- AI may explain findings; it does not change outcomes
-
-### Document upload and object storage
-
-- Guardrailed uploads (type/size)
-- Bytes in S3 (or MinIO); metadata in DynamoDB
-- Employee-owned keys under organization / employee prefixes
-
-### OCR and payslip parsing
-
-- Pluggable OCR (PaddleOCR default; Hebrew → Tesseract fallback)
-- Embedded PDF text preferred when available
-- Evidence-bound payslip / Document Model extraction via LLM (completeness of what appears on the slip before canonical mapping)
-- Semantic validation and controlled retry (honest MISSING over invented values)
-- Persisted extraction/OCR/validation statuses feed **AI Quality Analytics** without a separate quality store
-
-### Portals
-
-- Public landing (assistant + validate-my-payslip)
-- Employee monthly payslip workspace (primary employee flow) + Salary Analytics on My Payslips
-- Accountant portal (employees, bulk pipeline, org analytics)
-- Admin System Dashboard, organization census, AI quality analytics, AI Models
-- Admin / Document Lab for developers (many lab screens are Vite DEV-only)
-- Developer AI monitoring (usage footer, dashboard KPIs, historical trends, model comparison)
-- Global popular questions sidebar on landing chat (counters only; answers always live)
-
-### Analytics (on-demand)
-
-- Employee salary series (net/gross by payroll period)
-- Accountant org payroll outcomes, validation failures, confidence
-- Accountant / admin AI quality KPIs (extraction, OCR, validation, confidence distribution, manual review, failures)
-- Admin organization census (companies, employees, accountant assignment coverage)
-- Shared chart kit and loading / empty / error states across dashboards
-
-### Auth
-
-- Guest short-lived JWT for landing
-- Cognito login / refresh when configured
-- Dev role selector (`VITE_DEV_AUTH_ENABLED=true`) for local portals (employee / accountant / developer_admin sessions)
-- Employee routes require Bearer auth + employee binding
-- Accountant and admin analytics/monitoring routes enforce application-layer roles
-
----
-
-## Employee Portal
-
-Navigation (Employee Portal only):
-
-1. **My Documents** (default home)
-2. **My Payslips**
-3. **Payroll AI Chat**
-
-### My Documents
-
-Workspace at `/employee/documents` with top-level document tabs:
-
-- **ID Card**
-- **ID Appendix**
-- **Employment Contract**
-
-Each document type uses the same inner structure as the payslip month workspace:
-
-| Tab | Purpose |
-|-----|---------|
-| **Upload** | Select a file and run OCR/AI extraction (default language: Hebrew). Replacements require confirmation; the previous version remains active unless the new extraction and persistence succeed |
-| **Digital Form** | ID Card and ID Appendix use fixed payroll fields (manual entry or extraction). Employment Contract keeps the dynamic extracted-field editor. All support explicit save |
-| **Original Document** | Filename, upload date, type, status; delete original with confirmation. No embedded preview |
-
-### My Payslips
-
-Monthly list → workspace at `/employee/payslips/:year/:month`.
-
-The My Payslips page also exposes a **Salary Analytics** tab: an on-demand chart of net and gross salary by `period_year` / `period_month` for the authenticated employee (see [Analytics](#analytics)). Payslips without a payroll period are excluded from the series and counted separately. This exists so employees can spot month-to-month pay changes without exporting data or relying on opaque AI summaries.
-
-### End-to-end payslip workflow
-
-```mermaid
-flowchart TD
-  A[Upload] --> B[OCR]
-  B --> C[AI Extraction]
-  C --> D[Digital Payslip]
-  D --> E[Employee Review / Edit]
-  E --> F[Confirm Extraction]
-  F --> G[Validation]
-  G --> H[Validation History]
-```
-
-Compact workspace timeline: **Upload → Extract → Review → Validate → Completed**.
-
-### Payslip workspace tabs
-
-| Tab | Purpose |
-|-----|---------|
-| **Upload** | Select/replace the payslip for the month; start extraction. Delete on this tab removes a *selected replacement*, not the confirmed original. |
-| **Digital Payslip** | Editable **source of truth** after extraction. Field cards with typed previews, edit dialog, delete-with-confirm. Long values truncate in the grid. |
-| **Validation** | Deterministic findings as compact cards; optional AI explanation per finding. Attendance validation is **out of scope** and not shown. |
-| **Original Document** | Document management metadata (filename, upload date, type, status/size when available) and **Delete Original Document** with confirmation. No embedded PDF/image preview. |
-
-### Digital Payslip as source of truth
-
-- Extraction produces a structured field set stored as a versioned extraction.
-- The Digital Payslip is what the employee reviews and edits.
-- Edits are draft corrections until confirmation.
-- **Run Validation** saves dirty fields, confirms the extraction, then runs the rule engine.
-- After edits, previous validation runs are treated as **outdated** until re-validation.
-
-### Extraction confirmation
-
-- Confirmation is an explicit server-side step (`POST /extraction/employee/{document_id}/confirm`).
-- National ID mismatch or payroll-period mismatch can **block** confirmation.
-- Name-only mismatches are typically warnings, not hard blocks.
-- Validation requires a confirmed extraction.
-
-### Validation lifecycle
-
-1. Confirm latest Digital Payslip (with acknowledgement).
-2. `POST /validation/employee/run` creates a new validation run + findings in DynamoDB.
-3. Results appear on the Validation tab and in month detail / history.
-4. Re-validation after edits creates a **new** run; older runs remain for audit and may be flagged outdated.
-
-### Other employee pages
-
-| Page | Status |
-|------|--------|
-| My Documents workspace | Implemented (extract / persisted digital form / safe replacement / original document) |
-| My Payslips / month workspace | Implemented |
-| Payroll AI Chat | Implemented (authenticated endpoint; labor-law RAG + backend-authorized structured employee context; no document embeddings) |
-| Attendance & Employment Contract nav items | Removed from Employee navigation (legacy routes redirect to My Documents) |
-
----
-
-## Public Landing
-
-Public `/` offers:
-
-1. **Payroll Assistant** — `POST /assistant/chat` (LangGraph + guardrails + keyword search over approved YAML rules; safe Markdown rendering in UI).
-2. **Validate My Payslip** — document-first guest flow:
-
-```
-Upload payslip
-        ↓
-OCR (embedded text first; OCR when needed)
-        ↓
-Complete Document Model (dynamic fields / tables)
-        ↓
-User review (edit / add / delete optional)
-        ↓
-Confirm → Canonical Payroll Model mapping
-        ↓
-Deterministic validation
-        ↓
-Optional AI explanation of findings
-```
-
-| Layer | Role |
-|-------|------|
-| **Document Model** | Source of truth for guest review — dynamic keys/values from *this* slip |
-| **Canonical Payroll Model** | Built after confirmation for the rule engine only |
-
-Guest extraction/session state is **ephemeral** (in-process TTL store), not the employee DynamoDB ownership model.
-
----
-
-## Accountant Portal
-
-Primary navigation under `/accountant`:
-
-1. **Employees** — organization-scoped search and employee master data
-2. **Vacations** (`/accountant/vacations`) — VacationRequest leave management (email ingest + manual)
-3. **Sick Leave** (`/accountant/sick-leaves`) — SickLeaveRequest management (parallel UX, separate domain)
-4. **Bulk Upload** — persistent two-tab upload and incremental extracted-employee workspace
-5. **Analytics** — organization payroll outcomes and AI quality KPIs by payroll year (see [Analytics](#analytics))
-
-Vacation / sick-leave email automation details: [docs/vacation-email.md](docs/vacation-email.md), [docs/n8n-vacation-workflow.md](docs/n8n-vacation-workflow.md).
-
-### Leave Management (accountant)
-
-Leave Management covers two **separate** domains:
-
-- **VacationRequest** — DynamoDB `entity_type=vacation_request`, keys `VAC#…`
-- **SickLeaveRequest** — DynamoDB `entity_type=sick_leave_request`, keys `SICK#…`
-
-They intentionally do **not** share a generic LeaveRequest entity. Behavior may start similar but must remain independently evolvable. Overlap and business duplicates are evaluated within each domain only.
-
-**n8n batch ingest:** Prefer `POST /api/v1/integrations/email/inbound-leave/batch` so vacation and sick leave items arrive together; Payroll Copilot returns one aggregated `notification` instruction. The legacy single-item `POST …/inbound-vacation` remains supported.
-
-**Why the default view is `active` (not `current`):**  
-`current` still means “approved leave happening today.” New email intake lands as `pending_approval` or `requires_attention`, so defaulting to `current` hid the work queue. `active` includes unresolved requests (including missing dates) plus approved leave whose `end_date` is today or in the future. Past approved, cancelled, and rejected rows remain available under historical filters.
-
-**Request details:** Row click opens a centered modal with editable employee name/email/dates, original email (sender/subject/body/received_at), AI confidence/explanation, and an **immutable `ai_extraction_original` snapshot** captured on first inbound ingest so accountant corrections never erase AI evidence.
-
-**Corrections:** PATCH update rematches employee by email when identity fields change, recomputes date/overlap/duplicate attention codes, clears stale codes, and recalculates review status. Identity after match is `employee_id` (not display name).
-
-**Severity:** Hard codes (missing employee/dates, ambiguous identity, etc.) block approval and show as red. Warnings (`OVERLAP`, `LOW_CONFIDENCE`, update/cancel proposed) use yellow badges and require existing `confirm_warnings` confirmation. Overlap marks both peers and is refreshed on create/edit/delete/cancel.
-
-**Duplicates:** Transport idempotency remains `provider` + `provider_message_id` (per domain). Exact business duplicates (`employee_id` + start + end) against pending/attention/approved requests are suppressed on NEW ingest (cancelled/rejected do not block). Update/cancel intents are not suppressed this way.
-
-**Delete:** UI uses delete (no Reject). Non-approved → hard delete; approved → soft `cancelled` (existing reconciler-safe semantics). Bulk approve and bulk delete reuse org-scoped use cases with partial-success results.
-
-**Settings:** Shared notification destination email; independent vacation vs sick-leave notify toggles (preferences PATCH). IMAP/monitored mailbox connection is owned by n8n and is not shown as a Payroll Copilot connection badge.
-
-**Data access:** Vacation lists use `SK begins VAC#`; sick leave lists use `SK begins SICK#`. Employee overlap/duplicate uses domain-specific GSI3 prefixes (`VEMP#` / `SEMP#`). All accountant mutations stay behind `require_accountant` and organization binding.
-
-**Responsibility:** n8n owns IMAP intake, normalization, AI extraction, batch submission, and executing the returned send instruction. Payroll Copilot owns domain lifecycle (match, validate, duplicate/overlap, accountant review) and builds notification content/prefs.
-
-Opening an employee reuses the Employee Portal Documents, Payslips, monthly
-workspace, validation, Digital Payslip, Original Document, and Payroll AI Chat
-components. The frontend injects an accountant-selected workspace API; the
-backend always resolves that employee by employee number inside the
-authenticated accountant's organization before any read, edit, validation, or
-AI context operation.
-
-### Why Analytics sits in the accountant primary nav
-
-Accountants need a month-level view of how the org’s payslip pipeline is behaving — volume processed, success vs review vs failed, validation failure hotspots, and extraction confidence — without opening every employee workspace. The **AI quality** tab answers a different question: whether OCR/parser/validation rates and manual-review pressure are degrading for a given payroll year. Both views are computed on demand from existing SoT so accountants do not maintain a second reporting database.
-
-Bulk batch state lives above routes, so progress, results, filters, and scroll
-position survive tab changes and employee-workspace navigation. Redis-backed
-job state allows processing to continue without an open browser. The worker
-splits payroll packages into one independent payslip document per page, then
-processes each page sequentially through the shared OCR/parser, Digital Payslip
-persistence, employee matching, and deterministic validation use cases.
-National ID matching runs first, with employee number as a fallback. Every
-split PDF, OCR result, extraction version, validation run, review state, and
-processing correlation is persisted before the worker starts the next page.
-
-Batch payslips are accountant-review drafts. A provisional employee match lets
-the accountant reuse the existing Digital Payslip, Validation, Original
-Document, and Payroll AI Chat workspace, but `publication_status=draft` is a
-hard Employee Portal visibility boundary. Corrections create extraction
-versions; every revalidation creates another immutable validation run displayed
-in validation history. Only **Approve & Publish**, after the current extraction
-has been confirmed and validated, changes the document to employee-visible.
-
-Legacy accountant pages (rules, findings, approvals, audit, batch monitor) remain
-routable but are intentionally not in the Phase 1 primary navigation.
-
-One payslip failure is isolated to that item and does not stop the batch.
-Unknown-employee resolution can correct the extracted National ID or attach a
-selected employee, then resumes the same persisted draft without repeating OCR.
-Progress currently reaches the browser by polling Redis-backed job state; the UI
-contract does not depend on polling and can later move to push events.
-
----
-
-## Admin Portal
-
-Developer-admin surfaces under `/admin` (role: `developer_admin` / `UserRole.ADMIN`).
-
-### Primary production navigation
-
-| Path | Purpose | Operational decisions it supports |
-|------|---------|-----------------------------------|
-| `/admin` | **System Dashboard** — AI usage KPIs, capability breakdown, historical trend charts, provider comparison for the selected window | Detect cost/latency/error spikes; see whether retries/fallbacks are rising; confirm which providers/capabilities drive traffic |
-| `/admin/analytics` | **Organization Analytics** — census of companies, employees, payroll accountants, unassigned employees | Capacity and assignment coverage across tenants |
-| `/admin/analytics/quality` | **AI Quality Analytics** — cross-org rollup of extraction/OCR/validation/confidence/review metrics | Compare quality pressure across organizations for a payroll year |
-| `/admin/ai-models` | **AI Models** — per provider/model operational comparison (requests, latency, tokens, cost, success/error/retry/fallback rates) | Choose which models to keep routing to; spot underperforming combinations |
-
-### Why these dashboards exist separately from portal analytics
-
-- **Census / quality analytics** answer *business and pipeline quality* questions from DynamoDB document/validation SoT (same Analytics platform as accountant/employee).
-- **System Dashboard / AI Models** answer *LLM ops* questions from the telemetry pipeline (process aggregates + CloudWatch). Mixing them would conflate “was this payslip validated correctly?” with “did the provider call fail or get expensive?”
-
-### DEV-only lab screens
-
-When the frontend is built with Vite DEV mode, additional admin routes remain available for engineering (users/roles, rule packs, department rules, system configuration, audit logs, Document Lab). Legal Knowledge and RAG Evaluation are available in production admin nav. Legacy `/admin/mcp-sync` and `/admin/rag` redirect to the new pages.
-
----
-
-## Analytics
-
-Payroll Copilot’s **Analytics** vertical is an on-demand query layer over existing persistence. It does **not** introduce aggregation tables, cache jobs, or a second warehouse.
-
-### Why this architecture
-
-| Goal | Approach |
-|------|----------|
-| Single source of truth | Metrics are derived from documents, extractions, validation runs/findings, employees, and user bindings already written by the product flows |
-| Low regression risk | New metrics register as use cases on `AnalyticsService` / `AnalyticsRegistry` instead of forking parallel reporting code |
-| Auditable periods | Series group **only** by document `period_year` / `period_month` (never upload `created_at`) so charts match payroll months |
-| Role-appropriate views | Employee sees own salary; accountant sees org payroll + quality; admin sees census + cross-org quality |
-
-Contract detail: [docs/analytics.md](docs/analytics.md).
-
-### Backend shape
-
-| Component | Role |
-|-----------|------|
-| `AnalyticsService` | Facade over registered metric providers; `run_metric` extension point |
-| Use cases | `employee.salary`, `org.payroll`, `org.quality`, `admin.census`, `admin.quality` |
-| Helpers | Period keys, salary value extraction, document outcome classification, confidence buckets, aggregation |
-
-### APIs (`/api/v1/analytics`)
-
-| Endpoint | Auth | What it returns |
-|----------|------|-----------------|
-| `GET /employee/salary` | Bound employee | Net/gross by payroll month for one employee |
-| `GET /org/payroll` | Payroll accountant (org-bound) | Documents by outcome, validation failures, error-type distribution, average confidence by month |
-| `GET /org/quality` | Payroll accountant (org-bound) | Extraction/OCR/validation success rates, confidence distribution, manual review, failed documents |
-| `GET /admin/census` | Developer admin | Companies, employees, payroll accountants, assignment coverage, per-org slices |
-| `GET /admin/quality` | Developer admin | Cross-org rollup of `org.quality` for a payroll year |
-
-### Frontend surfaces
-
-| Surface | Location | Charts / KPIs | Decisions supported |
-|---------|----------|---------------|---------------------|
-| **Employee Salary Analytics** | My Payslips → Salary Analytics tab | Net/gross line/bar by month; year filter; empty/error states | Spot unexpected pay changes; confirm months with published slips |
-| **Accountant Payroll Analytics** | `/accountant/analytics` → Payroll outcomes tab | Processed volume, success/review/failed, validation failures, top error types, confidence trend | Prioritize review load; find failing rule hotspots; watch confidence drift |
-| **Accountant AI Quality Analytics** | Same page → AI quality tab | Extraction/validation success rates, OCR success vs fail, manual review rate, failed documents, confidence histogram | Decide whether OCR/parser quality needs ops attention before payroll close |
-| **Admin Organization Analytics** | `/admin/analytics` | Census KPIs, employees-per-accountant bars, per-org table | Staffing and assignment gaps across tenants |
-| **Admin AI Quality Analytics** | `/admin/analytics/quality` | Same quality KPIs rolled up across organizations | Compare org quality; escalate systemic extraction issues |
-
-Shared UI building blocks live under `frontend/src/features/analytics/` (dashboard layout, stat cards, year filter, loading/empty/error states, Recharts wrappers).
-
-### Quality metric definitions (existing SoT only)
-
-| Metric | Source of truth |
-|--------|-----------------|
-| Extraction success | Latest extraction `ocr_status` + `parser_status` both `completed` |
-| OCR success / failure | Latest extraction `ocr_status` |
-| Validation success | Latest validation run `overall_result == pass` |
-| Average confidence | Extraction `overall_confidence`, else validation run |
-| Confidence distribution | Fixed bands `0–0.5`, `0.5–0.7`, `0.7–0.85`, `0.85–1.0` |
-| Manual review | Document outcome / lifecycle / confirmation review (not the Redis employee-match queue) |
-| Failed documents | Document outcome classification → failed |
-
-Metrics that would require new persistence (e.g. processing duration histograms, Redis match-queue depth as “quality”) are intentionally out of this vertical.
-
-### Document pipeline relationship
-
-```
-Upload → OCR evidence → Document Model / Digital Payslip
-        → Confirm → Canonical mapping → Deterministic validation
-                ↘
-                  Analytics reads the same persisted documents,
-                  extractions, and validation runs on demand
-```
-
-Analytics never writes pipeline state; it only aggregates what product flows already stored.
-
----
-
-## AI, OCR, extraction, and validation
-
-### Model providers
-
-| Provider | Status |
-|----------|--------|
-| **Ollama** | Supported — local / Docker development |
-| **OpenAI** | Supported — cloud chat/embeddings when configured |
-| **Amazon Bedrock** | Supported — managed inference when configured |
-
-Providers are selected per AI capability (`PAYSLIP_EXTRACTION_PROVIDER`, `ASSISTANT_PROVIDER`, …) with fallback to `MODEL_PROVIDER`. Every completion passes through a **telemetry wrapper** (`TelemetryModelProvider`) that normalizes prompt/completion/total tokens, estimates cost, measures latency, and records retry/fallback flags and capability tags for monitoring.
-
-### OCR
-
-- Port + factory; default `OCR_PROVIDER=paddleocr`
-- Hebrew: intentional Tesseract fallback (PaddleOCR has no official Hebrew model)
-- Preprocessing, language mapping, layout words/bboxes, multi-PSM Tesseract selection
-- Guest/employee interactive flows use sync extraction endpoints (background Celery OCR on generic upload remains limited)
-
-### Extraction
-
-- Evidence-bound parsing with semantic checks and one controlled retry
-- Guest: complete Document Model → confirm → canonical mapping
-- Employee: owned extract → Digital Payslip → confirm → validate
-- Corrections create new extraction versions
-- Capability tagging (e.g. payslip extraction, assistant, RAG) flows into telemetry for ops breakdowns
-
-### Validation
-
-- Deterministic Python rule engine + YAML labor-law packs
-- Findings and confidence from backend only
-- Scope honestly reports `partial` / `not_available` for unwired areas (contract, attendance analysis, historical comparison, vector RAG)
-
-### Assistant
-
-- Orchestrator only; source-bound answers from approved YAML
-- No vector RAG yet
-- Graceful degradation if the LLM is unreachable
-- Optional usage footer on chat responses (same contract for all providers)
-- Global popular-question counters for the landing sidebar
-
----
-
-## AI Observability and monitoring
-
-AI Observability extends the existing developer AI Monitoring platform. It answers **ops** questions (cost, latency, reliability, provider/model mix) — distinct from **AI Quality Analytics**, which answers pipeline-quality questions from document SoT.
-
-### What it does
-
-| Capability | Behavior |
-|------------|----------|
-| **Emit** | Every routed LLM call records tokens, estimated cost, latency, success/error, retry, fallback, provider, model, capability |
-| **Process-local store** | Always updates in-process aggregates + hourly buckets (local/dev trends; lost on process restart) |
-| **CloudWatch emit** | When `CLOUDWATCH_ENABLED=true`, PutMetricData under `CLOUDWATCH_METRICS_NAMESPACE` (default `PayrollCopilot`) with dimensions Provider / Model / Capability |
-| **CloudWatch read** | `GET /admin/ai/history` uses GetMetricData (SEARCH + aggregate) for historical series and provider slices when CloudWatch is available |
-| **Fallback** | If CloudWatch is disabled, unreachable, or returns an empty window while local samples exist, history uses real process-local hourly buckets — never fabricated datapoints |
-
-### Why CloudWatch (not a DynamoDB event store)
-
-Production AI traffic may span multiple API instances. Process-local counters alone cannot answer “what happened across the fleet last 72 hours?” CloudWatch already receives custom metrics for alarms/ops; reading those metrics reuses the emit path without duplicating every call into DynamoDB. Local development keeps working when AWS credentials or metrics are absent.
-
-### Surfaces
-
-| Surface | What it shows | Decisions supported |
-|---------|---------------|---------------------|
-| Conversation **usage footer** | Provider, model, tokens, estimated cost, latency, retry, fallback under each Q→A | Spot expensive or slow turns during product use |
-| `/admin` **System Dashboard** | Snapshot KPIs; tokens by provider/model/capability; optional prompt-version counts when callers set them; trend charts (tokens, cost, latency, success/error/retry/fallback); provider comparison for the selected window | Investigate regressions; compare providers; watch retry/fallback pressure |
-| `/admin/ai-models` **AI Models** | Table + chart: requests, avg latency/tokens, cost, success/error/retry/fallback rates, capability | Decide routing and model retention |
-| Landing **popular questions** | Top 10 global questions by ask count (no answer cache; click re-asks the LLM) | Content prioritization for labor-law FAQ coverage |
-
-### APIs (`/api/v1/admin/ai`)
-
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /dashboard?window_hours=` | KPI snapshot (`source` indicates process_local for this aggregate) |
-| `GET /models/comparison?window_hours=` | Per provider/model operational rows |
-| `GET /history?window_hours=` | Time series + `by_provider` + `source` (`cloudwatch` or `process_local`) |
-
-Auth: developer admin only.
-
-### Prompt version
-
-`prompt_version` is plumbed through `AICallContext` / usage stats and counted in process-local aggregates **when callers set it**. It is not currently emitted as a CloudWatch dimension (avoids changing the historical metric schema). Dashboards show prompt-version bars only when non-empty counts exist.
-
-### Production considerations
-
-- Dashboard snapshot KPIs remain process-local for low latency; use **history** for multi-instance CloudWatch trends.
-- Metric emit failures never break AI calls (swallowed with debug logging).
-- Retry rates reflect `AICallContext.retry_count`; production paths that do not increment the context will under-report retries.
-- **AI Quality Analytics** (document extraction/validation rates) remains under `/analytics` and `/admin/analytics/quality` — do not confuse with this ops telemetry.
-
----
-
-## AWS
-
-### Infrastructure-first approach
-
-AWS foundations were prepared **before** full application cutover: region, private storage, identity, and IAM for local/dev access. The application then integrated against those boundaries (DynamoDB adapters, S3 storage, Cognito auth).
-
-**Region:** `us-east-1` — selected so future Amazon Bedrock integration can use models available in that region, alongside the rest of the AWS footprint.
-
-### AWS services
-
-| Service | Purpose | Current status |
-|---------|---------|----------------|
-| **Amazon Cognito** | User Pool authentication (email), JWT verification | In use when `COGNITO_*` is configured; local/dev may use the role picker |
-| **Amazon DynamoDB** | Primary business database (single-table) | In use (DynamoDB Local in Compose) |
-| **Amazon S3** | Private document object storage | In use (MinIO locally) |
-| **IAM** | Least-privilege roles; development user / access keys for local AWS access | In use |
-| **Amazon Bedrock** | Managed LLM inference | In use when a capability routes to `bedrock` |
-| **Amazon SES** | Outbound email | Adapter present; console fallback when unset |
-| **CloudWatch** | Logs + AI custom metrics (PutMetricData emit + GetMetricData history for admin dashboards) | Configured; telemetry emits when `CLOUDWATCH_ENABLED=true`; history API reads when reachable and falls back to process-local hourly buckets |
-
-### Storage posture (S3)
-
-- Private bucket
-- Block Public Access
-- Server-side encryption
-- Versioning enabled (production bucket configuration)
-
-### Identity posture (Cognito)
-
-- Cognito User Pool for production authentication
-- Email-based sign-in / verification policies on the pool
-- **Business roles** (employee, payroll accountant, admin) are enforced in the **application layer** after identity is established (groups/claims are mapped; fine-grained org/employee binding is app-owned)
-
-### Local development credentials
-
-- IAM development user + AWS access keys may be used to call real AWS APIs from a developer machine when not using Local/MinIO substitutes
-- Docker Compose defaults to DynamoDB Local + MinIO so day-to-day work does not require live AWS
-
----
-
-## DynamoDB
-
-**Primary runtime database.** One application table per environment (default name `PayrollCopilot`).
-
-PostgreSQL / Alembic remain in the repo only as **optional legacy tooling** (`docker compose --profile legacy-postgres`). They are not part of the active runtime path.
-
-### Single-table design
-
-- Every item has `PK` and `SK` (plus `entity_type`, and usually `organization_id` / timestamps)
-- Access patterns drive key design
-- Sparse GSIs for alternate lookups
-- Document **bytes** stay in S3; DynamoDB stores metadata and structured business state
-
-### Global Secondary Indexes
-
-| Index | Partition Key | Sort Key |
-| ----- | ------------- | -------- |
-| GSI1 | GSI1PK | GSI1SK |
-| GSI2 | GSI2PK | GSI2SK |
-| GSI3 | GSI3PK | GSI3SK |
-
-**Typical usage in code today:**
-
-| Index | Examples |
-|-------|----------|
-| **GSI1** | Lookup by document / extraction / validation-run / employee / user / department id |
-| **GSI2** | Employee number within an organization |
-| **GSI3** | National ID hash within an organization; dataset-scoped document/audit queries |
-
-### Entity types currently stored
-
-| Entity | `entity_type` | What it stores |
-|--------|---------------|----------------|
-| **Organization** | `organization` | Tenant metadata |
-| **Department** | `department` | Org unit + rule profile |
-| **Employee** | `employee` | Employee master data |
-| **User binding** | `user_binding` | Auth subject → org / role / employee |
-| **Document** | `document` | File metadata, S3 key, period, lifecycle; month workspace pointers live here (no separate workspace entity) |
-| **Extraction** | `extraction` | Versioned Digital Payslip fields + confirmation state |
-| **Validation run** | `validation_run` | One deterministic rule-engine execution |
-| **Validation finding** | `validation_finding` | Findings belonging to a run |
-| **Audit log** | `audit_event` | Sensitive-action audit trail |
-
-Also present for seeding/tooling: `dataset_employee`.
-
-### Access patterns (summary)
-
-| Pattern | Approach |
-|---------|----------|
-| List employee documents / months | Query `PK = ORG#…#EMP#…`, `SK begins_with DOC#` |
-| Get document / extraction / run by id | GSI1 |
-| Resolve user binding | `USER#…` under org + GSI1 |
-| Find employee by number / national ID | GSI2 / GSI3 |
-| Validation history | Query `VALRUN#` under employee partition |
-| Org audit | Query `AUDIT#` under org |
-
-Guest landing sessions use an **in-process ephemeral store**, not durable DynamoDB guest items (by design today).
-
-**Analytics and AI monitoring** do not add analytics-specific DynamoDB entities. Business analytics query existing document/extraction/validation/employee items on demand. AI Observability emits/reads CloudWatch custom metrics (plus process-local aggregates) rather than writing per-call event rows.
-
-Deeper design notes: [ARCHITECTURE.md](ARCHITECTURE.md) § DynamoDB. Module doc [docs/database.md](docs/database.md) still contains legacy PostgreSQL material and should be treated carefully until refreshed.
-
----
-
-## Storage
-
-| Environment | Objects | Metadata |
-|-------------|---------|----------|
-| Production | Amazon S3 | DynamoDB |
-| Docker / local | MinIO (`S3_ENDPOINT`) | DynamoDB Local |
-
-Employee uploads use logical keys under `organizations/{org}/employees/{emp}/…` (including period paths for payslips). File bytes are never stored in the database.
-
----
-
-## Security
-
-- Cognito JWTs when configured; guest JWT for landing; employee routes require Bearer + binding
-- Application-layer RBAC and organization scoping (Cognito groups alone are insufficient)
-- Analytics and AI monitoring endpoints reuse the same auth principals: bound employee, org-bound accountant, or developer admin — no separate auth system
-- Encrypted National ID at rest; API returns masked ID only
-- Upload guardrails; tenant isolation on employee-owned documents
-- Append-only audit events for sensitive employee/accountant actions
-- Do not rely on frontend route protection alone for ownership checks
-
-See [docs/security-and-deployment.md](docs/security-and-deployment.md).
-
----
-
-## Docker and development setup
+## Local development
 
 ### Prerequisites
 
-- Docker & Docker Compose v2.20+
-- Optional host tooling: Python 3.12+, Node.js 20+
-- 16GB+ RAM recommended when using local Ollama
+Docker Compose v2.20+ · optional Python 3.12+ / Node 20+ · 16GB+ RAM if using local Ollama
 
-### Primary startup
+### Start
 
 ```powershell
 copy .env.docker.example .env
@@ -740,151 +520,62 @@ docker compose up --build
 
 | URL | Purpose |
 |-----|---------|
-| http://localhost:3000 | Frontend (Vite hot reload) |
-| http://localhost:8000/docs | OpenAPI / Swagger |
-| http://localhost:8000/health | API health |
+| http://localhost:3000 | Frontend |
+| http://localhost:8000/docs | OpenAPI |
+| http://localhost:8000/health | Health |
 | http://localhost:9001 | MinIO console |
 
-### Compose architecture
+Compose services: DynamoDB Local, Redis, MinIO, API, Celery worker/beat, frontend. Optional profiles: `legacy-postgres`, `docker-ollama`, `automation` (n8n).
 
-```
-payroll_net
-├── dynamodb          # DynamoDB Local (primary persistence)
-├── redis             # Celery broker / cache
-├── minio             # S3-compatible object store
-├── api               # FastAPI :8000
-├── worker            # Celery worker
-├── beat              # Celery beat
-├── frontend          # Vite :3000
-├── postgres          # profile: legacy-postgres (optional)
-├── migrate           # profile: legacy-postgres
-├── ollama            # profile: docker-ollama (optional local LLM)
-└── n8n               # profile: automation (optional)
-```
+### Frontend `node_modules` volume
 
-Startup order: Redis healthy + DynamoDB/MinIO up → API / worker / beat → frontend (waits for API healthy).
-
-### Important: frontend `node_modules` volume
-
-The Compose `frontend` service mounts a **named volume** `frontend_node_modules` over `/app/node_modules`.
-
-If `frontend/package.json` or `frontend/package-lock.json` change (for example after adding an npm package):
+Compose mounts named volume `frontend_node_modules`. After `package.json` / lockfile changes:
 
 ```powershell
 docker compose down -v
 docker compose up --build
 ```
 
-**Why:** recreating containers **without** removing volumes keeps the old `node_modules` volume. New packages will not appear inside the container until that volume is recreated. Use `down -v` when dependencies change; avoid casual `-v` otherwise (it also wipes Redis/MinIO/Ollama data volumes).
+### Dev auth
 
-### Environment files
+With `VITE_DEV_AUTH_ENABLED=true`: roles `employee` → `/employee`, `payroll_accountant` → `/accountant`, `developer_admin` → `/admin`.
 
-| File | Role |
-|------|------|
-| `.env.docker.example` → `.env` | Docker development (DynamoDB Local, MinIO, Ollama) |
-| `.env.local.example` → `.env.local` | Host-local API against localhost infra |
-| `.env.production.example` / `.env.example` | AWS-oriented defaults (S3, DynamoDB, Cognito; Bedrock keys reserved for a later phase) |
-| `frontend/.env.example` | Vite; set `VITE_DEV_AUTH_ENABLED=false` for Cognito UI |
+### AI routing locally
 
-### Dev auth roles
-
-When `VITE_DEV_AUTH_ENABLED=true` (Compose frontend default):
-
-| Role | Portal |
-|------|--------|
-| `employee` | `/employee` |
-| `payroll_accountant` | `/accountant` |
-| `developer_admin` | `/admin` |
-
-Local session helpers: `POST /auth/dev/employee-session`, `/auth/dev/accountant-session`, `/auth/dev/admin-session` (blocked when Cognito is configured or `APP_ENV` is production).
-
-### Optional host development
-
-```powershell
-docker compose up -d redis dynamodb minio
-# then run uvicorn / celery / npm on the host against localhost endpoints
-```
-
-### AI provider routing
-
-- Each AI capability selects `ollama`, `openai`, or `bedrock` independently.
-- Capability variables fall back to legacy `MODEL_PROVIDER` when omitted.
-- The supplied examples route extraction to OpenAI GPT-5 and chats/RAG to Ollama.
-- Prefer host Ollama; optional `--profile docker-ollama`
-- URL resolution probes local → host gateway → Docker service (see `ollama_resolver.py`)
+Capability `*_PROVIDER` variables fall back to `MODEL_PROVIDER`. Examples commonly route extraction to OpenAI and chats/RAG to Ollama. Prefer host Ollama; optional `--profile docker-ollama`.
 
 ```bash
 ollama pull mistral-nemo:12b
 ```
 
-### Developer Document Lab
-
-Admin-only debugger (`/admin/document-lab`) for OCR → parser → validation on fixtures. Enabled only when `APP_ENV` is development-like or `DEBUG=true`.
-
-### Developer AI monitoring
-
-- System Dashboard (`/admin`) — token/cost/latency/reliability KPIs, capability breakdown, historical trend charts, provider comparison
-- AI Models (`/admin/ai-models`) — operational comparison table + reliability chart
-- APIs: `GET /admin/ai/dashboard`, `GET /admin/ai/models/comparison`, `GET /admin/ai/history` (developer admin role)
-- Popular questions: `GET /assistant/popular-questions`
-- With CloudWatch enabled in AWS environments, history prefers GetMetricData; local Compose typically falls back to process-local hourly samples when metrics are empty or unreachable
-
 ---
 
 ## Configuration
 
-| Variable | Description |
-|----------|-------------|
-| `AWS_REGION` | Shared region hint (`us-east-1`) |
-| `DYNAMODB_TABLE_NAME` | Single-table name (`PayrollCopilot`) |
-| `DYNAMODB_ENDPOINT` | Empty = AWS; set for DynamoDB Local |
+| Variable | Role |
+|----------|------|
+| `DYNAMODB_TABLE_NAME` / `DYNAMODB_ENDPOINT` | Single-table name; empty endpoint = AWS |
 | `DYNAMODB_AUTO_CREATE_TABLE` | `true` locally; `false` in production |
 | `S3_ENDPOINT` / `S3_BUCKET` / `S3_REGION` | Object storage |
-| `COGNITO_USER_POOL_ID` / `COGNITO_APP_CLIENT_ID` | Cognito auth |
-| `MODEL_PROVIDER` | Backward-compatible fallback provider |
-| `*_PROVIDER` | Capability route, e.g. `PAYSLIP_EXTRACTION_PROVIDER=openai` |
-| `OPENAI_API_KEY` / `OPENAI_MODEL` | OpenAI credentials and default chat model |
-| `BEDROCK_MODEL_ID` | Bedrock model used when a capability routes to Bedrock |
-| `OCR_PROVIDER` | `paddleocr` (default) or tesseract path |
-| `REDIS_URL` | Celery / cache |
-| `JWT_SECRET_KEY` | Guest JWT signing |
-| `ENCRYPTION_KEY` | PII encryption |
-| `DEFAULT_LOCALE` | `he` |
-| `CLOUDWATCH_ENABLED` | Emit (and attempt to read) AI custom metrics |
-| `CLOUDWATCH_METRICS_NAMESPACE` | Custom metrics namespace (default `PayrollCopilot`) |
-| `CLOUDWATCH_LOG_GROUP` | Log group name for platform log shipping |
-| `DATABASE_URL` | Optional legacy Postgres only |
-| `LEGAL_RAG_RERANK_ENABLED` | Optional legal-chunk rerank (`false` by default; keep off until Phase 4) |
-| `LEGAL_RAG_RERANK_MODEL` | Default `BAAI/bge-reranker-v2-m3` (requires `pip install '.[legal-rerank]'`) |
+| `COGNITO_USER_POOL_ID` / `COGNITO_APP_CLIENT_ID` | Auth |
+| `MODEL_PROVIDER` / `*_PROVIDER` | Capability routing (`ollama` \| `openai` \| `bedrock`) |
+| `OPENAI_API_KEY` / `BEDROCK_MODEL_ID` | Cloud LLM credentials |
+| `OCR_PROVIDER` | Default `paddleocr` |
+| `REDIS_URL` | Celery / cache / guest store |
+| `JWT_SECRET_KEY` / `ENCRYPTION_KEY` | Guest JWT + PII |
+| `CLOUDWATCH_ENABLED` / `CLOUDWATCH_METRICS_NAMESPACE` | AI metrics emit/read |
+| `LEGAL_SYNC_SCHEDULE_ENABLED` | Scheduled legal sync (off until sources verified) |
+| `LEGAL_RAG_RERANK_ENABLED` | Optional rerank (default `false`) |
 
-Legal RAG rerank details: [docs/legal-rag-rerank.md](docs/legal-rag-rerank.md). Full lists: `.env.production.example`, `.env.docker.example`.
+Full lists: `.env.docker.example`, `.env.production.example`, `frontend/.env.example`.
 
 ---
 
-## API
+## API and testing
 
-REST under `/api/v1`. Interactive docs: `/docs`.
+REST under `/api/v1`. Interactive docs: `/docs`. Module reference: [docs/api.md](docs/api.md).
 
-Selected endpoints:
-
-| Area | Endpoints |
-|------|-----------|
-| Auth | `POST /auth/login`, `/auth/refresh`, `/auth/guest/session`, `/auth/dev/employee-session`, `/auth/dev/accountant-session`, `/auth/dev/admin-session` |
-| Employee | `GET /employees/me`, payslips / payroll-months, document center, finding explanations |
-| Documents | `POST /documents/upload`, `POST /documents/employee/upload` |
-| Extraction | Guest + employee payslip-extract / corrections / confirm |
-| Validation | `POST /validation/run`, `POST /validation/employee/run`, run fetch |
-| Assistant | `POST /assistant/chat`, `GET /assistant/popular-questions` |
-| Analytics | `GET /analytics/employee/salary`, `/org/payroll`, `/org/quality`, `/admin/census`, `/admin/quality` |
-| AI monitoring | `GET /admin/ai/dashboard`, `/admin/ai/models/comparison`, `/admin/ai/history` |
-| OCR / parser | `POST /ocr/extract`, `POST /parser/payslip` |
-| Batch / compliance | Bulk payslip jobs, MCP diff proposals (foundation) |
-
-See [docs/api.md](docs/api.md) and [docs/analytics.md](docs/analytics.md).
-
----
-
-## Testing
+Selected areas: auth (login/refresh/guest/dev sessions), documents, extraction (guest + employee), validation, assistant, analytics, admin AI monitoring, batch, leave ingest, legal knowledge, RAG evaluation, Document Lab (dev).
 
 ```powershell
 # Backend
@@ -900,9 +591,7 @@ npm test
 npm run build
 ```
 
-Relevant suites include unit/integration coverage for analytics (salary, org payroll, quality, auth gates), AI telemetry/observability (emit, local history, CloudWatch reader fallback), guest/employee extraction flows, and frontend chart-series / API client tests for analytics and AI monitoring.
-
-Smoke: `GET /health`, guest assistant chat, document upload, guest/employee extract → confirm → validate, accountant/admin analytics endpoints (auth required), admin AI dashboard/history (auth required).
+Smoke: `GET /health`, guest chat, upload → extract → confirm → validate, accountant/admin analytics (auth), admin AI dashboard/history (auth).
 
 ---
 
@@ -910,73 +599,60 @@ Smoke: `GET /health`, guest assistant chat, document upload, guest/employee extr
 
 ### Implemented
 
-- Deterministic validation engine + DynamoDB persistence for runs/findings
-- Document upload to S3/MinIO with DynamoDB metadata
-- OCR + evidence-bound payslip / Document Model extraction
-- Guest landing: assistant + validate-my-payslip (document-first)
-- Employee monthly workspace (Upload / Digital Payslip / Validation / Original Document)
-- Employee identity/period comparison, confirmation gate, owned validation, re-validation after edits
-- Employee Salary Analytics (net/gross by payroll month on My Payslips)
-- Accountant Phase 1 workspace (organization-scoped employees, reused employee workspaces and selected-employee AI, persistent bulk UX)
-- Accountant bulk pipeline (split → OCR → canonical extraction → match → confirm → deterministic validation, persisted incrementally)
-- Accountant Analytics (org payroll outcomes + AI quality KPIs)
-- Admin Organization census analytics + cross-org AI Quality Analytics
-- Cognito adapter (login/refresh/JWT verify) + local dev auth (employee / accountant / admin sessions)
-- DynamoDB single-table repositories (org, employee, documents, extractions, validation, audit, bindings)
-- i18n (he / en / ar) with RTL
-- Docker Compose development stack
-- AI telemetry wrapper (normalized tokens/cost/latency/capability) and developer monitoring UI
-- AI Observability history (`/admin/ai/history`) with CloudWatch GetMetricData when available and process-local hourly fallback
-- System Dashboard trend charts and provider comparison; AI Models reliability comparison
-- Global popular questions (DynamoDB counters + landing sidebar)
-- Legal Knowledge platform: temporal rule catalog overlay, source registry, MCP/manual/scheduled sync service (proposals only), developer_admin approval, audit hooks
-- Durable legal sync/proposal/eval metadata in DynamoDB (`LEGAL#SYSTEM`); file adapter for tests via `LEGAL_KNOWLEDGE_STORE=file`
-- Version-aware Vector RAG via **persistent ChromaDB** (NumPy adapter retained for tests) with observable YAML fallback in LangGraph assistant
-- Optional **local multilingual legal-chunk reranker** (`BAAI/bge-reranker-v2-m3` behind `LegalChunkReranker`) — **disabled by default**; fail-open to vector order. See [docs/legal-rag-rerank.md](docs/legal-rag-rerank.md)
-- SSRF-hardened legal source fetch (HTTPS allowlist, private IP block, size/timeout limits)
-- RAG Evaluation vertical (RAGAS adapter + Temporal Retrieval Accuracy + benchmark_v1 with 24 cases) with separate Admin UI
-- Admin Legal Knowledge + RAG Evaluation pages (production nav)
+- Deterministic validation + DynamoDB runs/findings
+- S3/MinIO uploads with DynamoDB metadata
+- OCR + evidence-bound Document Model / Digital Payslip extraction
+- Guest landing (assistant + validate-my-payslip)
+- Employee Documents, Payslips workspace, Salary Analytics, Payroll AI Chat
+- Accountant employees, leave domains, bulk pipeline, org analytics
+- Admin System Dashboard, census, quality, AI Models, Legal Knowledge, RAG Evaluation
+- Cognito adapter + local dev sessions
+- Version-aware legal Chroma RAG + YAML fallback; proposals-only legal sync
+- RAG Evaluation (RAGAS adapter + temporal accuracy + `benchmark_v1`)
+- AI telemetry + CloudWatch history with process-local fallback
+- i18n (he / en / ar) + Docker Compose stack
 
-### In progress / partial
+### Partial / in progress
 
-- Supporting document analysis (attendance / contract / national ID structured extract)
-- Full RBAC enforcement on every accountant/guest mutation route
-- SES delivery in real environments (console fallback when unset)
-- Background Celery OCR on generic upload (interactive flows use sync extraction)
-- Prompt-version population on all AI call sites (plumbing exists; CloudWatch dimension not emitted)
-- Retry-context instrumentation completeness (rates under-report when callers omit `retry_count`)
-- Official watched legal source URLs (registry slots exist; **SOURCE_UNVERIFIED** — no invented gov URLs)
-- Scheduled legal sync hook exists; **LEGAL_SYNC_SCHEDULE_ENABLED=false** until official sources configured
-- Live RAGAS numeric scores require embedding + judge provider credentials in the environment
-- Legal RAG reranker integrated and A/B’d vs Phase 1 baseline; **kept off by default** after MRR regression on the 24-case benchmark (see [docs/legal-rag-rerank.md](docs/legal-rag-rerank.md))
+- Deep analysis for attendance / contract / national ID beyond forms/extract foundations
+- Full RBAC on every accountant/guest mutation route
+- SES delivery in all environments (console fallback common)
+- Background Celery OCR on generic upload (interactive flows are sync)
+- Prompt-version / retry-context completeness on all AI call sites
+- Official watched legal URLs + scheduled sync (registry ready; schedule off)
+- Live RAGAS numeric scores require embedding + judge credentials
+- Guest durability beyond Redis/ephemeral store
 
-### Planned
+### Not claimed (avoid README inflation)
 
-- Historical payroll comparison / richer employee trends beyond current salary series
-- Absolute uniqueness constraints beyond application-level period gates
-- Verified official government watched-source URLs
-- In-app binary document viewer for side-by-side review
-- Stronger guest session durability (replace process-local ephemeral store if product requires it)
-- WebSocket batch progress, mobile app, payroll-system integrations, SOC 2 — product roadmap items
+- Claude / Gemini / Azure provider adapters (not in code)
+- Postgres as primary runtime store
+- SQS / Step Functions / CloudFront as the local Compose path
+- Vector RAG over contracts/policies (labor-law index only)
+- In-app binary document viewer
+- Full historical payroll comparison product (beyond salary series + limited rules)
 
 ---
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [docs/legal-rag-rerank.md](docs/legal-rag-rerank.md) | Legal vector RAG reranker (Phases 1–3): model choice, config, fail-open, A/B |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture (DynamoDB, AWS, auth) — preferred source of truth |
-| [docs/vacation-email.md](docs/vacation-email.md) | VacationRequest SoT, n8n vs PC responsibilities, dual-gate cutover |
-| [docs/n8n-vacation-workflow.md](docs/n8n-vacation-workflow.md) | Node-by-node Gmail unread-safe n8n build guide |
-| [docs/analytics.md](docs/analytics.md) | Analytics API contracts (salary, org payroll, quality, census) |
-| [docs/architecture.md](docs/architecture.md) | Older architecture notes (may lag) |
-| [docs/database.md](docs/database.md) | DB notes — still contains legacy PostgreSQL material |
-| [docs/ai-architecture.md](docs/ai-architecture.md) | AI / OCR / agents |
+| Document | Use when |
+|----------|----------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture SoT |
+| [docs/analytics.md](docs/analytics.md) | Analytics contracts |
 | [docs/rule-engine.md](docs/rule-engine.md) | Deterministic rules |
+| [docs/legal-knowledge-and-rag.md](docs/legal-knowledge-and-rag.md) | Legal sync + Chroma RAG |
+| [docs/legal-rag-rerank.md](docs/legal-rag-rerank.md) | Optional reranker |
+| [docs/vacation-email.md](docs/vacation-email.md) | Leave ownership (n8n vs PC) |
+| [docs/n8n-vacation-workflow.md](docs/n8n-vacation-workflow.md) | Gmail/n8n build guide |
+| [docs/payroll-investigation-agent.md](docs/payroll-investigation-agent.md) | Investigation graph |
 | [docs/api.md](docs/api.md) | API reference |
-| [docs/security-and-deployment.md](docs/security-and-deployment.md) | Security & deployment |
-| [backend/README.md](backend/README.md) | Backend package notes (may still mention legacy Postgres tooling) |
+| [docs/ai-architecture.md](docs/ai-architecture.md) | AI notes — **verify against code** (provider registry may lag) |
+| [docs/database.md](docs/database.md) | DB notes — contains legacy Postgres material |
+| [docs/security-and-deployment.md](docs/security-and-deployment.md) | Security checklist — persistence posture may lag |
+| [backend/README.md](backend/README.md) | Backend package notes |
+
+**Trust hierarchy:** code → `ARCHITECTURE.md` → this README → specialized `docs/*` → treat older Postgres-centric docs as historical where they conflict.
 
 ---
 
@@ -984,17 +660,17 @@ Smoke: `GET /health`, guest assistant chat, document upload, guest/employee extr
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| Frontend cannot reach API | API not running | `docker compose up` or start uvicorn |
-| `getaddrinfo` for `redis` / `minio` / `dynamodb` on host | Docker hostnames from host process | Use `.env.local` localhost URLs or `*_LOCAL_URL` fallbacks |
-| New npm package missing in Docker frontend | Stale `frontend_node_modules` volume | `docker compose down -v` then `up --build` |
-| Upload `background_status: not_queued` | Redis/Celery down | Document still stored; start worker for background jobs |
-| Assistant limited / unavailable | Ollama unreachable | Start host Ollama and pull `OLLAMA_DEFAULT_MODEL` |
-| Hebrew OCR uses Tesseract | Expected with PaddleOCR default | Not a bug — intentional fallback |
+| Frontend cannot reach API | API down | `docker compose up` or start uvicorn |
+| `getaddrinfo` for `redis` / `minio` / `dynamodb` on host | Docker DNS from host process | Use `.env.local` localhost URLs |
+| New npm package missing in Docker frontend | Stale `frontend_node_modules` | `docker compose down -v` then `up --build` |
+| Upload `background_status: not_queued` | Redis/Celery down | Document may still store; start worker |
+| Assistant limited / unavailable | Ollama unreachable | Start host Ollama; pull configured model |
+| Hebrew OCR uses Tesseract | Expected with PaddleOCR default | Intentional fallback |
 
 ---
 
 ## Internationalization
 
-Supported UI languages: **Hebrew (`he`, RTL)**, **English (`en`, LTR)**, **Arabic (`ar`, RTL)**. Default: `he`.
+UI languages: **Hebrew (`he`, RTL)**, **English (`en`)**, **Arabic (`ar`, RTL)**. Default: `he`.
 
-Locale packs live under `frontend/src/i18n/locales/`. The API accepts `Accept-Language` / explicit `locale` on relevant requests. OCR quality still depends on image quality and model availability.
+Locale packs: `frontend/src/i18n/locales/`. API accepts `Accept-Language` / explicit `locale` on relevant requests.
