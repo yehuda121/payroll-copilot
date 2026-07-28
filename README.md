@@ -17,18 +17,19 @@ Payroll Copilot is a multi-tenant platform that turns payslip documents into aud
 5. [Document processing pipeline](#document-processing-pipeline)
 6. [Domain model and terminology](#domain-model-and-terminology)
 7. [AI engineering](#ai-engineering)
-8. [Portals](#portals)
-9. [Analytics and observability](#analytics-and-observability)
-10. [Persistence](#persistence)
-11. [Security and tenancy](#security-and-tenancy)
-12. [Jobs and integrations](#jobs-and-integrations)
-13. [Repository layout](#repository-layout)
-14. [Local development](#local-development)
-15. [Configuration](#configuration)
-16. [API and testing](#api-and-testing)
-17. [Project status](#project-status)
-18. [Documentation](#documentation)
-19. [Troubleshooting](#troubleshooting)
+8. [AI Governance](#ai-governance)
+9. [Portals](#portals)
+10. [Analytics and observability](#analytics-and-observability)
+11. [Persistence](#persistence)
+12. [Security and tenancy](#security-and-tenancy)
+13. [Jobs and integrations](#jobs-and-integrations)
+14. [Repository layout](#repository-layout)
+15. [Local development](#local-development)
+16. [Configuration](#configuration)
+17. [API and testing](#api-and-testing)
+18. [Project status](#project-status)
+19. [Documentation](#documentation)
+20. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -324,6 +325,39 @@ Schema-first “fill our DTO from the LLM” is rejected because it silently dro
 
 ---
 
+## AI Governance
+
+AI Governance covers how the platform documents, reviews, and bounds AI behavior over time. It is separate from the deterministic rule engine and from live LLM ops dashboards.
+
+### Scope today
+
+| Capability | Status |
+|------------|--------|
+| **Prompt Engineering Center** | Implemented (Admin `/admin/prompt-engineering`) |
+| **AI Telemetry** | Future (ops metrics exist under AI Observability; not linked into this governance catalog) |
+| **RAG Evaluation** | Future under this governance umbrella (a separate Admin RAG Evaluation page already exists for quality benchmarks) |
+
+Prompt Engineering manages **prompt evolution**. Runtime AI telemetry (tokens, cost, latency, retries) remains intentionally separate.
+
+### Prompt Engineering Center
+
+Admin surface under **AI Platform** at `/admin/prompt-engineering`.
+
+The Prompt Engineering Center is an implemented AI governance capability. It maintains a versioned catalog of production prompts and records how each prompt evolved: problem, change, expected result, engineering notes, and evaluation status.
+
+**Why prompt versioning exists.** Prompt wording drifts across releases. A versioned catalog makes those changes reviewable instead of tribal knowledge.
+
+**Why engineering rationale is preserved.** Reviewers can see *why* an instruction changed, not only that a new version exists.
+
+**Why reproducibility matters.** Documented versions support audits, incident review, and onboarding without reconstructing intent from chat logs or ad-hoc notes.
+
+**Prompt governance vs runtime telemetry.** This catalog documents intended prompt evolution. Runtime AI telemetry (tokens, cost, latency, retries) answers operational questions and remains intentionally separate. The catalog does not store individual LLM requests or conversations. Governance metrics are shown as pending until AI Telemetry is linked.
+
+**Evaluation history.** Per-prompt test-case outcomes (PASS / WARNING / FAIL) support governance review. They are not RAGAS runs and are not live pipeline scores.
+
+**Auditability.** Immutable version rows create a durable trail of prompt decisions without claiming integrations that do not exist.
+---
+
 ## Portals
 
 ### Public landing (`/`)
@@ -363,7 +397,7 @@ Role: `developer_admin` / `UserRole.ADMIN`.
 |-------|----------|
 | **Monitoring** | System Dashboard (AI ops KPIs + trends) |
 | **Analytics** | Organization census; cross-org AI quality |
-| **AI Platform** | AI Models comparison |
+| **AI Platform** | AI Models comparison; Prompt Engineering Center (see [AI Governance](#ai-governance)) |
 | **Knowledge** | Legal Knowledge; RAG Evaluation |
 | **Document Processing (DEV)** | Developer Console / Document Lab (Vite DEV only) |
 
@@ -605,7 +639,7 @@ Smoke: `GET /health`, guest chat, upload → extract → confirm → validate, a
 - Guest landing (assistant + validate-my-payslip)
 - Employee Documents, Payslips workspace, Salary Analytics, Payroll AI Chat
 - Accountant employees, leave domains, bulk pipeline, org analytics
-- Admin System Dashboard, census, quality, AI Models, Legal Knowledge, RAG Evaluation
+- Admin System Dashboard, census, quality, AI Models, Prompt Engineering Center, Legal Knowledge, RAG Evaluation
 - Cognito adapter + local dev sessions
 - Version-aware legal Chroma RAG + YAML fallback; proposals-only legal sync
 - RAG Evaluation (RAGAS adapter + temporal accuracy + `benchmark_v1`)

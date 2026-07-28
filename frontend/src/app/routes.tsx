@@ -109,6 +109,10 @@ const SickLeavesPage = lazyPage(
 );
 
 const AiModelsPage = lazyPage(() => import('../pages/admin/AiModels'), 'AiModelsPage');
+const PromptEngineeringPage = lazyPage(
+  () => import('../pages/admin/PromptEngineeringPage'),
+  'PromptEngineeringPage',
+);
 const DocumentLabPage = lazyPage(() => import('../pages/admin/DocumentLab'), 'DocumentLabPage');
 const LegalKnowledgePage = lazyPage(
   () => import('../pages/admin/LegalKnowledgePage'),
@@ -263,6 +267,7 @@ export const appRouteElements = (
         <Route path="/admin/analytics" element={<L><OrgCensusAnalyticsPage /></L>} />
         <Route path="/admin/analytics/quality" element={<L><AdminQualityAnalyticsPage /></L>} />
         <Route path="/admin/ai-models" element={<L><AiModelsPage /></L>} />
+        <Route path="/admin/prompt-engineering" element={<L><PromptEngineeringPage /></L>} />
         <Route path="/admin/legal-knowledge" element={<L><LegalKnowledgePage /></L>} />
         <Route path="/admin/rag-evaluation" element={<L><RagEvaluationPage /></L>} />
         <Route path="/admin/mcp-sync" element={<Navigate to="/admin/legal-knowledge" replace />} />

@@ -40,7 +40,10 @@ const ADMIN_NAV_GROUPS_CORE: NavGroup[] = [
   },
   {
     labelKey: 'admin.nav.groups.aiPlatform',
-    items: [{ labelKey: 'admin.nav.aiModels', path: '/admin/ai-models' }],
+    items: [
+      { labelKey: 'admin.nav.aiModels', path: '/admin/ai-models' },
+      { labelKey: 'admin.nav.promptEngineering', path: '/admin/prompt-engineering' },
+    ],
   },
   {
     labelKey: 'admin.nav.groups.knowledge',
