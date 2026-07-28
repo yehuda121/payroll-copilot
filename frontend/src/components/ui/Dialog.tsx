@@ -106,7 +106,10 @@ type ModalDialogProps = {
   footer?: ReactNode;
   variant?: DialogVariant;
   onClose: () => void;
+  /** @deprecated Prefer `size="md"`. Kept for existing callers. */
   wide?: boolean;
+  /** Dialog width scale. Default sm; wide maps to md. */
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   /** Accessible name for the header close (X) control. */
   closeLabel?: string;
@@ -119,6 +122,7 @@ export function ModalDialog({
   variant = 'default',
   onClose,
   wide = false,
+  size,
   className = '',
   closeLabel = 'Close',
 }: ModalDialogProps) {
@@ -126,6 +130,7 @@ export function ModalDialog({
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const resolvedSize = size ?? (wide ? 'md' : 'sm');
 
   // Focus the dialog shell once on mount. Do not re-run when `onClose` identity
   // changes — that would steal focus from inputs on every keystroke.
@@ -164,7 +169,9 @@ export function ModalDialog({
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <div
         ref={dialogRef}
-        className={`modal-dialog modal-dialog--${variant}${wide ? ' modal-dialog--wide' : ''} ${className}`.trim()}
+        className={`modal-dialog modal-dialog--${variant} modal-dialog--size-${resolvedSize}${
+          wide ? ' modal-dialog--wide' : ''
+        } ${className}`.trim()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

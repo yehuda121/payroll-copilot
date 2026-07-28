@@ -93,6 +93,14 @@
   gap: 0.55rem;
 }
 
+.document-preview-card__section + .document-preview-card__section {
+  margin-top: var(--space-3);
+}
+
+.document-preview-card__section .digital-form__section-title {
+  margin-top: 0;
+}
+
 .document-preview-card__field {
   padding: 0.4rem 0.5rem;
   min-width: 0;
@@ -272,7 +280,8 @@
 
 /* Shared polish for ID Card / Appendix / Contract edit dialogs */
 .document-edit-modal--fixed.modal-dialog {
-  width: min(36rem, calc(100vw - 2rem));
+  width: min(48rem, calc(100vw - 2rem));
+  max-height: min(92vh, 56rem);
 }
 
 .document-edit-modal--fixed .modal-dialog__footer {

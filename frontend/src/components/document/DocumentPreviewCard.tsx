@@ -10,7 +10,36 @@ export type DocumentPreviewField = {
   key: string;
   label: string;
   value: string;
+  /** When set, fields are grouped under this section (payslip-style). */
+  sectionId?: string;
+  sectionTitle?: string | null;
 };
+
+type DocumentPreviewSection = {
+  id: string;
+  title: string | null;
+  fields: DocumentPreviewField[];
+};
+
+function groupPreviewFields(fields: DocumentPreviewField[]): DocumentPreviewSection[] {
+  const sections: DocumentPreviewSection[] = [];
+  const indexById = new Map<string, number>();
+  for (const field of fields) {
+    const id = field.sectionId ?? '_default';
+    let index = indexById.get(id);
+    if (index === undefined) {
+      index = sections.length;
+      indexById.set(id, index);
+      sections.push({
+        id,
+        title: field.sectionTitle ?? null,
+        fields: [],
+      });
+    }
+    sections[index].fields.push(field);
+  }
+  return sections;
+}
 
 type DocumentPreviewCardProps = {
   title: string;
@@ -58,6 +87,8 @@ export function DocumentPreviewCard({
   const deleteLabel = canDelete
     ? t('common.delete')
     : t('employee.documents.deleteDisabledNothing');
+  const sections = groupPreviewFields(fields);
+  const showSectionTitles = sections.some((section) => Boolean(section.title));
 
   return (
     <article
@@ -113,19 +144,33 @@ export function DocumentPreviewCard({
                 {filename}
               </p>
             ) : null}
-            <div className="digital-form__grid document-preview-card__grid">
-              {fields.map((field) => (
-                <div key={field.key} className="digital-form__field document-preview-card__field">
-                  <span className="digital-form__label">{field.label}</span>
-                  <p
-                    className="digital-form__readonly document-preview-card__value"
-                    title={field.value || undefined}
-                  >
-                    {field.value || t('common.emDash')}
-                  </p>
+            {sections.map((section) => (
+              <section
+                key={section.id}
+                className="digital-form__section document-preview-card__section"
+                data-section-id={section.id}
+              >
+                {showSectionTitles && section.title ? (
+                  <h4 className="digital-form__section-title">{section.title}</h4>
+                ) : null}
+                <div className="digital-form__grid document-preview-card__grid">
+                  {section.fields.map((field) => (
+                    <div
+                      key={field.key}
+                      className="digital-form__field document-preview-card__field"
+                    >
+                      <span className="digital-form__label">{field.label}</span>
+                      <p
+                        className="digital-form__readonly document-preview-card__value"
+                        title={field.value || undefined}
+                      >
+                        {field.value || t('common.emDash')}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </section>
+            ))}
           </button>
         )}
       </div>

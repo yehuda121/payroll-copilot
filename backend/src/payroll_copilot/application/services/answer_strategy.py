@@ -19,6 +19,9 @@ from payroll_copilot.application.services.employee_ai_context_builder import (
     EmployeeContextIntent,
     analyze_employee_context_intent,
 )
+from payroll_copilot.application.services.investigation_intent import (
+    is_investigation_message,
+)
 
 _CALCULATION_TERMS = (
     "calculate",
@@ -120,6 +123,7 @@ class AnswerStrategy(str, Enum):
     CONVERSATION_HISTORY = "conversation_history"
     DOCUMENT_EXPLANATION = "document_explanation"
     GENERAL_PAYROLL = "general_payroll"
+    INVESTIGATION = "investigation"
 
 
 @dataclass(frozen=True, slots=True)
@@ -198,6 +202,22 @@ def resolve_answer_strategy(
         return AnswerStrategyPlan(
             strategy=AnswerStrategy.DOCUMENT_EXPLANATION,
             needs=ContextNeeds(documents=True, conversation_summary=True),
+            year=year,
+            month=month,
+            intent=intent,
+            uses_referential_period=uses_referential,
+        )
+
+    # Period-over-period anomaly / "why did it change" questions.
+    if is_investigation_message(message):
+        return AnswerStrategyPlan(
+            strategy=AnswerStrategy.INVESTIGATION,
+            needs=ContextNeeds(
+                payslip=True,
+                multi_payslip=True,
+                validation=True,
+                conversation_summary=has_conversation_summary,
+            ),
             year=year,
             month=month,
             intent=intent,

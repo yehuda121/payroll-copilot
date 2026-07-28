@@ -1,7 +1,10 @@
 import { useTranslation } from 'react-i18next';
+import { FormInfoPanel, FormSection, FormShell } from '../../components/ui/form/FormPrimitives';
+import { SparklesIcon, UsersIcon } from '../../components/ui/icons';
 import { BirthDateField } from './BirthDateField';
 import type { AppendixChild } from '../../lib/employee/document-fixed-forms';
 import type { AppendixChildRowError } from '../../lib/employee/appendix-children-validation';
+import { resolveDocumentFieldLabel } from '../../lib/employee/document-field-registry';
 import { FIELD_MAX_LENGTH } from '../../lib/employee/field-text';
 import '../../components/document/document-preview-card.css';
 import '../employee/employee-payslip.css';
@@ -44,95 +47,127 @@ export function AppendixChildrenForm({
 }: AppendixChildrenFormProps) {
   const { t } = useTranslation();
   const errorByIndex = new Map(rowErrors.map((row) => [row.index, row]));
+  const childNameLabel =
+    resolveDocumentFieldLabel('id_appendix', 'child_name', t) ??
+    t('employee.documents.fields.child_name');
+  const childBirthLabel =
+    resolveDocumentFieldLabel('id_appendix', 'child_birth_date', t) ??
+    t('employee.documents.fields.child_birth_date');
 
   return (
-    <div
-      className="digital-form employee-digital-form document-fixed-edit-form appendix-children-form"
-      role="form"
-      aria-label={t('employee.documents.tabDigital')}
+    <FormShell
+      aside={
+        <FormInfoPanel
+          tone="tip"
+          eyebrow={t('forms.info.tipEyebrow')}
+          title={t('forms.info.appendixTitle')}
+          icon={<SparklesIcon size={14} aria-hidden="true" />}
+        >
+          <p>{t('forms.info.appendixBody')}</p>
+        </FormInfoPanel>
+      }
     >
-      {reviewNotice ? (
-        <p className="digital-form__hint document-fixed-edit-form__notice">{reviewNotice}</p>
-      ) : null}
+      <div
+        className="digital-form employee-digital-form document-fixed-edit-form appendix-children-form"
+        role="form"
+        aria-label={t('employee.documents.tabDigital')}
+      >
+        {reviewNotice ? (
+          <p className="digital-form__hint document-fixed-edit-form__notice">{reviewNotice}</p>
+        ) : null}
 
-      {childrenList.length === 0 ? (
-        <p className="digital-form__hint appendix-children-form__empty">
-          {t('employee.documents.appendix.emptyChildren')}
-        </p>
-      ) : (
-        <ul className="appendix-children-form__list">
-          {childrenList.map((child, index) => {
-            const nameId = `appendix-child-name-${index}`;
-            const birthId = `appendix-child-birth-${index}`;
-            const rowError = errorByIndex.get(index);
-            const message = rowErrorMessage(t, rowError?.code);
-            const nameInvalid =
-              rowError?.code === 'incomplete' ||
-              rowError?.code === 'invalid_name' ||
-              rowError?.code === 'name_digits' ||
-              rowError?.code === 'name_max_length';
-            const birthInvalid =
-              rowError?.code === 'incomplete' || rowError?.code === 'invalid_birth_date';
-            return (
-              <li key={`child-${index}`} className="appendix-children-form__item">
-                <div className="appendix-children-form__item-header">
-                  <span className="digital-form__label">
-                    {t('employee.documents.appendix.childLabel', { index: index + 1 })}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn--ghost"
-                    disabled={busy}
-                    onClick={() => onRemoveChild(index)}
-                  >
-                    {t('employee.documents.appendix.removeChild')}
-                  </button>
-                </div>
-                <div className="digital-form__grid document-fixed-edit-form__grid">
-                  <label className="digital-form__field employee-digital-form__field" htmlFor={nameId}>
-                    <span className="digital-form__label">
-                      {t('employee.documents.fixedFields.child_name')}
-                    </span>
-                    <input
-                      id={nameId}
-                      className={`digital-form__input${nameInvalid ? ' is-invalid' : ''}`}
-                      type="text"
-                      maxLength={FIELD_MAX_LENGTH.personName}
-                      value={child.name}
-                      disabled={busy}
-                      onChange={(event) => onChangeChild(index, { name: event.target.value })}
-                      autoComplete="off"
-                    />
-                  </label>
-                  <BirthDateField
-                    id={birthId}
-                    label={t('employee.documents.fixedFields.child_birth_date')}
-                    value={child.birth_date}
-                    disabled={busy}
-                    error={
-                      birthInvalid && rowError?.code === 'invalid_birth_date'
-                        ? t('employee.documents.validation.dateInvalid')
-                        : null
-                    }
-                    onChange={(next) => onChangeChild(index, { birth_date: next })}
-                  />
-                </div>
-                {message ? (
-                  <p className="digital-form__error" role="alert">
-                    {message}
-                  </p>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+        <FormSection
+          title={t('forms.sections.family.title')}
+          description={t('forms.sections.family.description')}
+          icon={<UsersIcon size={18} />}
+          columns={1}
+        >
+          {childrenList.length === 0 ? (
+            <p className="digital-form__hint appendix-children-form__empty pc-form-field--span-2">
+              {t('employee.documents.appendix.emptyChildren')}
+            </p>
+          ) : (
+            <ul className="appendix-children-form__list pc-form-field--span-2">
+              {childrenList.map((child, index) => {
+                const nameId = `appendix-child-name-${index}`;
+                const birthId = `appendix-child-birth-${index}`;
+                const rowError = errorByIndex.get(index);
+                const message = rowErrorMessage(t, rowError?.code);
+                const nameInvalid =
+                  rowError?.code === 'incomplete' ||
+                  rowError?.code === 'invalid_name' ||
+                  rowError?.code === 'name_digits' ||
+                  rowError?.code === 'name_max_length';
+                const birthInvalid =
+                  rowError?.code === 'incomplete' || rowError?.code === 'invalid_birth_date';
+                return (
+                  <li key={`child-${index}`} className="appendix-children-form__item">
+                    <div className="appendix-children-form__item-header">
+                      <span className="digital-form__label">
+                        {t('employee.documents.appendix.childLabel', { index: index + 1 })}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn--ghost"
+                        disabled={busy}
+                        onClick={() => onRemoveChild(index)}
+                      >
+                        {t('employee.documents.appendix.removeChild')}
+                      </button>
+                    </div>
+                    <div className="digital-form__grid document-fixed-edit-form__grid">
+                      <label
+                        className="digital-form__field employee-digital-form__field"
+                        htmlFor={nameId}
+                      >
+                        <span className="digital-form__label">{childNameLabel}</span>
+                        <input
+                          id={nameId}
+                          className={`digital-form__input${nameInvalid ? ' is-invalid' : ''}`}
+                          type="text"
+                          maxLength={FIELD_MAX_LENGTH.personName}
+                          value={child.name}
+                          disabled={busy}
+                          onChange={(event) => onChangeChild(index, { name: event.target.value })}
+                          autoComplete="off"
+                        />
+                      </label>
+                      <BirthDateField
+                        id={birthId}
+                        label={childBirthLabel}
+                        value={child.birth_date}
+                        disabled={busy}
+                        error={
+                          birthInvalid && rowError?.code === 'invalid_birth_date'
+                            ? t('employee.documents.validation.dateInvalid')
+                            : null
+                        }
+                        onChange={(next) => onChangeChild(index, { birth_date: next })}
+                      />
+                    </div>
+                    {message ? (
+                      <p className="digital-form__error" role="alert">
+                        {message}
+                      </p>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
 
-      <div className="appendix-children-form__actions">
-        <button type="button" className="btn btn--secondary" disabled={busy} onClick={onAddChild}>
-          {t('employee.documents.appendix.addChild')}
-        </button>
+          <div className="appendix-children-form__actions pc-form-field--span-2">
+            <button
+              type="button"
+              className="btn btn--secondary"
+              disabled={busy}
+              onClick={onAddChild}
+            >
+              {t('employee.documents.appendix.addChild')}
+            </button>
+          </div>
+        </FormSection>
       </div>
-    </div>
+    </FormShell>
   );
 }

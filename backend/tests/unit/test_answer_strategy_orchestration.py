@@ -62,6 +62,24 @@ def test_conversation_history_strategy() -> None:
     assert plan.needs.conversation_summary is True
 
 
+def test_resolve_investigation_hebrew_anomaly() -> None:
+    plan = resolve_answer_strategy(
+        "למה ירד לי הנטו בתלוש?",
+        today=date(2026, 7, 18),
+    )
+    assert plan.strategy == AnswerStrategy.INVESTIGATION
+    assert plan.needs.payslip is True
+    assert plan.needs.multi_payslip is True
+
+
+def test_resolve_investigation_english_what_changed() -> None:
+    plan = resolve_answer_strategy(
+        "What changed on my payslip compared to last month?",
+        today=date(2026, 7, 18),
+    )
+    assert plan.strategy == AnswerStrategy.INVESTIGATION
+
+
 def test_conversation_summary_store_updates_period() -> None:
     store = ConversationSummaryStore(ttl_hours=1)
     item = store.update_from_turn(

@@ -1,4 +1,91 @@
 {
+  "forms": {
+    "sections": {
+      "identity": {
+        "title": "Identity",
+        "description": "Core personal details used across payroll and documents."
+      },
+      "governmentId": {
+        "title": "Government ID",
+        "description": "Israeli national ID. Leave blank to keep the current on-file value."
+      },
+      "employment": {
+        "title": "Employment",
+        "description": "Role type and employment dates from the contract."
+      },
+      "compensation": {
+        "title": "Compensation",
+        "description": "Contractual pay basis and amounts."
+      },
+      "family": {
+        "title": "Family",
+        "description": "Children listed on the ID appendix."
+      },
+      "employeeContact": {
+        "title": "Employee",
+        "description": "Who this leave request belongs to."
+      },
+      "leaveDates": {
+        "title": "Dates",
+        "description": "Inclusive start and end dates for the leave period."
+      },
+      "fieldValues": {
+        "title": "Field values",
+        "description": "Enter a clear label and the extracted or corrected value."
+      },
+      "signIn": {
+        "title": "Sign in",
+        "description": "Use your organization credentials to continue."
+      },
+      "signUp": {
+        "title": "Account details",
+        "description": "Self-registration will be completed through Cognito."
+      },
+      "searchEmployee": {
+        "title": "Find employee",
+        "description": "Search by name, employee number, or national ID."
+      },
+      "ruleEditor": {
+        "title": "Rule content",
+        "description": "Edit the rule file and record a reason for the new version."
+      }
+    },
+    "info": {
+      "tipEyebrow": "Tip",
+      "employeeCreateTitle": "Create with care",
+      "employeeEditTitle": "Keep records accurate",
+      "employeeBody": "Employee number and national ID power matching across payslips, documents, and leave. Double-check before saving.",
+      "identityCardTitle": "Identity card fields",
+      "identityCardBody": "Enter values exactly as they appear on the official ID. Dates normalize to YYYY-MM-DD on save.",
+      "contractTitle": "Employment contract",
+      "contractBody": "Use original contractual terms — not system registration dates. Compensation fields depend on salary basis.",
+      "appendixTitle": "ID appendix",
+      "appendixBody": "Add each child with a full name and birth date. Incomplete rows must be fixed before saving.",
+      "leaveManualTitle": "Manual leave entry",
+      "leaveManualBody": "Match the employee by email when possible. Confirm the date range before creating the request.",
+      "leaveDetailTitle": "Review before saving",
+      "leaveDetailBody": "Correct employee identity and leave dates carefully. Overlaps and attention codes stay visible below.",
+      "leaveSettingsTitle": "Notification settings",
+      "leaveSettingsBody": "Choose when accountants receive leave alerts and which email receives them.",
+      "digitalFieldTitle": "Digital form field",
+      "digitalFieldAddBody": "Custom fields are stored on this digital form only. Use clear business labels.",
+      "digitalFieldEditBody": "Correct the value from the original document. Empty values are allowed when intentionally clearing.",
+      "guestReviewTitle": "Confirm extraction",
+      "guestReviewBody": "Review keys and values before validation. Confirm only when the document looks correct.",
+      "unknownSearchTitle": "Attach an existing employee",
+      "unknownSearchBody": "Search your roster and attach the payslip to the matching employee record.",
+      "unknownEditIdTitle": "Correct national ID",
+      "unknownEditIdBody": "Fix the extracted national ID and retry automatic matching.",
+      "unknownCreateTitle": "Create employee",
+      "unknownCreateBody": "Create a new employee record and attach this payslip in one step.",
+      "payrollRulesTitle": "Publishing a rule version",
+      "payrollRulesBody": "Provide a short reason. Changes are versioned and can be audited later.",
+      "signUpTitle": "Coming soon",
+      "signUpBody": "Account creation will use your organization's Cognito hosted UI.",
+      "documentDeleteTitle": "Irreversible deletion",
+      "documentDeleteBody": "Choose whether to remove the original file, the digital form, or both."
+    }
+  },
   "common": {
     "appName": "Payroll Copilot",
     "login": "Log in",
@@ -895,12 +982,33 @@
       "replaceHint": "A replacement file is selected. Extract its Digital Form to replace the stored {{type}}.",
       "digitalFormNotice": "Review and edit extracted fields for this document.",
       "fixedFormNotice": "Fill these payroll fields manually, or extract them from an uploaded document.",
-      "fixedFields": {
-        "full_name": "Full Name",
+      "fieldSections": {
+        "identity": "Identity",
+        "family": "Family",
+        "employment": "Employment",
+        "compensation": "Compensation"
+      },
+      "fields": {
+        "full_name": "Full name",
         "national_id": "National ID",
-        "birth_date": "Date of Birth",
-        "child_name": "Child Name",
-        "child_birth_date": "Birth Date"
+        "birth_date": "Date of birth",
+        "children": "Children",
+        "child_name": "Child name",
+        "child_birth_date": "Date of birth",
+        "employment_commencement_date": "Employment commencement date",
+        "salary_basis": "Salary basis",
+        "effective_from": "Effective from",
+        "effective_to": "Effective to",
+        "contractual_monthly_salary": "Contractual monthly salary",
+        "contractual_hourly_rate": "Contractual hourly rate",
+        "contractual_daily_rate": "Contractual daily rate"
+      },
+      "fixedFields": {
+        "full_name": "Full name",
+        "national_id": "National ID",
+        "birth_date": "Date of birth",
+        "child_name": "Child name",
+        "child_birth_date": "Date of birth"
       },
       "contract": {
         "termsHint": "Confirm original employment commencement and contractual pay terms. Do not use system registration dates.",

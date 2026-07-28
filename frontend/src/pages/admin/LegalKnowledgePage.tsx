@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PortalPage } from '../../components/PortalPage';
 import { ModalDialog } from '../../components/ui/Dialog';
+import {
+  FormControl,
+  FormField,
+  FormInfoPanel,
+  FormSection,
+  FormShell,
+  FormTextarea,
+} from '../../components/ui/form/FormPrimitives';
+import { CalendarIcon, SparklesIcon } from '../../components/ui/icons';
 import { useToast } from '../../components/ui/Toast';
 import {
   AnalyticsEmptyState,
@@ -525,6 +534,7 @@ function ProposalsTab() {
         <ModalDialog
           title="Approve proposal"
           variant="warning"
+          size="md"
           onClose={closeDialog}
           footer={
             <>
@@ -537,22 +547,46 @@ function ProposalsTab() {
             </>
           }
         >
-          <label className="admin-ai-window">
-            <span>Effective date</span>
-            <input
-              type="date"
-              value={effectiveDate}
-              onChange={(event) => setEffectiveDate(event.target.value)}
-            />
-          </label>
-          <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.75rem' }}>
-            <input
-              type="checkbox"
-              checked={confirmDate}
-              onChange={(event) => setConfirmDate(event.target.checked)}
-            />
-            <span>I confirm this effective date is correct for payroll rules.</span>
-          </label>
+          <FormShell
+            aside={
+              <FormInfoPanel
+                tone="warning"
+                eyebrow="Review"
+                title="Confirm before approving"
+                icon={<SparklesIcon size={14} aria-hidden="true" />}
+              >
+                <p>Effective date changes apply to payroll rule evaluation. Confirm carefully.</p>
+              </FormInfoPanel>
+            }
+          >
+            <FormSection
+              title="Approval details"
+              description="Set when this proposal becomes effective."
+              icon={<CalendarIcon size={18} />}
+              columns={1}
+            >
+              <FormField label="Effective date" htmlFor="legal-effective-date" span={2}>
+                <FormControl
+                  id="legal-effective-date"
+                  type="date"
+                  value={effectiveDate}
+                  onChange={(event) => setEffectiveDate(event.target.value)}
+                />
+              </FormField>
+              <label
+                className="form-field form-field--checkbox pc-form-field--span-2"
+                htmlFor="legal-confirm-date"
+              >
+                <input
+                  id="legal-confirm-date"
+                  type="checkbox"
+                  checked={confirmDate}
+                  onChange={(event) => setConfirmDate(event.target.checked)}
+                />
+                <span>I confirm this effective date is correct for payroll rules.</span>
+              </label>
+            </FormSection>
+          </FormShell>
         </ModalDialog>
       ) : null}
 
@@ -560,6 +594,7 @@ function ProposalsTab() {
         <ModalDialog
           title="Reject proposal"
           variant="danger"
+          size="md"
           onClose={closeDialog}
           footer={
             <>
@@ -572,14 +607,22 @@ function ProposalsTab() {
             </>
           }
         >
-          <label className="admin-ai-window">
-            <span>Reason (optional)</span>
-            <textarea
-              rows={4}
-              value={rejectReason}
-              onChange={(event) => setRejectReason(event.target.value)}
-            />
-          </label>
+          <FormShell>
+            <FormSection
+              title="Rejection"
+              description="Optional context for the audit trail."
+              columns={1}
+            >
+              <FormField label="Reason (optional)" htmlFor="legal-reject-reason" span={2}>
+                <FormTextarea
+                  id="legal-reject-reason"
+                  rows={4}
+                  value={rejectReason}
+                  onChange={(event) => setRejectReason(event.target.value)}
+                />
+              </FormField>
+            </FormSection>
+          </FormShell>
         </ModalDialog>
       ) : null}
     </div>

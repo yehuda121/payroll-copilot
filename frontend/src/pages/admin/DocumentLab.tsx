@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PortalPage } from '../../components/PortalPage';
+import {
+  FormField,
+  FormSection,
+  FormSelect,
+  FormShell,
+} from '../../components/ui/form/FormPrimitives';
+import { SettingsIcon } from '../../components/ui/icons';
 import { documentLabService } from '../../services/documentLab';
 import { authService } from '../../services/auth';
 import type {
@@ -181,6 +188,7 @@ export function DocumentLabPage() {
             <section className="document-lab__upload">
               <h3>Temporary upload</h3>
               <input
+                className="pc-form-control"
                 type="file"
                 accept=".pdf,.png,.jpg,.jpeg"
                 onChange={(event) => {
@@ -191,25 +199,38 @@ export function DocumentLabPage() {
               />
             </section>
 
-            <section className="document-lab__controls">
-              <label>
-                OCR language
-                <select value={language} onChange={(event) => setLanguage(event.target.value)}>
-                  <option value="auto">auto</option>
-                  <option value="he">he</option>
-                  <option value="en">en</option>
-                  <option value="ar">ar</option>
-                </select>
-              </label>
-              <label>
-                Validation locale
-                <select value={locale} onChange={(event) => setLocale(event.target.value as 'he' | 'en' | 'ar')}>
-                  <option value="en">en</option>
-                  <option value="he">he</option>
-                  <option value="ar">ar</option>
-                </select>
-              </label>
-            </section>
+            <FormShell>
+              <FormSection
+                title="Run options"
+                description="OCR language and validation locale for this lab run."
+                icon={<SettingsIcon size={18} />}
+                columns={1}
+              >
+                <FormField label="OCR language" htmlFor="document-lab-language" span={2}>
+                  <FormSelect
+                    id="document-lab-language"
+                    value={language}
+                    onChange={(event) => setLanguage(event.target.value)}
+                  >
+                    <option value="auto">auto</option>
+                    <option value="he">he</option>
+                    <option value="en">en</option>
+                    <option value="ar">ar</option>
+                  </FormSelect>
+                </FormField>
+                <FormField label="Validation locale" htmlFor="document-lab-locale" span={2}>
+                  <FormSelect
+                    id="document-lab-locale"
+                    value={locale}
+                    onChange={(event) => setLocale(event.target.value as 'he' | 'en' | 'ar')}
+                  >
+                    <option value="en">en</option>
+                    <option value="he">he</option>
+                    <option value="ar">ar</option>
+                  </FormSelect>
+                </FormField>
+              </FormSection>
+            </FormShell>
 
             <div className="document-lab__actions">
               <button type="button" className="btn btn--secondary" disabled={loading} onClick={() => void run('ocr')}>

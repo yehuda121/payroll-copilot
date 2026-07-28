@@ -4,6 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/AuthContext';
 import { PortalPage } from '../../components/PortalPage';
 import { EmptyState } from '../../components/ui/Dialog';
+import {
+  FormControl,
+  FormField,
+  FormInfoPanel,
+  FormSection,
+  FormShell,
+} from '../../components/ui/form/FormPrimitives';
+import { IdCardIcon, SparklesIcon, UserIcon } from '../../components/ui/icons';
 import { TruncatedText } from '../../components/ui/TruncatedText';
 import { useBatchNavigationGuard } from '../../features/accountant/BatchNavigationGuard';
 import { FIELD_MAX_LENGTH, validatePersonName } from '../../lib/employee/field-text';
@@ -249,169 +257,240 @@ export function UnknownEmployeeResolutionPage() {
         {error && <p className="chat-panel__error">{error}</p>}
 
         {action === 'search' && (
-          <section className="unknown-resolution__panel">
-            <label>
-              <span>{t('accountant.unknown.searchLabel')}</span>
-              <input
-                type="search"
-                maxLength={FREE_TEXT_MAX_LENGTH.searchQuery}
-                value={query}
-                onChange={(event) =>
-                  setQuery(clampFreeTextInput(event.target.value, FREE_TEXT_MAX_LENGTH.searchQuery))
-                }
-                placeholder={t('accountant.unknown.searchPlaceholder')}
-              />
-            </label>
-            <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void search()}>
-              {t('common.search')}
-            </button>
-            <div className="unknown-resolution__results">
-              {results.map((employee) => (
-                <button
-                  key={employee.employeeNumber}
-                  type="button"
-                  className="unknown-resolution__employee"
-                  disabled={busy}
-                  onClick={() =>
-                    void resolve({
-                      action: 'attach_employee',
-                      employee_number: employee.employeeNumber,
-                    })
+          <FormShell
+            aside={
+              <FormInfoPanel
+                tone="tip"
+                eyebrow={t('forms.info.tipEyebrow')}
+                title={t('forms.info.unknownSearchTitle')}
+                icon={<SparklesIcon size={14} aria-hidden="true" />}
+              >
+                <p>{t('forms.info.unknownSearchBody')}</p>
+              </FormInfoPanel>
+            }
+          >
+            <FormSection
+              title={t('forms.sections.searchEmployee.title')}
+              description={t('forms.sections.searchEmployee.description')}
+              icon={<UserIcon size={18} />}
+              columns={1}
+            >
+              <FormField label={t('accountant.unknown.searchLabel')} htmlFor="unknown-search" span={2}>
+                <FormControl
+                  id="unknown-search"
+                  type="search"
+                  maxLength={FREE_TEXT_MAX_LENGTH.searchQuery}
+                  value={query}
+                  onChange={(event) =>
+                    setQuery(clampFreeTextInput(event.target.value, FREE_TEXT_MAX_LENGTH.searchQuery))
                   }
+                  placeholder={t('accountant.unknown.searchPlaceholder')}
+                />
+              </FormField>
+              <div className="form-actions pc-form-field--span-2">
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  disabled={busy}
+                  onClick={() => void search()}
                 >
-                  <strong>
-                    <TruncatedText>{employee.fullName}</TruncatedText>
-                  </strong>
-                  <span>#{employee.employeeNumber}</span>
-                  <span>{employee.nationalIdMasked || t('common.emDash')}</span>
+                  {t('common.search')}
                 </button>
-              ))}
-            </div>
-          </section>
+              </div>
+              <div className="unknown-resolution__results pc-form-field--span-2">
+                {results.map((employee) => (
+                  <button
+                    key={employee.employeeNumber}
+                    type="button"
+                    className="unknown-resolution__employee"
+                    disabled={busy}
+                    onClick={() =>
+                      void resolve({
+                        action: 'attach_employee',
+                        employee_number: employee.employeeNumber,
+                      })
+                    }
+                  >
+                    <strong>
+                      <TruncatedText>{employee.fullName}</TruncatedText>
+                    </strong>
+                    <span>#{employee.employeeNumber}</span>
+                    <span>{employee.nationalIdMasked || t('common.emDash')}</span>
+                  </button>
+                ))}
+              </div>
+            </FormSection>
+          </FormShell>
         )}
 
         {action === 'edit_id' && (
-          <section className="unknown-resolution__panel">
-            <label>
-              <span>{t('accountant.unknown.nationalId')}</span>
-              <input
-                value={nationalId}
-                inputMode="numeric"
-                maxLength={FIELD_MAX_LENGTH.nationalId}
-                autoComplete="off"
-                onChange={(event) =>
-                  setNationalId(
-                    event.target.value.replace(/\D/g, '').slice(0, FIELD_MAX_LENGTH.nationalId),
-                  )
-                }
-              />
-            </label>
-            <button
-              type="button"
-              className="btn btn--primary"
-              disabled={busy || !nationalId.trim()}
-              onClick={() => {
-                const nid = validateNationalId(nationalId);
-                if (!nid.ok) {
-                  setError(
-                    t(
-                      nid.code === 'digits_only'
-                        ? 'common.validation.nationalIdDigits'
-                        : nid.code === 'length'
-                          ? 'common.validation.nationalIdLength'
-                          : 'common.validation.nationalIdChecksum',
-                    ),
-                  );
-                  return;
-                }
-                void resolve({
-                  action: 'edit_national_id',
-                  national_id: nid.digits,
-                });
-              }}
+          <FormShell
+            aside={
+              <FormInfoPanel
+                tone="tip"
+                eyebrow={t('forms.info.tipEyebrow')}
+                title={t('forms.info.unknownEditIdTitle')}
+                icon={<SparklesIcon size={14} aria-hidden="true" />}
+              >
+                <p>{t('forms.info.unknownEditIdBody')}</p>
+              </FormInfoPanel>
+            }
+          >
+            <FormSection
+              title={t('forms.sections.governmentId.title')}
+              description={t('forms.sections.governmentId.description')}
+              icon={<IdCardIcon size={18} />}
+              columns={1}
             >
-              {t('accountant.unknown.retryMatch')}
-            </button>
-          </section>
+              <FormField label={t('accountant.unknown.nationalId')} htmlFor="unknown-national-id" span={2}>
+                <FormControl
+                  id="unknown-national-id"
+                  value={nationalId}
+                  inputMode="numeric"
+                  maxLength={FIELD_MAX_LENGTH.nationalId}
+                  autoComplete="off"
+                  onChange={(event) =>
+                    setNationalId(
+                      event.target.value.replace(/\D/g, '').slice(0, FIELD_MAX_LENGTH.nationalId),
+                    )
+                  }
+                />
+              </FormField>
+              <div className="form-actions pc-form-field--span-2">
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  disabled={busy || !nationalId.trim()}
+                  onClick={() => {
+                    const nid = validateNationalId(nationalId);
+                    if (!nid.ok) {
+                      setError(
+                        t(
+                          nid.code === 'digits_only'
+                            ? 'common.validation.nationalIdDigits'
+                            : nid.code === 'length'
+                              ? 'common.validation.nationalIdLength'
+                              : 'common.validation.nationalIdChecksum',
+                        ),
+                      );
+                      return;
+                    }
+                    void resolve({
+                      action: 'edit_national_id',
+                      national_id: nid.digits,
+                    });
+                  }}
+                >
+                  {t('accountant.unknown.retryMatch')}
+                </button>
+              </div>
+            </FormSection>
+          </FormShell>
         )}
 
         {action === 'ignore' && (
-          <section className="unknown-resolution__panel">
-            <p>{t('accountant.unknown.ignoreDescription')}</p>
-            <button
-              type="button"
-              className="btn btn--danger"
-              disabled={busy}
-              onClick={() => void resolve({ action: 'ignore' })}
+          <FormShell>
+            <FormSection
+              title={t('accountant.unknown.ignore')}
+              description={t('accountant.unknown.ignoreDescription')}
+              columns={1}
             >
-              {t('accountant.unknown.ignore')}
-            </button>
-          </section>
+              <div className="form-actions pc-form-field--span-2">
+                <button
+                  type="button"
+                  className="btn btn--danger"
+                  disabled={busy}
+                  onClick={() => void resolve({ action: 'ignore' })}
+                >
+                  {t('accountant.unknown.ignore')}
+                </button>
+              </div>
+            </FormSection>
+          </FormShell>
         )}
 
         {action === 'create' && (
-          <section className="unknown-resolution__panel unknown-resolution__form">
-            {(
-              [
-                ['employeeNumber', 'accountant.unknown.employeeNumber'],
-                ['firstName', 'accountant.unknown.firstName'],
-                ['lastName', 'accountant.unknown.lastName'],
-                ['nationalId', 'accountant.unknown.nationalId'],
-                ['email', 'accountant.unknown.email'],
-                ['company', 'accountant.unknown.company'],
-                ['department', 'accountant.unknown.department'],
-              ] as Array<[keyof CreateValues, string]>
-            ).map(([key, label]) => (
-              <label key={key}>
-                <span>{t(label)}</span>
-                <input
-                  type={key === 'email' ? 'email' : 'text'}
-                  value={createValues[key]}
-                  readOnly={key === 'company'}
-                  required
-                  inputMode={key === 'nationalId' ? 'numeric' : undefined}
-                  maxLength={
-                    key === 'nationalId'
-                      ? FIELD_MAX_LENGTH.nationalId
-                      : key === 'firstName' || key === 'lastName'
-                        ? FIELD_MAX_LENGTH.personName
-                        : key === 'email'
-                          ? EMAIL_MAX_LENGTH
-                          : key === 'employeeNumber'
-                            ? FREE_TEXT_MAX_LENGTH.identifier
-                            : FREE_TEXT_MAX_LENGTH.shortNote
-                  }
-                  autoComplete="off"
-                  onChange={(event) => {
-                    let next = event.target.value;
-                    if (key === 'nationalId') {
-                      next = next.replace(/\D/g, '').slice(0, FIELD_MAX_LENGTH.nationalId);
-                    } else if (key === 'email') {
-                      next = next.slice(0, EMAIL_MAX_LENGTH);
-                    } else if (key === 'firstName' || key === 'lastName') {
-                      next = next.slice(0, FIELD_MAX_LENGTH.personName);
-                    } else if (key === 'employeeNumber') {
-                      next = clampFreeTextInput(next, FREE_TEXT_MAX_LENGTH.identifier);
-                    } else {
-                      next = clampFreeTextInput(next, FREE_TEXT_MAX_LENGTH.shortNote);
-                    }
-                    setCreateValues((previous) => ({
-                      ...previous,
-                      [key]: key === 'email' ? next : next,
-                    }));
-                  }}
-                />
-              </label>
-            ))}
-            <button
-              type="button"
-              className="btn btn--primary"
-              disabled={busy}
-              onClick={() => void createEmployee()}
+          <FormShell
+            aside={
+              <FormInfoPanel
+                tone="tip"
+                eyebrow={t('forms.info.tipEyebrow')}
+                title={t('forms.info.unknownCreateTitle')}
+                icon={<SparklesIcon size={14} aria-hidden="true" />}
+              >
+                <p>{t('forms.info.unknownCreateBody')}</p>
+              </FormInfoPanel>
+            }
+          >
+            <FormSection
+              title={t('forms.sections.identity.title')}
+              description={t('forms.sections.identity.description')}
+              icon={<UserIcon size={18} />}
             >
-              {t('accountant.unknown.createAndAttach')}
-            </button>
-          </section>
+              {(
+                [
+                  ['employeeNumber', 'accountant.unknown.employeeNumber'],
+                  ['firstName', 'accountant.unknown.firstName'],
+                  ['lastName', 'accountant.unknown.lastName'],
+                  ['nationalId', 'accountant.unknown.nationalId'],
+                  ['email', 'accountant.unknown.email'],
+                  ['company', 'accountant.unknown.company'],
+                  ['department', 'accountant.unknown.department'],
+                ] as Array<[keyof CreateValues, string]>
+              ).map(([key, label]) => (
+                <FormField key={key} label={t(label)} htmlFor={`unknown-create-${key}`} required>
+                  <FormControl
+                    id={`unknown-create-${key}`}
+                    type={key === 'email' ? 'email' : 'text'}
+                    value={createValues[key]}
+                    readOnly={key === 'company'}
+                    required
+                    inputMode={key === 'nationalId' ? 'numeric' : undefined}
+                    maxLength={
+                      key === 'nationalId'
+                        ? FIELD_MAX_LENGTH.nationalId
+                        : key === 'firstName' || key === 'lastName'
+                          ? FIELD_MAX_LENGTH.personName
+                          : key === 'email'
+                            ? EMAIL_MAX_LENGTH
+                            : key === 'employeeNumber'
+                              ? FREE_TEXT_MAX_LENGTH.identifier
+                              : FREE_TEXT_MAX_LENGTH.shortNote
+                    }
+                    autoComplete="off"
+                    onChange={(event) => {
+                      let next = event.target.value;
+                      if (key === 'nationalId') {
+                        next = next.replace(/\D/g, '').slice(0, FIELD_MAX_LENGTH.nationalId);
+                      } else if (key === 'email') {
+                        next = next.slice(0, EMAIL_MAX_LENGTH);
+                      } else if (key === 'firstName' || key === 'lastName') {
+                        next = next.slice(0, FIELD_MAX_LENGTH.personName);
+                      } else if (key === 'employeeNumber') {
+                        next = clampFreeTextInput(next, FREE_TEXT_MAX_LENGTH.identifier);
+                      } else {
+                        next = clampFreeTextInput(next, FREE_TEXT_MAX_LENGTH.shortNote);
+                      }
+                      setCreateValues((previous) => ({
+                        ...previous,
+                        [key]: next,
+                      }));
+                    }}
+                  />
+                </FormField>
+              ))}
+            </FormSection>
+            <div className="form-actions">
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={busy}
+                onClick={() => void createEmployee()}
+              >
+                {t('accountant.unknown.createAndAttach')}
+              </button>
+            </div>
+          </FormShell>
         )}
       </div>
     </PortalPage>

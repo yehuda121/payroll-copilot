@@ -102,6 +102,7 @@ export function EmployeeManagementPage() {
       <div className="accountant-toolbar">
         <div className="accountant-toolbar__filters">
           <input
+            className="pc-form-control"
             type="search"
             placeholder={t('accountant.employees.searchPlaceholder')}
             value={query}
@@ -112,6 +113,7 @@ export function EmployeeManagementPage() {
             aria-label={t('accountant.employees.searchAria')}
           />
           <select
+            className="pc-form-control pc-form-control--select"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             aria-label={t('accountant.employees.filterStatusAria')}

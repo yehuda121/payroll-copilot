@@ -1,8 +1,21 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FormInfoPanel, FormShell } from '../../components/ui/form/FormPrimitives';
+import {
+  BriefcaseIcon,
+  CoinsIcon,
+  IdCardIcon,
+  InfoIcon,
+  SparklesIcon,
+} from '../../components/ui/icons';
 import { BirthDateField } from './BirthDateField';
-import { fixedFieldKeysFor } from '../../lib/employee/document-fixed-forms';
 import { parseBirthDate } from '../../lib/employee/birth-date';
+import {
+  documentFieldSectionsForType,
+  orderedFormFieldKeys,
+  resolveDocumentFieldLabel,
+  type DocumentFieldSection,
+} from '../../lib/employee/document-field-registry';
 import { FIELD_MAX_LENGTH, validatePersonName } from '../../lib/employee/field-text';
 import { validateNationalId } from '../../lib/employee/israeli-id';
 import '../../components/document/document-preview-card.css';
@@ -24,6 +37,13 @@ const CONTRACT_DATE_KEYS = new Set([
   'effective_to',
 ]);
 
+function sectionIcon(section: DocumentFieldSection): ReactNode {
+  if (section === 'identity') return <IdCardIcon size={16} />;
+  if (section === 'employment') return <BriefcaseIcon size={16} />;
+  if (section === 'compensation') return <CoinsIcon size={16} />;
+  return <InfoIcon size={16} />;
+}
+
 export function EmployeeFixedDocumentForm({
   documentType,
   values,
@@ -33,7 +53,7 @@ export function EmployeeFixedDocumentForm({
   onChangeField,
 }: EmployeeFixedDocumentFormProps) {
   const { t } = useTranslation();
-  const keys = fixedFieldKeysFor(documentType) ?? [];
+  const keys = orderedFormFieldKeys(documentType);
   const [touchedId, setTouchedId] = useState(false);
   const [touchedName, setTouchedName] = useState(false);
 
@@ -58,8 +78,99 @@ export function EmployeeFixedDocumentForm({
     return t('employee.documents.validation.nameInvalid');
   }, [documentType, t, values.full_name]);
 
-  if (documentType === 'contract') {
+  const fieldLabel = (key: string) => {
+    const label = resolveDocumentFieldLabel(documentType, key, t);
+    if (!label) {
+      throw new Error(`Missing document field registry entry: ${documentType}.${key}`);
+    }
+    return label;
+  };
+
+  const sections = documentFieldSectionsForType(documentType, keys);
+  const aside = (
+    <FormInfoPanel
+      tone="tip"
+      eyebrow={t('forms.info.tipEyebrow')}
+      title={
+        documentType === 'contract'
+          ? t('forms.info.contractTitle')
+          : t('forms.info.identityCardTitle')
+      }
+      icon={<SparklesIcon size={14} aria-hidden="true" />}
+    >
+      <p>
+        {documentType === 'contract'
+          ? t('forms.info.contractBody')
+          : t('forms.info.identityCardBody')}
+      </p>
+    </FormInfoPanel>
+  );
+
+  const renderContractField = (key: string, label: string) => {
+    const value = values[key] ?? '';
+    const fieldId = `contract-${key}`;
+    if (CONTRACT_DATE_KEYS.has(key)) {
+      return (
+        <BirthDateField
+          key={key}
+          id={fieldId}
+          label={label}
+          value={value}
+          disabled={busy}
+          error={fieldErrors[key]}
+          onChange={(next) => onChangeField(key, next)}
+        />
+      );
+    }
+    if (key === 'salary_basis') {
+      return (
+        <label
+          key={key}
+          className="digital-form__field employee-digital-form__field"
+          htmlFor={fieldId}
+        >
+          <span className="digital-form__label">{label}</span>
+          <select
+            id={fieldId}
+            className="digital-form__input pc-form-control--select"
+            value={value}
+            disabled={busy}
+            onChange={(event) => onChangeField(key, event.target.value)}
+          >
+            <option value="">{t('common.emDash')}</option>
+            <option value="monthly">{t('employee.documents.contract.salaryBasis.monthly')}</option>
+            <option value="hourly">{t('employee.documents.contract.salaryBasis.hourly')}</option>
+            <option value="daily">{t('employee.documents.contract.salaryBasis.daily')}</option>
+          </select>
+        </label>
+      );
+    }
     return (
+      <label
+        key={key}
+        className="digital-form__field employee-digital-form__field"
+        htmlFor={fieldId}
+      >
+        <span className="digital-form__label">{label}</span>
+        <input
+          id={fieldId}
+          className={`digital-form__input${fieldErrors[key] ? ' is-invalid' : ''}`}
+          value={value}
+          disabled={busy}
+          onChange={(event) => onChangeField(key, event.target.value)}
+          inputMode="decimal"
+        />
+        {fieldErrors[key] ? (
+          <span className="digital-form__error" role="alert">
+            {fieldErrors[key]}
+          </span>
+        ) : null}
+      </label>
+    );
+  };
+
+  return (
+    <FormShell aside={aside}>
       <div
         className="digital-form employee-digital-form document-fixed-edit-form"
         data-busy={busy || undefined}
@@ -69,164 +180,110 @@ export function EmployeeFixedDocumentForm({
         {reviewNotice ? (
           <p className="digital-form__hint document-fixed-edit-form__notice">{reviewNotice}</p>
         ) : null}
-        <p className="digital-form__hint document-fixed-edit-form__notice">
-          {t('employee.documents.contract.termsHint')}
-        </p>
-        <div className="digital-form__grid document-fixed-edit-form__grid">
-          {keys.map((key) => {
-            const label = t(`employee.documents.contract.fields.${key}`);
-            const value = values[key] ?? '';
-            const fieldId = `contract-${key}`;
-            if (CONTRACT_DATE_KEYS.has(key)) {
-              return (
-                <BirthDateField
-                  key={key}
-                  id={fieldId}
-                  label={label}
-                  value={value}
-                  disabled={busy}
-                  error={fieldErrors[key]}
-                  onChange={(next) => onChangeField(key, next)}
-                />
-              );
-            }
-            if (key === 'salary_basis') {
-              return (
-                <label
-                  key={key}
-                  className="digital-form__field employee-digital-form__field"
-                  htmlFor={fieldId}
-                >
-                  <span className="digital-form__label">{label}</span>
-                  <select
-                    id={fieldId}
-                    className="digital-form__input"
-                    value={value}
-                    disabled={busy}
-                    onChange={(event) => onChangeField(key, event.target.value)}
-                  >
-                    <option value="">{t('common.emDash')}</option>
-                    <option value="monthly">{t('employee.documents.contract.salaryBasis.monthly')}</option>
-                    <option value="hourly">{t('employee.documents.contract.salaryBasis.hourly')}</option>
-                    <option value="daily">{t('employee.documents.contract.salaryBasis.daily')}</option>
-                  </select>
-                </label>
-              );
-            }
-            return (
-              <label
-                key={key}
-                className="digital-form__field employee-digital-form__field"
-                htmlFor={fieldId}
-              >
-                <span className="digital-form__label">{label}</span>
-                <input
-                  id={fieldId}
-                  className={`digital-form__input${fieldErrors[key] ? ' is-invalid' : ''}`}
-                  value={value}
-                  disabled={busy}
-                  onChange={(event) => onChangeField(key, event.target.value)}
-                  inputMode="decimal"
-                />
-                {fieldErrors[key] ? (
-                  <span className="digital-form__error" role="alert">
-                    {fieldErrors[key]}
-                  </span>
-                ) : null}
-              </label>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
+        {documentType === 'contract' ? (
+          <p className="digital-form__hint document-fixed-edit-form__notice">
+            {t('employee.documents.contract.termsHint')}
+          </p>
+        ) : null}
 
-  return (
-    <div
-      className="digital-form employee-digital-form document-fixed-edit-form"
-      data-busy={busy || undefined}
-      role="form"
-      aria-label={t('employee.documents.tabDigital')}
-    >
-      {reviewNotice ? (
-        <p className="digital-form__hint document-fixed-edit-form__notice">{reviewNotice}</p>
-      ) : null}
-      <div className="digital-form__grid document-fixed-edit-form__grid">
-        {keys.map((key) => {
-          if (key === 'birth_date') {
-            return (
-              <BirthDateField
-                key={key}
-                id="id-birth-date"
-                label={t('employee.documents.fixedFields.birth_date')}
-                value={values.birth_date ?? ''}
-                disabled={busy}
-                error={fieldErrors.birth_date}
-                onChange={(next) => onChangeField('birth_date', next)}
-              />
-            );
-          }
-          if (key === 'national_id') {
-            const idInvalid = Boolean((touchedId ? liveIdError : null) || fieldErrors.national_id);
-            return (
-              <label
-                key={key}
-                className="digital-form__field employee-digital-form__field"
-                htmlFor="id-national-id"
-              >
-                <span className="digital-form__label">
-                  {t('employee.documents.fixedFields.national_id')}
-                </span>
-                <input
-                  id="id-national-id"
-                  className={`digital-form__input${idInvalid ? ' is-invalid' : ''}`}
-                  value={values.national_id ?? ''}
-                  disabled={busy}
-                  maxLength={FIELD_MAX_LENGTH.nationalId}
-                  autoComplete="off"
-                  inputMode="numeric"
-                  onBlur={() => setTouchedId(true)}
-                  onChange={(event) => onChangeField('national_id', event.target.value)}
-                />
-                {idInvalid ? (
-                  <span className="digital-form__error" role="alert">
-                    {fieldErrors.national_id || liveIdError}
-                  </span>
-                ) : null}
-              </label>
-            );
-          }
-          const nameInvalid = Boolean((touchedName ? liveNameError : null) || fieldErrors.full_name);
-          return (
-            <label
-              key={key}
-              className="digital-form__field employee-digital-form__field"
-              htmlFor="id-full-name"
-            >
-              <span className="digital-form__label">
-                {t('employee.documents.fixedFields.full_name')}
+        {sections.map((section) => (
+          <section
+            key={section.id}
+            className="digital-form__section document-fixed-edit-form__section"
+            data-section-id={section.id}
+          >
+            <h4 className="digital-form__section-title">
+              <span className="pc-form-section__icon" aria-hidden="true">
+                {sectionIcon(section.id)}
               </span>
-              <input
-                id="id-full-name"
-                className={`digital-form__input${nameInvalid ? ' is-invalid' : ''}`}
-                value={values.full_name ?? ''}
-                disabled={busy}
-                maxLength={FIELD_MAX_LENGTH.personName}
-                autoComplete="name"
-                onBlur={() => setTouchedName(true)}
-                onChange={(event) => onChangeField('full_name', event.target.value)}
-              />
-              {nameInvalid ? (
-                <span className="digital-form__error" role="alert">
-                  {fieldErrors.full_name || liveNameError}
-                </span>
-              ) : null}
-            </label>
-          );
-        })}
+              {t(section.titleKey)}
+            </h4>
+            <p className="document-fixed-edit-form__section-desc">
+              {t(`forms.sections.${section.id}.description`)}
+            </p>
+            <div className="digital-form__grid document-fixed-edit-form__grid">
+              {documentType === 'contract'
+                ? section.fields.map((def) =>
+                    renderContractField(def.canonical_key, t(def.label_i18n_key)),
+                  )
+                : section.fields.map((def) => {
+                    const key = def.canonical_key;
+                    if (key === 'birth_date') {
+                      return (
+                        <BirthDateField
+                          key={key}
+                          id="id-birth-date"
+                          label={fieldLabel('birth_date')}
+                          value={values.birth_date ?? ''}
+                          disabled={busy}
+                          error={fieldErrors.birth_date}
+                          onChange={(next) => onChangeField('birth_date', next)}
+                        />
+                      );
+                    }
+                    if (key === 'national_id') {
+                      const idInvalid = Boolean(
+                        (touchedId ? liveIdError : null) || fieldErrors.national_id,
+                      );
+                      return (
+                        <label
+                          key={key}
+                          className="digital-form__field employee-digital-form__field"
+                          htmlFor="id-national-id"
+                        >
+                          <span className="digital-form__label">{fieldLabel('national_id')}</span>
+                          <input
+                            id="id-national-id"
+                            className={`digital-form__input${idInvalid ? ' is-invalid' : ''}`}
+                            value={values.national_id ?? ''}
+                            disabled={busy}
+                            maxLength={FIELD_MAX_LENGTH.nationalId}
+                            autoComplete="off"
+                            inputMode="numeric"
+                            onBlur={() => setTouchedId(true)}
+                            onChange={(event) => onChangeField('national_id', event.target.value)}
+                          />
+                          {idInvalid ? (
+                            <span className="digital-form__error" role="alert">
+                              {fieldErrors.national_id || liveIdError}
+                            </span>
+                          ) : null}
+                        </label>
+                      );
+                    }
+                    const nameInvalid = Boolean(
+                      (touchedName ? liveNameError : null) || fieldErrors.full_name,
+                    );
+                    return (
+                      <label
+                        key={key}
+                        className="digital-form__field employee-digital-form__field"
+                        htmlFor="id-full-name"
+                      >
+                        <span className="digital-form__label">{fieldLabel('full_name')}</span>
+                        <input
+                          id="id-full-name"
+                          className={`digital-form__input${nameInvalid ? ' is-invalid' : ''}`}
+                          value={values.full_name ?? ''}
+                          disabled={busy}
+                          maxLength={FIELD_MAX_LENGTH.personName}
+                          autoComplete="name"
+                          onBlur={() => setTouchedName(true)}
+                          onChange={(event) => onChangeField('full_name', event.target.value)}
+                        />
+                        {nameInvalid ? (
+                          <span className="digital-form__error" role="alert">
+                            {fieldErrors.full_name || liveNameError}
+                          </span>
+                        ) : null}
+                      </label>
+                    );
+                  })}
+            </div>
+          </section>
+        ))}
+        <span hidden>{parseBirthDate(values.birth_date ?? '') ? '' : ''}</span>
       </div>
-      {/* Keep parseBirthDate referenced for tree-shaking-safe reuse in parents */}
-      <span hidden>{parseBirthDate(values.birth_date ?? '') ? '' : ''}</span>
-    </div>
+    </FormShell>
   );
 }

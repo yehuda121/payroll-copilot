@@ -43,6 +43,20 @@ from payroll_copilot.application.use_cases.payroll_assistant import (
     AssistantChatResult,
     PayrollAssistantChatUseCase,
 )
+from payroll_copilot.application.use_cases.payroll_investigation import (
+    PayrollInvestigationCommand,
+    PayrollInvestigationUseCase,
+)
+from payroll_copilot.application.services.investigation_synthesizer import (
+    outcome_requires_review,
+)
+from payroll_copilot.domain.investigation.types import InvestigationOutcome
+from payroll_copilot.infrastructure.ai.agents.investigation_data_adapter import (
+    InvestigationDataAdapter,
+)
+from payroll_copilot.infrastructure.ai.agents.payroll_investigation_graph import (
+    PayrollInvestigationGraph,
+)
 from payroll_copilot.application.services.version_aware_legal_retriever import (
     HybridApprovedLaborLawSearch,
     VersionAwareLegalRetriever,
@@ -70,6 +84,11 @@ from payroll_copilot.infrastructure.persistence.dynamodb.factory import (
     get_popular_question_repository,
     get_validation_finding_repository,
     get_validation_run_repository,
+)
+from payroll_copilot.presentation.api.dependencies import (
+    get_object_storage,
+    get_ocr_provider,
+    get_payslip_parser,
 )
 from payroll_copilot.infrastructure.persistence.dynamodb.popular_questions import (
     strip_session_context,
@@ -325,6 +344,54 @@ def _get_assistant_use_case(
     )
     graph = PayrollAssistantGraph(tools=tools, model_provider=model_provider)
     return PayrollAssistantChatUseCase(runner=graph), tools
+
+
+def _get_investigation_use_case() -> PayrollInvestigationUseCase:
+    """Wire investigation graph with auth-bound Dynamo access + ephemeral S3 enrich."""
+    settings = get_settings()
+    from payroll_copilot.application.use_cases.ocr_extract import ExtractDocumentTextUseCase
+
+    adapter = InvestigationDataAdapter(
+        documents=get_document_repository(),
+        extractions=get_document_extraction_repository(),
+        validation_runs=get_validation_run_repository(),
+        validation_findings=get_validation_finding_repository(),
+        object_storage=get_object_storage(),
+        ocr_use_case=ExtractDocumentTextUseCase(
+            get_ocr_provider(),
+            timeout_seconds=settings.ocr_timeout_seconds,
+        ),
+        payslip_parser=get_payslip_parser(),
+    )
+    return PayrollInvestigationUseCase(runner=PayrollInvestigationGraph(adapter))
+
+
+def _investigation_chat_response(
+    result,
+    *,
+    locale: str,
+) -> AssistantChatResponse:
+    requires_review = outcome_requires_review(result.outcome) or (
+        result.outcome == InvestigationOutcome.NEEDS_USER_INPUT
+    )
+    return AssistantChatResponse(
+        answer=result.answer,
+        session_id=result.session_id,
+        used_tools=list(result.used_tools),
+        sources=[
+            AssistantSourceResponse(
+                title=str(source.get("title") or "payslip"),
+                type=str(source.get("type") or "payslip"),
+                reference=source.get("reference"),
+            )
+            for source in result.sources
+        ],
+        confidence=float(result.confidence),
+        requires_human_review=requires_review,
+        guardrail_status="passed",
+        locale=locale,
+        usage=None,
+    )
 
 
 def _build_prepared_guest_context(
@@ -679,6 +746,30 @@ async def _employee_assistant_chat_impl(
         context_result = EmployeeAIContextResult()
         plan_strategy = None
         period_label = None
+    elif plan.strategy == AnswerStrategy.INVESTIGATION:
+        inv = await _get_investigation_use_case().execute(
+            PayrollInvestigationCommand(
+                message=request.message,
+                organization_id=bound.employee.organization_id,
+                employee_id=bound.employee.id,
+                session_id=request.session_id,
+                locale=locale,
+                include_unpublished=include_unpublished,
+                target_year=plan.year,
+                target_month=plan.month,
+            )
+        )
+        _update_conversation_summary(
+            session_id=inv.session_id,
+            strategy=AnswerStrategy.INVESTIGATION.value,
+            period_key=inv.target_period.key if inv.target_period else plan.period_key,
+            user_question=request.message,
+        )
+        base = _investigation_chat_response(inv, locale=locale)
+        return EmployeeAssistantChatResponse(
+            **base.model_dump(),
+            context_updates=EmployeeContextUpdatesResponse(),
+        )
     else:
         context_result = await EmployeeAIContextBuilder(
             documents=get_document_repository(),

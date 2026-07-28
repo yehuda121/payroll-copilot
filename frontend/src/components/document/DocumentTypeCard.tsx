@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ModalDialog, useConfirmDialog } from '../ui/Dialog';
+import { FormInfoPanel, FormSection, FormShell } from '../ui/form/FormPrimitives';
+import { TrashIcon, WarningTriangleIcon } from '../ui/icons';
 import { DocumentPreviewCard } from './DocumentPreviewCard';
 import { AppendixChildrenForm } from '../../features/employee/AppendixChildrenForm';
 import { EmployeeDigitalForm } from '../../features/employee/EmployeeDigitalForm';
@@ -10,10 +12,15 @@ import {
   type PersistentDocumentType,
 } from '../../hooks/useEmployeeDocumentWorkspace';
 import {
-  fixedFieldKeysFor,
   formatAppendixChildPreview,
   isAppendixDocumentType,
 } from '../../lib/employee/document-fixed-forms';
+import {
+  documentFieldSectionsForType,
+  getDocumentFieldDefinition,
+  resolveDocumentFieldLabel,
+  resolveDocumentFieldSectionTitle,
+} from '../../lib/employee/document-field-registry';
 import {
   validateAppendixChildren,
   type AppendixChildRowError,
@@ -23,6 +30,21 @@ import { validatePersonName } from '../../lib/employee/field-text';
 import { validateNationalId } from '../../lib/employee/israeli-id';
 import { resolveDocumentCardStatus } from '../../lib/employee/document-card-status';
 import { validateUploadFile } from '../../lib/guest/upload-guardrails';
+import type { DocumentPreviewField } from './DocumentPreviewCard';
+
+function formatFixedPreviewValue(
+  documentType: PersistentDocumentType,
+  key: string,
+  raw: string,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  if (documentType === 'contract' && key === 'salary_basis' && raw.trim()) {
+    const basisKey = `employee.documents.contract.salaryBasis.${raw.trim()}`;
+    const translated = t(basisKey);
+    if (translated !== basisKey) return translated;
+  }
+  return raw;
+}
 
 const TYPE_LABEL: Record<PersistentDocumentType, string> = {
   national_id: 'employee.documents.tabs.idCard',
@@ -66,14 +88,20 @@ export function DocumentTypeCard({ documentType }: { documentType: PersistentDoc
     confirmationStatus: flow.item?.confirmation_status,
   });
 
-  const previewFields = useMemo(() => {
+  const previewFields = useMemo((): DocumentPreviewField[] => {
     if (isAppendixDocumentType(documentType)) {
+      const sectionTitle = resolveDocumentFieldSectionTitle('family', t);
       if (flow.appendixChildren.length === 0) {
+        const childrenLabel =
+          resolveDocumentFieldLabel(documentType, 'children', t) ??
+          t('employee.documents.fields.children');
         return [
           {
             key: 'children-empty',
-            label: t('employee.documents.appendix.children'),
+            label: childrenLabel,
             value: t('employee.documents.appendix.emptyChildren'),
+            sectionId: 'family',
+            sectionTitle,
           },
         ];
       }
@@ -81,21 +109,39 @@ export function DocumentTypeCard({ documentType }: { documentType: PersistentDoc
         key: `child-${index}`,
         label: t('employee.documents.appendix.childLabel', { index: index + 1 }),
         value: formatAppendixChildPreview(child, t('common.emDash')),
+        sectionId: 'family',
+        sectionTitle,
       }));
     }
-    const fixedKeys = fixedFieldKeysFor(documentType);
-    if (fixedKeys) {
-      return fixedKeys.map((key) => ({
-        key,
-        label: t(`employee.documents.fixedFields.${key}`),
-        value: flow.fixedValues[key] ?? '',
-      }));
+
+    if (documentType === 'national_id' || documentType === 'contract') {
+      const sections = documentFieldSectionsForType(documentType);
+      const out: DocumentPreviewField[] = [];
+      for (const section of sections) {
+        const sectionTitle = t(section.titleKey);
+        for (const def of section.fields) {
+          const label = t(def.label_i18n_key);
+          const raw = flow.fixedValues[def.canonical_key] ?? '';
+          out.push({
+            key: def.canonical_key,
+            label,
+            value: formatFixedPreviewValue(documentType, def.canonical_key, raw, t),
+            sectionId: section.id,
+            sectionTitle,
+          });
+        }
+      }
+      return out;
     }
-    return flow.fields.map((field) => ({
-      key: field.key,
-      label: field.key,
-      value: String(field.value ?? ''),
-    }));
+
+    return flow.fields.map((field) => {
+      const def = getDocumentFieldDefinition(documentType, field.key);
+      return {
+        key: field.key,
+        label: def ? t(def.label_i18n_key) : field.key,
+        value: String(field.value ?? ''),
+      };
+    });
   }, [documentType, flow.appendixChildren, flow.fields, flow.fixedValues, t]);
 
   useEffect(() => {
@@ -316,6 +362,7 @@ export function DocumentTypeCard({ documentType }: { documentType: PersistentDoc
       {editOpen ? (
         <ModalDialog
           title={t('employee.documents.editTitle', { type: title })}
+          size="lg"
           className={`document-edit-modal${
             documentType === 'national_id' ||
             documentType === 'id_appendix' ||
@@ -408,6 +455,7 @@ export function DocumentTypeCard({ documentType }: { documentType: PersistentDoc
         <ModalDialog
           title={t('employee.documents.deleteTitle', { type: title })}
           variant="danger"
+          size="md"
           onClose={() => setDeleteOpen(false)}
           footer={
             <>
@@ -431,62 +479,83 @@ export function DocumentTypeCard({ documentType }: { documentType: PersistentDoc
             </>
           }
         >
-          <p className="modal-dialog__message">{t('employee.documents.deleteIntro')}</p>
-          <fieldset className="document-delete-choices">
-            <legend className="visually-hidden">{t('employee.documents.deleteLegend')}</legend>
-            <label
-              title={!hasOriginal ? t('employee.documents.deleteOriginalDisabledHint') : undefined}
+          <FormShell
+            aside={
+              <FormInfoPanel
+                tone="warning"
+                eyebrow={t('forms.info.tipEyebrow')}
+                title={t('forms.info.documentDeleteTitle')}
+                icon={<WarningTriangleIcon size={14} aria-hidden="true" />}
+              >
+                <p>{t('forms.info.documentDeleteBody')}</p>
+              </FormInfoPanel>
+            }
+          >
+            <FormSection
+              title={t('employee.documents.deleteLegend')}
+              description={t('employee.documents.deleteIntro')}
+              icon={<TrashIcon size={18} />}
+              columns={1}
             >
-              <input
-                type="radio"
-                name={`delete-scope-${documentType}`}
-                checked={deleteScope === 'original'}
-                disabled={!hasOriginal}
-                onChange={() => setDeleteScope('original')}
-              />
-              <span>
-                <strong>{t('employee.documents.deleteOriginal')}</strong>
-                <br />
-                {t('employee.documents.deleteOriginalHint')}
-              </span>
-            </label>
-            <label
-              title={!hasDigital ? t('employee.documents.deleteDigitalDisabledHint') : undefined}
-            >
-              <input
-                type="radio"
-                name={`delete-scope-${documentType}`}
-                checked={deleteScope === 'digital'}
-                disabled={!hasDigital}
-                onChange={() => setDeleteScope('digital')}
-              />
-              <span>
-                <strong>{t('employee.documents.deleteDigital')}</strong>
-                <br />
-                {t('employee.documents.deleteDigitalHint')}
-              </span>
-            </label>
-            <label
-              title={
-                !(hasOriginal && hasDigital)
-                  ? t('employee.documents.deleteBothDisabledHint')
-                  : undefined
-              }
-            >
-              <input
-                type="radio"
-                name={`delete-scope-${documentType}`}
-                checked={deleteScope === 'both'}
-                disabled={!(hasOriginal && hasDigital)}
-                onChange={() => setDeleteScope('both')}
-              />
-              <span>
-                <strong>{t('employee.documents.deleteBoth')}</strong>
-                <br />
-                {t('employee.documents.deleteBothHint')}
-              </span>
-            </label>
-          </fieldset>
+              <fieldset className="document-delete-choices pc-form-field--span-2">
+                <legend className="visually-hidden">{t('employee.documents.deleteLegend')}</legend>
+                <label
+                  title={
+                    !hasOriginal ? t('employee.documents.deleteOriginalDisabledHint') : undefined
+                  }
+                >
+                  <input
+                    type="radio"
+                    name={`delete-scope-${documentType}`}
+                    checked={deleteScope === 'original'}
+                    disabled={!hasOriginal}
+                    onChange={() => setDeleteScope('original')}
+                  />
+                  <span>
+                    <strong>{t('employee.documents.deleteOriginal')}</strong>
+                    <br />
+                    {t('employee.documents.deleteOriginalHint')}
+                  </span>
+                </label>
+                <label
+                  title={!hasDigital ? t('employee.documents.deleteDigitalDisabledHint') : undefined}
+                >
+                  <input
+                    type="radio"
+                    name={`delete-scope-${documentType}`}
+                    checked={deleteScope === 'digital'}
+                    disabled={!hasDigital}
+                    onChange={() => setDeleteScope('digital')}
+                  />
+                  <span>
+                    <strong>{t('employee.documents.deleteDigital')}</strong>
+                    <br />
+                    {t('employee.documents.deleteDigitalHint')}
+                  </span>
+                </label>
+                <label
+                  title={
+                    !(hasOriginal && hasDigital)
+                      ? t('employee.documents.deleteBothDisabledHint')
+                      : undefined
+                  }
+                >
+                  <input
+                    type="radio"
+                    name={`delete-scope-${documentType}`}
+                    checked={deleteScope === 'both'}
+                    disabled={!(hasOriginal && hasDigital)}
+                    onChange={() => setDeleteScope('both')}
+                  />
+                  <span>
+                    <strong>{t('employee.documents.deleteBoth')}</strong>
+                    <br />
+                    {t('employee.documents.deleteBothHint')}
+                  </span>
+                </label>
+              </fieldset>
+            </FormSection>
+          </FormShell>
         </ModalDialog>
       ) : null}
     </>

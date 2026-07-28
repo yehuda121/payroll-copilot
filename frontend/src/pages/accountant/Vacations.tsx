@@ -33,8 +33,6 @@ import {
   type LeaveEditForm,
   type LeaveSettingsForm,
 } from '../../lib/accountant/leave-management-ui';
-import { FIELD_MAX_LENGTH } from '../../lib/employee/field-text';
-import { EMAIL_MAX_LENGTH } from '../../lib/validation/email';
 import {
   leaveContactErrorKey,
   validateLeaveContactFields,
@@ -46,8 +44,10 @@ import {
   type VacationSettings,
 } from '../../services/vacations';
 import {
+  LeaveDetailEditFields,
   LeaveLoadError,
   LeaveManualEntryDialog,
+  LeaveSettingsFields,
   LeaveToolbar,
   LeaveUnsavedChangesDialog,
 } from './leave-ui/LeavePresentation';
@@ -706,6 +706,7 @@ export function VacationsPage() {
       {detail ? (
         <ModalDialog
           title={leaveEmployeeLabel(detail)}
+          size="lg"
           wide
           className="leave-request-dialog"
           closeLabel={t('common.close')}
@@ -782,54 +783,20 @@ export function VacationsPage() {
               </p>
             ) : null}
 
-            <div className="form-grid">
-              <label>
-                {t('accountant.vacations.fieldName')}
-                <input
-                  value={editForm.employeeName}
-                  maxLength={FIELD_MAX_LENGTH.personName}
-                  autoComplete="name"
-                  onChange={(e) => {
-                    setEditError(null);
-                    setEditForm((f) => ({ ...f, employeeName: e.target.value }));
-                  }}
-                />
-              </label>
-              <label>
-                {t('accountant.vacations.fieldEmail')}
-                <input
-                  type="email"
-                  maxLength={EMAIL_MAX_LENGTH}
-                  value={editForm.employeeEmail}
-                  autoComplete="off"
-                  onChange={(e) => {
-                    setEditError(null);
-                    setEditForm((f) => ({ ...f, employeeEmail: e.target.value }));
-                  }}
-                />
-              </label>
-              <label>
-                {t('accountant.vacations.fieldStartDate')}
-                <input
-                  type="date"
-                  value={editForm.startDate}
-                  onChange={(e) => setEditForm((f) => ({ ...f, startDate: e.target.value }))}
-                />
-              </label>
-              <label>
-                {t('accountant.vacations.fieldEndDate')}
-                <input
-                  type="date"
-                  value={editForm.endDate}
-                  onChange={(e) => setEditForm((f) => ({ ...f, endDate: e.target.value }))}
-                />
-              </label>
-            </div>
-            {editError ? (
-              <p className="leave-manual-form__error" role="alert">
-                {editError}
-              </p>
-            ) : null}
+            <LeaveDetailEditFields
+              labels={{
+                fieldName: t('accountant.vacations.fieldName'),
+                fieldEmail: t('accountant.vacations.fieldEmail'),
+                fieldStartDate: t('accountant.vacations.fieldStartDate'),
+                fieldEndDate: t('accountant.vacations.fieldEndDate'),
+              }}
+              values={editForm}
+              error={editError}
+              onChange={(patch) => {
+                setEditError(null);
+                setEditForm((f) => ({ ...f, ...patch }));
+              }}
+            />
 
             {detail.aiExtractionOriginal ? (
               <>
@@ -908,6 +875,7 @@ export function VacationsPage() {
       {settingsOpen && settings ? (
         <ModalDialog
           title={t('accountant.vacations.settings')}
+          size="md"
           closeLabel={t('common.close')}
           onClose={closeSettings}
           footer={
@@ -926,68 +894,34 @@ export function VacationsPage() {
             </>
           }
         >
-          <div className="leave-settings-modal">
-            <section className="leave-settings-section" aria-labelledby="leave-settings-notify">
-              <h3 id="leave-settings-notify" className="leave-settings-section__title">
-                {t('accountant.vacations.notificationsSection')}
-              </h3>
-              <label className="leave-settings-field">
-                <span className="leave-settings-field__label">
-                  {t('accountant.vacations.notificationEmailField')}
-                </span>
-                <input
-                  type="email"
-                  className="vacations-filter-control leave-settings-input"
-                  value={settingsForm.notificationEmail}
-                  maxLength={EMAIL_MAX_LENGTH}
-                  onChange={(e) => {
-                    setSettingsForm((f) => ({ ...f, notificationEmail: e.target.value }));
-                    setSettingsEmailError(null);
-                  }}
-                  autoComplete="email"
-                />
-                <span className="leave-settings-field__help">
-                  {t('accountant.vacations.notificationEmailHelp')}
-                </span>
-                {settingsForm.notificationEmail.trim() ? (
-                  <span className="leave-settings-field__hint">
-                    {t('accountant.vacations.notificationEmailUnverifiedHint')}
-                  </span>
-                ) : null}
-                {settingsEmailError ? (
-                  <span className="leave-settings-field__error" role="alert">
-                    {settingsEmailError}
-                  </span>
-                ) : null}
-              </label>
-
-              <div className="leave-settings-prefs">
-                <label className="vacations-check">
-                  <input
-                    type="checkbox"
-                    checked={settingsForm.notifyOnNewVacation}
-                    onChange={(e) =>
-                      setSettingsForm((f) => ({ ...f, notifyOnNewVacation: e.target.checked }))
-                    }
-                  />
-                  {t('accountant.vacations.notifyNew')}
-                </label>
-                <label className="vacations-check">
-                  <input
-                    type="checkbox"
-                    checked={settingsForm.notifyOnErrorOrAttention}
-                    onChange={(e) =>
-                      setSettingsForm((f) => ({
-                        ...f,
-                        notifyOnErrorOrAttention: e.target.checked,
-                      }))
-                    }
-                  />
-                  {t('accountant.vacations.notifyAttention')}
-                </label>
-              </div>
-            </section>
-          </div>
+          <LeaveSettingsFields
+            labels={{
+              notificationsSection: t('accountant.vacations.notificationsSection'),
+              notificationEmailField: t('accountant.vacations.notificationEmailField'),
+              notificationEmailHelp: t('accountant.vacations.notificationEmailHelp'),
+              notificationEmailUnverifiedHint: t(
+                'accountant.vacations.notificationEmailUnverifiedHint',
+              ),
+              notifyNew: t('accountant.vacations.notifyNew'),
+              notifyAttention: t('accountant.vacations.notifyAttention'),
+            }}
+            values={{
+              notificationEmail: settingsForm.notificationEmail,
+              notifyOnNew: settingsForm.notifyOnNewVacation,
+              notifyOnAttention: settingsForm.notifyOnErrorOrAttention,
+            }}
+            emailError={settingsEmailError}
+            onChangeEmail={(value) => {
+              setSettingsForm((f) => ({ ...f, notificationEmail: value }));
+              setSettingsEmailError(null);
+            }}
+            onChangeNotifyNew={(value) =>
+              setSettingsForm((f) => ({ ...f, notifyOnNewVacation: value }))
+            }
+            onChangeNotifyAttention={(value) =>
+              setSettingsForm((f) => ({ ...f, notifyOnErrorOrAttention: value }))
+            }
+          />
         </ModalDialog>
       ) : null}
 

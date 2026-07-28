@@ -4,6 +4,15 @@ import { PortalPage } from '../../components/PortalPage';
 import { Card } from '../../components/ui/Card';
 import { DataTable } from '../../components/ui/DataTable';
 import { EmptyState, LoadingOverlay, useConfirmDialog } from '../../components/ui/Dialog';
+import {
+  FormControl,
+  FormField,
+  FormInfoPanel,
+  FormSection,
+  FormShell,
+  FormTextarea,
+} from '../../components/ui/form/FormPrimitives';
+import { PencilIcon, SparklesIcon } from '../../components/ui/icons';
 import { getAccountantErrorMessage } from '../../i18n/accountantLabels';
 import { useAppLocale } from '../../hooks/useAppLocale';
 import { formatDateTime } from '../../lib/formatLocale';
@@ -179,62 +188,97 @@ export function PayrollRulesPage() {
 
       {selected && (
         <Card title={selected.filename}>
-          <div className="accountant-toolbar">
-            {!editing ? (
-              <button type="button" className="btn btn--primary" onClick={() => void beginEdit()}>
-                {t('accountant.rules.edit')}
-              </button>
-            ) : (
-              <>
-                <input
-                  type="text"
-                  placeholder={t('accountant.rules.reasonPlaceholder')}
-                  value={reason}
-                  maxLength={FREE_TEXT_MAX_LENGTH.shortNote}
-                  onChange={(e) =>
-                    setReason(clampFreeTextInput(e.target.value, FREE_TEXT_MAX_LENGTH.shortNote))
-                  }
-                  aria-label={t('accountant.rules.reasonAria')}
-                  className="rule-reason-input"
-                />
-                <button
-                  type="button"
-                  className="btn btn--primary"
-                  disabled={saving}
-                  onClick={() => void save()}
+          <FormShell
+            aside={
+              editing ? (
+                <FormInfoPanel
+                  tone="warning"
+                  eyebrow={t('forms.info.tipEyebrow')}
+                  title={t('forms.info.payrollRulesTitle')}
+                  icon={<SparklesIcon size={14} aria-hidden="true" />}
                 >
-                  {saving ? t('common.saving') : t('accountant.rules.saveVersion')}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--secondary"
-                  onClick={() => {
-                    setEditing(false);
-                    setDraft(selected.content);
-                  }}
-                >
-                  {t('common.cancel')}
-                </button>
-              </>
-            )}
-          </div>
-          <textarea
-            className="rule-editor"
-            value={draft}
-            readOnly={!editing}
-            maxLength={FREE_TEXT_MAX_LENGTH.longNote}
-            onChange={(e) =>
-              setDraft(
-                clampFreeTextInput(e.target.value, FREE_TEXT_MAX_LENGTH.longNote, {
-                  allowNewlines: true,
-                }),
-              )
+                  <p>{t('forms.info.payrollRulesBody')}</p>
+                </FormInfoPanel>
+              ) : undefined
             }
-            rows={18}
-            spellCheck={false}
-            aria-label={t('accountant.rules.contentAria')}
-            dir="ltr"
-          />
+          >
+            <FormSection
+              title={t('forms.sections.ruleEditor.title')}
+              description={t('forms.sections.ruleEditor.description')}
+              icon={<PencilIcon size={18} />}
+              columns={1}
+            >
+              <div className="accountant-toolbar pc-form-field--span-2">
+                {!editing ? (
+                  <button type="button" className="btn btn--primary" onClick={() => void beginEdit()}>
+                    {t('accountant.rules.edit')}
+                  </button>
+                ) : (
+                  <>
+                    <FormField
+                      label={t('accountant.rules.reasonAria')}
+                      htmlFor="rule-reason"
+                      span={2}
+                    >
+                      <FormControl
+                        id="rule-reason"
+                        type="text"
+                        placeholder={t('accountant.rules.reasonPlaceholder')}
+                        value={reason}
+                        maxLength={FREE_TEXT_MAX_LENGTH.shortNote}
+                        onChange={(e) =>
+                          setReason(clampFreeTextInput(e.target.value, FREE_TEXT_MAX_LENGTH.shortNote))
+                        }
+                      />
+                    </FormField>
+                    <div className="form-actions pc-form-field--span-2">
+                      <button
+                        type="button"
+                        className="btn btn--primary"
+                        disabled={saving}
+                        onClick={() => void save()}
+                      >
+                        {saving ? t('common.saving') : t('accountant.rules.saveVersion')}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--secondary"
+                        onClick={() => {
+                          setEditing(false);
+                          setDraft(selected.content);
+                        }}
+                      >
+                        {t('common.cancel')}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+              <FormField
+                label={t('accountant.rules.contentAria')}
+                htmlFor="rule-editor"
+                span={2}
+              >
+                <FormTextarea
+                  id="rule-editor"
+                  className="rule-editor"
+                  value={draft}
+                  readOnly={!editing}
+                  maxLength={FREE_TEXT_MAX_LENGTH.longNote}
+                  onChange={(e) =>
+                    setDraft(
+                      clampFreeTextInput(e.target.value, FREE_TEXT_MAX_LENGTH.longNote, {
+                        allowNewlines: true,
+                      }),
+                    )
+                  }
+                  rows={18}
+                  spellCheck={false}
+                  dir="ltr"
+                />
+              </FormField>
+            </FormSection>
+          </FormShell>
           <h4>{t('accountant.rules.versionHistory')}</h4>
           {selected.versions.length === 0 ? (
             <EmptyState

@@ -1,4 +1,13 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import {
+  FormControl,
+  FormField,
+  FormInfoPanel,
+  FormSection,
+  FormShell,
+} from '../../components/ui/form/FormPrimitives';
+import { SparklesIcon, UserIcon } from '../../components/ui/icons';
 import '../../layouts/PublicLayout.css';
 
 /**
@@ -6,37 +15,70 @@ import '../../layouts/PublicLayout.css';
  * @integration-point AUTH_SIGNUP
  */
 export function SignupPage() {
+  const { t } = useTranslation();
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1>Create account</h1>
+        <h1>{t('auth.signUpTitle', { defaultValue: 'Create account' })}</h1>
         <p className="auth-card__subtitle">
-          Employee self-registration and organization onboarding will be handled through AWS
-          Cognito. This form is a UI placeholder.
+          {t('auth.signUpSubtitle', {
+            defaultValue:
+              'Employee self-registration and organization onboarding will be handled through AWS Cognito. This form is a UI placeholder.',
+          })}
         </p>
-        <form
+        <FormShell
+          asForm
           onSubmit={(e) => {
             e.preventDefault();
           }}
+          aside={
+            <FormInfoPanel
+              tone="tip"
+              eyebrow={t('forms.info.tipEyebrow')}
+              title={t('forms.info.signUpTitle')}
+              icon={<SparklesIcon size={14} aria-hidden="true" />}
+            >
+              <p>{t('forms.info.signUpBody')}</p>
+            </FormInfoPanel>
+          }
         >
-          <div className="form-field">
-            <label htmlFor="signup-name">Full name</label>
-            <input id="signup-name" type="text" disabled />
+          <FormSection
+            title={t('forms.sections.signUp.title')}
+            description={t('forms.sections.signUp.description')}
+            icon={<UserIcon size={18} />}
+            columns={1}
+          >
+            <FormField
+              label={t('auth.fullName', { defaultValue: 'Full name' })}
+              htmlFor="signup-name"
+              span={2}
+            >
+              <FormControl id="signup-name" type="text" disabled />
+            </FormField>
+            <FormField
+              label={t('auth.email', { defaultValue: 'Work email' })}
+              htmlFor="signup-email"
+              span={2}
+            >
+              <FormControl id="signup-email" type="email" disabled />
+            </FormField>
+            <FormField
+              label={t('auth.password', { defaultValue: 'Password' })}
+              htmlFor="signup-password"
+              span={2}
+            >
+              <FormControl id="signup-password" type="password" disabled />
+            </FormField>
+          </FormSection>
+          <div className="form-actions">
+            <button type="submit" className="btn btn--primary" style={{ width: '100%' }} disabled>
+              {t('auth.signUpPending', { defaultValue: 'Create account (Cognito pending)' })}
+            </button>
           </div>
-          <div className="form-field">
-            <label htmlFor="signup-email">Work email</label>
-            <input id="signup-email" type="email" disabled />
-          </div>
-          <div className="form-field">
-            <label htmlFor="signup-password">Password</label>
-            <input id="signup-password" type="password" disabled />
-          </div>
-          <button type="submit" className="btn btn--primary" style={{ width: '100%' }} disabled>
-            Create account (Cognito pending)
-          </button>
-        </form>
+        </FormShell>
         <p className="auth-card__footer">
-          Already have an account? <Link to="/login">Sign in</Link>
+          {t('auth.haveAccount', { defaultValue: 'Already have an account?' })}{' '}
+          <Link to="/login">{t('common.login')}</Link>
         </p>
       </div>
     </div>

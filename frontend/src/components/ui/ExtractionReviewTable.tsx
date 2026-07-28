@@ -52,7 +52,7 @@ export function ExtractionReviewTable({
                 <div className="extraction-field__editor">
                   <input
                     id={`extract-${field.key}`}
-                    className="extraction-field__input"
+                    className="extraction-field__input pc-form-control"
                     value={inputValue}
                     maxLength={8000}
                     placeholder={t('validate.fieldMissing')}

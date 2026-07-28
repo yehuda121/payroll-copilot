@@ -6,6 +6,13 @@ import { useAuth } from '../../auth/AuthContext';
 import { DEV_IDENTITIES } from '../../auth/devAuth';
 import { useConfirmDialog } from '../../components/ui/Dialog';
 import {
+  FormControl,
+  FormField,
+  FormSection,
+  FormShell,
+} from '../../components/ui/form/FormPrimitives';
+import { UserIcon } from '../../components/ui/icons';
+import {
   EMAIL_MAX_LENGTH,
   FREE_TEXT_MAX_LENGTH,
   validateEmailFormat,
@@ -143,38 +150,45 @@ function CognitoLoginForm({
   };
 
   return (
-    <form onSubmit={(event) => void handleSubmit(event)}>
-      <div className="form-field">
-        <label htmlFor="email">{t('auth.email')}</label>
-        <input
-          id="email"
-          type="email"
-          autoComplete="username"
-          placeholder={t('auth.emailPlaceholder')}
-          value={email}
-          maxLength={EMAIL_MAX_LENGTH}
-          onChange={(event) => setEmail(event.target.value)}
-          required
-          disabled={busy}
-        />
+    <FormShell asForm onSubmit={(event) => void handleSubmit(event)}>
+      <FormSection
+        title={t('forms.sections.signIn.title')}
+        description={t('forms.sections.signIn.description')}
+        icon={<UserIcon size={18} />}
+        columns={1}
+      >
+        <FormField label={t('auth.email')} htmlFor="email" required span={2}>
+          <FormControl
+            id="email"
+            type="email"
+            autoComplete="username"
+            placeholder={t('auth.emailPlaceholder')}
+            value={email}
+            maxLength={EMAIL_MAX_LENGTH}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+            disabled={busy}
+          />
+        </FormField>
+        <FormField label={t('auth.password')} htmlFor="password" required span={2}>
+          <FormControl
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            value={password}
+            maxLength={FREE_TEXT_MAX_LENGTH.password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+            disabled={busy}
+          />
+        </FormField>
+      </FormSection>
+      <div className="form-actions">
+        <button type="submit" className="btn btn--primary" style={{ width: '100%' }} disabled={busy}>
+          {busy ? t('common.loading') : t('common.login')}
+        </button>
       </div>
-      <div className="form-field">
-        <label htmlFor="password">{t('auth.password')}</label>
-        <input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          placeholder="••••••••"
-          value={password}
-          maxLength={FREE_TEXT_MAX_LENGTH.password}
-          onChange={(event) => setPassword(event.target.value)}
-          required
-          disabled={busy}
-        />
-      </div>
-      <button type="submit" className="btn btn--primary" style={{ width: '100%' }} disabled={busy}>
-        {busy ? t('common.loading') : t('common.login')}
-      </button>
-    </form>
+    </FormShell>
   );
 }

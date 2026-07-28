@@ -558,6 +558,18 @@ flowchart LR
 | Pass/fail / severity | None | Rule engine |
 | Finding explanation | Primary (optional) | Findings already exist |
 | Assistant answers | Primary with guardrails | Approved corpus + tool constraints |
+| Investigation / anomaly chat | Explains stored diffs + findings | Lookback, completeness, line-item diff; rule engine remains SoT |
+
+### Payroll Investigation & Anomaly Agent
+
+Authenticated employee (and accountant-bound employee) chat can route anomaly questions to a dedicated LangGraph (`PayrollInvestigationGraph`) via `AnswerStrategy.INVESTIGATION` inside `/api/v1/assistant/employee/chat`.
+
+- Rolling **12-month** lookback across year boundaries for the comparison payslip.
+- Scenario C enrichment re-reads the original payslip from S3 → OCR → parse **ephemerally** (no DynamoDB write-back).
+- Failures in S3/OCR/parse soft-fallback to clarification / `insufficient_evidence`; they must not raise unhandled exceptions.
+- Auth-bound employee IDs only; never trust body/prompt employee selectors.
+
+See [`docs/payroll-investigation-agent.md`](docs/payroll-investigation-agent.md) for graph nodes, scenarios A–D, and module map.
 
 ### Production inference
 
@@ -597,7 +609,7 @@ The extractor reconstructs the uploaded document as completely as practical. Com
 | Batch | Job create/status for bulk PDFs |
 | Manual review | Queue and resolve low-confidence items |
 | Compliance | Rule packs, diff proposals, sync hooks |
-| Assistant | Chat with guardrails and sources |
+| Assistant | Chat with guardrails and sources; investigation intent routes to the anomaly graph |
 | Health | Liveness / readiness |
 
 ### Guest vs employee contracts

@@ -2,6 +2,15 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Info, Trash2 } from 'lucide-react';
 import { ModalDialog, useConfirmDialog } from '../../components/ui/Dialog';
+import {
+  FormControl,
+  FormField,
+  FormInfoPanel,
+  FormSection,
+  FormShell,
+  FormTextarea,
+} from '../../components/ui/form/FormPrimitives';
+import { PencilIcon, SparklesIcon } from '../../components/ui/icons';
 import { Skeleton, SkeletonText } from '../../components/ui/Skeleton';
 import type { FieldDraft } from '../../hooks/useEmployeePayslipFlow';
 import {
@@ -468,6 +477,7 @@ export function EmployeeDigitalForm({
       {addFieldOpen && (
         <ModalDialog
           title={t('employee.digitalForm.addFieldTitle')}
+          size="md"
           onClose={closeAddField}
           footer={
             <>
@@ -480,43 +490,60 @@ export function EmployeeDigitalForm({
             </>
           }
         >
-          <div className="employee-field-edit employee-field-edit--stack">
-            <label className="employee-field-edit">
-              <span className="employee-field-edit__name">
-                {t('employee.digitalForm.addFieldName')}
-              </span>
-              <input
-                className="digital-form__input"
-                value={addFieldName}
-                onChange={(event) => {
-                  setAddFieldName(event.target.value);
-                  setAddFieldError(null);
-                }}
-                autoFocus
-              />
-            </label>
-            <label className="employee-field-edit">
-              <span className="employee-field-edit__name">
-                {t('employee.digitalForm.addFieldValue')}
-              </span>
-              <input
-                className="digital-form__input"
-                value={addFieldValue}
-                onChange={(event) => setAddFieldValue(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    saveAddField();
-                  }
-                }}
-              />
-            </label>
-            {addFieldError && (
-              <p className="chat-panel__error" role="alert">
-                {addFieldError}
-              </p>
-            )}
-          </div>
+          <FormShell
+            aside={
+              <FormInfoPanel
+                tone="tip"
+                eyebrow={t('forms.info.tipEyebrow')}
+                title={t('forms.info.digitalFieldTitle')}
+                icon={<SparklesIcon size={14} aria-hidden="true" />}
+              >
+                <p>{t('forms.info.digitalFieldAddBody')}</p>
+              </FormInfoPanel>
+            }
+          >
+            <FormSection
+              title={t('forms.sections.fieldValues.title')}
+              description={t('forms.sections.fieldValues.description')}
+              icon={<PencilIcon size={18} />}
+              columns={1}
+            >
+              <FormField
+                label={t('employee.digitalForm.addFieldName')}
+                htmlFor="digital-add-field-name"
+                error={addFieldError}
+                span={2}
+              >
+                <FormControl
+                  id="digital-add-field-name"
+                  value={addFieldName}
+                  invalid={Boolean(addFieldError)}
+                  onChange={(event) => {
+                    setAddFieldName(event.target.value);
+                    setAddFieldError(null);
+                  }}
+                  autoFocus
+                />
+              </FormField>
+              <FormField
+                label={t('employee.digitalForm.addFieldValue')}
+                htmlFor="digital-add-field-value"
+                span={2}
+              >
+                <FormControl
+                  id="digital-add-field-value"
+                  value={addFieldValue}
+                  onChange={(event) => setAddFieldValue(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      saveAddField();
+                    }
+                  }}
+                />
+              </FormField>
+            </FormSection>
+          </FormShell>
         </ModalDialog>
       )}
 
@@ -524,7 +551,7 @@ export function EmployeeDigitalForm({
         <ModalDialog
           title={t('employee.validation.editFieldTitle')}
           onClose={closeEditor}
-          wide={multiline}
+          size={multiline ? 'lg' : 'md'}
           footer={
             <>
               <button type="button" className="btn btn--secondary" onClick={closeEditor}>
@@ -536,55 +563,72 @@ export function EmployeeDigitalForm({
             </>
           }
         >
-          <label className="employee-field-edit">
-            <span className="employee-field-edit__name">{editingField.label}</span>
-            {multiline ? (
-              <textarea
-                className="digital-form__input employee-field-edit__textarea"
-                value={draftValue}
-                rows={Math.min(16, Math.max(6, draftValue.split('\n').length + 2))}
-                onChange={(event) => {
-                  setDraftValue(event.target.value);
-                  setEditError(null);
-                }}
-                autoFocus
-              />
-            ) : (
-              <input
-                className="digital-form__input"
-                value={draftValue}
-                onChange={(event) => {
-                  setDraftValue(event.target.value);
-                  setEditError(null);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    saveEditor();
-                  }
-                }}
-                autoFocus
-                inputMode={
-                  editingType === 'number' ||
-                  editingType === 'currency' ||
-                  editingType === 'percentage'
-                    ? 'decimal'
-                    : undefined
-                }
-              />
-            )}
-          </label>
-          {editError && (
-            <p className="employee-field-edit__error" role="alert">
-              {editError}
-            </p>
-          )}
+          <FormShell
+            aside={
+              <FormInfoPanel
+                tone="tip"
+                eyebrow={t('forms.info.tipEyebrow')}
+                title={t('forms.info.digitalFieldTitle')}
+                icon={<SparklesIcon size={14} aria-hidden="true" />}
+              >
+                <p>{t('forms.info.digitalFieldEditBody')}</p>
+              </FormInfoPanel>
+            }
+          >
+            <FormSection
+              title={editingField.label}
+              description={t('forms.sections.fieldValues.description')}
+              icon={<PencilIcon size={18} />}
+              columns={1}
+            >
+              <FormField label={editingField.label} htmlFor="digital-edit-field-value" error={editError} span={2}>
+                {multiline ? (
+                  <FormTextarea
+                    id="digital-edit-field-value"
+                    value={draftValue}
+                    rows={Math.min(16, Math.max(6, draftValue.split('\n').length + 2))}
+                    invalid={Boolean(editError)}
+                    onChange={(event) => {
+                      setDraftValue(event.target.value);
+                      setEditError(null);
+                    }}
+                    autoFocus
+                  />
+                ) : (
+                  <FormControl
+                    id="digital-edit-field-value"
+                    value={draftValue}
+                    invalid={Boolean(editError)}
+                    onChange={(event) => {
+                      setDraftValue(event.target.value);
+                      setEditError(null);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        saveEditor();
+                      }
+                    }}
+                    autoFocus
+                    inputMode={
+                      editingType === 'number' ||
+                      editingType === 'currency' ||
+                      editingType === 'percentage'
+                        ? 'decimal'
+                        : undefined
+                    }
+                  />
+                )}
+              </FormField>
+            </FormSection>
+          </FormShell>
         </ModalDialog>
       )}
 
       {evidenceField?.evidence_details && (
         <ModalDialog
           title={t('explainability.title')}
+          size="md"
           onClose={() => setEvidenceKey(null)}
           footer={
             <button

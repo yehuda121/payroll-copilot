@@ -33,8 +33,6 @@ import {
   type LeaveEditForm,
   type SickLeaveSettingsForm,
 } from '../../lib/accountant/leave-management-ui';
-import { FIELD_MAX_LENGTH } from '../../lib/employee/field-text';
-import { EMAIL_MAX_LENGTH } from '../../lib/validation/email';
 import {
   leaveContactErrorKey,
   validateLeaveContactFields,
@@ -46,8 +44,10 @@ import {
   type SickLeaveSettings,
 } from '../../services/sickLeaves';
 import {
+  LeaveDetailEditFields,
   LeaveLoadError,
   LeaveManualEntryDialog,
+  LeaveSettingsFields,
   LeaveToolbar,
   LeaveUnsavedChangesDialog,
 } from './leave-ui/LeavePresentation';
@@ -706,6 +706,7 @@ export function SickLeavesPage() {
       {detail ? (
         <ModalDialog
           title={leaveEmployeeLabel(detail)}
+          size="lg"
           wide
           className="leave-request-dialog"
           closeLabel={t('common.close')}
@@ -782,54 +783,20 @@ export function SickLeavesPage() {
               </p>
             ) : null}
 
-            <div className="form-grid">
-              <label>
-                {t('accountant.sickLeaves.fieldName')}
-                <input
-                  value={editForm.employeeName}
-                  maxLength={FIELD_MAX_LENGTH.personName}
-                  autoComplete="name"
-                  onChange={(e) => {
-                    setEditError(null);
-                    setEditForm((f) => ({ ...f, employeeName: e.target.value }));
-                  }}
-                />
-              </label>
-              <label>
-                {t('accountant.sickLeaves.fieldEmail')}
-                <input
-                  type="email"
-                  maxLength={EMAIL_MAX_LENGTH}
-                  value={editForm.employeeEmail}
-                  autoComplete="off"
-                  onChange={(e) => {
-                    setEditError(null);
-                    setEditForm((f) => ({ ...f, employeeEmail: e.target.value }));
-                  }}
-                />
-              </label>
-              <label>
-                {t('accountant.sickLeaves.fieldStartDate')}
-                <input
-                  type="date"
-                  value={editForm.startDate}
-                  onChange={(e) => setEditForm((f) => ({ ...f, startDate: e.target.value }))}
-                />
-              </label>
-              <label>
-                {t('accountant.sickLeaves.fieldEndDate')}
-                <input
-                  type="date"
-                  value={editForm.endDate}
-                  onChange={(e) => setEditForm((f) => ({ ...f, endDate: e.target.value }))}
-                />
-              </label>
-            </div>
-            {editError ? (
-              <p className="leave-manual-form__error" role="alert">
-                {editError}
-              </p>
-            ) : null}
+            <LeaveDetailEditFields
+              labels={{
+                fieldName: t('accountant.sickLeaves.fieldName'),
+                fieldEmail: t('accountant.sickLeaves.fieldEmail'),
+                fieldStartDate: t('accountant.sickLeaves.fieldStartDate'),
+                fieldEndDate: t('accountant.sickLeaves.fieldEndDate'),
+              }}
+              values={editForm}
+              error={editError}
+              onChange={(patch) => {
+                setEditError(null);
+                setEditForm((f) => ({ ...f, ...patch }));
+              }}
+            />
 
             {detail.aiExtractionOriginal ? (
               <>
@@ -908,6 +875,7 @@ export function SickLeavesPage() {
       {settingsOpen && settings ? (
         <ModalDialog
           title={t('accountant.sickLeaves.settings')}
+          size="md"
           closeLabel={t('common.close')}
           onClose={closeSettings}
           footer={
@@ -926,68 +894,34 @@ export function SickLeavesPage() {
             </>
           }
         >
-          <div className="leave-settings-modal">
-            <section className="leave-settings-section" aria-labelledby="leave-settings-notify">
-              <h3 id="leave-settings-notify" className="leave-settings-section__title">
-                {t('accountant.sickLeaves.notificationsSection')}
-              </h3>
-              <label className="leave-settings-field">
-                <span className="leave-settings-field__label">
-                  {t('accountant.sickLeaves.notificationEmailField')}
-                </span>
-                <input
-                  type="email"
-                  className="sickLeaves-filter-control leave-settings-input"
-                  value={settingsForm.notificationEmail}
-                  maxLength={EMAIL_MAX_LENGTH}
-                  onChange={(e) => {
-                    setSettingsForm((f) => ({ ...f, notificationEmail: e.target.value }));
-                    setSettingsEmailError(null);
-                  }}
-                  autoComplete="email"
-                />
-                <span className="leave-settings-field__help">
-                  {t('accountant.sickLeaves.notificationEmailHelp')}
-                </span>
-                {settingsForm.notificationEmail.trim() ? (
-                  <span className="leave-settings-field__hint">
-                    {t('accountant.sickLeaves.notificationEmailUnverifiedHint')}
-                  </span>
-                ) : null}
-                {settingsEmailError ? (
-                  <span className="leave-settings-field__error" role="alert">
-                    {settingsEmailError}
-                  </span>
-                ) : null}
-              </label>
-
-              <div className="leave-settings-prefs">
-                <label className="sickLeaves-check">
-                  <input
-                    type="checkbox"
-                    checked={settingsForm.notifyOnNewSickLeave}
-                    onChange={(e) =>
-                      setSettingsForm((f) => ({ ...f, notifyOnNewSickLeave: e.target.checked }))
-                    }
-                  />
-                  {t('accountant.sickLeaves.notifyNew')}
-                </label>
-                <label className="sickLeaves-check">
-                  <input
-                    type="checkbox"
-                    checked={settingsForm.notifyOnSickLeaveErrorOrAttention}
-                    onChange={(e) =>
-                      setSettingsForm((f) => ({
-                        ...f,
-                        notifyOnSickLeaveErrorOrAttention: e.target.checked,
-                      }))
-                    }
-                  />
-                  {t('accountant.sickLeaves.notifyAttention')}
-                </label>
-              </div>
-            </section>
-          </div>
+          <LeaveSettingsFields
+            labels={{
+              notificationsSection: t('accountant.sickLeaves.notificationsSection'),
+              notificationEmailField: t('accountant.sickLeaves.notificationEmailField'),
+              notificationEmailHelp: t('accountant.sickLeaves.notificationEmailHelp'),
+              notificationEmailUnverifiedHint: t(
+                'accountant.sickLeaves.notificationEmailUnverifiedHint',
+              ),
+              notifyNew: t('accountant.sickLeaves.notifyNew'),
+              notifyAttention: t('accountant.sickLeaves.notifyAttention'),
+            }}
+            values={{
+              notificationEmail: settingsForm.notificationEmail,
+              notifyOnNew: settingsForm.notifyOnNewSickLeave,
+              notifyOnAttention: settingsForm.notifyOnSickLeaveErrorOrAttention,
+            }}
+            emailError={settingsEmailError}
+            onChangeEmail={(value) => {
+              setSettingsForm((f) => ({ ...f, notificationEmail: value }));
+              setSettingsEmailError(null);
+            }}
+            onChangeNotifyNew={(value) =>
+              setSettingsForm((f) => ({ ...f, notifyOnNewSickLeave: value }))
+            }
+            onChangeNotifyAttention={(value) =>
+              setSettingsForm((f) => ({ ...f, notifyOnSickLeaveErrorOrAttention: value }))
+            }
+          />
         </ModalDialog>
       ) : null}
 

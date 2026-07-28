@@ -6,7 +6,14 @@ import { PortalPage } from '../../components/PortalPage';
 import { IconBackButton } from '../../components/ui/IconBackButton';
 import { ActionIconButton } from '../../components/ui/ActionIconButton';
 import { useConfirmDialog } from '../../components/ui/Dialog';
-import { TrashIcon } from '../../components/ui/icons';
+import {
+  FormControl,
+  FormField,
+  FormInfoPanel,
+  FormSection,
+  FormShell,
+} from '../../components/ui/form/FormPrimitives';
+import { SparklesIcon, TrashIcon, UserIcon } from '../../components/ui/icons';
 import { EmployeeDigitalForm } from '../../features/employee/EmployeeDigitalForm';
 import { EmployeeValidationResults } from '../../features/employee/EmployeeValidationResults';
 import { Search, UserPlus } from 'lucide-react';
@@ -580,6 +587,7 @@ export function BatchItemReviewWorkspacePage() {
                     <Search size={16} aria-hidden="true" />
                   </button>
                   <input
+                    className="pc-form-control"
                     type="search"
                     maxLength={FREE_TEXT_MAX_LENGTH.searchQuery}
                     value={query}
@@ -624,74 +632,95 @@ export function BatchItemReviewWorkspacePage() {
               </div>
             </div>
           ) : (
-            <div className="unknown-resolution__panel unknown-resolution__form">
-              <button
-                type="button"
-                className="btn btn--ghost"
-                disabled={busy}
-                onClick={() => setResolutionMode('search')}
+            <FormShell
+              aside={
+                <FormInfoPanel
+                  tone="tip"
+                  eyebrow={t('forms.info.tipEyebrow')}
+                  title={t('forms.info.unknownCreateTitle')}
+                  icon={<SparklesIcon size={14} aria-hidden="true" />}
+                >
+                  <p>{t('forms.info.unknownCreateBody')}</p>
+                </FormInfoPanel>
+              }
+            >
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  disabled={busy}
+                  onClick={() => setResolutionMode('search')}
+                >
+                  {t('accountant.unknown.search')}
+                </button>
+              </div>
+              <FormSection
+                title={t('forms.sections.identity.title')}
+                description={t('forms.sections.identity.description')}
+                icon={<UserIcon size={18} />}
               >
-                {t('accountant.unknown.search')}
-              </button>
-              {(
-                [
-                  ['employeeNumber', 'accountant.unknown.employeeNumber'],
-                  ['firstName', 'accountant.unknown.firstName'],
-                  ['lastName', 'accountant.unknown.lastName'],
-                  ['nationalId', 'accountant.unknown.nationalId'],
-                  ['email', 'accountant.unknown.email'],
-                  ['company', 'accountant.unknown.company'],
-                  ['department', 'accountant.unknown.department'],
-                ] as Array<[keyof CreateValues, string]>
-              ).map(([key, label]) => (
-                <label key={key}>
-                  <span>{t(label)}</span>
-                  <input
-                    type={key === 'email' ? 'email' : 'text'}
-                    value={createValues[key]}
-                    readOnly={key === 'company'}
-                    inputMode={key === 'nationalId' ? 'numeric' : undefined}
-                    maxLength={
-                      key === 'nationalId'
-                        ? FIELD_MAX_LENGTH.nationalId
-                        : key === 'firstName' || key === 'lastName'
-                          ? FIELD_MAX_LENGTH.personName
-                          : key === 'email'
-                            ? EMAIL_MAX_LENGTH
-                            : key === 'employeeNumber'
-                              ? FREE_TEXT_MAX_LENGTH.identifier
-                              : FREE_TEXT_MAX_LENGTH.shortNote
-                    }
-                    autoComplete="off"
-                    onChange={(event) => {
-                      let next = event.target.value;
-                      if (key === 'nationalId') {
-                        next = next.replace(/\D/g, '').slice(0, FIELD_MAX_LENGTH.nationalId);
-                      } else if (key === 'email') {
-                        next = next.slice(0, EMAIL_MAX_LENGTH);
-                      } else if (key === 'firstName' || key === 'lastName') {
-                        next = next.slice(0, FIELD_MAX_LENGTH.personName);
-                      } else if (key === 'employeeNumber') {
-                        next = clampFreeTextInput(next, FREE_TEXT_MAX_LENGTH.identifier);
-                      } else {
-                        next = clampFreeTextInput(next, FREE_TEXT_MAX_LENGTH.shortNote);
+                {(
+                  [
+                    ['employeeNumber', 'accountant.unknown.employeeNumber'],
+                    ['firstName', 'accountant.unknown.firstName'],
+                    ['lastName', 'accountant.unknown.lastName'],
+                    ['nationalId', 'accountant.unknown.nationalId'],
+                    ['email', 'accountant.unknown.email'],
+                    ['company', 'accountant.unknown.company'],
+                    ['department', 'accountant.unknown.department'],
+                  ] as Array<[keyof CreateValues, string]>
+                ).map(([key, label]) => (
+                  <FormField key={key} label={t(label)} htmlFor={`batch-create-${key}`} required>
+                    <FormControl
+                      id={`batch-create-${key}`}
+                      type={key === 'email' ? 'email' : 'text'}
+                      value={createValues[key]}
+                      readOnly={key === 'company'}
+                      inputMode={key === 'nationalId' ? 'numeric' : undefined}
+                      maxLength={
+                        key === 'nationalId'
+                          ? FIELD_MAX_LENGTH.nationalId
+                          : key === 'firstName' || key === 'lastName'
+                            ? FIELD_MAX_LENGTH.personName
+                            : key === 'email'
+                              ? EMAIL_MAX_LENGTH
+                              : key === 'employeeNumber'
+                                ? FREE_TEXT_MAX_LENGTH.identifier
+                                : FREE_TEXT_MAX_LENGTH.shortNote
                       }
-                      setCreateValues((previous) => ({
-                        ...previous,
-                        [key]: next,
-                      }));
-                    }}
-                  />
-                </label>
-              ))}
-              <button
-                className="btn btn--primary"
-                disabled={busy}
-                onClick={() => void createAndAttach()}
-              >
-                {t('accountant.unknown.createAndAttach')}
-              </button>
-            </div>
+                      autoComplete="off"
+                      onChange={(event) => {
+                        let next = event.target.value;
+                        if (key === 'nationalId') {
+                          next = next.replace(/\D/g, '').slice(0, FIELD_MAX_LENGTH.nationalId);
+                        } else if (key === 'email') {
+                          next = next.slice(0, EMAIL_MAX_LENGTH);
+                        } else if (key === 'firstName' || key === 'lastName') {
+                          next = next.slice(0, FIELD_MAX_LENGTH.personName);
+                        } else if (key === 'employeeNumber') {
+                          next = clampFreeTextInput(next, FREE_TEXT_MAX_LENGTH.identifier);
+                        } else {
+                          next = clampFreeTextInput(next, FREE_TEXT_MAX_LENGTH.shortNote);
+                        }
+                        setCreateValues((previous) => ({
+                          ...previous,
+                          [key]: next,
+                        }));
+                      }}
+                    />
+                  </FormField>
+                ))}
+              </FormSection>
+              <div className="form-actions">
+                <button
+                  className="btn btn--primary"
+                  disabled={busy}
+                  onClick={() => void createAndAttach()}
+                >
+                  {t('accountant.unknown.createAndAttach')}
+                </button>
+              </div>
+            </FormShell>
           )}
         </section>
         )}

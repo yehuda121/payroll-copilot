@@ -7,6 +7,7 @@ import { ThemeProvider } from './theme/ThemeProvider';
 import './i18n';
 import './index.css';
 import './styles/design-system.css';
+import './styles/form-system.css';
 
 const router = createBrowserRouter(createRoutesFromElements(appRouteElements));
 

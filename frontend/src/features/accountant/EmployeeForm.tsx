@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  FormField,
+  FormInfoPanel,
+  FormSection,
+  FormShell,
+} from '../../components/ui/form/FormPrimitives';
+import { BriefcaseIcon, CoinsIcon, IdCardIcon, SparklesIcon, UserIcon } from '../../components/ui/icons';
 import { FIELD_MAX_LENGTH, normalizeHumanText, validatePersonName } from '../../lib/employee/field-text';
 import { validateNationalId } from '../../lib/employee/israeli-id';
 import {
@@ -155,145 +162,216 @@ export function EmployeeForm({
   };
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
-      <div className="form-field">
-        <label htmlFor="employeeNumber">{t('accountant.employees.fieldEmployeeNumber')}</label>
-        <input
-          id="employeeNumber"
+    <FormShell
+      asForm
+      className="pc-form-page"
+      onSubmit={handleSubmit}
+      aside={
+        <FormInfoPanel
+          tone="tip"
+          eyebrow={t('forms.info.tipEyebrow')}
+          title={
+            mode === 'create'
+              ? t('forms.info.employeeCreateTitle')
+              : t('forms.info.employeeEditTitle')
+          }
+          icon={<SparklesIcon size={14} aria-hidden="true" />}
+        >
+          <p>{t('forms.info.employeeBody')}</p>
+        </FormInfoPanel>
+      }
+    >
+      <FormSection
+        title={t('forms.sections.identity.title')}
+        description={t('forms.sections.identity.description')}
+        icon={<UserIcon size={18} />}
+      >
+        <FormField
+          label={t('accountant.employees.fieldEmployeeNumber')}
+          htmlFor="employeeNumber"
           required={mode === 'create'}
-          readOnly={mode === 'edit'}
-          value={values.employeeNumber}
-          maxLength={FREE_TEXT_MAX_LENGTH.identifier}
-          autoComplete="off"
-          onChange={(e) =>
-            update(
-              'employeeNumber',
-              clampFreeTextInput(e.target.value, FREE_TEXT_MAX_LENGTH.identifier),
-            )
-          }
-        />
-      </div>
-      <div className="form-field">
-        <label htmlFor="firstName">{t('accountant.employees.fieldFirstName')}</label>
-        <input
-          id="firstName"
-          required
-          value={values.firstName}
-          maxLength={FIELD_MAX_LENGTH.personName}
-          autoComplete="given-name"
-          onChange={(e) => update('firstName', e.target.value)}
-        />
-      </div>
-      <div className="form-field">
-        <label htmlFor="lastName">{t('accountant.employees.fieldLastName')}</label>
-        <input
-          id="lastName"
-          required
-          value={values.lastName}
-          maxLength={FIELD_MAX_LENGTH.personName}
-          autoComplete="family-name"
-          onChange={(e) => update('lastName', e.target.value)}
-        />
-      </div>
-      <div className="form-field">
-        <label htmlFor="email">{t('accountant.employees.fieldEmail')}</label>
-        <input
-          id="email"
-          type="email"
-          value={values.email}
-          maxLength={EMAIL_MAX_LENGTH}
-          onChange={(e) => update('email', e.target.value)}
-          autoComplete="off"
-        />
-        {mode === 'edit' && (
-          <span className="form-hint">{t('accountant.employees.fieldEmailEditHint')}</span>
-        )}
-      </div>
-      <div className="form-field">
-        <label htmlFor="nationalId">{t('accountant.employees.fieldNationalId')}</label>
-        {mode === 'edit' && (
-          <p className="form-hint" data-testid="national-id-current">
-            {t('accountant.employees.fieldNationalIdCurrent', {
-              value: nationalIdMasked || t('common.emDash'),
-            })}
-          </p>
-        )}
-        <input
-          id="nationalId"
-          value={values.nationalId}
-          onChange={(e) =>
-            update('nationalId', e.target.value.replace(/\D/g, '').slice(0, FIELD_MAX_LENGTH.nationalId))
-          }
-          inputMode="numeric"
-          maxLength={FIELD_MAX_LENGTH.nationalId}
-          autoComplete="off"
-          placeholder={
-            mode === 'edit' ? t('accountant.employees.fieldNationalIdPlaceholder') : undefined
-          }
-        />
-        <span className="form-hint">{t('accountant.employees.fieldNationalIdHint')}</span>
-      </div>
-      <div className="form-field">
-        <label htmlFor="employmentType">{t('accountant.employees.fieldEmploymentType')}</label>
-        <select
-          id="employmentType"
-          value={values.employmentType}
-          onChange={(e) => update('employmentType', e.target.value as EmploymentType)}
         >
-          <option value="full_time">{t('accountant.employees.employmentTypes.fullTime')}</option>
-          <option value="part_time">{t('accountant.employees.employmentTypes.partTime')}</option>
-          <option value="contractor">{t('accountant.employees.employmentTypes.contractor')}</option>
-          <option value="intern">{t('accountant.employees.employmentTypes.intern')}</option>
-          <option value="pre_intern">{t('accountant.employees.employmentTypes.preIntern')}</option>
-        </select>
-      </div>
-      <div className="form-field">
-        <label htmlFor="salaryType">{t('accountant.employees.fieldSalaryType')}</label>
-        <select
-          id="salaryType"
-          value={values.salaryType}
-          onChange={(e) => update('salaryType', e.target.value as SalaryType)}
+          <input
+            id="employeeNumber"
+            className="pc-form-control"
+            required={mode === 'create'}
+            readOnly={mode === 'edit'}
+            value={values.employeeNumber}
+            maxLength={FREE_TEXT_MAX_LENGTH.identifier}
+            autoComplete="off"
+            onChange={(e) =>
+              update(
+                'employeeNumber',
+                clampFreeTextInput(e.target.value, FREE_TEXT_MAX_LENGTH.identifier),
+              )
+            }
+          />
+        </FormField>
+        <FormField
+          label={t('accountant.employees.fieldFirstName')}
+          htmlFor="firstName"
+          required
         >
-          <option value="monthly">{t('accountant.employees.salaryTypes.monthly')}</option>
-          <option value="hourly">{t('accountant.employees.salaryTypes.hourly')}</option>
-        </select>
-      </div>
-      <div className="form-field">
-        <label htmlFor="baseSalary">
-          {values.salaryType === 'monthly'
-            ? t('accountant.employees.fieldMonthlySalary')
-            : t('accountant.employees.fieldHourlyRate')}
-        </label>
-        <input
-          id="baseSalary"
-          type="number"
-          min="0"
-          step="0.01"
-          inputMode="decimal"
-          value={values.baseSalaryOrRate}
-          onChange={(e) => update('baseSalaryOrRate', e.target.value)}
-        />
-      </div>
-      <div className="form-field">
-        <label htmlFor="contractStart">{t('accountant.employees.fieldContractStart')}</label>
-        <input
-          id="contractStart"
-          type="date"
-          value={values.contractStartDate}
-          onChange={(e) => update('contractStartDate', e.target.value)}
-        />
-      </div>
+          <input
+            id="firstName"
+            className="pc-form-control"
+            required
+            value={values.firstName}
+            maxLength={FIELD_MAX_LENGTH.personName}
+            autoComplete="given-name"
+            onChange={(e) => update('firstName', e.target.value)}
+          />
+        </FormField>
+        <FormField label={t('accountant.employees.fieldLastName')} htmlFor="lastName" required>
+          <input
+            id="lastName"
+            className="pc-form-control"
+            required
+            value={values.lastName}
+            maxLength={FIELD_MAX_LENGTH.personName}
+            autoComplete="family-name"
+            onChange={(e) => update('lastName', e.target.value)}
+          />
+        </FormField>
+        <FormField
+          label={t('accountant.employees.fieldEmail')}
+          htmlFor="email"
+          hint={mode === 'edit' ? t('accountant.employees.fieldEmailEditHint') : undefined}
+        >
+          <input
+            id="email"
+            className="pc-form-control"
+            type="email"
+            value={values.email}
+            maxLength={EMAIL_MAX_LENGTH}
+            onChange={(e) => update('email', e.target.value)}
+            autoComplete="off"
+          />
+        </FormField>
+      </FormSection>
+
+      <FormSection
+        title={t('forms.sections.governmentId.title')}
+        description={t('forms.sections.governmentId.description')}
+        icon={<IdCardIcon size={18} />}
+        columns={1}
+      >
+        <FormField
+          label={t('accountant.employees.fieldNationalId')}
+          htmlFor="nationalId"
+          hint={t('accountant.employees.fieldNationalIdHint')}
+        >
+          {mode === 'edit' ? (
+            <p className="pc-form-field__hint" data-testid="national-id-current">
+              {t('accountant.employees.fieldNationalIdCurrent', {
+                value: nationalIdMasked || t('common.emDash'),
+              })}
+            </p>
+          ) : null}
+          <input
+            id="nationalId"
+            className="pc-form-control"
+            value={values.nationalId}
+            onChange={(e) =>
+              update(
+                'nationalId',
+                e.target.value.replace(/\D/g, '').slice(0, FIELD_MAX_LENGTH.nationalId),
+              )
+            }
+            inputMode="numeric"
+            maxLength={FIELD_MAX_LENGTH.nationalId}
+            autoComplete="off"
+            placeholder={
+              mode === 'edit' ? t('accountant.employees.fieldNationalIdPlaceholder') : undefined
+            }
+          />
+        </FormField>
+      </FormSection>
+
+      <FormSection
+        title={t('forms.sections.employment.title')}
+        description={t('forms.sections.employment.description')}
+        icon={<BriefcaseIcon size={18} />}
+      >
+        <FormField
+          label={t('accountant.employees.fieldEmploymentType')}
+          htmlFor="employmentType"
+        >
+          <select
+            id="employmentType"
+            className="pc-form-control pc-form-control--select"
+            value={values.employmentType}
+            onChange={(e) => update('employmentType', e.target.value as EmploymentType)}
+          >
+            <option value="full_time">{t('accountant.employees.employmentTypes.fullTime')}</option>
+            <option value="part_time">{t('accountant.employees.employmentTypes.partTime')}</option>
+            <option value="contractor">{t('accountant.employees.employmentTypes.contractor')}</option>
+            <option value="intern">{t('accountant.employees.employmentTypes.intern')}</option>
+            <option value="pre_intern">{t('accountant.employees.employmentTypes.preIntern')}</option>
+          </select>
+        </FormField>
+        <FormField
+          label={t('accountant.employees.fieldContractStart')}
+          htmlFor="contractStart"
+        >
+          <input
+            id="contractStart"
+            className="pc-form-control"
+            type="date"
+            value={values.contractStartDate}
+            onChange={(e) => update('contractStartDate', e.target.value)}
+          />
+        </FormField>
+      </FormSection>
+
+      <FormSection
+        title={t('forms.sections.compensation.title')}
+        description={t('forms.sections.compensation.description')}
+        icon={<CoinsIcon size={18} />}
+      >
+        <FormField label={t('accountant.employees.fieldSalaryType')} htmlFor="salaryType">
+          <select
+            id="salaryType"
+            className="pc-form-control pc-form-control--select"
+            value={values.salaryType}
+            onChange={(e) => update('salaryType', e.target.value as SalaryType)}
+          >
+            <option value="monthly">{t('accountant.employees.salaryTypes.monthly')}</option>
+            <option value="hourly">{t('accountant.employees.salaryTypes.hourly')}</option>
+          </select>
+        </FormField>
+        <FormField
+          label={
+            values.salaryType === 'monthly'
+              ? t('accountant.employees.fieldMonthlySalary')
+              : t('accountant.employees.fieldHourlyRate')
+          }
+          htmlFor="baseSalary"
+        >
+          <input
+            id="baseSalary"
+            className="pc-form-control"
+            type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            value={values.baseSalaryOrRate}
+            onChange={(e) => update('baseSalaryOrRate', e.target.value)}
+          />
+        </FormField>
+      </FormSection>
+
       {(localError || error) && (
-        <p className="chat-panel__error" style={{ gridColumn: '1 / -1' }} role="alert">
+        <p className="chat-panel__error" role="alert">
           {localError || error}
         </p>
       )}
       {success && !localError && !error && (
-        <p className="form-hint" style={{ gridColumn: '1 / -1' }} role="status">
+        <p className="pc-form-field__hint" role="status">
           {success}
         </p>
       )}
-      <div className="form-actions" style={{ gridColumn: '1 / -1' }}>
+      <div className="form-actions">
         {footer}
         <button type="submit" className="btn btn--primary" disabled={submitting}>
           {submitting
@@ -303,6 +381,6 @@ export function EmployeeForm({
               : t('accountant.employees.saveSubmit')}
         </button>
       </div>
-    </form>
+    </FormShell>
   );
 }

@@ -681,6 +681,7 @@ export function EmployeeProfilePage() {
         <ModalDialog
           title={listDialog.title}
           onClose={() => setListDialog(null)}
+          size="lg"
           wide
           footer={
             <button type="button" className="btn btn--secondary" onClick={() => setListDialog(null)}>
@@ -730,6 +731,7 @@ export function EmployeeProfilePage() {
       {docDetail && (
         <ModalDialog
           title={t('accountant.employeeProfile.documentDetails')}
+          size="md"
           onClose={() => setDocDetail(null)}
           footer={
             <button type="button" className="btn btn--secondary" onClick={() => setDocDetail(null)}>

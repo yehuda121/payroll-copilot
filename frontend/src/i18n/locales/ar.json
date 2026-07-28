@@ -1,4 +1,91 @@
 {
+  "forms": {
+    "sections": {
+      "identity": {
+        "title": "الهوية",
+        "description": "البيانات الشخصية الأساسية المستخدمة في الرواتب والمستندات."
+      },
+      "governmentId": {
+        "title": "الهوية الحكومية",
+        "description": "رقم الهوية الإسرائيلية. اتركه فارغًا للاحتفاظ بالقيمة الحالية."
+      },
+      "employment": {
+        "title": "التوظيف",
+        "description": "نوع الدور وتواريخ التوظيف من العقد."
+      },
+      "compensation": {
+        "title": "التعويض",
+        "description": "أساس الأجر التعاقدي والمبالغ."
+      },
+      "family": {
+        "title": "العائلة",
+        "description": "الأطفال المدرجون في ملحق الهوية."
+      },
+      "employeeContact": {
+        "title": "الموظف",
+        "description": "صاحب طلب الإجازة هذا."
+      },
+      "leaveDates": {
+        "title": "التواريخ",
+        "description": "تواريخ البداية والنهاية الشاملة لفترة الإجازة."
+      },
+      "fieldValues": {
+        "title": "قيم الحقل",
+        "description": "أدخل تسمية واضحة والقيمة المستخرجة أو المصححة."
+      },
+      "signIn": {
+        "title": "تسجيل الدخول",
+        "description": "استخدم بيانات مؤسستك للمتابعة."
+      },
+      "signUp": {
+        "title": "بيانات الحساب",
+        "description": "سيكتمل التسجيل الذاتي عبر Cognito."
+      },
+      "searchEmployee": {
+        "title": "البحث عن موظف",
+        "description": "ابحث بالاسم أو رقم الموظف أو رقم الهوية."
+      },
+      "ruleEditor": {
+        "title": "محتوى القاعدة",
+        "description": "عدّل ملف القاعدة وسجّل سببًا للإصدار الجديد."
+      }
+    },
+    "info": {
+      "tipEyebrow": "نصيحة",
+      "employeeCreateTitle": "أنشئ بعناية",
+      "employeeEditTitle": "حافظ على دقة السجلات",
+      "employeeBody": "رقم الموظف ورقم الهوية يربطان كشوف الرواتب والمستندات والإجازات. تحقق قبل الحفظ.",
+      "identityCardTitle": "حقول بطاقة الهوية",
+      "identityCardBody": "أدخل القيم كما تظهر في الهوية الرسمية. تُطبَّع التواريخ إلى YYYY-MM-DD عند الحفظ.",
+      "contractTitle": "عقد العمل",
+      "contractBody": "استخدم شروط العقد الأصلية — وليس تواريخ التسجيل في النظام. تعتمد حقول التعويض على أساس الراتب.",
+      "appendixTitle": "ملحق الهوية",
+      "appendixBody": "أضف كل طفل باسم كامل وتاريخ ميلاد. يجب إصلاح الصفوف غير المكتملة قبل الحفظ.",
+      "leaveManualTitle": "إدخال إجازة يدوي",
+      "leaveManualBody": "طابق الموظف عبر البريد الإلكتروني عند الإمكان. أكد نطاق التواريخ قبل الإنشاء.",
+      "leaveDetailTitle": "راجع قبل الحفظ",
+      "leaveDetailBody": "صحح هوية الموظف وتواريخ الإجازة بعناية. تبقى التداخلات ورموز الانتباه ظاهرة أدناه.",
+      "leaveSettingsTitle": "إعدادات الإشعارات",
+      "leaveSettingsBody": "اختر متى يتلقى المحاسبون تنبيهات الإجازة وأي بريد يستلمها.",
+      "digitalFieldTitle": "حقل النموذج الرقمي",
+      "digitalFieldAddBody": "تُحفظ الحقول المخصصة على هذا النموذج فقط. استخدم تسميات عمل واضحة.",
+      "digitalFieldEditBody": "صحح القيمة من المستند الأصلي. القيم الفارغة مسموحة عند المسح المتعمد.",
+      "guestReviewTitle": "تأكيد الاستخراج",
+      "guestReviewBody": "راجع المفاتيح والقيم قبل التحقق. أكّد فقط عندما يبدو المستند صحيحًا.",
+      "unknownSearchTitle": "ربط بموظف موجود",
+      "unknownSearchBody": "ابحث في القائمة واربط كشف الراتب بسجل الموظف المطابق.",
+      "unknownEditIdTitle": "تصحيح رقم الهوية",
+      "unknownEditIdBody": "صحح رقم الهوية المستخرج وأعد المحاولة للمطابقة التلقائية.",
+      "unknownCreateTitle": "إنشاء موظف",
+      "unknownCreateBody": "أنشئ سجل موظف جديد واربط كشف الراتب في خطوة واحدة.",
+      "payrollRulesTitle": "نشر إصدار قاعدة",
+      "payrollRulesBody": "قدّم سببًا مختصرًا. تُدار التغييرات بالإصدارات ويمكن تدقيقها لاحقًا.",
+      "signUpTitle": "قريبًا",
+      "signUpBody": "سيتم إنشاء الحساب عبر واجهة Cognito الخاصة بمؤسستك.",
+      "documentDeleteTitle": "حذف لا رجعة فيه",
+      "documentDeleteBody": "اختر حذف الملف الأصلي أو النموذج الرقمي أو كليهما."
+    }
+  },
   "common": {
     "appName": "Payroll Copilot",
     "login": "تسجيل الدخول",
@@ -892,6 +979,27 @@
       "replaceHint": "تم اختيار ملف بديل. استخرج نموذجه الرقمي لاستبدال {{type}} المخزَّن.",
       "digitalFormNotice": "راجع وعدّل الحقول المستخرجة لهذا المستند.",
       "fixedFormNotice": "املأ حقول الرواتب يدويًا، أو استخرجها من مستند مرفوع.",
+      "fieldSections": {
+        "identity": "الهوية",
+        "family": "العائلة",
+        "employment": "التوظيف",
+        "compensation": "التعويض"
+      },
+      "fields": {
+        "full_name": "الاسم الكامل",
+        "national_id": "رقم الهوية",
+        "birth_date": "تاريخ الميلاد",
+        "children": "الأطفال",
+        "child_name": "اسم الطفل",
+        "child_birth_date": "تاريخ الميلاد",
+        "employment_commencement_date": "تاريخ بدء العمل",
+        "salary_basis": "أساس الراتب",
+        "effective_from": "ساري من",
+        "effective_to": "ساري حتى",
+        "contractual_monthly_salary": "الراتب الشهري التعاقدي",
+        "contractual_hourly_rate": "الأجر الساعي التعاقدي",
+        "contractual_daily_rate": "الأجر اليومي التعاقدي"
+      },
       "fixedFields": {
         "full_name": "الاسم الكامل",
         "national_id": "رقم الهوية",

@@ -1,4 +1,91 @@
 {
+  "forms": {
+    "sections": {
+      "identity": {
+        "title": "זהות",
+        "description": "פרטים אישיים בסיסיים לשימוש בשכר ובמסמכים."
+      },
+      "governmentId": {
+        "title": "תעודת זהות",
+        "description": "מספר זהות ישראלי. השאירו ריק כדי לשמור על הערך הקיים."
+      },
+      "employment": {
+        "title": "העסקה",
+        "description": "סוג העסקה ותאריכים מהחוזה."
+      },
+      "compensation": {
+        "title": "שכר",
+        "description": "בסיס שכר וסכומים חוזיים."
+      },
+      "family": {
+        "title": "משפחה",
+        "description": "ילדים הרשומים בספח תעודת הזהות."
+      },
+      "employeeContact": {
+        "title": "עובד/ת",
+        "description": "למי משויכת בקשת החופשה."
+      },
+      "leaveDates": {
+        "title": "תאריכים",
+        "description": "תאריכי התחלה וסיום כוללים לתקופת החופשה."
+      },
+      "fieldValues": {
+        "title": "ערכי שדה",
+        "description": "הזינו תווית ברורה ואת הערך שחולץ או תוקן."
+      },
+      "signIn": {
+        "title": "התחברות",
+        "description": "השתמשו בפרטי הארגון כדי להמשיך."
+      },
+      "signUp": {
+        "title": "פרטי חשבון",
+        "description": "הרשמה עצמית תושלם דרך Cognito."
+      },
+      "searchEmployee": {
+        "title": "חיפוש עובד/ת",
+        "description": "חפשו לפי שם, מספר עובד או מספר זהות."
+      },
+      "ruleEditor": {
+        "title": "תוכן כלל",
+        "description": "ערכו את קובץ הכלל ורשמו סיבה לגרסה החדשה."
+      }
+    },
+    "info": {
+      "tipEyebrow": "טיפ",
+      "employeeCreateTitle": "יצירה מדויקת",
+      "employeeEditTitle": "שמירה על דיוק",
+      "employeeBody": "מספר עובד ומספר זהות מחברים תלושים, מסמכים וחופשות. בדקו לפני השמירה.",
+      "identityCardTitle": "שדות תעודת זהות",
+      "identityCardBody": "הזינו ערכים בדיוק כמו במסמך הרשמי. תאריכים מנורמלים ל־YYYY-MM-DD בשמירה.",
+      "contractTitle": "חוזה העסקה",
+      "contractBody": "השתמשו בתנאי החוזה המקוריים — לא בתאריכי רישום במערכת. שדות השכר תלויים בבסיס השכר.",
+      "appendixTitle": "ספח תעודת זהות",
+      "appendixBody": "הוסיפו כל ילד/ה עם שם מלא ותאריך לידה. יש לתקן שורות חסרות לפני השמירה.",
+      "leaveManualTitle": "הזנת חופשה ידנית",
+      "leaveManualBody": "התאימו את העובד/ת לפי אימייל כשאפשר. אשרו את טווח התאריכים לפני היצירה.",
+      "leaveDetailTitle": "סקירה לפני שמירה",
+      "leaveDetailBody": "תקנו זהות ותאריכים בזהירות. חפיפות וקודי תשומת לב נשארים גלויים למטה.",
+      "leaveSettingsTitle": "הגדרות התראות",
+      "leaveSettingsBody": "בחרו מתי רואי חשבון מקבלים התראות חופשה ולאיזה אימייל.",
+      "digitalFieldTitle": "שדה בטופס דיגיטלי",
+      "digitalFieldAddBody": "שדות מותאמים נשמרים בטופס הדיגיטלי בלבד. השתמשו בתוויות עסקיות ברורות.",
+      "digitalFieldEditBody": "תקנו את הערך לפי המסמך המקורי. ערך ריק מותר כאשר מנקים בכוונה.",
+      "guestReviewTitle": "אישור חילוץ",
+      "guestReviewBody": "סקרו מפתחות וערכים לפני אימות. אשרו רק כשהמסמך נראה תקין.",
+      "unknownSearchTitle": "שיוך לעובד קיים",
+      "unknownSearchBody": "חפשו ברשימה ושייכו את התלוש לרשומת העובד המתאימה.",
+      "unknownEditIdTitle": "תיקון מספר זהות",
+      "unknownEditIdBody": "תקנו את מספר הזהות שחולץ ונסו שוב התאמה אוטומטית.",
+      "unknownCreateTitle": "יצירת עובד/ת",
+      "unknownCreateBody": "צרו רשומת עובד חדשה ושייכו את התלוש באותו שלב.",
+      "payrollRulesTitle": "פרסום גרסת כלל",
+      "payrollRulesBody": "ספקו סיבה קצרה. השינויים מנוהלים בגרסאות וניתנים לביקורת.",
+      "signUpTitle": "בקרוב",
+      "signUpBody": "יצירת חשבון תתבצע דרך ממשק Cognito של הארגון.",
+      "documentDeleteTitle": "מחיקה בלתי הפיכה",
+      "documentDeleteBody": "בחרו אם למחוק את הקובץ המקורי, את הטופס הדיגיטלי, או את שניהם."
+    }
+  },
   "common": {
     "appName": "Payroll Copilot",
     "login": "התחברות",
@@ -894,6 +981,27 @@
       "replaceHint": "נבחר קובץ חלופי. חלצו את הטופס הדיגיטלי כדי להחליף את ה־{{type}} השמור.",
       "digitalFormNotice": "סקירה ועריכה של שדות שחולצו למסמך זה.",
       "fixedFormNotice": "מלאו את שדות השכר ידנית, או חלצו אותם ממסמך שהועלה.",
+      "fieldSections": {
+        "identity": "זהות",
+        "family": "משפחה",
+        "employment": "העסקה",
+        "compensation": "שכר"
+      },
+      "fields": {
+        "full_name": "שם מלא",
+        "national_id": "מספר זהות",
+        "birth_date": "תאריך לידה",
+        "children": "ילדים",
+        "child_name": "שם הילד/ה",
+        "child_birth_date": "תאריך לידה",
+        "employment_commencement_date": "תאריך תחילת העסקה",
+        "salary_basis": "בסיס שכר",
+        "effective_from": "בתוקף מ־",
+        "effective_to": "בתוקף עד",
+        "contractual_monthly_salary": "שכר חודשי חוזי",
+        "contractual_hourly_rate": "תעריף שעתי חוזי",
+        "contractual_daily_rate": "תעריף יומי חוזי"
+      },
       "fixedFields": {
         "full_name": "שם מלא",
         "national_id": "מספר זהות",

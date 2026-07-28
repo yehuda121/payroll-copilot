@@ -7,6 +7,8 @@ import {
   serializeEntryValue,
 } from '../../../lib/guest/extraction-review';
 import { FREE_TEXT_MAX_LENGTH, clampFreeTextInput } from '../../../lib/validation';
+import { FormInfoPanel, FormShell } from '../../../components/ui/form/FormPrimitives';
+import { SparklesIcon } from '../../../components/ui/icons';
 import { TruncatedText } from '../../../components/ui/TruncatedText';
 import './landing-chat.css';
 
@@ -66,7 +68,7 @@ function EntryRow({
           <label className="digital-form__kv-key">
             <span className="digital-form__kv-label">{t('landingChat.form.keyLabel')}</span>
             <input
-              className="digital-form__input"
+              className="digital-form__input pc-form-control"
               value={keyInputValue}
               maxLength={FREE_TEXT_MAX_LENGTH.shortNote}
               onChange={(event) =>
@@ -81,7 +83,7 @@ function EntryRow({
           <label className="digital-form__kv-value">
             <span className="digital-form__kv-label">{t('landingChat.form.valueLabel')}</span>
             <input
-              className="digital-form__input"
+              className="digital-form__input pc-form-control"
               value={valueText}
               maxLength={FREE_TEXT_MAX_LENGTH.longNote}
               onChange={(event) =>
@@ -131,6 +133,20 @@ export function ChatDocumentReviewCard({
   const hasNamedSections = groups.some((group) => Boolean(group.section));
 
   return (
+    <FormShell
+      aside={
+        !confirmed ? (
+          <FormInfoPanel
+            tone="tip"
+            eyebrow={t('forms.info.tipEyebrow')}
+            title={t('forms.info.guestReviewTitle')}
+            icon={<SparklesIcon size={14} aria-hidden="true" />}
+          >
+            <p>{t('forms.info.guestReviewBody')}</p>
+          </FormInfoPanel>
+        ) : undefined
+      }
+    >
     <div className="digital-form" role="form" aria-label={t('landingChat.documentCardTitle')}>
       <header className="digital-form__header">
         <p className="digital-form__eyebrow">{t('landingChat.form.eyebrow')}</p>
@@ -159,7 +175,7 @@ export function ChatDocumentReviewCard({
           {groups.map((group) => (
             <section
               key={group.section || '__unsectioned__'}
-              className="digital-form__section"
+              className="digital-form__section document-fixed-edit-form__section"
             >
               <h4 className="digital-form__section-title">
                 {group.section ||
@@ -211,5 +227,6 @@ export function ChatDocumentReviewCard({
         )}
       </footer>
     </div>
+    </FormShell>
   );
 }

@@ -42,7 +42,7 @@ export function BirthDateField({
       <div className="birth-date-field__controls">
         <input
           id={id}
-          className={`digital-form__input birth-date-field__text${error ? ' is-invalid' : ''}`}
+          className={`digital-form__input birth-date-field__text pc-form-control${error ? ' is-invalid' : ''}`}
           type="text"
           inputMode="numeric"
           autoComplete="bday"

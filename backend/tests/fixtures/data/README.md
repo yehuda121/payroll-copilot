@@ -21,3 +21,15 @@ docker compose exec api python -m payroll_copilot.scripts.seed_accountant_portal
 ```
 
 Blocked when `APP_ENV` is `production` or `prod`.
+
+---
+
+# Demo company seed (Digital Payslips + validation)
+
+See also [`docs/demo-company-seed.md`](../../../docs/demo-company-seed.md).
+
+```bash
+docker compose exec api python -m payroll_copilot.scripts.seed_demo_company
+```
+
+Tops the demo org to ~10 employees, fills Jan→current-month Digital Payslips, creates digital ID/appendix/contract extractions (no files), and runs the real validation pipeline. Additive only.
