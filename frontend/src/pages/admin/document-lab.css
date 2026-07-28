@@ -9,7 +9,7 @@
 }
 
 .document-lab__error {
-  color: var(--color-danger, #b42318);
+  color: var(--color-danger);
 }
 
 .document-lab__layout {
@@ -45,7 +45,7 @@
 
 .document-lab__fixture {
   width: 100%;
-  text-align: left;
+  text-align: start;
   display: grid;
   gap: 0.15rem;
   padding: 0.6rem 0.7rem;
@@ -56,12 +56,12 @@
 }
 
 .document-lab__fixture.is-selected {
-  border-color: var(--color-accent, #2563eb);
+  border-color: var(--color-accent);
 }
 
 .document-lab__fixture span {
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
 }
 
 .document-lab__controls {
@@ -72,7 +72,7 @@
 .document-lab__controls label {
   display: grid;
   gap: 0.25rem;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
 }
 
 .document-lab__actions {
@@ -90,7 +90,7 @@
 
 .document-lab__panel-header h3 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--text-md);
 }
 
 .document-lab__pre {
@@ -99,8 +99,8 @@
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
-  font-size: 0.78rem;
-  line-height: 1.45;
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
   background: var(--color-bg, #fafafa);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm, 0.35rem);

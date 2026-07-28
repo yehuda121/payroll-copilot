@@ -3,7 +3,7 @@
     "appName": "Payroll Copilot",
     "login": "تسجيل الدخول",
     "signup": "إنشاء حساب",
-    "footer": "{{appName}} — فحص واضح لكشوف الرواتب للموظفين وأصحاب العمل.",
+    "footer": "<0>{{appName}}</0> — فحص واضح لكشوف الرواتب للموظفين وأصحاب العمل.",
     "language": "اللغة",
     "primaryNav": "التنقل الرئيسي",
     "openMenu": "فتح القائمة",
@@ -167,8 +167,8 @@
     "extracting": "جارٍ قراءة المستند وإعداد نسخة رقمية…",
     "extractionCancelled": "تم إلغاء الاستخراج.",
     "stages": {
-      "readingPdf": "قراءة PDF…",
-      "runningOcr": "تشغيل OCR…",
+      "readingPdf": "قراءة \u2068PDF\u2069…",
+      "runningOcr": "تشغيل \u2068OCR\u2069…",
       "structuringFields": "تنظيم الحقول…",
       "preparingReview": "تحضير المراجعة…"
     },
@@ -182,7 +182,7 @@
     "confirmBlockedEmpty": "أضف أو صحّح حقلًا واحدًا على الأقل قبل التأكيد.",
     "retryUpload": "جرّب ملفًا آخر",
     "errors": {
-      "ocrFailed": "تعذّر التعرف على النص (OCR) لهذا الملف.",
+      "ocrFailed": "تعذّر التعرف على النص (\u2068OCR\u2069) لهذا الملف.",
       "parserFailed": "استخراج الحقول المنظمة لم ينتج قيمًا قابلة للاستخدام.",
       "retryHint": "جرّب ملف PDF أو صورة أوضح، أو ارفع مرة أخرى."
     },
@@ -247,7 +247,9 @@
     "guardrailBlocked": "يمكنني المساعدة فقط في أسئلة الرواتب وكشوف الرواتب.",
     "guardrailLimited": "إليك إرشادًا عامًا بناءً على ما يمكن تأكيده الآن.",
     "noSource": "قدّمت إرشادًا عامًا لأنه لم يتوفر مرجع مطابق دقيق.",
-    "typing": "Payroll Copilot يكتب…",
+    "typing": "يفكر…",
+    "online": "متصل",
+    "composerHint": "Enter للإرسال · Shift+Enter لسطر جديد",
     "followUpHeading": "يمكنك أيضًا السؤال",
     "followUp1": "ما المستندات الداعمة التي يجب رفعها؟",
     "followUp2": "كيف يُشرح العمل الإضافي في كشف الراتب؟",

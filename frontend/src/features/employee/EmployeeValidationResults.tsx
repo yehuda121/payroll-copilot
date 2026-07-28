@@ -414,7 +414,13 @@ export function EmployeeValidationResults({
                 </p>
               )}
               {card.confidence != null && (
-                <p>
+                <p className="digital-form__confidence" aria-label={`${t('validate.confidenceLabel')}: ${card.confidence}%`}>
+                  <span className="digital-form__confidence-bar" aria-hidden="true">
+                    <span
+                      className="digital-form__confidence-fill"
+                      style={{ width: `${Math.max(0, Math.min(100, card.confidence))}%` }}
+                    />
+                  </span>
                   <strong>{t('validate.confidenceLabel')}:</strong> {card.confidence}%
                 </p>
               )}

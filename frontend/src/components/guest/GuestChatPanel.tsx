@@ -1,9 +1,12 @@
 import { AssistantMarkdown } from './AssistantMarkdown';
 import { AssistantUsageFooter } from './AssistantUsageFooter';
 import { ChatComposer } from './ChatComposer';
+import { ChatMessageRow } from '../chat/ChatMessageRow';
+import { ChatTypingIndicator } from '../chat/ChatTypingIndicator';
 import { ChatWelcome } from '../chat/ChatWelcome';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { APP_NAME } from '../../config/brand';
 import { env } from '../../config/env';
 import { useAppLocale } from '../../hooks/useAppLocale';
 import { assistantService } from '../../services/assistant';
@@ -205,11 +208,23 @@ export function GuestChatPanel({
     messages.length === 0 ? (
       welcomeNamespace ? (
         <div className={productShell ? 'landing-chat__empty' : 'chat-shell__empty'}>
-          <ChatWelcome namespace={welcomeNamespace} suggestionKeys={welcomeSuggestionKeys} />
+          <ChatWelcome
+            namespace={welcomeNamespace}
+            suggestionKeys={welcomeSuggestionKeys}
+            disabled={isLoading}
+            onSuggestionSelect={(text) => {
+              void submitMessage(text);
+            }}
+          />
         </div>
       ) : (
         <div className={productShell ? 'landing-chat__empty' : 'chat-shell__empty'}>
-          <p>{t('assistant.empty')}</p>
+          <ChatWelcome
+            disabled={isLoading}
+            onSuggestionSelect={(text) => {
+              void submitMessage(text);
+            }}
+          />
         </div>
       )
     ) : null;
@@ -218,7 +233,34 @@ export function GuestChatPanel({
     <>
       {emptyState}
       {messages.map((msg) => (
-        <div key={msg.id} className={`chat-bubble chat-bubble--${msg.role}`}>
+        <ChatMessageRow
+          key={msg.id}
+          role={msg.role}
+          assistantLabel={APP_NAME}
+          meta={
+            <>
+              <time dateTime={msg.createdAt}>{formatTimestamp(msg.createdAt, i18n.language)}</time>
+              {msg.role === 'assistant' && (
+                <div className="chat-bubble__actions">
+                  <button type="button" className="btn btn--ghost" onClick={() => void copyMessage(msg)}>
+                    {copiedId === msg.id ? t('common.copied') : t('common.copy')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    onClick={() => {
+                      void regenerate(msg);
+                    }}
+                    disabled={isLoading}
+                  >
+                    {t('common.regenerate')}
+                  </button>
+                </div>
+              )}
+              {msg.role === 'assistant' ? <AssistantUsageFooter usage={msg.usage} /> : null}
+            </>
+          }
+        >
           {msg.role === 'assistant' ? (
             <AssistantMarkdown content={msg.content} />
           ) : (
@@ -243,8 +285,15 @@ export function GuestChatPanel({
             <ul className="chat-message__sources">
               {msg.sources.map((source) => (
                 <li key={`${source.title}-${source.reference ?? 'na'}`}>
-                  {source.title}
-                  {source.reference ? ` (${source.reference})` : ''}
+                  <bdi>{source.title}</bdi>
+                  {source.reference ? (
+                    <>
+                      {' '}
+                      (<bdi>{source.reference}</bdi>)
+                    </>
+                  ) : (
+                    ''
+                  )}
                 </li>
               ))}
             </ul>
@@ -254,42 +303,10 @@ export function GuestChatPanel({
           (msg.guardrailStatus === 'limited' || msg.guardrailStatus === 'limited_in_domain') ? (
             <p className="chat-message__guardrail">{t('assistant.noSource')}</p>
           ) : null}
-          <div className="chat-bubble__meta">
-            <time dateTime={msg.createdAt}>{formatTimestamp(msg.createdAt, i18n.language)}</time>
-            {msg.role === 'assistant' && (
-              <div className="chat-bubble__actions">
-                <button type="button" className="btn btn--ghost" onClick={() => void copyMessage(msg)}>
-                  {copiedId === msg.id ? t('common.copied') : t('common.copy')}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--ghost"
-                  onClick={() => {
-                    void regenerate(msg);
-                  }}
-                  disabled={isLoading}
-                >
-                  {t('common.regenerate')}
-                </button>
-              </div>
-            )}
-          </div>
-          {msg.role === 'assistant' ? <AssistantUsageFooter usage={msg.usage} /> : null}
-        </div>
+        </ChatMessageRow>
       ))}
 
-      {isLoading && (
-        <div className="chat-bubble chat-bubble--assistant" aria-label={t('assistant.typing')}>
-          <div className="chat-typing">
-            <span>{t('assistant.typing')}</span>
-            <span className="chat-typing__dots" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </span>
-          </div>
-        </div>
-      )}
+      {isLoading && <ChatTypingIndicator label={t('assistant.typing')} />}
       <div ref={bottomRef} />
     </>
   );
@@ -323,6 +340,22 @@ export function GuestChatPanel({
       <div className={`landing-chat payroll-chat${compact ? ' payroll-chat--compact' : ''}`}>
         <div className="landing-chat__layout">
           <div className="landing-chat__shell" aria-label={t('assistant.title')}>
+            <header className="landing-chat__chrome">
+              <span className="landing-chat__chrome-avatar" aria-hidden="true">
+                <span className="chat-avatar chat-avatar--assistant">
+                  <span className="chat-avatar__pulse" />
+                </span>
+              </span>
+              <div className="landing-chat__chrome-copy">
+                <p className="landing-chat__chrome-title">
+                  <bdi>{APP_NAME}</bdi>
+                </p>
+                <p className="landing-chat__chrome-status">
+                  <span className="chat-welcome__online" aria-hidden="true" />
+                  {t('assistant.online')}
+                </p>
+              </div>
+            </header>
             <div className="landing-chat__messages" aria-live="polite">
               {messageList}
             </div>

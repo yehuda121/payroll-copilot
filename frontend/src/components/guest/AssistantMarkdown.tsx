@@ -52,7 +52,10 @@ const components: Components = {
  */
 export function AssistantMarkdown({ content, className }: AssistantMarkdownProps) {
   return (
-    <div className={className ? `assistant-markdown ${className}` : 'assistant-markdown'}>
+    <div
+      className={className ? `assistant-markdown ${className}` : 'assistant-markdown'}
+      dir="auto"
+    >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[[rehypeSanitize, sanitizeSchema]]}

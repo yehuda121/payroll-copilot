@@ -34,6 +34,19 @@
   }
 }
 
+@keyframes ui-skeleton-shimmer-rtl {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 100% 0;
+  }
+}
+
+html[dir='rtl'] .ui-skeleton {
+  animation-name: ui-skeleton-shimmer-rtl;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ui-skeleton {
     animation: none;

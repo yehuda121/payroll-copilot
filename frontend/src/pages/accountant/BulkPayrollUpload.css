@@ -31,11 +31,13 @@
 .app-segmented-nav {
   display: inline-flex;
   align-items: stretch;
-  gap: 0.2rem;
-  padding: 0.2rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  background: var(--color-surface-muted, var(--color-surface));
+  gap: 0.3rem;
+  padding: 0.3rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px);
   width: fit-content;
   max-width: 100%;
 }
@@ -44,35 +46,39 @@
   appearance: none;
   border: 0;
   margin: 0;
-  padding: 0.55rem 1rem;
-  border-radius: 0.55rem;
+  padding: 0.6rem 1.05rem;
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--color-text-muted);
   font: inherit;
-  font-weight: 550;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  transition:
+    background var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
 }
 
 .app-segmented-nav__tab:hover {
   color: var(--color-text);
-  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  background: var(--color-surface-hover);
 }
 
 .app-segmented-nav__tab:focus-visible {
-  outline: 2px solid var(--color-accent, #175cd3);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 1px;
 }
 
 .app-segmented-nav__tab.is-active {
-  color: var(--color-text);
-  background: var(--color-surface);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
-  font-weight: 650;
+  color: var(--color-accent);
+  background: var(--gradient-accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 22%, transparent);
+  font-weight: 750;
 }
 
 html[data-theme='dark'] .app-segmented-nav__tab.is-active {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-border) 80%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 28%, transparent);
 }
 
 .accountant-bulk__upload,
@@ -109,8 +115,8 @@ html[data-theme='dark'] .app-segmented-nav__tab.is-active {
 .accountant-bulk__upload-lede {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.95rem;
-  line-height: 1.45;
+  font-size: var(--text-md);
+  line-height: var(--leading-snug);
 }
 
 .accountant-bulk__upload-shell {
@@ -149,7 +155,7 @@ html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone:focus-vi
 
 .accountant-bulk__progress span {
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
 .accountant-bulk__progress progress {
@@ -226,7 +232,7 @@ html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone:focus-vi
   border-radius: 999px;
   padding: 0.4rem 0.85rem;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
   background: var(--color-surface);
@@ -235,75 +241,75 @@ html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone:focus-vi
 }
 
 .accountant-bulk__filter-pill.is-all {
-  color: #334155;
-  border-color: #cbd5e1;
-  background: #f8fafc;
+  color: var(--color-text-muted);
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-muted);
 }
 
 .accountant-bulk__filter-pill.is-passed {
-  color: #12663f;
-  border-color: #9ed9b8;
-  background: #f0faf4;
+  color: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 40%, var(--color-border));
+  background: var(--color-success-soft);
 }
 
 .accountant-bulk__filter-pill.is-warning {
-  color: #765400;
-  border-color: #efd48a;
-  background: #fff9e8;
+  color: var(--color-warning);
+  border-color: color-mix(in srgb, var(--color-warning) 40%, var(--color-border));
+  background: var(--color-warning-soft);
 }
 
 .accountant-bulk__filter-pill.is-failed {
-  color: #8f2222;
-  border-color: #efb4b4;
-  background: #fff5f5;
+  color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 40%, var(--color-border));
+  background: var(--color-danger-soft);
 }
 
 .accountant-bulk__filter-pill.is-unknown_employee {
-  color: #52318f;
-  border-color: #c9b4ef;
-  background: #f7f2ff;
+  color: var(--color-accent);
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  background: var(--color-accent-soft);
 }
 
 .accountant-bulk__filter-pill.is-processing {
-  color: #185b9e;
-  border-color: #9ec5ea;
-  background: #f0f7ff;
+  color: var(--color-info);
+  border-color: color-mix(in srgb, var(--color-info) 40%, var(--color-border));
+  background: var(--color-info-soft);
 }
 
 .accountant-bulk__filter-pill.is-active.is-all {
-  color: #fff;
-  border-color: #475569;
-  background: #475569;
+  color: var(--color-accent-contrast);
+  border-color: var(--color-neutral);
+  background: var(--color-neutral);
 }
 
 .accountant-bulk__filter-pill.is-active.is-passed {
-  color: #fff;
-  border-color: #198754;
-  background: #198754;
+  color: var(--color-accent-contrast);
+  border-color: var(--color-success);
+  background: var(--color-success);
 }
 
 .accountant-bulk__filter-pill.is-active.is-warning {
-  color: #fff;
-  border-color: #d89b00;
-  background: #d89b00;
+  color: var(--color-accent-contrast);
+  border-color: var(--color-warning);
+  background: var(--color-warning);
 }
 
 .accountant-bulk__filter-pill.is-active.is-failed {
-  color: #fff;
-  border-color: #c73535;
-  background: #c73535;
+  color: var(--color-accent-contrast);
+  border-color: var(--color-danger);
+  background: var(--color-danger);
 }
 
 .accountant-bulk__filter-pill.is-active.is-unknown_employee {
-  color: #fff;
-  border-color: #6f42c1;
-  background: #6f42c1;
+  color: var(--color-accent-contrast);
+  border-color: var(--color-accent);
+  background: var(--color-accent);
 }
 
 .accountant-bulk__filter-pill.is-active.is-processing {
-  color: #fff;
-  border-color: #2878c8;
-  background: #2878c8;
+  color: var(--color-accent-contrast);
+  border-color: var(--color-info);
+  background: var(--color-info);
 }
 
 .accountant-bulk__list {
@@ -329,7 +335,7 @@ html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone:focus-vi
 .accountant-bulk__checkbox {
   width: 1.05rem;
   height: 1.05rem;
-  accent-color: var(--color-accent, #175cd3);
+  accent-color: var(--color-accent);
   cursor: pointer;
 }
 
@@ -347,7 +353,7 @@ html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone:focus-vi
   padding: 0.75rem 1rem;
   border: 1px solid var(--color-border);
   border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--color-accent, #175cd3) 8%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
 }
 
 .accountant-bulk__bulk-bar--reserved {
@@ -357,7 +363,7 @@ html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone:focus-vi
 }
 
 .accountant-bulk__bulk-count {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-text-muted);
   white-space: nowrap;
@@ -403,8 +409,8 @@ html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone:focus-vi
 }
 
 .accountant-bulk__employee.is-selected {
-  border-color: color-mix(in srgb, var(--color-accent, #175cd3) 55%, var(--color-border));
-  background: color-mix(in srgb, var(--color-accent, #175cd3) 6%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface));
 }
 
 .accountant-bulk__row-check {
@@ -440,7 +446,7 @@ html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone:focus-vi
 }
 
 .accountant-bulk__employee-main:focus-visible {
-  outline: 2px solid var(--color-accent, #175cd3);
+  outline: 2px solid var(--color-accent);
   outline-offset: 1px;
 }
 
@@ -483,7 +489,7 @@ html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone:focus-vi
 
 .accountant-bulk__employee-meta {
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

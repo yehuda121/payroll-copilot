@@ -45,6 +45,27 @@ export function SendIcon({ className, size = 16, ...rest }: IconProps) {
   );
 }
 
+/** Sparkle mark for AI surfaces — inherits currentColor. */
+export function SparklesIcon({ className, size = 18, ...rest }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...rest}
+    >
+      <path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z" />
+      <path d="M19 15l.7 2.3L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.7L19 15z" />
+    </svg>
+  );
+}
+
 export function SunIcon({ className, size = 18, ...rest }: IconProps) {
   return (
     <svg

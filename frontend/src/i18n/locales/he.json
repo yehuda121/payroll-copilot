@@ -3,7 +3,7 @@
     "appName": "Payroll Copilot",
     "login": "התחברות",
     "signup": "הרשמה",
-    "footer": "{{appName}} — בדיקת תלושים ברורה לעובדים ולמעסיקים.",
+    "footer": "<0>{{appName}}</0> — בדיקת תלושים ברורה לעובדים ולמעסיקים.",
     "language": "שפה",
     "primaryNav": "ניווט ראשי",
     "openMenu": "פתיחת תפריט",
@@ -121,7 +121,7 @@
   "landing": {
     "eyebrow": "עזרה לתלוש, בפשטות",
     "title": "שאלו שאלות על שכר או בדקו את התלוש.",
-    "heroHeadline": "עוזר AI לשכר ולציות",
+    "heroHeadline": "עוזר \u2068AI\u2069 לשכר ולציות",
     "heroSubtitle": "מיועד לעובדים, לחשבי שכר ולאנשי מקצוע בתחום השכר.",
     "heroDisclaimer": "התשובות מבוססות על מסמכים שהועלו ועל דיני העבודה בישראל. העוזר עלול לטעות. התשובות אינן תחליף לייעוץ מקצועי או משפטי.",
     "lead": "קבלו תשובות ברורות על השכר, וצ׳ק־ליסט פשוט אחרי העלאת תלוש.",
@@ -167,8 +167,8 @@
     "extracting": "קורא את המסמך ומכין גרסה דיגיטלית…",
     "extractionCancelled": "החילוץ בוטל.",
     "stages": {
-      "readingPdf": "קורא PDF…",
-      "runningOcr": "מריץ OCR…",
+      "readingPdf": "קורא \u2068PDF\u2069…",
+      "runningOcr": "מריץ \u2068OCR\u2069…",
       "structuringFields": "ממפה שדות…",
       "preparingReview": "מכין לבדיקה…"
     },
@@ -182,7 +182,7 @@
     "confirmBlockedEmpty": "יש להוסיף או לתקן לפחות שדה אחד לפני האישור.",
     "retryUpload": "נסו קובץ אחר",
     "errors": {
-      "ocrFailed": "זיהוי הטקסט (OCR) לא הצליח עבור קובץ זה.",
+      "ocrFailed": "זיהוי הטקסט (\u2068OCR\u2069) לא הצליח עבור קובץ זה.",
       "parserFailed": "חילוץ השדות המובנים לא הפיק ערכים שימושיים.",
       "retryHint": "נסו PDF או תמונה ברורים יותר, או העלו שוב."
     },
@@ -249,7 +249,9 @@
     "guardrailBlocked": "אני יכול לעזור רק בשאלות הקשורות לשכר ולתלושים.",
     "guardrailLimited": "הנה הכוונה כללית לפי מה שניתן לאשר כרגע.",
     "noSource": "שיתפתי הכוונה כללית כי לא נמצא מקור תואם מדויק.",
-    "typing": "Payroll Copilot מקליד…",
+    "typing": "חושב…",
+    "online": "מחובר",
+    "composerHint": "Enter לשליחה · Shift+Enter לשורה חדשה",
     "followUpHeading": "אפשר גם לשאול",
     "followUp1": "אילו מסמכים תומכים כדאי להעלות?",
     "followUp2": "איך מוסברות שעות נוספות בתלוש?",
@@ -501,7 +503,7 @@
       "expected": "צפוי",
       "actual": "בפועל",
       "details": "פרטים",
-      "confidenceExplain": "ביטחון AI {{percent}}%",
+      "confidenceExplain": "ביטחון \u2068AI\u2069 {{percent}}%",
       "editFieldTitle": "עריכת שדה",
       "editFieldSave": "שמירה",
       "runValidationPrimary": "הפעל אימות",

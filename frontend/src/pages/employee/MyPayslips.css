@@ -12,8 +12,8 @@
 }
 
 .employee-payslips__refresh {
-  font-size: 0.85rem;
-  color: var(--color-text-muted, #667085);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
 }
 
 .employee-payslips__year {
@@ -46,12 +46,24 @@
 .employee-month-card {
   text-align: start;
   display: grid;
-  gap: 0.65rem;
-  padding: 0.95rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg, 12px);
-  background: var(--color-surface);
+  gap: 0.7rem;
+  padding: 1.05rem 1.1rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px);
   cursor: pointer;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+.employee-month-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--color-accent) 28%, var(--color-border));
 }
 
 .employee-month-card:focus-visible {
@@ -61,13 +73,6 @@
 
 .employee-month-card--skeleton {
   min-height: 7rem;
-  background: linear-gradient(90deg, #f2f4f7 25%, #e4e7ec 50%, #f2f4f7 75%);
-  background-size: 200% 100%;
-  animation: employee-skeleton 1.2s ease-in-out infinite;
-  border: none;
-}
-
-html[data-theme='dark'] .employee-month-card--skeleton {
   background: linear-gradient(
     90deg,
     color-mix(in srgb, var(--color-surface-muted) 88%, var(--color-border)) 25%,
@@ -75,7 +80,10 @@ html[data-theme='dark'] .employee-month-card--skeleton {
     color-mix(in srgb, var(--color-surface-muted) 88%, var(--color-border)) 75%
   );
   background-size: 200% 100%;
+  animation: employee-skeleton 1.2s ease-in-out infinite;
   border: 1px solid var(--color-border);
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 @keyframes employee-skeleton {
@@ -84,6 +92,25 @@ html[data-theme='dark'] .employee-month-card--skeleton {
   }
   100% {
     background-position: -200% 0;
+  }
+}
+
+@keyframes employee-skeleton-rtl {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+html[dir='rtl'] .employee-month-card--skeleton {
+  animation-name: employee-skeleton-rtl;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .employee-month-card--skeleton {
+    animation: none;
   }
 }
 
@@ -100,7 +127,7 @@ html[data-theme='dark'] .employee-month-card--skeleton {
   list-style: none;
   display: grid;
   gap: 0.25rem;
-  font-size: 0.88rem;
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
 
@@ -110,7 +137,7 @@ html[data-theme='dark'] .employee-month-card--skeleton {
   gap: 0.35rem;
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   border: 1px solid transparent;
 }
@@ -120,27 +147,27 @@ html[data-theme='dark'] .employee-month-card--skeleton {
 }
 
 .status-badge--success {
-  background: #ecfdf3;
-  color: #067647;
-  border-color: #abefc6;
+  background: var(--color-success-soft);
+  color: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 40%, var(--color-border));
 }
 
 .status-badge--error {
-  background: #fef3f2;
-  color: #b42318;
-  border-color: #fecdca;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 40%, var(--color-border));
 }
 
 .status-badge--warning {
-  background: #fffaeb;
-  color: #b54708;
-  border-color: #fedf89;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  border-color: color-mix(in srgb, var(--color-warning) 40%, var(--color-border));
 }
 
 .status-badge--unavailable {
-  background: #f9fafb;
-  color: #475467;
-  border-color: #d0d5dd;
+  background: var(--color-neutral-soft);
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
 }
 
 .employee-month-detail {
@@ -160,7 +187,7 @@ html[data-theme='dark'] .employee-month-card--skeleton {
 .employee-month-detail__note {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
 }
 
 .employee-month-detail__actions {
@@ -180,15 +207,15 @@ html[data-theme='dark'] .employee-month-card--skeleton {
   padding: 0;
   display: grid;
   gap: 0.25rem;
-  font-size: 0.88rem;
+  font-size: var(--text-sm);
 }
 
 .employee-month-detail__upload-results .is-ok {
-  color: #067647;
+  color: var(--color-success);
 }
 
 .employee-month-detail__upload-results .is-fail {
-  color: #b42318;
+  color: var(--color-danger);
 }
 
 .employee-payslips__error {
@@ -229,7 +256,7 @@ html[data-theme='dark'] .employee-month-card--skeleton {
   padding: 0;
   display: grid;
   gap: 0.25rem;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
 }
 
 .employee-doc-card__actions {
@@ -245,19 +272,19 @@ html[data-theme='dark'] .employee-month-card--skeleton {
 }
 
 .employee-finding--success {
-  border-color: #067647;
+  border-color: var(--color-success);
 }
 
 .employee-finding--error {
-  border-color: #b42318;
+  border-color: var(--color-danger);
 }
 
 .employee-finding--warning {
-  border-color: #b54708;
+  border-color: var(--color-warning);
 }
 
 .employee-finding--unavailable {
-  border-color: #667085;
+  border-color: var(--color-neutral);
 }
 
 .employee-finding__ai-panel {
@@ -274,7 +301,7 @@ html[data-theme='dark'] .employee-month-card--skeleton {
 
 .employee-finding__ai-disclaimer {
   margin: 0.35rem 0 0;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
 
@@ -294,7 +321,7 @@ html[data-theme='dark'] .employee-month-card--skeleton {
 .employee-payslip-wizard__unsaved,
 .employee-payslip-wizard__hint {
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
 }
 
 @media (prefers-reduced-motion: reduce) {

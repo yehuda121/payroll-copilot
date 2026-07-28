@@ -1,4 +1,10 @@
-import type { FormEvent, ReactNode } from 'react';
+import {
+  useEffect,
+  useRef,
+  type FormEvent,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { FREE_TEXT_MAX_LENGTH, clampFreeTextInput } from '../../lib/validation';
 import { PaperclipIcon, SendIcon } from '../ui/icons';
@@ -19,8 +25,8 @@ export type ChatComposerProps = {
   onModelChange?: (value: string) => void;
   sendingLabel?: ReactNode;
   /**
-   * Landing-only: single-row toolbar — paperclip | input | model+send (fixed LTR).
-   * Default keeps the existing inline layout for other surfaces.
+   * Product shell layout: attach | textarea | model + send.
+   * Same markup for all locales — direction follows document.
    */
   toolbarControls?: boolean;
 };
@@ -30,6 +36,13 @@ function modelLabel(name: string, t: (key: string) => string): string {
   if (name === 'openai') return 'OpenAI';
   if (name === 'bedrock') return 'Bedrock';
   return name;
+}
+
+function resizeTextarea(el: HTMLTextAreaElement | null) {
+  if (!el) return;
+  el.style.height = '0px';
+  const next = Math.min(el.scrollHeight, 160);
+  el.style.height = `${Math.max(44, next)}px`;
 }
 
 /**
@@ -52,9 +65,21 @@ export function ChatComposer({
   toolbarControls = false,
 }: ChatComposerProps) {
   const { t } = useTranslation();
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const showModel = modelChoices.length > 0 && onModelChange;
-  // Empty value = current default (Local/Ollama). Avoid a duplicate "Local" option.
   const listedModels = modelChoices.filter((name) => name !== 'ollama');
+
+  useEffect(() => {
+    resizeTextarea(textareaRef.current);
+  }, [value]);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    if (event.nativeEvent.isComposing) return;
+    event.preventDefault();
+    if (disabled || !canSend) return;
+    event.currentTarget.form?.requestSubmit();
+  };
 
   const attachButton = onAttach ? (
     <button
@@ -98,63 +123,53 @@ export function ChatComposer({
     </button>
   );
 
-  if (toolbarControls) {
-    return (
-      <form className="chat-composer chat-composer--toolbar" onSubmit={onSubmit}>
-        <div className="chat-composer__row chat-composer__row--toolbar">
-          {attachButton}
-          <div className="chat-composer__field">
-            <input
-              type="text"
-              dir="auto"
-              value={value}
-              maxLength={FREE_TEXT_MAX_LENGTH.chatMessage}
-              onChange={(event) =>
-                onChange(
-                  clampFreeTextInput(event.target.value, FREE_TEXT_MAX_LENGTH.chatMessage, {
-                    allowNewlines: false,
-                  }),
-                )
-              }
-              placeholder={placeholder}
-              aria-label={ariaMessage}
-              disabled={disabled}
-            />
-          </div>
+  const field = (
+    <div className="chat-composer__field">
+      <textarea
+        ref={textareaRef}
+        rows={1}
+        dir="auto"
+        value={value}
+        maxLength={FREE_TEXT_MAX_LENGTH.chatMessage}
+        onChange={(event) =>
+          onChange(
+            clampFreeTextInput(event.target.value, FREE_TEXT_MAX_LENGTH.chatMessage, {
+              allowNewlines: true,
+            }),
+          )
+        }
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        aria-label={ariaMessage}
+        disabled={disabled}
+      />
+      {!toolbarControls ? (
+        <div className="chat-composer__inline-actions">
+          {modelSelect}
+          {sendButton}
+        </div>
+      ) : null}
+    </div>
+  );
+
+  return (
+    <form
+      className={`chat-composer${toolbarControls ? ' chat-composer--toolbar' : ''}`}
+      onSubmit={onSubmit}
+    >
+      <div className={`chat-composer__row${toolbarControls ? ' chat-composer__row--toolbar' : ''}`}>
+        {attachButton}
+        {field}
+        {toolbarControls ? (
           <div className="chat-composer__actions">
             {modelSelect}
             {sendButton}
           </div>
-        </div>
-      </form>
-    );
-  }
-
-  return (
-    <form className="chat-composer" onSubmit={onSubmit}>
-      <div className="chat-composer__row">
-        {attachButton}
-
-        <div className="chat-composer__field">
-          <input
-            type="text"
-            value={value}
-            maxLength={FREE_TEXT_MAX_LENGTH.chatMessage}
-            onChange={(event) =>
-              onChange(
-                clampFreeTextInput(event.target.value, FREE_TEXT_MAX_LENGTH.chatMessage, {
-                  allowNewlines: false,
-                }),
-              )
-            }
-            placeholder={placeholder}
-            aria-label={ariaMessage}
-            disabled={disabled}
-          />
-          {modelSelect}
-          {sendButton}
-        </div>
+        ) : null}
       </div>
+      <p className="chat-composer__hint" dir="auto">
+        {t('assistant.composerHint')}
+      </p>
     </form>
   );
 }

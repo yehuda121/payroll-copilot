@@ -276,7 +276,7 @@
   margin: 0;
   max-width: 28rem;
   color: var(--color-text-muted);
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
 }
 
 .page-enter {

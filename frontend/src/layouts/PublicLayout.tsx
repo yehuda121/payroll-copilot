@@ -1,12 +1,10 @@
 import { Outlet } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Trans } from 'react-i18next';
 import { APP_NAME } from '../config/brand';
 import { AppNavbar } from '../components/layout/AppNavbar';
 import './PublicLayout.css';
 
 export function PublicLayout() {
-  const { t } = useTranslation();
-
   return (
     <div className="public-layout">
       <AppNavbar showAuthLinks />
@@ -14,7 +12,13 @@ export function PublicLayout() {
         <Outlet />
       </main>
       <footer className="public-layout__footer">
-        <p>{t('common.footer', { appName: APP_NAME })}</p>
+        <p dir="auto">
+          <Trans
+            i18nKey="common.footer"
+            values={{ appName: APP_NAME }}
+            components={[<bdi key="brand" />]}
+          />
+        </p>
       </footer>
     </div>
   );

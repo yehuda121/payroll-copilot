@@ -12,6 +12,8 @@ import { AssistantMarkdown } from '../../../components/guest/AssistantMarkdown';
 import { AssistantUsageFooter } from '../../../components/guest/AssistantUsageFooter';
 import { ChatComposer } from '../../../components/guest/ChatComposer';
 import { PopularQuestionsPanel } from '../../../components/guest/PopularQuestionsPanel';
+import { ChatMessageRow } from '../../../components/chat/ChatMessageRow';
+import { ChatTypingIndicator } from '../../../components/chat/ChatTypingIndicator';
 import { ChatWelcome } from '../../../components/chat/ChatWelcome';
 import { APP_NAME } from '../../../config/brand';
 import { env } from '../../../config/env';
@@ -497,19 +499,57 @@ export function GuestLandingChat({
 
       <div className="landing-chat__layout">
         <div className="landing-chat__shell" aria-label={t('landing.chatHeading', { appName: APP_NAME })}>
+          <header className="landing-chat__chrome">
+            <span className="landing-chat__chrome-avatar" aria-hidden="true">
+              <span className="chat-avatar chat-avatar--assistant">
+                <span className="chat-avatar__pulse" />
+              </span>
+            </span>
+            <div className="landing-chat__chrome-copy">
+              <p className="landing-chat__chrome-title">
+                <bdi>{APP_NAME}</bdi>
+              </p>
+              <p className="landing-chat__chrome-status">
+                <span className="chat-welcome__online" aria-hidden="true" />
+                {t('assistant.online')}
+              </p>
+            </div>
+          </header>
           <div className="landing-chat__messages" aria-live="polite">
             {messages.length === 0 && (
               <div className="landing-chat__empty">
                 {showWelcome ? (
-                  <ChatWelcome />
+                  <ChatWelcome
+                    disabled={composerBusy}
+                    onSuggestionSelect={(text) => {
+                      void submitComposer(text);
+                    }}
+                  />
                 ) : (
-                  <p>{t('landingChat.empty')}</p>
+                  <p dir="auto">{t('landingChat.empty')}</p>
                 )}
               </div>
             )}
 
             {messages.map((msg) => (
-              <div key={msg.id} className={`chat-bubble chat-bubble--${msg.role}`}>
+              <ChatMessageRow
+                key={msg.id}
+                role={msg.role}
+                assistantLabel={APP_NAME}
+                className={
+                  msg.kind === 'document_review' || msg.kind === 'validation_summary'
+                    ? 'chat-message-row--wide'
+                    : undefined
+                }
+                meta={
+                  <>
+                    <time dateTime={msg.createdAt}>{formatTimestamp(msg.createdAt, i18n.language)}</time>
+                    {msg.role === 'assistant' && msg.kind === 'text' ? (
+                      <AssistantUsageFooter usage={msg.usage} />
+                    ) : null}
+                  </>
+                }
+              >
                 {msg.kind === 'document_review' && flow.extraction ? (
                   <>
                     <AssistantMarkdown content={msg.content} />
@@ -553,52 +593,51 @@ export function GuestLandingChat({
                   <ul className="chat-message__sources">
                     {msg.sources.map((source) => (
                       <li key={`${source.title}-${source.reference ?? 'na'}`}>
-                        {source.title}
-                        {source.reference ? ` (${source.reference})` : ''}
+                        <bdi>{source.title}</bdi>
+                        {source.reference ? (
+                          <>
+                            {' '}
+                            (<bdi>{source.reference}</bdi>)
+                          </>
+                        ) : (
+                          ''
+                        )}
                       </li>
                     ))}
                   </ul>
                 )}
-
-                <div className="chat-bubble__meta">
-                  <time dateTime={msg.createdAt}>{formatTimestamp(msg.createdAt, i18n.language)}</time>
-                </div>
-                {msg.role === 'assistant' && msg.kind === 'text' ? (
-                  <AssistantUsageFooter usage={msg.usage} />
-                ) : null}
-              </div>
+              </ChatMessageRow>
             ))}
 
             {(isLoading || flow.step === 'prepare' || flow.step === 'validating') && (
-              <div className="chat-bubble chat-bubble--assistant" aria-label={t('assistant.typing')}>
-                <div className="chat-typing">
-                  <span>
-                    {flow.step === 'prepare'
-                      ? flow.processingStage === 'reading_pdf'
-                        ? t('landingChat.stages.readingPdf')
-                        : flow.processingStage === 'running_ocr'
-                          ? t('landingChat.stages.runningOcr')
-                          : flow.processingStage === 'structuring_fields'
-                            ? t('landingChat.stages.structuringFields')
-                            : flow.processingStage === 'preparing_review'
-                              ? t('landingChat.stages.preparingReview')
-                              : t('landingChat.extracting')
-                      : flow.step === 'validating'
-                        ? t('landingChat.confirming', { defaultValue: 'Saving your confirmed fields…' })
-                        : t('assistant.typing')}
-                  </span>
-                  <span className="chat-typing__dots" aria-hidden="true">
-                    <span />
-                    <span />
-                    <span />
-                  </span>
-                </div>
-                {flow.step === 'prepare' && (
-                  <button type="button" className="chat-cancel-btn" onClick={() => flow.cancelExtraction()}>
-                    {t('common.cancel')}
-                  </button>
-                )}
-              </div>
+              <ChatTypingIndicator
+                label={
+                  flow.step === 'prepare'
+                    ? flow.processingStage === 'reading_pdf'
+                      ? t('landingChat.stages.readingPdf')
+                      : flow.processingStage === 'running_ocr'
+                        ? t('landingChat.stages.runningOcr')
+                        : flow.processingStage === 'structuring_fields'
+                          ? t('landingChat.stages.structuringFields')
+                          : flow.processingStage === 'preparing_review'
+                            ? t('landingChat.stages.preparingReview')
+                            : t('landingChat.extracting')
+                    : flow.step === 'validating'
+                      ? t('landingChat.confirming', { defaultValue: 'Saving your confirmed fields…' })
+                      : t('assistant.typing')
+                }
+                action={
+                  flow.step === 'prepare' ? (
+                    <button
+                      type="button"
+                      className="chat-cancel-btn"
+                      onClick={() => flow.cancelExtraction()}
+                    >
+                      {t('common.cancel')}
+                    </button>
+                  ) : null
+                }
+              />
             )}
             <div ref={bottomRef} />
           </div>

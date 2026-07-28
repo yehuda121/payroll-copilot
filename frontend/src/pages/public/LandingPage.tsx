@@ -19,7 +19,9 @@ export function LandingPage() {
         <HeroSplit
           copy={
             <>
-              <p className="hero-brand">{APP_NAME}</p>
+              <p className="hero-brand">
+                <bdi>{APP_NAME}</bdi>
+              </p>
               <h1 className="hero-title">{t('landing.heroHeadline')}</h1>
               <p className="hero-subtitle">{t('landing.heroSubtitle')}</p>
               <p className="hero-disclaimer">{t('landing.heroDisclaimer')}</p>

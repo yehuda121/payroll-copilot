@@ -96,20 +96,11 @@ export function PayrollChatPage() {
       integrationNote="@integration-point EMPLOYEE_AI_CHAT"
     >
       {/*
-        Structural layout is fixed (chat primary, supporting + popular secondary).
-        Locale only affects text direction inside each region.
-        On narrow screens DOM order keeps Chat first.
+        Structural layout: sidebar at inline-start, chat at inline-end.
+        DOM order + logical grid adapt to RTL/LTR; mobile puts chat first.
       */}
-      <div className="chat-with-popular chat-with-popular--workspace" dir="ltr">
-        <div className="chat-with-popular__primary">
-          <PayrollChatPanel
-            pendingQuestion={pendingQuestion}
-            onPendingQuestionConsumed={() => {
-              setPendingQuestion(null);
-            }}
-          />
-        </div>
-        <aside className="chat-with-popular__secondary" dir="auto">
+      <div className="chat-with-popular chat-with-popular--workspace">
+        <aside className="chat-with-popular__secondary">
           <header className="employee-chat-support">
             <h1 className="employee-chat-support__title">{copy.chatTitle}</h1>
             <p className="employee-chat-support__description">{copy.chatDescription}</p>
@@ -120,6 +111,14 @@ export function PayrollChatPage() {
             }}
           />
         </aside>
+        <div className="chat-with-popular__primary">
+          <PayrollChatPanel
+            pendingQuestion={pendingQuestion}
+            onPendingQuestionConsumed={() => {
+              setPendingQuestion(null);
+            }}
+          />
+        </div>
       </div>
     </PortalPage>
   );
