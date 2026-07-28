@@ -3,13 +3,15 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
+  animation: ai-fade-up 0.35s var(--ease-out) both;
 }
 
 .page-header__title {
-  margin: 0 0 0.35rem;
-  font-size: 1.5rem;
-  font-weight: 600;
+  margin: 0 0 0.4rem;
+  font-size: clamp(1.45rem, 2.2vw, 1.85rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
   color: var(--color-text);
 }
 
@@ -17,7 +19,8 @@
   margin: 0;
   max-width: 52rem;
   color: var(--color-text-muted);
-  line-height: 1.6;
+  line-height: 1.65;
+  font-size: var(--text-sm);
 }
 
 .page-header__actions {
@@ -27,16 +30,27 @@
 }
 
 .card {
-  padding: 1.25rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  padding: 1.35rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .card__title {
   margin: 0 0 1rem;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -44,10 +58,10 @@
 }
 
 .placeholder-panel {
-  padding: 1.5rem;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
+  padding: 1.75rem;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--color-surface) 55%, transparent);
 }
 
 .placeholder-panel__text {
@@ -59,14 +73,16 @@
   margin: 0.75rem 0 0;
   font-size: 0.75rem;
   color: var(--color-text-subtle);
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 
 .data-table-wrapper {
   overflow-x: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px);
 }
 
 .data-table {
@@ -77,11 +93,32 @@
 
 .data-table th,
 .data-table td {
-  padding: 0.75rem 1rem;
+  padding: 0.9rem 1.1rem;
   text-align: start;
   border-bottom: 1px solid var(--color-border);
   max-width: 18rem;
   vertical-align: middle;
+}
+
+.data-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: color-mix(in srgb, var(--color-surface-muted) 92%, transparent);
+  backdrop-filter: blur(8px);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.data-table tbody tr {
+  transition: background var(--motion-fast) var(--ease-out);
+}
+
+.data-table tbody tr:hover {
+  background: var(--color-surface-hover);
 }
 
 .data-table td {
@@ -293,11 +330,17 @@ html[data-theme='dark'] .data-table__row--clickable:hover {
 }
 
 .status-badge {
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 1.55rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
 }
 
 .status-badge--active {
@@ -1047,11 +1090,14 @@ html[data-theme='dark'] .data-table__row--clickable:hover {
   width: min(100%, 28rem);
   max-height: min(90vh, 40rem);
   overflow: auto;
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg, 0.75rem);
-  box-shadow: var(--shadow-md, 0 12px 40px rgba(15, 23, 42, 0.18));
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   outline: none;
+  animation: ai-fade-up 0.28s var(--ease-out) both;
 }
 
 .modal-dialog--wide {

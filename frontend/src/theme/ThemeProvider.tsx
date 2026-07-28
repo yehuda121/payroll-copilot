@@ -27,10 +27,11 @@ function readStoredTheme(): ThemeMode {
   } catch {
     /* ignore */
   }
-  if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    return 'dark';
+  // Dark-first product default; respect OS light preference when no stored choice.
+  if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) {
+    return 'light';
   }
-  return 'light';
+  return 'dark';
 }
 
 function applyTheme(theme: ThemeMode) {

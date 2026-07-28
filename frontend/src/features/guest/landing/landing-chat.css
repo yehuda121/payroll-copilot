@@ -448,28 +448,40 @@
 
 .digital-form__field {
   display: grid;
-  gap: 0.3rem;
+  gap: 0.35rem;
   align-content: start;
-  padding: 0.55rem 0.6rem;
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  background: var(--color-surface);
+  padding: 0.75rem 0.8rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(8px);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+.digital-form__field:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .digital-form__field--found {
-  border-color: color-mix(in srgb, var(--color-success) 35%, transparent);
+  border-color: color-mix(in srgb, var(--color-success) 40%, var(--color-border));
 }
 
 .digital-form__field--uncertain {
-  border-color: color-mix(in srgb, var(--color-warning) 45%, transparent);
+  border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border));
 }
 
 .digital-form__field--missing {
-  border-color: color-mix(in srgb, var(--color-text-muted) 35%, transparent);
+  border-color: color-mix(in srgb, var(--color-text-muted) 30%, var(--color-border));
 }
 
 .digital-form__field--edited {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 45%, transparent);
+  box-shadow: var(--shadow-glow);
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
 }
 
 .digital-form__label-row {

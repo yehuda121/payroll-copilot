@@ -22,7 +22,7 @@ export function PortalPage({
   children,
 }: PortalPageProps) {
   return (
-    <div>
+    <div className="page-enter">
       {!hideHeader ? (
         <PageHeader title={title} description={description} status={status} />
       ) : null}

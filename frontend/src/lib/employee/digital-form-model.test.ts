@@ -35,7 +35,12 @@ describe('buildDigitalFormSections', () => {
     expect(sections[0].fields.every((f) => f.missingRequired)).toBe(true);
 
     const expected = sections.find((s) => s.id === 'expected')!;
-    expect(expected.fields.map((f) => f.key).sort()).toEqual(['gross_salary', 'vacation_balance']);
+    expect(expected.fields.map((f) => f.key).sort()).toEqual([
+      'gross_salary',
+      'pay_period',
+      'vacation_balance',
+    ]);
+    expect(expected.fields.find((f) => f.key === 'pay_period')?.missingRequired).toBe(true);
     expect(expected.fields.some((f) => f.key === 'employer_name')).toBe(false);
     expect(expected.fields.some((f) => f.key === 'net_salary')).toBe(false);
   });

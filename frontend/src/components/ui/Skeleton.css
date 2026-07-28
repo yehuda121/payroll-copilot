@@ -1,14 +1,14 @@
 .ui-skeleton {
   display: block;
   background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--color-border, #d8dde6) 55%, transparent) 0%,
-    color-mix(in srgb, var(--color-surface-muted, #eef1f6) 80%, transparent) 50%,
-    color-mix(in srgb, var(--color-border, #d8dde6) 55%, transparent) 100%
+    110deg,
+    var(--color-surface-muted) 20%,
+    color-mix(in srgb, var(--color-accent) 14%, var(--color-surface-muted)) 40%,
+    var(--color-surface-muted) 60%
   );
   background-size: 200% 100%;
-  animation: ui-skeleton-shimmer 1.2s ease-in-out infinite;
-  border-radius: 6px;
+  animation: ui-skeleton-shimmer 1.35s ease-in-out infinite;
+  border-radius: var(--radius-md);
   min-height: 0.75rem;
 }
 

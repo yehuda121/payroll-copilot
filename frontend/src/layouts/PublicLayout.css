@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: var(--color-bg);
+  background: transparent;
   color: var(--color-text);
 }
 
@@ -11,10 +11,14 @@
 }
 
 .public-layout__footer {
+  margin: 0 1rem 1rem;
   padding: var(--space-5);
-  border-top: 1px solid var(--color-border);
-  background: var(--color-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
   text-align: center;
+  box-shadow: var(--shadow-sm);
 }
 
 .public-layout__footer p {
@@ -36,12 +40,22 @@
 
 .language-selector__select {
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  background: var(--glass-bg);
   color: var(--color-text);
-  padding: 0.35rem 0.5rem;
+  padding: 0.4rem 0.55rem;
   font: inherit;
-  min-height: 2.4rem;
+  min-height: 2.45rem;
+  backdrop-filter: blur(8px);
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.language-selector__select:focus-visible {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  outline: none;
 }
 
 .auth-page {
@@ -50,27 +64,33 @@
   justify-content: center;
   min-height: calc(100vh - 8rem);
   padding: var(--space-6) var(--space-4);
+  animation: ai-fade-up 0.45s var(--ease-out) both;
 }
 
 .auth-card {
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
   padding: var(--space-6);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 
 .auth-card h1 {
   margin: 0 0 0.5rem;
-  font-size: var(--text-xl);
+  font-size: clamp(1.5rem, 2.5vw, 1.85rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .auth-card__subtitle {
   margin: 0 0 1.5rem;
   color: var(--color-text-muted);
   font-size: var(--text-sm);
+  line-height: 1.55;
 }
 
 .dev-role-list {
@@ -83,25 +103,31 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.25rem;
-  padding: 1rem;
+  gap: 0.3rem;
+  padding: 1rem 1.1rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-surface-muted) 65%, transparent);
   cursor: pointer;
   text-align: left;
   transition:
-    border-color 0.15s,
-    background 0.15s;
+    border-color var(--motion-fast) var(--ease-out),
+    background var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
 }
 
 .dev-role-card:hover {
-  border-color: var(--color-accent);
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
   background: var(--color-accent-soft);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
 }
 
 .dev-role-card strong {
-  font-size: 0.95rem;
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .dev-role-card span {
@@ -110,46 +136,85 @@
 }
 
 .dev-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   margin-bottom: 1rem;
-  padding: 0.25rem 0.6rem;
+  padding: 0.3rem 0.7rem;
   border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
   background: var(--color-warning-soft);
   color: var(--color-warning);
   font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
+  font-weight: 700;
   letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .auth-card__footer {
-  margin-top: 1.25rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--color-border);
-  font-size: 0.85rem;
+  margin: 1.35rem 0 0;
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
-  text-align: center;
 }
 
 .auth-card__footer a {
   color: var(--color-accent);
+  font-weight: 650;
+  text-decoration: none;
 }
 
-.page-grid {
+.auth-card__footer a:hover {
+  text-decoration: underline;
+}
+
+.form-field {
   display: grid;
-  gap: 1rem;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
 }
 
-.page-grid--2 {
-  grid-template-columns: repeat(2, 1fr);
+.form-field label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
-@media (max-width: 768px) {
-  .page-grid--2 {
-    grid-template-columns: 1fr;
-  }
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg-elevated) 88%, transparent);
+  color: var(--color-text);
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out),
+    background var(--motion-fast) var(--ease-out);
+}
 
-  .language-selector__label {
-    display: none;
-  }
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+  box-shadow: 0 0 0 4px var(--color-focus-ring);
+  background: var(--color-bg-elevated);
+}
+
+.landing-page {
+  padding-block: clamp(0.5rem, 2vw, 1.5rem);
+  animation: ai-fade-up 0.5s var(--ease-out) both;
+}
+
+.landing-page__chat-column {
+  min-height: min(72vh, 44rem);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  overflow: hidden;
 }

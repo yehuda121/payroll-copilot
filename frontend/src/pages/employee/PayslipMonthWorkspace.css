@@ -1,8 +1,9 @@
 .employee-month-workspace {
   display: grid;
-  gap: 1rem;
-  max-width: 72rem;
+  gap: 1.15rem;
+  max-width: var(--container-default);
   margin-inline: auto;
+  animation: ai-fade-up 0.4s var(--ease-out) both;
 }
 
 .employee-workspace-skeleton {
@@ -17,6 +18,12 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-sm);
 }
 
 .employee-workspace-hint {
@@ -33,10 +40,20 @@
 .employee-validation-history__run {
   display: grid;
   gap: 0.75rem;
-  padding: 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  background: var(--color-surface);
+  padding: 1.1rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.employee-validation-history__run:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .employee-validation-history__run header,

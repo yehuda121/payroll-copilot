@@ -11,7 +11,7 @@ import {
 describe('payslip-field-registry', () => {
   it('uses national_id as required National ID, not employee_id', () => {
     const required = requiredOnPayslipKeys();
-    expect(required).toEqual(['employee_name', 'national_id']);
+    expect(required).toEqual(['employee_name', 'national_id', 'pay_period']);
     expect(required).not.toContain('employee_id');
     expect(requirementCategoryForKey('employee_id')).toBe('expected');
   });
@@ -30,8 +30,8 @@ describe('payslip-field-registry', () => {
     }
   });
 
-  it('limits required_on_payslip presentation slots to identity required fields', () => {
-    expect(requiredOnPayslipKeys()).toEqual(['employee_name', 'national_id']);
+  it('limits required_on_payslip presentation slots to identity + period', () => {
+    expect(requiredOnPayslipKeys()).toEqual(['employee_name', 'national_id', 'pay_period']);
     expect(requirementCategoryForKey('amount_paid')).toBe('expected');
     expect(requirementCategoryForKey('net_salary')).toBe('expected');
   });

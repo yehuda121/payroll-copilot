@@ -6,6 +6,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider } from './theme/ThemeProvider';
 import './i18n';
 import './index.css';
+import './styles/design-system.css';
 
 const router = createBrowserRouter(createRoutesFromElements(appRouteElements));
 
