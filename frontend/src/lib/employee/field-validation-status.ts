@@ -28,6 +28,10 @@ export type EmployeeFieldValidationMeta = {
   confidencePercent: number | null;
   /** Distinct neutral reason — never collapsed away internally. */
   neutralKind?: FieldNeutralKind;
+  /** Payroll period proposed by the system — warning, not FAILED. */
+  requiresApproval?: boolean;
+  /** User confirmed a proposed value — keep PASSED styling even while draft is dirty. */
+  userApproved?: boolean;
 };
 
 function statusRank(status: FieldVisualStatus): number {

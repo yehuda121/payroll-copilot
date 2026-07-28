@@ -229,8 +229,76 @@ class _FakeGuestCorrect:
         )
 
 
+class _PersistingGuestCorrect:
+    """Mirrors CorrectGuestExtractionUseCase document lifecycle write before return."""
+
+    def __init__(self, docs: _FakeDocs) -> None:
+        self._docs = docs
+        self.new_extraction_id = uuid4()
+
+    async def execute(self, *, document_id: UUID, corrections: list[FieldCorrection]) -> CorrectExtractionResult:
+        document = await self._docs.get_by_id(document_id)
+        assert document is not None
+        meta = dict(document.metadata or {})
+        meta["lifecycle_status"] = "review_required"
+        meta["current_extraction_id"] = str(self.new_extraction_id)
+        meta["current_extraction_version"] = 2
+        document.metadata = meta
+        await self._docs.save(document)
+        inner = _FakeGuestCorrect()
+        result = await inner.execute(document_id=document_id, corrections=corrections)
+        return CorrectExtractionResult(
+            document_id=result.document_id,
+            extraction_id=self.new_extraction_id,
+            extraction_version=2,
+            ocr_status=result.ocr_status,
+            parser_status=result.parser_status,
+            language=result.language,
+            ocr_engine=result.ocr_engine,
+            parser_model=result.parser_model,
+            fields=result.fields,
+            warnings=result.warnings,
+            structured_data=result.structured_data,
+        )
+
+
 @pytest.mark.asyncio
-async def test_duplicate_period_raises_without_confirm(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_correction_preserves_review_required_lifecycle_from_guest_write(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression: comparison snapshot must not restore pre-correct confirmed lifecycle."""
+    monkeypatch.setattr(
+        "payroll_copilot.application.use_cases.correct_employee_extraction.decrypt_national_id",
+        lambda *a, **k: "313366783",
+    )
+    owned = _doc(employee_id=EMP_A)
+    owned.metadata = {
+        **dict(owned.metadata or {}),
+        "lifecycle_status": "confirmed",
+        "confirmed_extraction_id": str(uuid4()),
+        "current_extraction_id": str(uuid4()),
+        "current_extraction_version": 1,
+    }
+    docs = _FakeDocs([owned])
+    guest = _PersistingGuestCorrect(docs)
+    use_case = CorrectEmployeeExtractionUseCase(
+        guest_correct=guest,  # type: ignore[arg-type]
+        documents=docs,  # type: ignore[arg-type]
+        extractions=_FakeExtractions(),  # type: ignore[arg-type]
+    )
+    await use_case.execute(
+        document_id=owned.id,
+        corrections=[FieldCorrection(key="employee_name", value="Yehuda Shmulovitz")],
+        employee=_employee(EMP_A),
+        user_id=USER_A,
+        national_id_encrypted=b"enc",
+    )
+    saved = await docs.get_by_id(owned.id)
+    assert saved is not None
+    assert saved.metadata["lifecycle_status"] == "review_required"
+    assert saved.metadata["current_extraction_id"] == str(guest.new_extraction_id)
+    assert saved.metadata["current_extraction_version"] == 2
+
     monkeypatch.setattr(
         "payroll_copilot.application.use_cases.extract_employee_payslip.decrypt_national_id",
         lambda *a, **k: "313366783",

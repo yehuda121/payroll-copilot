@@ -5,15 +5,19 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from payroll_copilot.application.dto.validation_run import ValidationFindingRecord, ValidationRunRecord
-from payroll_copilot.application.dto.validation_report_enrichment import ValidationReportEnrichment
+from payroll_copilot.application.dto.validation_report_enrichment import (
+    ValidationReportEnrichment,
+    merge_validation_context_snapshot,
+)
 from payroll_copilot.infrastructure.persistence.models import ValidationFindingModel, ValidationRunModel
 
 
 def run_record_to_model(record: ValidationRunRecord) -> ValidationRunModel:
     now = datetime.now(UTC)
-    context_snapshot = record.context_snapshot
-    if record.enrichment is not None:
-        context_snapshot = record.enrichment.to_context_snapshot()
+    context_snapshot = merge_validation_context_snapshot(
+        record.context_snapshot,
+        record.enrichment,
+    )
     return ValidationRunModel(
         id=record.id,
         organization_id=record.organization_id,

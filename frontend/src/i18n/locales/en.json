@@ -582,10 +582,21 @@
         "manuallyApproved": "Manually approved"
       },
       "coverageSummary": "{{executed}} of {{total}} checks executed",
+      "coreLaborLawTitle": "Core Labor Law Checks",
+      "coreLaborLawTotal": "Total",
+      "coreLaborLawExecuted": "Executed",
+      "coreLaborLawSkipped": "Skipped",
+      "additionalLawChecks": "Additional checks",
+      "showMore": "Show More",
+      "showLess": "Show Less",
       "originalCheck": "Original check: {{status}}",
       "actions": {
         "runAgain": "Run again",
         "approveManually": "Approve manually",
+        "approveConfirmTitle": "Approve this check manually?",
+        "approveConfirmMessage": "This marks the check as manually approved for review. The original deterministic result is preserved and is not changed by AI.",
+        "approveConfirm": "Approve",
+        "approveDefaultReason": "Manually approved after review",
         "approveReasonPrompt": "Short reason for manual approval:",
         "approveReasonRequired": "A short reason is required.",
         "rerunFailed": "Failed to rerun this check.",
@@ -652,7 +663,15 @@
       "missingRequiredHint": "This field is expected on the payslip but was not extracted. You can enter it if you know the correct value.",
       "missingRequiredExplain": "{{field}} was not found on this payslip. No value was invented. You can fill it in if you can verify it from the original document.",
       "failedFieldExplain": "{{field}} has a failed check. Open Employee Checks or Law Checks for the deterministic finding. AI can explain the finding but never changes Pass/Fail.",
-      "uncertainFieldExplain": "{{field}} is uncertain. Review the extracted evidence and any related checks. AI explains available evidence only."
+      "uncertainFieldExplain": "{{field}} is uncertain. Review the extracted evidence and any related checks. AI explains available evidence only.",
+      "requiresApproval": "Requires Approval",
+      "approveField": "Approve",
+      "addFieldTitle": "Add Field",
+      "addFieldName": "Field Name",
+      "addFieldValue": "Field Value",
+      "addFieldConfirm": "Add",
+      "addFieldNameRequired": "Enter a field name.",
+      "payrollPeriodProposedExplain": "The payroll period was not found in the payslip.\n\nThe system proposed:\n{{period}}\n\nPlease verify that this payroll period is correct."
     },
     "compare": {
       "title": "Identity and period check",
@@ -881,6 +900,23 @@
         "child_name": "Child Name",
         "child_birth_date": "Birth Date"
       },
+      "contract": {
+        "termsHint": "Confirm original employment commencement and contractual pay terms. Do not use system registration dates.",
+        "fields": {
+          "employment_commencement_date": "Employment commencement date",
+          "salary_basis": "Salary basis",
+          "contractual_monthly_salary": "Contractual monthly salary",
+          "contractual_hourly_rate": "Contractual hourly rate",
+          "contractual_daily_rate": "Contractual daily rate",
+          "effective_from": "Effective from",
+          "effective_to": "Effective to"
+        },
+        "salaryBasis": {
+          "monthly": "Monthly",
+          "hourly": "Hourly",
+          "daily": "Daily"
+        }
+      },
       "appendix": {
         "children": "Children",
         "childLabel": "Child {{index}}",
@@ -921,6 +957,7 @@
         "nationalIdDigits": "National ID must contain digits only.",
         "nationalIdLength": "National ID must be exactly 9 digits.",
         "nationalIdChecksum": "National ID checksum is invalid.",
+        "nationalIdInvalid": "Enter a valid National ID.",
         "dateInvalid": "Enter a valid date.",
         "dateUnrecognized": "Unrecognized date format. Use the date picker or a common format such as DD.MM.YYYY.",
         "datePlaceholder": "YYYY-MM-DD or DD.MM.YYYY",

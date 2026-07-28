@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { GuestValidationReport } from '../../types/validation-report';
@@ -22,7 +22,9 @@ import {
 import {
   buildCheckCatalogRows,
   checkRowStatusVisual,
+  partitionLawCheckRows,
   summarizeCheckRows,
+  summarizeCoreLaborLawRows,
   type CheckCatalogRow,
 } from '../../lib/employee/check-catalog';
 import { EmployeeValidationAiButton } from './EmployeeValidationAiButton';
@@ -101,6 +103,7 @@ export function EmployeeValidationResults({
 }: EmployeeValidationResultsProps) {
   const { t } = useTranslation();
   const checkFocused = presentation === 'checkRows';
+  const [showMoreLawChecks, setShowMoreLawChecks] = useState(false);
 
   const catalogRows = useMemo(() => {
     if (!checkFocused) return [] as CheckCatalogRow[];
@@ -110,6 +113,16 @@ export function EmployeeValidationResults({
       checkGroup === 'all' ? 'all' : checkGroup,
     );
   }, [checkFocused, checkGroup, report, t]);
+
+  const lawPartitions = useMemo(() => {
+    if (!checkFocused || checkGroup !== 'law_checks') return null;
+    return partitionLawCheckRows(catalogRows);
+  }, [catalogRows, checkFocused, checkGroup]);
+
+  const coreLawSummary = useMemo(() => {
+    if (!lawPartitions) return null;
+    return summarizeCoreLaborLawRows(lawPartitions.primary);
+  }, [lawPartitions]);
 
   const cards = useMemo(() => {
     if (checkFocused) return [] as ValidationCard[];
@@ -220,7 +233,10 @@ export function EmployeeValidationResults({
 
   const counts = useMemo(() => {
     if (checkFocused) {
-      const summary = summarizeCheckRows(catalogRows);
+      // Law tab rail/summary reflects primary (core) rules only — never NOT_READY / secondary.
+      const rowsForCounts =
+        checkGroup === 'law_checks' && lawPartitions ? lawPartitions.primary : catalogRows;
+      const summary = summarizeCheckRows(rowsForCounts);
       return {
         passed: summary.passed,
         failed: summary.failed,
@@ -237,7 +253,7 @@ export function EmployeeValidationResults({
       if (card.status !== 'unchecked') c.executed += 1;
     }
     return c;
-  }, [cards, catalogRows, checkFocused]);
+  }, [cards, catalogRows, checkFocused, checkGroup, lawPartitions]);
 
   const catalogGroups = useMemo(() => {
     if (!checkFocused || checkGroup !== 'employee_checks') return null;
@@ -560,6 +576,55 @@ export function EmployeeValidationResults({
                   {group.rows.map(renderCatalogRow)}
                 </section>
               ))
+            ) : lawPartitions && coreLawSummary ? (
+              <>
+                <section
+                  className="employee-validation-group employee-validation-core-law"
+                  aria-label={t('employee.validation.coreLaborLawTitle')}
+                >
+                  <header className="employee-validation-core-law__summary">
+                    <h4>{t('employee.validation.coreLaborLawTitle')}</h4>
+                    <dl className="employee-validation-core-law__counts">
+                      <div>
+                        <dt>{t('employee.validation.coreLaborLawTotal')}</dt>
+                        <dd>{coreLawSummary.total}</dd>
+                      </div>
+                      <div>
+                        <dt>{t('employee.validation.coreLaborLawExecuted')}</dt>
+                        <dd>{coreLawSummary.executed}</dd>
+                      </div>
+                      <div>
+                        <dt>{t('employee.validation.coreLaborLawSkipped')}</dt>
+                        <dd>{coreLawSummary.skipped}</dd>
+                      </div>
+                    </dl>
+                  </header>
+                  {lawPartitions.primary.map(renderCatalogRow)}
+                </section>
+                {lawPartitions.secondary.length > 0 && (
+                  <div className="employee-validation-law-more">
+                    <button
+                      type="button"
+                      className="btn btn--ghost employee-validation-law-more__btn"
+                      aria-expanded={showMoreLawChecks}
+                      onClick={() => setShowMoreLawChecks((value) => !value)}
+                    >
+                      {showMoreLawChecks
+                        ? t('employee.validation.showLess')
+                        : t('employee.validation.showMore')}
+                    </button>
+                    {showMoreLawChecks && (
+                      <section
+                        className="employee-validation-group"
+                        aria-label={t('employee.validation.additionalLawChecks')}
+                      >
+                        <h4>{t('employee.validation.additionalLawChecks')}</h4>
+                        {lawPartitions.secondary.map(renderCatalogRow)}
+                      </section>
+                    )}
+                  </div>
+                )}
+              </>
             ) : (
               catalogRows.map(renderCatalogRow)
             )

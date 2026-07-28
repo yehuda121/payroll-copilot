@@ -6,7 +6,10 @@ from decimal import Decimal
 from datetime import UTC, datetime
 from uuid import UUID
 
-from payroll_copilot.application.dto.validation_report_enrichment import ValidationReportEnrichment
+from payroll_copilot.application.dto.validation_report_enrichment import (
+    ValidationReportEnrichment,
+    merge_validation_context_snapshot,
+)
 from payroll_copilot.application.dto.validation_run import ValidationFindingRecord, ValidationRunRecord
 from payroll_copilot.application.ports.repositories import (
     ValidationFindingRepository,
@@ -33,9 +36,10 @@ class DynamoValidationRunRepository(ValidationRunRepository):
 
     def _to_item(self, run: ValidationRunRecord) -> dict:
         now = datetime.now(UTC)
-        context_snapshot = run.context_snapshot
-        if run.enrichment is not None:
-            context_snapshot = run.enrichment.to_context_snapshot()
+        context_snapshot = merge_validation_context_snapshot(
+            run.context_snapshot,
+            run.enrichment,
+        )
         completed = run.completed_at or now
         item = {
             "PK": keys.gsi1_doc(run.document_id),

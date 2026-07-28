@@ -69,6 +69,14 @@ class CorrectEmployeeExtractionUseCase:
 
         correction = await self._guest.execute(document_id=document_id, corrections=corrections)
 
+        # Guest correct persists a new extraction + lifecycle/current_extraction_* on the
+        # document. Reload so comparison snapshot merge does not overwrite that write with
+        # the pre-correct in-memory metadata (which can leave lifecycle "confirmed" while
+        # the latest extraction is review_required — breaking employee validate).
+        document = await self._documents.get_by_id(document_id)
+        if document is None:
+            raise DocumentNotFoundError(document_id)
+
         meta = dict(document.metadata or {})
         selected_year = int(meta.get("selected_period_year") or (document.period.year if document.period else 0))
         selected_month = int(

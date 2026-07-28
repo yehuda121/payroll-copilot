@@ -124,21 +124,21 @@ describe('Scope A validation UI hardening', () => {
     );
   });
 
-  it('places delete action inline with the field value row', () => {
+  it('places delete action inline with the field label row', () => {
     const form = read('features/employee/EmployeeDigitalForm.tsx');
-    expect(form).toContain('employee-digital-form__value-row');
+    expect(form).toContain('employee-digital-form__card-header');
     expect(form).toContain('onRemoveField');
     expect(form).toMatch(
-      /employee-digital-form__value-row[\s\S]*?digital-form__value-btn[\s\S]*?onRemoveField[\s\S]*?Trash2/,
+      /employee-digital-form__card-header[\s\S]*?Trash2[\s\S]*?employee-digital-form__card-body/,
     );
     expect(form).not.toMatch(
-      /employee-digital-form__card-footer[\s\S]{0,400}requestDeleteField/,
+      /employee-digital-form__value-row[\s\S]*?Trash2/,
     );
 
     const css = read('pages/employee/PayslipMonthWorkspace.css');
-    expect(css).toContain('.employee-digital-form__value-row');
+    expect(css).toContain('.employee-digital-form__card-header-actions');
     expect(css).toMatch(
-      /\.employee-digital-form__value-row[\s\S]*?display:\s*flex/,
+      /\.employee-digital-form__card-header[\s\S]*?display:\s*flex/,
     );
   });
 

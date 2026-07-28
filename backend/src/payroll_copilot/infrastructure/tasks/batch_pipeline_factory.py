@@ -10,6 +10,9 @@ Do not duplicate OCR/Document-Model/validation wiring elsewhere.
 from payroll_copilot.application.services.batch_payslip_pipeline import (
     BatchPayslipPipelineService,
 )
+from payroll_copilot.application.services.confirmed_employment_terms_loader import (
+    ConfirmedEmploymentTermsLoader,
+)
 from payroll_copilot.application.use_cases.extract_guest_payslip import (
     ExtractGuestPayslipUseCase,
 )
@@ -38,7 +41,11 @@ from payroll_copilot.infrastructure.storage.factory import create_object_storage
 
 
 def create_batch_payslip_pipeline() -> BatchPayslipPipelineService:
-    """Compose employee-grade Document Model extraction and validation for Celery."""
+    """Compose employee-grade Document Model extraction and validation for Celery.
+
+    Validation DI mirrors ``get_run_persisted_validation_use_case`` (employees +
+    confirmed employment terms) so matched batch slips authorize EMPLOYEE/CONTRACT rules.
+    """
     settings = get_settings()
     documents = get_document_repository()
     extractions = get_document_extraction_repository()
@@ -66,6 +73,11 @@ def create_batch_payslip_pipeline() -> BatchPayslipPipelineService:
         validation_run_repository=get_validation_run_repository(),
         validation_finding_repository=get_validation_finding_repository(),
         organization_bootstrap=organization_bootstrap,
+        employee_repository=employees,
+        employment_terms_loader=ConfirmedEmploymentTermsLoader(
+            documents=documents,
+            extractions=extractions,
+        ),
     )
     return BatchPayslipPipelineService(
         extract=extract,

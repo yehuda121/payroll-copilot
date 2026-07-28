@@ -106,7 +106,10 @@ export function MyPayslipsPage() {
     }));
 
   return (
-    <PortalPage title={copy.payslipsTitle} description={copy.payslipsDescription}>
+    <PortalPage
+      title={copy.payslipsTitle}
+      description={copy.isAccountant ? '' : copy.payslipsDescription}
+    >
       <div className="employee-payslips">
         <div className="analytics-tabs" role="tablist" aria-label={t('employee.analytics.tabsLabel')}>
           <button

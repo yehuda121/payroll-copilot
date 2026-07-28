@@ -1094,6 +1094,21 @@ html[data-theme='dark'] .data-table__row--clickable:hover {
   padding: 0.35rem 1.1rem 1rem;
 }
 
+.modal-dialog__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 0.65rem;
+}
+
+.modal-dialog__icon--warning {
+  color: var(--color-warning, #b45309);
+}
+
+.modal-dialog__icon--danger {
+  color: var(--color-danger, #b91c1c);
+}
+
 .modal-dialog__message {
   margin: 0;
   color: var(--color-text-muted);

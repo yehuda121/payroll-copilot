@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import Decimal
 
 
@@ -85,3 +85,21 @@ class ValidationReportEnrichment:
             checks_passed_count=int(snapshot.get("checks_passed_count", 0)),
             extraction_connected=bool(snapshot.get("extraction_connected", False)),
         )
+
+
+def merge_validation_context_snapshot(
+    context_snapshot: dict | None,
+    enrichment: ValidationReportEnrichment | None,
+) -> dict:
+    """Combine enrichment UI fields with the full validation snapshot.
+
+    Enrichment alone must never replace ``context_snapshot`` — that would drop
+    ``rule_outcomes``, ``rerun_scope``, and other orchestrator fields.
+    Snapshot keys win on conflict so explicit validation data is preserved.
+    """
+    merged: dict = {}
+    if enrichment is not None:
+        merged.update(enrichment.to_context_snapshot())
+    if context_snapshot:
+        merged.update(dict(context_snapshot))
+    return merged

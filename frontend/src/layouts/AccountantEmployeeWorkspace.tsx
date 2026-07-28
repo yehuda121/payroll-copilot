@@ -26,6 +26,9 @@ export function AccountantEmployeeWorkspaceLayout() {
   const { t } = useTranslation();
   const { dir } = useAppLocale();
   const { employeeNumber = '' } = useParams<{ employeeNumber: string }>();
+  const { year: yearParam, month: monthParam } = useParams<{ year?: string; month?: string }>();
+  const year = yearParam ? Number(yearParam) : null;
+  const month = monthParam ? Number(monthParam) : null;
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const batchJobId = searchParams.get('batchJobId');
@@ -57,9 +60,6 @@ export function AccountantEmployeeWorkspaceLayout() {
   const [master, setMaster] = useState<EmployeeRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const basePath = `/accountant/employees/${encodeURIComponent(employeeNumber)}/workspace`;
-  const isDocumentsSection =
-    location.pathname === `${basePath}/documents` ||
-    location.pathname.endsWith('/workspace/documents');
   const requestedBackPath =
     typeof location.state === 'object' &&
     location.state &&
@@ -133,14 +133,30 @@ export function AccountantEmployeeWorkspaceLayout() {
             <div className="accountant-employee-workspace__identity">
               <div>
                 <h1>{displayName || t('common.loading')}</h1>
-                <p>
-                  {profile
-                    ? t('accountant.workspace.employeeNumber', {
-                        number: profile.employee_number,
-                      })
-                    : t('accountant.workspace.loading')}
-                  {master?.email ? ` · ${master.email}` : ''}
-                </p>
+                <ul className="accountant-employee-workspace__identity-list">
+                  {master?.nationalIdMasked ? (
+                    <li>
+                      {t('accountant.workspace.nationalId', { id: master.nationalIdMasked })}
+                    </li>
+                  ) : null}
+                  <li>
+                    {profile || master
+                      ? t('accountant.workspace.employeeNumber', {
+                          number: profile?.employee_number || employeeNumber,
+                        })
+                      : t('accountant.workspace.loading')}
+                  </li>
+                  {year != null &&
+                  month != null &&
+                  !Number.isNaN(year) &&
+                  !Number.isNaN(month) ? (
+                    <li>
+                      {t('accountant.workspace.payrollPeriod', {
+                        period: `01/${String(month).padStart(2, '0')}/${year}`,
+                      })}
+                    </li>
+                  ) : null}
+                </ul>
               </div>
             </div>
             {!batchReview && (
@@ -163,23 +179,8 @@ export function AccountantEmployeeWorkspaceLayout() {
             </p>
           )}
 
-          {!batchReview && isDocumentsSection ? (
-            <div className="accountant-employee-workspace__page-heading" dir="rtl">
-              <h2 className="accountant-employee-workspace__page-title">
-                {t('accountant.workspace.documentsTitle', {
-                  name: displayName || t('common.emDash'),
-                })}
-              </h2>
-              <div id="accountant-doc-page-status-host" />
-            </div>
-          ) : null}
-
           {!batchReview && (
-            <div
-              className={`accountant-employee-workspace__section-nav${
-                isDocumentsSection ? ' is-documents' : ''
-              }`}
-            >
+            <div className="accountant-employee-workspace__section-nav">
               <nav
                 className="employee-review-tabs accountant-employee-workspace__tabs accountant-employee-workspace__tabs--primary"
                 aria-label={t('accountant.workspace.tabsLabel')}

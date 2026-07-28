@@ -11,7 +11,7 @@ import {
 describe('payslip-field-registry', () => {
   it('uses national_id as required National ID, not employee_id', () => {
     const required = requiredOnPayslipKeys();
-    expect(required).toContain('national_id');
+    expect(required).toEqual(['employee_name', 'national_id']);
     expect(required).not.toContain('employee_id');
     expect(requirementCategoryForKey('employee_id')).toBe('expected');
   });
@@ -30,9 +30,10 @@ describe('payslip-field-registry', () => {
     }
   });
 
-  it('keeps amount_paid distinct from net_salary', () => {
-    expect(requiredOnPayslipKeys()).toContain('amount_paid');
-    expect(requiredOnPayslipKeys()).toContain('net_salary');
+  it('limits required_on_payslip presentation slots to identity required fields', () => {
+    expect(requiredOnPayslipKeys()).toEqual(['employee_name', 'national_id']);
+    expect(requirementCategoryForKey('amount_paid')).toBe('expected');
+    expect(requirementCategoryForKey('net_salary')).toBe('expected');
   });
 
   it('covers backend PAYSLIP_FIELD_KEYS', () => {
@@ -44,7 +45,9 @@ describe('payslip-field-registry', () => {
   it('exposes a stable sync snapshot with corrected NID semantics', () => {
     const snap = registrySnapshotForSync();
     expect(snap.national_id.required_on_payslip).toBe(true);
+    expect(snap.employee_name.required_on_payslip).toBe(true);
     expect(snap.employee_id.required_on_payslip).toBe(false);
+    expect(snap.employer_name.required_on_payslip).toBe(false);
     expect(snap.employer_name.section).toBe('employer');
   });
 

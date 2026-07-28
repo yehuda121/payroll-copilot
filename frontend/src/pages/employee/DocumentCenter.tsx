@@ -1,5 +1,3 @@
-import { createPortal } from 'react-dom';
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
 import { DocumentTypeCard } from '../../components/document/DocumentTypeCard';
@@ -22,31 +20,12 @@ export function DocumentCenterPage() {
   const { t } = useTranslation();
   const copy = useWorkspacePageCopy();
   const isAccountant = copy.isAccountant;
-  const [statusHost, setStatusHost] = useState<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (!isAccountant) {
-      setStatusHost(null);
-      return;
-    }
-    setStatusHost(document.getElementById('accountant-doc-page-status-host'));
-  }, [isAccountant]);
 
   return (
     <PortalPage
       title={copy.documentsTitle}
       description={isAccountant ? '' : copy.documentsDescription}
-      hideHeader={isAccountant}
     >
-      {isAccountant && statusHost
-        ? createPortal(
-            <p className="accountant-doc-page__status" role="status">
-              {t('employee.documents.persistentIntro')}
-            </p>,
-            statusHost,
-          )
-        : null}
-
       <div
         className={`document-center-grid ui-chrome-rtl${isAccountant ? ' accountant-doc-workspace' : ''}`}
         dir="rtl"

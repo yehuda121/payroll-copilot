@@ -5,6 +5,7 @@ import { fixedFieldKeysFor } from '../../lib/employee/document-fixed-forms';
 import { parseBirthDate } from '../../lib/employee/birth-date';
 import { FIELD_MAX_LENGTH, validatePersonName } from '../../lib/employee/field-text';
 import { validateNationalId } from '../../lib/employee/israeli-id';
+import '../../components/document/document-preview-card.css';
 import '../employee/employee-payslip.css';
 import '../guest/landing/landing-chat.css';
 
@@ -59,122 +60,171 @@ export function EmployeeFixedDocumentForm({
 
   if (documentType === 'contract') {
     return (
-      <div className="employee-digital-form" data-busy={busy || undefined}>
-        {reviewNotice ? <p className="landing-muted">{reviewNotice}</p> : null}
-        <p className="landing-muted">
-          {t('employee.documents.contract.termsHint', {
-            defaultValue:
-              'Confirm original employment commencement and contractual pay terms. Do not use system registration dates.',
-          })}
+      <div
+        className="digital-form employee-digital-form document-fixed-edit-form"
+        data-busy={busy || undefined}
+        role="form"
+        aria-label={t('employee.documents.tabDigital')}
+      >
+        {reviewNotice ? (
+          <p className="digital-form__hint document-fixed-edit-form__notice">{reviewNotice}</p>
+        ) : null}
+        <p className="digital-form__hint document-fixed-edit-form__notice">
+          {t('employee.documents.contract.termsHint')}
         </p>
-        {keys.map((key) => {
-          const label = t(`employee.documents.contract.fields.${key}`, {
-            defaultValue: key.replaceAll('_', ' '),
-          });
-          const value = values[key] ?? '';
-          if (CONTRACT_DATE_KEYS.has(key)) {
+        <div className="digital-form__grid document-fixed-edit-form__grid">
+          {keys.map((key) => {
+            const label = t(`employee.documents.contract.fields.${key}`);
+            const value = values[key] ?? '';
+            const fieldId = `contract-${key}`;
+            if (CONTRACT_DATE_KEYS.has(key)) {
+              return (
+                <BirthDateField
+                  key={key}
+                  id={fieldId}
+                  label={label}
+                  value={value}
+                  disabled={busy}
+                  error={fieldErrors[key]}
+                  onChange={(next) => onChangeField(key, next)}
+                />
+              );
+            }
+            if (key === 'salary_basis') {
+              return (
+                <label
+                  key={key}
+                  className="digital-form__field employee-digital-form__field"
+                  htmlFor={fieldId}
+                >
+                  <span className="digital-form__label">{label}</span>
+                  <select
+                    id={fieldId}
+                    className="digital-form__input"
+                    value={value}
+                    disabled={busy}
+                    onChange={(event) => onChangeField(key, event.target.value)}
+                  >
+                    <option value="">{t('common.emDash')}</option>
+                    <option value="monthly">{t('employee.documents.contract.salaryBasis.monthly')}</option>
+                    <option value="hourly">{t('employee.documents.contract.salaryBasis.hourly')}</option>
+                    <option value="daily">{t('employee.documents.contract.salaryBasis.daily')}</option>
+                  </select>
+                </label>
+              );
+            }
             return (
-              <BirthDateField
+              <label
                 key={key}
-                id={`contract-${key}`}
-                label={label}
-                value={value}
-                disabled={busy}
-                error={fieldErrors[key]}
-                onChange={(next) => onChangeField(key, next)}
-              />
-            );
-          }
-          if (key === 'salary_basis') {
-            return (
-              <label key={key} className="landing-field">
-                <span>{label}</span>
-                <select
+                className="digital-form__field employee-digital-form__field"
+                htmlFor={fieldId}
+              >
+                <span className="digital-form__label">{label}</span>
+                <input
+                  id={fieldId}
+                  className={`digital-form__input${fieldErrors[key] ? ' is-invalid' : ''}`}
                   value={value}
                   disabled={busy}
                   onChange={(event) => onChangeField(key, event.target.value)}
-                >
-                  <option value="">{t('common.emDash', { defaultValue: '—' })}</option>
-                  <option value="monthly">
-                    {t('employee.documents.contract.salaryBasis.monthly', { defaultValue: 'Monthly' })}
-                  </option>
-                  <option value="hourly">
-                    {t('employee.documents.contract.salaryBasis.hourly', { defaultValue: 'Hourly' })}
-                  </option>
-                  <option value="daily">
-                    {t('employee.documents.contract.salaryBasis.daily', { defaultValue: 'Daily' })}
-                  </option>
-                </select>
+                  inputMode="decimal"
+                />
+                {fieldErrors[key] ? (
+                  <span className="digital-form__error" role="alert">
+                    {fieldErrors[key]}
+                  </span>
+                ) : null}
               </label>
             );
-          }
-          return (
-            <label key={key} className="landing-field">
-              <span>{label}</span>
-              <input
-                value={value}
-                disabled={busy}
-                onChange={(event) => onChangeField(key, event.target.value)}
-                inputMode="decimal"
-              />
-              {fieldErrors[key] ? <span className="field-error">{fieldErrors[key]}</span> : null}
-            </label>
-          );
-        })}
+          })}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="employee-digital-form" data-busy={busy || undefined}>
-      {reviewNotice ? <p className="landing-muted">{reviewNotice}</p> : null}
-      {keys.map((key) => {
-        if (key === 'birth_date') {
-          return (
-            <BirthDateField
-              key={key}
-              id="id-birth-date"
-              label={t('employee.documents.fields.birth_date', { defaultValue: 'Birth date' })}
-              value={values.birth_date ?? ''}
-              disabled={busy}
-              error={fieldErrors.birth_date}
-              onChange={(next) => onChangeField('birth_date', next)}
-            />
-          );
-        }
-        if (key === 'national_id') {
-          return (
-            <label key={key} className="landing-field">
-              <span>{t('employee.documents.fields.national_id', { defaultValue: 'National ID' })}</span>
-              <input
-                value={values.national_id ?? ''}
+    <div
+      className="digital-form employee-digital-form document-fixed-edit-form"
+      data-busy={busy || undefined}
+      role="form"
+      aria-label={t('employee.documents.tabDigital')}
+    >
+      {reviewNotice ? (
+        <p className="digital-form__hint document-fixed-edit-form__notice">{reviewNotice}</p>
+      ) : null}
+      <div className="digital-form__grid document-fixed-edit-form__grid">
+        {keys.map((key) => {
+          if (key === 'birth_date') {
+            return (
+              <BirthDateField
+                key={key}
+                id="id-birth-date"
+                label={t('employee.documents.fixedFields.birth_date')}
+                value={values.birth_date ?? ''}
                 disabled={busy}
-                maxLength={FIELD_MAX_LENGTH.nationalId}
-                onBlur={() => setTouchedId(true)}
-                onChange={(event) => onChangeField('national_id', event.target.value)}
+                error={fieldErrors.birth_date}
+                onChange={(next) => onChangeField('birth_date', next)}
               />
-              {(touchedId ? liveIdError : null) || fieldErrors.national_id ? (
-                <span className="field-error">{fieldErrors.national_id || liveIdError}</span>
+            );
+          }
+          if (key === 'national_id') {
+            const idInvalid = Boolean((touchedId ? liveIdError : null) || fieldErrors.national_id);
+            return (
+              <label
+                key={key}
+                className="digital-form__field employee-digital-form__field"
+                htmlFor="id-national-id"
+              >
+                <span className="digital-form__label">
+                  {t('employee.documents.fixedFields.national_id')}
+                </span>
+                <input
+                  id="id-national-id"
+                  className={`digital-form__input${idInvalid ? ' is-invalid' : ''}`}
+                  value={values.national_id ?? ''}
+                  disabled={busy}
+                  maxLength={FIELD_MAX_LENGTH.nationalId}
+                  autoComplete="off"
+                  inputMode="numeric"
+                  onBlur={() => setTouchedId(true)}
+                  onChange={(event) => onChangeField('national_id', event.target.value)}
+                />
+                {idInvalid ? (
+                  <span className="digital-form__error" role="alert">
+                    {fieldErrors.national_id || liveIdError}
+                  </span>
+                ) : null}
+              </label>
+            );
+          }
+          const nameInvalid = Boolean((touchedName ? liveNameError : null) || fieldErrors.full_name);
+          return (
+            <label
+              key={key}
+              className="digital-form__field employee-digital-form__field"
+              htmlFor="id-full-name"
+            >
+              <span className="digital-form__label">
+                {t('employee.documents.fixedFields.full_name')}
+              </span>
+              <input
+                id="id-full-name"
+                className={`digital-form__input${nameInvalid ? ' is-invalid' : ''}`}
+                value={values.full_name ?? ''}
+                disabled={busy}
+                maxLength={FIELD_MAX_LENGTH.personName}
+                autoComplete="name"
+                onBlur={() => setTouchedName(true)}
+                onChange={(event) => onChangeField('full_name', event.target.value)}
+              />
+              {nameInvalid ? (
+                <span className="digital-form__error" role="alert">
+                  {fieldErrors.full_name || liveNameError}
+                </span>
               ) : null}
             </label>
           );
-        }
-        return (
-          <label key={key} className="landing-field">
-            <span>{t('employee.documents.fields.full_name', { defaultValue: 'Full name' })}</span>
-            <input
-              value={values.full_name ?? ''}
-              disabled={busy}
-              maxLength={FIELD_MAX_LENGTH.personName}
-              onBlur={() => setTouchedName(true)}
-              onChange={(event) => onChangeField('full_name', event.target.value)}
-            />
-            {(touchedName ? liveNameError : null) || fieldErrors.full_name ? (
-              <span className="field-error">{fieldErrors.full_name || liveNameError}</span>
-            ) : null}
-          </label>
-        );
-      })}
+        })}
+      </div>
       {/* Keep parseBirthDate referenced for tree-shaking-safe reuse in parents */}
       <span hidden>{parseBirthDate(values.birth_date ?? '') ? '' : ''}</span>
     </div>

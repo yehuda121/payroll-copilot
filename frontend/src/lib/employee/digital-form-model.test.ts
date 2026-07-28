@@ -5,21 +5,25 @@ import type { ExtractedPayslipField } from '../../types/api';
 
 const t = ((key: string) => key) as TFunction;
 
-function field(key: string, value: unknown): ExtractedPayslipField {
+function field(
+  key: string,
+  value: unknown,
+  status: ExtractedPayslipField['status'] = 'FOUND',
+): ExtractedPayslipField {
   return {
     key,
     value,
     confidence: 0.9,
     source_text: null,
-    status: 'FOUND',
+    status,
     edited_by_user: false,
   };
 }
 
 describe('buildDigitalFormSections', () => {
-  it('orders Required before Expected and injects missing required empties', () => {
+  it('always shows required_on_payslip slots and hides missing optional fields', () => {
     const sections = buildDigitalFormSections(
-      [field('gross_salary', 10000), field('vacation_balance', 5)],
+      [field('gross_salary', 10000), field('vacation_balance', 5), field('employer_name', null, 'MISSING')],
       {},
       t,
       'en',
@@ -27,16 +31,13 @@ describe('buildDigitalFormSections', () => {
     );
     expect(sections.map((s) => s.id)).toEqual(['required', 'expected']);
     const requiredKeys = sections[0].fields.map((f) => f.key);
-    expect(requiredKeys[0]).toBe('employee_name');
-    expect(sections[0].fields.some((f) => f.key === 'national_id' && f.missingRequired)).toBe(
-      true,
-    );
-    expect(sections[0].fields.some((f) => f.key === 'employer_name' && f.missingRequired)).toBe(
-      true,
-    );
-    expect(sections[0].fields.some((f) => f.key === 'gross_salary' && !f.missingRequired)).toBe(
-      true,
-    );
+    expect(requiredKeys).toEqual(['employee_name', 'national_id']);
+    expect(sections[0].fields.every((f) => f.missingRequired)).toBe(true);
+
+    const expected = sections.find((s) => s.id === 'expected')!;
+    expect(expected.fields.map((f) => f.key).sort()).toEqual(['gross_salary', 'vacation_balance']);
+    expect(expected.fields.some((f) => f.key === 'employer_name')).toBe(false);
+    expect(expected.fields.some((f) => f.key === 'net_salary')).toBe(false);
   });
 
   it('hides Other for employee but shows for accountant', () => {

@@ -546,6 +546,8 @@
     "workspace": {
       "back": "חזרה",
       "employeeNumber": "עובד מס׳ {{number}}",
+      "nationalId": "ת.ז. {{id}}",
+      "payrollPeriod": "תקופת שכר {{period}}",
       "loading": "טוען סביבת עבודה לעובד…",
       "tabsLabel": "סביבת העבודה של העובד שנבחר",
       "navDocuments": "מסמכים",
@@ -620,6 +622,9 @@
         "pendingReview": "ממתין לאישור חשב שכר",
         "published": "פורסם לעובד",
         "requireCurrentValidation": "יש לאשר את התלוש הדיגיטלי הנוכחי ולהריץ אימות לפני הפרסום.",
+        "confirmPeriodsTitle": "אישור תקופות שכר",
+        "confirmPeriodsMessage": "תלוש אחד או יותר הועלה ללא תקופת שכר שזוהתה.\n\nעבור תלושים אלה המערכת מציעה:\n{{period}}\n\nיש לאשר שתקופת השכר הזו נכונה לפני הפרסום.",
+        "confirmPeriodsAction": "אישור ופרסום",
         "checks": {
           "extraction": "התלוש הדיגיטלי זמין",
           "corrections": "כל התיקונים נשמרו ואושרו",

@@ -18,6 +18,7 @@ import {
   computeSelectAllState,
   pruneSelectionToAliveIds,
 } from '../../lib/accountant/batch-selection';
+import { proposedPayrollPeriodValue } from '../../lib/employee/payroll-period-proposal';
 import './BulkPayrollUpload.css';
 
 const FILTERS: Array<{ id: BatchEmployeeStatus | 'all'; labelKey: string }> = [
@@ -268,6 +269,20 @@ export function BulkPayrollUploadPage() {
 
   const bulkPublish = async () => {
     if (!batch.activeJobId || !selectedPublishable.length) return;
+    const proposed = proposedPayrollPeriodValue();
+    const needsPeriodApproval = selectedPublishable.some(
+      (item) => item.payroll_year == null || item.payroll_month == null,
+    );
+    if (needsPeriodApproval) {
+      const periodAccepted = await confirm({
+        title: t('accountant.bulk.publish.confirmPeriodsTitle'),
+        message: t('accountant.bulk.publish.confirmPeriodsMessage', { period: proposed }),
+        confirmLabel: t('accountant.bulk.publish.confirmPeriodsAction'),
+        cancelLabel: t('common.cancel'),
+        variant: 'warning',
+      });
+      if (!periodAccepted) return;
+    }
     const accepted = await confirm({
       title: t('accountant.bulk.selection.publishTitle', {
         count: selectedPublishable.length,

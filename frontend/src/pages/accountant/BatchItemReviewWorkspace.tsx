@@ -19,6 +19,8 @@ import {
 import { employeesService } from '../../services/employees';
 import type { EmployeeRecord } from '../../types/employee';
 import { buildEmployeeFieldValidationMap } from '../../lib/employee/field-validation-status';
+import { applyPayrollPeriodPresentation } from '../../lib/employee/payroll-period-presentation';
+import { proposedPayrollPeriodValue } from '../../lib/employee/payroll-period-proposal';
 import { FIELD_MAX_LENGTH, validatePersonName } from '../../lib/employee/field-text';
 import { validateNationalId } from '../../lib/employee/israeli-id';
 import {
@@ -140,6 +142,7 @@ export function BatchItemReviewWorkspacePage() {
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   /** Validate / rerun / approve failures — Validation tab only. */
   const [actionError, setActionError] = useState<string | null>(null);
+  const [payPeriodApproved, setPayPeriodApproved] = useState(false);
   const [createValues, setCreateValues] = useState<CreateValues>({
     employeeNumber: '',
     firstName: '',
@@ -235,10 +238,44 @@ export function BatchItemReviewWorkspacePage() {
     [latest, review],
   );
 
-  const validationMap = useMemo(() => {
+  const baseValidationMap = useMemo(() => {
     if (dirty || !review) return {};
     return buildEmployeeFieldValidationMap(review.fields, validationReport);
   }, [dirty, review, validationReport]);
+
+  const periodPresentation = useMemo(
+    () =>
+      applyPayrollPeriodPresentation({
+        fields: review?.fields,
+        drafts,
+        validationMap: baseValidationMap,
+        periodApproved: payPeriodApproved,
+        workspaceYear: review?.item.payroll_year ?? undefined,
+        workspaceMonth: review?.item.payroll_month ?? undefined,
+        proposedExplanation: t('employee.digitalForm.payrollPeriodProposedExplain', {
+          period: proposedPayrollPeriodValue(
+            review?.item.payroll_year ?? undefined,
+            review?.item.payroll_month ?? undefined,
+          ),
+        }),
+      }),
+    [
+      baseValidationMap,
+      drafts,
+      payPeriodApproved,
+      review?.fields,
+      review?.item.payroll_month,
+      review?.item.payroll_year,
+      t,
+    ],
+  );
+
+  const validationMap = periodPresentation.validationMap;
+  const digitalFormDrafts = periodPresentation.displayDrafts;
+
+  useEffect(() => {
+    setPayPeriodApproved(false);
+  }, [itemId]);
 
   const mapError = (reason: unknown, fallback: string) =>
     getDisplayError(reason, fallback, { networkFallback: t('common.networkUnavailable') });
@@ -274,15 +311,14 @@ export function BatchItemReviewWorkspacePage() {
 
   const approveCheck = async (input: { ruleId: string; findingId?: string | null }) => {
     if (!review || !latest) return;
-    const reason = window.prompt(
-      t('employee.validation.actions.approveReasonPrompt'),
-    );
-    if (reason == null) return;
-    const trimmed = reason.trim();
-    if (!trimmed) {
-      setActionError(t('employee.validation.actions.approveReasonRequired'));
-      return;
-    }
+    const accepted = await confirm({
+      title: t('employee.validation.actions.approveConfirmTitle'),
+      message: t('employee.validation.actions.approveConfirmMessage'),
+      confirmLabel: t('employee.validation.actions.approveConfirm'),
+      cancelLabel: t('common.cancel'),
+      variant: 'warning',
+    });
+    if (!accepted) return;
     setBusyRuleId(input.ruleId);
     setActionError(null);
     try {
@@ -292,7 +328,7 @@ export function BatchItemReviewWorkspacePage() {
         ruleId: input.ruleId,
         findingId: input.findingId,
         acknowledgement: true,
-        reason: trimmed.slice(0, 500),
+        reason: t('employee.validation.actions.approveDefaultReason').slice(0, 500),
       });
       await refresh();
     } catch (reason) {
@@ -715,7 +751,7 @@ export function BatchItemReviewWorkspacePage() {
           >
             <EmployeeDigitalForm
               fields={review?.fields}
-              drafts={drafts}
+              drafts={digitalFormDrafts}
               editable
               audience="accountant"
               collapseSecondaryFields
@@ -734,6 +770,66 @@ export function BatchItemReviewWorkspacePage() {
                   [key]: { value: '', clear: true, dirty: true },
                 }))
               }
+              onRemoveField={(key) => {
+                setReview((previous) =>
+                  previous
+                    ? {
+                        ...previous,
+                        fields: previous.fields.filter((field) => field.key !== key),
+                      }
+                    : previous,
+                );
+                setDrafts((previous) => ({
+                  ...previous,
+                  [key]: { value: '', clear: true, dirty: true },
+                }));
+              }}
+              onAddField={({ name, value }) => {
+                const label = name.trim();
+                const key = label
+                  ? `custom_field_${label
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, '_')
+                      .replace(/^_|_$/g, '')
+                      .slice(0, 40)}_${crypto.randomUUID().slice(0, 6)}`
+                  : `custom_field_${crypto.randomUUID().slice(0, 8)}`;
+                setReview((previous) =>
+                  previous
+                    ? {
+                        ...previous,
+                        fields: [
+                          ...previous.fields,
+                          {
+                            key,
+                            value,
+                            confidence: null,
+                            source_text: label || null,
+                            status: 'FOUND',
+                            edited_by_user: true,
+                          },
+                        ],
+                      }
+                    : previous,
+                );
+                setDrafts((previous) => ({
+                  ...previous,
+                  [key]: { value, clear: value.trim() === '', dirty: true },
+                }));
+              }}
+              onApproveField={(key) => {
+                if (key !== 'pay_period') return;
+                const proposed =
+                  periodPresentation.proposedValue ||
+                  proposedPayrollPeriodValue(
+                    review?.item.payroll_year ?? undefined,
+                    review?.item.payroll_month ?? undefined,
+                  );
+                setPayPeriodApproved(true);
+                setDrafts((previous) => ({
+                  ...previous,
+                  pay_period: { value: proposed, clear: false, dirty: true },
+                }));
+              }}
             />
           </div>
         )}

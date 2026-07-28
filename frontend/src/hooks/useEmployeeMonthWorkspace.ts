@@ -602,6 +602,11 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       ...prev,
       [key]: { value, clear: value.trim() === '', dirty: true },
     }));
+    // Edits invalidate local confirmation — server stays confirmed until corrections
+    // persist; validate must go through confirmAndValidate so the latest extraction is
+    // re-confirmed (otherwise employee validate hits ExtractionNotConfirmedError).
+    setConfirmationStatus((prev) => (prev === 'confirmed' ? 'review_required' : prev));
+    setAcknowledgement(false);
     setValidationOutdated(true);
   }, []);
 
@@ -610,26 +615,38 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       ...prev,
       [key]: { value: '', clear: true, dirty: true },
     }));
+    setConfirmationStatus((prev) => (prev === 'confirmed' ? 'review_required' : prev));
+    setAcknowledgement(false);
     setValidationOutdated(true);
   }, []);
 
-  const addField = useCallback(() => {
-    const key = `custom_field_${crypto.randomUUID().slice(0, 8)}`;
+  const addField = useCallback((payload?: { name: string; value: string }) => {
+    const label = payload?.name?.trim() || '';
+    const value = payload?.value ?? '';
+    const key = label
+      ? `custom_field_${label
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_|_$/g, '')
+          .slice(0, 40)}_${crypto.randomUUID().slice(0, 6)}`
+      : `custom_field_${crypto.randomUUID().slice(0, 8)}`;
     setFields((prev) => [
       ...prev,
       {
         key,
-        value: '',
+        value,
         confidence: null,
-        source_text: null,
+        source_text: label || null,
         status: 'FOUND',
         edited_by_user: true,
       },
     ]);
     setFieldDrafts((prev) => ({
       ...prev,
-      [key]: { value: '', clear: false, dirty: true },
+      [key]: { value, clear: value.trim() === '', dirty: true },
     }));
+    setConfirmationStatus((prev) => (prev === 'confirmed' ? 'review_required' : prev));
+    setAcknowledgement(false);
     setValidationOutdated(true);
   }, []);
 
@@ -640,6 +657,8 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
       delete next[key];
       return next;
     });
+    setConfirmationStatus((prev) => (prev === 'confirmed' ? 'review_required' : prev));
+    setAcknowledgement(false);
     setValidationOutdated(true);
   }, []);
 
@@ -662,7 +681,19 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
         }));
       if (corrections.length > 0) {
         const latest = await workspaceApi.correctExtraction(documentId, corrections);
-        applyExtraction(latest);
+        // Apply corrected fields without wiping confirmation mid-flight via applyExtraction.
+        // Corrections create review_required on the server until confirm below succeeds.
+        setExtraction(latest);
+        const reviewFields = reviewFieldsFromExtractionPayload(latest);
+        setFields(reviewFields);
+        initDrafts(reviewFields);
+        setConfirmationStatus('review_required');
+        setValidationOutdated(true);
+        if (latest.period_check?.status === 'mismatch' && latest.period_check.blocks_confirmation) {
+          setPeriodPrompt(latest.period_check);
+        } else {
+          setPeriodPrompt(null);
+        }
       }
       const confirmed = await workspaceApi.confirmExtraction(documentId, true);
       setConfirmationStatus(confirmed.confirmation_status);
@@ -685,7 +716,7 @@ export function useEmployeeMonthWorkspace(year: number, month: number) {
     documentId,
     blocksConfirmation,
     fieldDrafts,
-    applyExtraction,
+    initDrafts,
     session,
     year,
     month,

@@ -3,6 +3,9 @@ import type { TFunction } from 'i18next';
 import {
   buildDigitalFormSections,
   digitalFormHasSecondaryFields,
+  digitalFormNeedsShowMore,
+  INITIAL_DIGITAL_FORM_VISIBLE_COUNT,
+  orderDigitalFormFieldsForDisplay,
 } from './digital-form-model';
 import type { ExtractedPayslipField } from '../../types/api';
 
@@ -49,25 +52,43 @@ describe('Digital payslip form sections for accountant batch review', () => {
     expect(keys).toContain('gross_salary');
   });
 
-  it('supports primary-only view and secondary reveal for Show more', () => {
+  it('orders name, national id, employee number, and payroll period first when present', () => {
+    const sections = buildDigitalFormSections(
+      [
+        field('gross_salary', 12000),
+        field('employee_number', '5'),
+        field('pay_period', '01/07/2026'),
+        field('national_id', '123456782'),
+        field('employee_name', 'Dana'),
+        field('net_salary', 9000),
+      ],
+      {},
+      t,
+      'en',
+      { audience: 'accountant' },
+    );
+    const ordered = orderDigitalFormFieldsForDisplay(
+      sections.flatMap((section) => section.fields),
+    );
+    expect(ordered.slice(0, 4).map((row) => row.key)).toEqual([
+      'employee_name',
+      'national_id',
+      'employee_number',
+      'pay_period',
+    ]);
+    expect(ordered.map((row) => row.key)).toContain('gross_salary');
+  });
+
+  it('needs Show more only when more than the initial visible field count', () => {
+    expect(digitalFormNeedsShowMore(INITIAL_DIGITAL_FORM_VISIBLE_COUNT)).toBe(false);
+    expect(digitalFormNeedsShowMore(INITIAL_DIGITAL_FORM_VISIBLE_COUNT + 1)).toBe(true);
+
     const fields = [
       field('employee_name', 'Dana'),
       field('national_id', '123456782'),
       field('gross_salary', 12000),
       field('vacation_balance', 5),
     ];
-    const primary = buildDigitalFormSections(fields, {}, t, 'en', {
-      audience: 'accountant',
-      requirementCategories: ['required'],
-    });
-    const primaryKeys = primary.flatMap((section) => section.fields.map((row) => row.key));
-    expect(primaryKeys).toContain('employee_name');
-    expect(primaryKeys).not.toContain('vacation_balance');
-
     expect(digitalFormHasSecondaryFields(fields, {}, t, 'en', { audience: 'accountant' })).toBe(true);
-
-    const all = buildDigitalFormSections(fields, {}, t, 'en', { audience: 'accountant' });
-    const allKeys = all.flatMap((section) => section.fields.map((row) => row.key));
-    expect(allKeys).toContain('vacation_balance');
   });
 });

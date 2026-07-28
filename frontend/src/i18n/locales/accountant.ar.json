@@ -546,6 +546,8 @@
     "workspace": {
       "back": "رجوع",
       "employeeNumber": "الموظف رقم {{number}}",
+      "nationalId": "رقم الهوية {{id}}",
+      "payrollPeriod": "فترة الرواتب {{period}}",
       "loading": "جارٍ تحميل مساحة عمل الموظف…",
       "tabsLabel": "مساحة عمل الموظف المحدد",
       "navDocuments": "مستندات",
@@ -620,6 +622,9 @@
         "pendingReview": "بانتظار موافقة محاسب الرواتب",
         "published": "تم النشر للموظف",
         "requireCurrentValidation": "يجب تأكيد قسيمة الراتب الرقمية الحالية وتشغيل التحقق قبل النشر.",
+        "confirmPeriodsTitle": "تأكيد فترات الرواتب",
+        "confirmPeriodsMessage": "تم رفع قسيمة راتب واحدة أو أكثر دون اكتشاف فترة رواتب.\n\nبالنسبة لتلك القسائم يقترح النظام:\n{{period}}\n\nيرجى تأكيد أن فترة الرواتب هذه صحيحة قبل النشر.",
+        "confirmPeriodsAction": "تأكيد ونشر",
         "checks": {
           "extraction": "قسيمة الراتب الرقمية متاحة",
           "corrections": "تم حفظ جميع التصحيحات وتأكيدها",

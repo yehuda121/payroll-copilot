@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { CloseIcon } from './icons';
+import { CloseIcon, WarningTriangleIcon } from './icons';
 import './ui.css';
 
 export type DialogVariant = 'default' | 'danger' | 'warning';
@@ -77,6 +77,14 @@ export function DialogProvider({ children }: { children: ReactNode }) {
             </>
           }
         >
+          {(pending.variant ?? 'warning') !== 'default' && (
+            <div
+              className={`modal-dialog__icon modal-dialog__icon--${pending.variant ?? 'warning'}`}
+              aria-hidden="true"
+            >
+              <WarningTriangleIcon size={28} />
+            </div>
+          )}
           <p className="modal-dialog__message">{pending.message}</p>
         </ModalDialog>
       )}

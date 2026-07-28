@@ -579,10 +579,21 @@
         "manuallyApproved": "تمت الموافقة يدويًا"
       },
       "coverageSummary": "{{executed}} من أصل {{total}} فحوصات نُفِّذت",
+      "coreLaborLawTitle": "فحوصات قانون العمل الأساسية",
+      "coreLaborLawTotal": "الإجمالي",
+      "coreLaborLawExecuted": "نُفِّذت",
+      "coreLaborLawSkipped": "تم التخطي",
+      "additionalLawChecks": "فحوصات إضافية",
+      "showMore": "عرض المزيد",
+      "showLess": "عرض أقل",
       "originalCheck": "النتيجة الأصلية: {{status}}",
       "actions": {
         "runAgain": "أعد التشغيل",
         "approveManually": "موافقة يدوية",
+        "approveConfirmTitle": "الموافقة على هذا الفحص يدويًا؟",
+        "approveConfirmMessage": "يؤشر هذا الفحص كموافَق عليه يدويًا للمراجعة. تُحفظ النتيجة الحتمية الأصلية ولا يغيّرها الذكاء الاصطناعي.",
+        "approveConfirm": "موافقة",
+        "approveDefaultReason": "تمت الموافقة يدويًا بعد المراجعة",
         "approveReasonPrompt": "سبب قصير للموافقة اليدوية:",
         "approveReasonRequired": "يلزم سبب قصير.",
         "rerunFailed": "فشلت إعادة تشغيل هذا الفحص.",
@@ -649,7 +660,15 @@
       "missingRequiredHint": "هذا الحقل متوقع في القسيمة لكنه لم يُستخرج. يمكنك إدخاله إذا كنت تعرف القيمة الصحيحة.",
       "missingRequiredExplain": "لم يُعثر على {{field}} في هذه القسيمة. لم تُختلق أي قيمة. يمكنك تعبئته إذا أمكن التحقق من المستند الأصلي.",
       "failedFieldExplain": "لدى {{field}} فحص فاشل. افتح فحوصات الموظف أو فحوصات القانون للاطلاع على النتيجة الحتمية. يمكن للذكاء الاصطناعي الشرح دون تغيير ناجح/فاشل.",
-      "uncertainFieldExplain": "{{field}} غير مؤكد. راجع الأدلة المستخرجة والفحوصات ذات الصلة. يشرح الذكاء الاصطناعي الأدلة المتاحة فقط."
+      "uncertainFieldExplain": "{{field}} غير مؤكد. راجع الأدلة المستخرجة والفحوصات ذات الصلة. يشرح الذكاء الاصطناعي الأدلة المتاحة فقط.",
+      "requiresApproval": "يتطلب موافقة",
+      "approveField": "موافقة",
+      "addFieldTitle": "إضافة حقل",
+      "addFieldName": "اسم الحقل",
+      "addFieldValue": "قيمة الحقل",
+      "addFieldConfirm": "إضافة",
+      "addFieldNameRequired": "أدخل اسم الحقل.",
+      "payrollPeriodProposedExplain": "لم يتم العثور على فترة الرواتب في قسيمة الراتب.\n\nاقترح النظام:\n{{period}}\n\nيرجى التحقق من أن فترة الرواتب هذه صحيحة."
     },
     "compare": {
       "title": "فحص الهوية والفترة",
@@ -878,6 +897,23 @@
         "child_name": "اسم الطفل",
         "child_birth_date": "تاريخ الميلاد"
       },
+      "contract": {
+        "termsHint": "أكد تاريخ بدء العمل الأصلي وشروط الأجر التعاقدية. لا تستخدم تواريخ التسجيل في النظام.",
+        "fields": {
+          "employment_commencement_date": "تاريخ بدء العمل",
+          "salary_basis": "أساس الراتب",
+          "contractual_monthly_salary": "الراتب الشهري التعاقدي",
+          "contractual_hourly_rate": "الأجر الساعي التعاقدي",
+          "contractual_daily_rate": "الأجر اليومي التعاقدي",
+          "effective_from": "ساري من",
+          "effective_to": "ساري حتى"
+        },
+        "salaryBasis": {
+          "monthly": "شهري",
+          "hourly": "ساعي",
+          "daily": "يومي"
+        }
+      },
       "appendix": {
         "children": "الأطفال",
         "childLabel": "طفل {{index}}",
@@ -918,6 +954,7 @@
         "nationalIdDigits": "يجب أن يحتوي رقم الهوية على أرقام فقط.",
         "nationalIdLength": "يجب أن يتكون رقم الهوية من 9 أرقام بالضبط.",
         "nationalIdChecksum": "مجموع التحقق لرقم الهوية غير صالح.",
+        "nationalIdInvalid": "أدخل رقم هوية صالحًا.",
         "dateInvalid": "أدخل تاريخًا صالحًا.",
         "dateUnrecognized": "تنسيق التاريخ غير معروف. استخدم منتقي التاريخ أو تنسيقًا شائعًا مثل DD.MM.YYYY.",
         "datePlaceholder": "YYYY-MM-DD أو DD.MM.YYYY",

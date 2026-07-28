@@ -1,7 +1,8 @@
 /**
  * Stable check-row catalog for Employee/Contract and Law tabs.
  * PASS is shown only when ValidationReport.ruleOutcomes authoritatively says passed.
- * Catalog IDs must stay aligned with backend validation_catalog (all 17 labor-law rules).
+ * Catalog IDs stay aligned with backend validation_catalog; Law tab UI shows only
+ * implemented (CONDITIONAL / PRODUCTION_READY) rules — never NOT_READY placeholders.
  */
 
 import type { TFunction } from 'i18next';
@@ -58,6 +59,55 @@ export const CHECK_CATALOG_RULE_IDS: readonly string[] = [
 export const LABOR_LAW_RULE_IDS: readonly string[] = CHECK_CATALOG_RULE_IDS.filter((id) =>
   id.startsWith('legal.'),
 );
+
+/**
+ * Law-tab display tiers (presentation only — execution unchanged).
+ * Primary = production legal rules shown by default.
+ * Secondary = executable department/historical rules behind Show More.
+ * NOT_READY / placeholders never appear in either tier.
+ */
+export const PRIMARY_LAW_CHECK_RULE_IDS: readonly string[] = [
+  'legal.minimum_wage',
+  'legal.overtime.daily_limit',
+  'legal.youth.minimum_age',
+] as const;
+
+export const SECONDARY_LAW_CHECK_RULE_IDS: readonly string[] = [
+  'department.intern.weekly_hours_limit',
+  'department.lawyers.overtime_cap',
+  'historical.salary_drift',
+] as const;
+
+/**
+ * All executable law-tab rules (primary + secondary).
+ * NOT_READY / placeholder legal.* catalog IDs are never rendered.
+ */
+export const IMPLEMENTED_LAW_CHECK_RULE_IDS: ReadonlySet<string> = new Set([
+  ...PRIMARY_LAW_CHECK_RULE_IDS,
+  ...SECONDARY_LAW_CHECK_RULE_IDS,
+]);
+
+const PRIMARY_LAW_SET = new Set(PRIMARY_LAW_CHECK_RULE_IDS);
+const SECONDARY_LAW_SET = new Set(SECONDARY_LAW_CHECK_RULE_IDS);
+
+export function isPrimaryLawCheckRule(ruleId: string): boolean {
+  return PRIMARY_LAW_SET.has(ruleId);
+}
+
+export function isSecondaryLawCheckRule(ruleId: string): boolean {
+  return SECONDARY_LAW_SET.has(ruleId);
+}
+
+function isPlaceholderLawRule(ruleId: string): boolean {
+  if (
+    ruleId.startsWith('legal.') ||
+    ruleId.startsWith('department.') ||
+    ruleId.startsWith('historical.')
+  ) {
+    return !IMPLEMENTED_LAW_CHECK_RULE_IDS.has(ruleId);
+  }
+  return false;
+}
 
 export type CheckRowStatus =
   | 'passed'
@@ -198,6 +248,8 @@ export function buildCheckCatalogRows(
 
     const finding = findingForRule(findings, ruleId);
     const outcome = outcomes.get(ruleId);
+    // Hide NOT_READY / unimplemented labor-law placeholders — never show as rows.
+    if (uiGroup === 'law_checks' && isPlaceholderLawRule(ruleId)) continue;
     const taxonomy = taxonomyForRuleId(ruleId, null);
     const title = translateFindingTitle(
       finding?.message_key || ruleId,
@@ -311,6 +363,7 @@ export function buildCheckCatalogRows(
     if (group === 'digital') continue;
     const uiGroup = group === 'law_checks' ? 'law_checks' : 'employee_checks';
     if (checkGroup !== 'all' && uiGroup !== checkGroup) continue;
+    if (uiGroup === 'law_checks' && isPlaceholderLawRule(ruleId)) continue;
     const status = statusFromFinding(finding);
     rows.push({
       key: `finding-extra-${finding.id}`,
@@ -373,6 +426,52 @@ export function summarizeCheckRows(rows: CheckCatalogRow[]): {
     }
   }
   return summary;
+}
+
+function tierIndex(ids: readonly string[], ruleId: string): number {
+  const index = ids.indexOf(ruleId);
+  return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+}
+
+/** Partition law-tab rows into default (primary) vs Show More (secondary). */
+export function partitionLawCheckRows(rows: CheckCatalogRow[]): {
+  primary: CheckCatalogRow[];
+  secondary: CheckCatalogRow[];
+} {
+  const primary: CheckCatalogRow[] = [];
+  const secondary: CheckCatalogRow[] = [];
+  for (const row of rows) {
+    if (row.uiGroup !== 'law_checks') continue;
+    if (isPrimaryLawCheckRule(row.ruleId)) {
+      primary.push(row);
+    } else if (isSecondaryLawCheckRule(row.ruleId)) {
+      secondary.push(row);
+    }
+    // Extra / unknown law rows that are not primary/secondary stay hidden.
+  }
+  primary.sort(
+    (a, b) => tierIndex(PRIMARY_LAW_CHECK_RULE_IDS, a.ruleId) - tierIndex(PRIMARY_LAW_CHECK_RULE_IDS, b.ruleId),
+  );
+  secondary.sort(
+    (a, b) =>
+      tierIndex(SECONDARY_LAW_CHECK_RULE_IDS, a.ruleId) -
+      tierIndex(SECONDARY_LAW_CHECK_RULE_IDS, b.ruleId),
+  );
+  return { primary, secondary };
+}
+
+/** Core Labor Law summary: Total / Executed / Skipped (not_run). Does not count NOT_READY. */
+export function summarizeCoreLaborLawRows(rows: CheckCatalogRow[]): {
+  total: number;
+  executed: number;
+  skipped: number;
+} {
+  const summary = summarizeCheckRows(rows);
+  return {
+    total: summary.total,
+    executed: summary.executed,
+    skipped: summary.not_run,
+  };
 }
 
 export function checkRowStatusVisual(

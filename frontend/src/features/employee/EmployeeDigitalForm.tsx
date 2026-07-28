@@ -6,7 +6,11 @@ import { Skeleton, SkeletonText } from '../../components/ui/Skeleton';
 import type { FieldDraft } from '../../hooks/useEmployeePayslipFlow';
 import {
   buildDigitalFormSections,
-  digitalFormHasSecondaryFields,
+  digitalFormNeedsShowMore,
+  INITIAL_DIGITAL_FORM_VISIBLE_COUNT,
+  orderDigitalFormFieldsForDisplay,
+  type DigitalFormFieldModel,
+  type DigitalFormSectionModel,
 } from '../../lib/employee/digital-form-model';
 import type { EmployeeFieldValidationMeta } from '../../lib/employee/field-validation-status';
 import {
@@ -33,14 +37,17 @@ type EmployeeDigitalFormProps = {
   audience?: 'employee' | 'accountant';
   includeOther?: boolean;
   /**
-   * Accountant batch: primary Required fields first; Expected/Other behind Show more.
+   * Accountant batch: first N fields (priority-ordered); rest behind Show more.
    * Does not change persisted data.
    */
   collapseSecondaryFields?: boolean;
   onChangeField: (key: string, value: string) => void;
   onClearField: (key: string) => void;
   onRemoveField?: (key: string) => void;
-  onAddField?: () => void;
+  /** Opens Add Field modal in this form; parent receives name + value. */
+  onAddField?: (payload: { name: string; value: string }) => void;
+  /** Confirm a proposed field value (e.g. payroll period) without a dialog. */
+  onApproveField?: (key: string) => void;
 };
 
 function statusVisual(
@@ -81,6 +88,34 @@ function statusVisual(
   }
 }
 
+function sectionsFromOrderedFields(
+  ordered: DigitalFormFieldModel[],
+  groupBy: 'requirement' | 'registrySection',
+): DigitalFormSectionModel[] {
+  if (groupBy === 'registrySection') {
+    const sectionIds = Array.from(new Set(ordered.map((field) => field.sectionId)));
+    return sectionIds
+      .map((id) => ({
+        id,
+        titleKey: `employee.digitalForm.sections.${id}`,
+        fields: ordered.filter((field) => field.sectionId === id),
+      }))
+      .filter((section) => section.fields.length > 0);
+  }
+  const groups: Array<{ id: 'required' | 'expected' | 'other'; titleKey: string }> = [
+    { id: 'required', titleKey: 'employee.digitalForm.sectionRequired' },
+    { id: 'expected', titleKey: 'employee.digitalForm.sectionExpected' },
+    { id: 'other', titleKey: 'employee.digitalForm.sectionOther' },
+  ];
+  return groups
+    .map((group) => ({
+      id: group.id,
+      titleKey: group.titleKey,
+      fields: ordered.filter((field) => field.requirementCategory === group.id),
+    }))
+    .filter((section) => section.fields.length > 0);
+}
+
 export function EmployeeDigitalForm({
   fields,
   drafts,
@@ -96,31 +131,40 @@ export function EmployeeDigitalForm({
   onClearField: _onClearField,
   onRemoveField,
   onAddField,
+  onApproveField,
 }: EmployeeDigitalFormProps) {
   const { t } = useTranslation();
   const { locale } = useAppLocale();
   const { confirm } = useConfirmDialog();
   const [showSecondary, setShowSecondary] = useState(false);
-  const showOnlyPrimary = collapseSecondaryFields && !showSecondary;
-  const sections = buildDigitalFormSections(fields, drafts, t, locale, {
+  const groupBy = audience === 'accountant' ? 'registrySection' : 'requirement';
+
+  const fullSections = buildDigitalFormSections(fields, drafts, t, locale, {
     audience,
     includeOther,
-    groupBy: audience === 'accountant' ? 'registrySection' : 'requirement',
-    requirementCategories: showOnlyPrimary ? ['required'] : undefined,
+    groupBy,
   });
-  const hasSecondary =
-    collapseSecondaryFields &&
-    digitalFormHasSecondaryFields(fields, drafts, t, locale, { audience, includeOther });
-  const allFields = buildDigitalFormSections(fields, drafts, t, locale, {
-    audience,
-    includeOther,
-    groupBy: audience === 'accountant' ? 'registrySection' : 'requirement',
-  }).flatMap((section) => section.fields);
+  const allOrdered = orderDigitalFormFieldsForDisplay(
+    fullSections.flatMap((section) => section.fields),
+  );
+  const showOnlyPrimary = collapseSecondaryFields && !showSecondary;
+  const visibleOrdered = showOnlyPrimary
+    ? allOrdered.slice(0, INITIAL_DIGITAL_FORM_VISIBLE_COUNT)
+    : allOrdered;
+  const sections = collapseSecondaryFields
+    ? sectionsFromOrderedFields(visibleOrdered, groupBy)
+    : fullSections;
+  const hasMore = collapseSecondaryFields && digitalFormNeedsShowMore(allOrdered.length);
+  const allFields = allOrdered;
 
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [evidenceKey, setEvidenceKey] = useState<string | null>(null);
   const [draftValue, setDraftValue] = useState('');
   const [editError, setEditError] = useState<string | null>(null);
+  const [addFieldOpen, setAddFieldOpen] = useState(false);
+  const [addFieldName, setAddFieldName] = useState('');
+  const [addFieldValue, setAddFieldValue] = useState('');
+  const [addFieldError, setAddFieldError] = useState<string | null>(null);
 
   const editingField = editingKey
     ? allFields.find((field) => field.key === editingKey) ?? null
@@ -168,6 +212,32 @@ export function EmployeeDigitalForm({
     onRemoveField(key);
   };
 
+  const openAddField = () => {
+    if (!editable || busy || loading || !onAddField) return;
+    setAddFieldName('');
+    setAddFieldValue('');
+    setAddFieldError(null);
+    setAddFieldOpen(true);
+  };
+
+  const closeAddField = () => {
+    setAddFieldOpen(false);
+    setAddFieldName('');
+    setAddFieldValue('');
+    setAddFieldError(null);
+  };
+
+  const saveAddField = () => {
+    if (!onAddField) return;
+    const name = addFieldName.trim();
+    if (!name) {
+      setAddFieldError(t('employee.digitalForm.addFieldNameRequired'));
+      return;
+    }
+    onAddField({ name, value: addFieldValue });
+    closeAddField();
+  };
+
   if (loading) {
     return (
       <div
@@ -199,7 +269,7 @@ export function EmployeeDigitalForm({
           <button
             type="button"
             className="btn btn--secondary digital-form__add"
-            onClick={onAddField}
+            onClick={openAddField}
             disabled={busy}
           >
             {t('landingChat.form.addField')}
@@ -240,15 +310,23 @@ export function EmployeeDigitalForm({
           <div className="digital-form__grid employee-digital-form__grid">
             {section.fields.map((field) => {
               const draft = drafts[field.key];
-              const meta = draft?.dirty ? undefined : validationMap?.[field.key];
+              const mapped = validationMap?.[field.key];
+              // Keep WARNING+Approve while pending, and PASSED after userApproved, even if draft dirty.
+              const meta =
+                draft?.dirty && !mapped?.userApproved && !mapped?.requiresApproval
+                  ? undefined
+                  : mapped;
               const visual = statusVisual(meta?.status, t);
-              const missingRequired = field.missingRequired || meta?.neutralKind === 'missing_required';
+              const missingRequired =
+                !meta?.requiresApproval &&
+                !meta?.userApproved &&
+                (field.missingRequired || meta?.neutralKind === 'missing_required');
               const staticTip =
                 missingRequired
                   ? t('employee.digitalForm.missingRequiredExplain', { field: field.label })
                   : meta?.status === 'failed'
                     ? t('employee.digitalForm.failedFieldExplain', { field: field.label })
-                    : meta?.status === 'uncertain'
+                    : meta?.status === 'uncertain' && !meta.requiresApproval
                       ? t('employee.digitalForm.uncertainFieldExplain', { field: field.label })
                       : null;
               const explanation =
@@ -268,7 +346,7 @@ export function EmployeeDigitalForm({
                   key={field.key}
                   className={`digital-form__field employee-digital-form__field ${
                     field.columnSpan === 2 ? 'employee-digital-form__field--span-2' : ''
-                  } ${visual?.fieldCss ?? ''} ${missingRequired ? 'digital-form__field--missing-required' : ''} ${draft?.dirty ? 'digital-form__field--edited' : ''}`.trim()}
+                  } ${visual?.fieldCss ?? ''} ${missingRequired ? 'digital-form__field--missing-required' : ''} ${draft?.dirty && !meta?.userApproved ? 'digital-form__field--edited' : ''}`.trim()}
                   data-field-type={field.type}
                   data-requirement={field.requirementCategory}
                 >
@@ -280,24 +358,55 @@ export function EmployeeDigitalForm({
                           {t('employee.digitalForm.requiredTag')}
                         </span>
                       )}
-                      {draft?.dirty && (
+                      {draft?.dirty && !meta?.userApproved && (
                         <span className="digital-form__edited">{t('validate.fieldEdited')}</span>
                       )}
                     </span>
-                    {explanation ? (
-                      <FieldAiPopover label={field.label} explanation={explanation} />
-                    ) : null}
-                    {fields?.find((item) => item.key === field.key)?.evidence_details && (
-                      <button
-                        type="button"
-                        className="employee-digital-form__icon-btn"
-                        onClick={() => setEvidenceKey(field.key)}
-                        title={t('explainability.viewEvidence')}
-                        aria-label={`${t('explainability.viewEvidence')}: ${field.label}`}
-                      >
-                        <Info size={16} strokeWidth={2} aria-hidden="true" />
-                      </button>
-                    )}
+                    <div className="employee-digital-form__card-header-actions">
+                      {meta?.requiresApproval ? (
+                        <span className="status-badge status-badge--warnings employee-digital-form__approval-badge">
+                          {t('employee.digitalForm.requiresApproval')}
+                        </span>
+                      ) : null}
+                      {meta?.requiresApproval && editable && onApproveField ? (
+                        <button
+                          type="button"
+                          className="btn btn--ghost employee-digital-form__approve-btn"
+                          onClick={() => onApproveField(field.key)}
+                          disabled={busy}
+                        >
+                          {t('employee.digitalForm.approveField')}
+                        </button>
+                      ) : null}
+                      {explanation ? (
+                        <FieldAiPopover label={field.label} explanation={explanation} />
+                      ) : null}
+                      {fields?.find((item) => item.key === field.key)?.evidence_details && (
+                        <button
+                          type="button"
+                          className="employee-digital-form__icon-btn"
+                          onClick={() => setEvidenceKey(field.key)}
+                          title={t('explainability.viewEvidence')}
+                          aria-label={`${t('explainability.viewEvidence')}: ${field.label}`}
+                        >
+                          <Info size={16} strokeWidth={2} aria-hidden="true" />
+                        </button>
+                      )}
+                      {editable && onRemoveField && (
+                        <button
+                          type="button"
+                          className="employee-digital-form__icon-btn employee-digital-form__icon-btn--danger"
+                          onClick={() => {
+                            void requestDeleteField(field.key);
+                          }}
+                          disabled={busy}
+                          title={t('employee.digitalForm.deleteField')}
+                          aria-label={t('employee.digitalForm.deleteField')}
+                        >
+                          <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="employee-digital-form__card-body">
@@ -316,20 +425,6 @@ export function EmployeeDigitalForm({
                       ) : (
                         <p className="digital-form__readonly digital-form__value-text">{preview}</p>
                       )}
-                      {editable && onRemoveField && (
-                        <button
-                          type="button"
-                          className="employee-digital-form__icon-btn employee-digital-form__icon-btn--danger"
-                          onClick={() => {
-                            void requestDeleteField(field.key);
-                          }}
-                          disabled={busy}
-                          title={t('employee.digitalForm.deleteField')}
-                          aria-label={t('employee.digitalForm.deleteField')}
-                        >
-                          <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
-                        </button>
-                      )}
                     </div>
                     {missingRequired && (
                       <p className="digital-form__missing-hint" role="status">
@@ -344,7 +439,7 @@ export function EmployeeDigitalForm({
         </section>
       ))}
 
-      {hasSecondary && (
+      {hasMore && (
         <div className="employee-digital-form__more">
           <button
             type="button"
@@ -363,11 +458,66 @@ export function EmployeeDigitalForm({
         <button
           type="button"
           className="btn btn--secondary digital-form__add"
-          onClick={onAddField}
+          onClick={openAddField}
           disabled={busy}
         >
           {t('landingChat.form.addField')}
         </button>
+      )}
+
+      {addFieldOpen && (
+        <ModalDialog
+          title={t('employee.digitalForm.addFieldTitle')}
+          onClose={closeAddField}
+          footer={
+            <>
+              <button type="button" className="btn btn--secondary" onClick={closeAddField}>
+                {t('common.cancel')}
+              </button>
+              <button type="button" className="btn btn--primary" onClick={saveAddField}>
+                {t('employee.digitalForm.addFieldConfirm')}
+              </button>
+            </>
+          }
+        >
+          <div className="employee-field-edit employee-field-edit--stack">
+            <label className="employee-field-edit">
+              <span className="employee-field-edit__name">
+                {t('employee.digitalForm.addFieldName')}
+              </span>
+              <input
+                className="digital-form__input"
+                value={addFieldName}
+                onChange={(event) => {
+                  setAddFieldName(event.target.value);
+                  setAddFieldError(null);
+                }}
+                autoFocus
+              />
+            </label>
+            <label className="employee-field-edit">
+              <span className="employee-field-edit__name">
+                {t('employee.digitalForm.addFieldValue')}
+              </span>
+              <input
+                className="digital-form__input"
+                value={addFieldValue}
+                onChange={(event) => setAddFieldValue(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    saveAddField();
+                  }
+                }}
+              />
+            </label>
+            {addFieldError && (
+              <p className="chat-panel__error" role="alert">
+                {addFieldError}
+              </p>
+            )}
+          </div>
+        </ModalDialog>
       )}
 
       {editingField && (

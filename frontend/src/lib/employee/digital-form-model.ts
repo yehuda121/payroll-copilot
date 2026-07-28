@@ -54,7 +54,10 @@ function hasNonEmptyValue(value: unknown): boolean {
   return String(value).trim() !== '';
 }
 
-function fieldLabel(key: string, t: TFunction): string {
+function fieldLabel(key: string, t: TFunction, sourceText?: string | null): string {
+  if (key.startsWith('custom_field_') && sourceText?.trim()) {
+    return sourceText.trim();
+  }
   if (isCanonicalPayrollFieldKey(key)) {
     return t(`payroll.fields.${key}`);
   }
@@ -117,7 +120,7 @@ function toFieldModel(
   const category = requirementCategoryForKey(key);
   return {
     key,
-    label: fieldLabel(key, t),
+    label: fieldLabel(key, t, field?.source_text),
     type,
     value,
     rawValue: field?.value ?? null,
@@ -131,9 +134,10 @@ function toFieldModel(
 
 /**
  * Build Digital Payslip sections.
- * - Employee: Required + Expected (+ dirty/custom). Other hidden from primary view.
- * - Accountant: includes Other extracted fields (show all).
- * - Missing required_on_payslip keys appear as empty rows (never fabricate values).
+ * - Required (`required_on_payslip`): always visible (empty when missing).
+ * - Non-required: visible only when extracted (non-empty) or dirty draft.
+ * - Employee: Other category hidden from primary view unless dirty.
+ * - Accountant: includes Other extracted fields.
  */
 export function buildDigitalFormSections(
   fields: ExtractedPayslipField[] | undefined,
@@ -242,7 +246,7 @@ export function buildDigitalFormSections(
     const field = byKey.get(key);
     const draft = drafts[key];
     const value = resolveDisplayValue(field, draft);
-    // Non-required: keep meaningful-field behavior (skip empty non-dirty).
+    // Optional / expected: hide when never extracted (empty value, not a dirty draft).
     if (!value.trim() && !draft?.dirty) continue;
 
     models.push(
@@ -317,4 +321,43 @@ export function digitalFormHasSecondaryFields(
     requirementCategories: ['expected', 'other'],
   });
   return secondary.some((section) => section.fields.length > 0);
+}
+
+/** Initial collapsed Digital Payslip field count (presentation only). */
+export const INITIAL_DIGITAL_FORM_VISIBLE_COUNT = 10;
+
+/** Always lead with these keys when present; remaining keep build order. */
+export const DIGITAL_FORM_PRIORITY_KEYS = [
+  'employee_name',
+  'national_id',
+  'employee_number',
+  'pay_period',
+] as const;
+
+/**
+ * Presentation order for collapsed/expanded Digital Payslip lists.
+ * Does not change extraction or required-field rules.
+ */
+export function orderDigitalFormFieldsForDisplay(
+  fields: DigitalFormFieldModel[],
+): DigitalFormFieldModel[] {
+  const byKey = new Map(fields.map((field) => [field.key, field]));
+  const ordered: DigitalFormFieldModel[] = [];
+  const used = new Set<string>();
+  for (const key of DIGITAL_FORM_PRIORITY_KEYS) {
+    const match = byKey.get(key);
+    if (!match) continue;
+    ordered.push(match);
+    used.add(key);
+  }
+  for (const field of fields) {
+    if (used.has(field.key)) continue;
+    ordered.push(field);
+  }
+  return ordered;
+}
+
+/** True when collapsed accountant view should offer Show more (> initial visible count). */
+export function digitalFormNeedsShowMore(fieldCount: number): boolean {
+  return fieldCount > INITIAL_DIGITAL_FORM_VISIBLE_COUNT;
 }

@@ -47,29 +47,38 @@ const PERSISTENCE_CRITICAL = new Set([
 ]);
 
 const REQUIRED: DefInput[] = [
+  // Presentation: only these always render empty when missing (required_on_payslip).
+  // More keys can be promoted later without changing Digital Form filter logic.
   { key: 'employee_name', section: 'identity', order: 10, category: 'required', required_on_payslip: true },
   { key: 'national_id', section: 'identity', order: 20, category: 'required', required_on_payslip: true },
-  { key: 'employer_name', section: 'employer', order: 25, category: 'required', required_on_payslip: true },
-  { key: 'employer_id', section: 'employer', order: 26, category: 'required', required_on_payslip: true },
-  { key: 'employer_address', section: 'employer', order: 27, category: 'required', required_on_payslip: true },
-  { key: 'employment_start_date', section: 'identity', order: 28, category: 'required', required_on_payslip: true },
-  { key: 'employment_scope', section: 'identity', order: 29, category: 'required', required_on_payslip: true },
-  { key: 'pay_period', section: 'period', order: 30, category: 'required', required_on_payslip: true },
-  { key: 'base_salary', section: 'earnings', order: 40, category: 'required', required_on_payslip: true },
-  { key: 'salary_calculation_basis', section: 'earnings', order: 45, category: 'required', required_on_payslip: true },
-  { key: 'gross_salary', section: 'earnings', order: 50, category: 'required', required_on_payslip: true },
-  { key: 'income_tax', section: 'deductions', order: 60, category: 'required', required_on_payslip: true },
-  { key: 'national_insurance', section: 'deductions', order: 70, category: 'required', required_on_payslip: true },
-  { key: 'total_deductions', section: 'deductions', order: 80, category: 'required', required_on_payslip: true },
-  { key: 'net_salary', section: 'payment', order: 90, category: 'required', required_on_payslip: true },
-  { key: 'amount_paid', section: 'payment', order: 95, category: 'required', required_on_payslip: true },
-  { key: 'payment_method', section: 'payment', order: 100, category: 'required', required_on_payslip: true },
-  { key: 'minimum_wage_monthly', section: 'other', order: 105, category: 'required', required_on_payslip: true },
-  { key: 'minimum_wage_hourly', section: 'other', order: 106, category: 'required', required_on_payslip: true },
 ];
 
 const EXPECTED: DefInput[] = [
-  { key: 'employee_number', section: 'identity', order: 110, category: 'expected' },
+  { key: 'employer_name', section: 'employer', order: 25, category: 'expected' },
+  { key: 'employer_id', section: 'employer', order: 26, category: 'expected' },
+  { key: 'employer_address', section: 'employer', order: 27, category: 'expected' },
+  { key: 'employment_start_date', section: 'identity', order: 28, category: 'expected' },
+  { key: 'employment_scope', section: 'identity', order: 29, category: 'expected' },
+  // Identity block order: name → national_id → employee_number → pay_period
+  { key: 'employee_number', section: 'identity', order: 22, category: 'expected' },
+  {
+    key: 'pay_period',
+    section: 'identity',
+    order: 24,
+    category: 'expected',
+    required_on_payslip: true,
+  },
+  { key: 'base_salary', section: 'earnings', order: 40, category: 'expected' },
+  { key: 'salary_calculation_basis', section: 'earnings', order: 45, category: 'expected' },
+  { key: 'gross_salary', section: 'earnings', order: 50, category: 'expected' },
+  { key: 'income_tax', section: 'deductions', order: 60, category: 'expected' },
+  { key: 'national_insurance', section: 'deductions', order: 70, category: 'expected' },
+  { key: 'total_deductions', section: 'deductions', order: 80, category: 'expected' },
+  { key: 'net_salary', section: 'payment', order: 90, category: 'expected' },
+  { key: 'amount_paid', section: 'payment', order: 95, category: 'expected' },
+  { key: 'payment_method', section: 'payment', order: 100, category: 'expected' },
+  { key: 'minimum_wage_monthly', section: 'other', order: 105, category: 'expected' },
+  { key: 'minimum_wage_hourly', section: 'other', order: 106, category: 'expected' },
   { key: 'employee_id', section: 'identity', order: 115, category: 'expected' },
   { key: 'employment_type', section: 'identity', order: 120, category: 'expected' },
   { key: 'seniority_years', section: 'identity', order: 125, category: 'expected' },

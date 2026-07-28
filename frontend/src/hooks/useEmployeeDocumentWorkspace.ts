@@ -440,23 +440,31 @@ export function useEmployeeDocumentWorkspace(documentType: PersistentDocumentTyp
     });
   }, []);
 
-  const addField = useCallback(() => {
+  const addField = useCallback((payload?: { name: string; value: string }) => {
     setFormDirty(true);
-    const key = `custom_field_${Date.now()}`;
+    const label = payload?.name?.trim() || '';
+    const value = payload?.value ?? '';
+    const key = label
+      ? `custom_field_${label
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_|_$/g, '')
+          .slice(0, 40)}_${Date.now().toString(36).slice(-6)}`
+      : `custom_field_${Date.now()}`;
     setFields((prev) => [
       ...prev,
       {
         key,
-        value: '',
+        value,
         confidence: null,
-        source_text: null,
+        source_text: label || null,
         status: 'FOUND',
         edited_by_user: true,
       },
     ]);
     setFieldDrafts((prev) => ({
       ...prev,
-      [key]: { value: '', dirty: true, clear: false },
+      [key]: { value, dirty: true, clear: value.trim() === '' },
     }));
   }, []);
 

@@ -14,6 +14,8 @@ import {
 } from '../../hooks/useEmployeeMonthWorkspace';
 import { useWorkspacePageCopy } from '../../hooks/useWorkspacePageCopy';
 import { buildEmployeeFieldValidationMap } from '../../lib/employee/field-validation-status';
+import { applyPayrollPeriodPresentation } from '../../lib/employee/payroll-period-presentation';
+import { proposedPayrollPeriodValue } from '../../lib/employee/payroll-period-proposal';
 import type { DocumentLanguage } from '../../types/api';
 import { batchService } from '../../services/batch';
 import { PayrollChatPanel } from './PayrollChat';
@@ -81,14 +83,25 @@ function PayslipMonthWorkspace({
   const { confirm } = useConfirmDialog();
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [payPeriodApproved, setPayPeriodApproved] = useState(false);
   const workspaceTabs = batchReview
     ? TABS.filter((item) =>
         item.id === 'digital' || item.id === 'employee_checks' || item.id === 'law_checks',
       )
     : TABS.filter((item) => item.id !== 'chat' && item.id !== 'publishing');
   const published = flow.detail?.extraction?.lifecycle_status === 'published';
+  const identityAllowsPublish = (() => {
+    if (!batchReview) return false;
+    if (!flow.identityCheck) return Boolean(flow.documentId);
+    const nid = flow.identityCheck.fields.find((field) => field.key === 'national_id');
+    const name = flow.identityCheck.fields.find((field) => field.key === 'employee_name');
+    const nidOk = !nid || nid.status === 'match';
+    const nameOk = !name || name.status === 'match' || name.status === 'cannot_validate';
+    return nidOk && nameOk && !flow.identityCheck.blocks_confirmation;
+  })();
   const canPublish =
     Boolean(batchReview && flow.documentId && flow.isConfirmed && flow.report) &&
+    identityAllowsPublish &&
     !flow.validationOutdated &&
     !flow.isBusy &&
     !publishBusy &&
@@ -96,6 +109,19 @@ function PayslipMonthWorkspace({
 
   const publish = async () => {
     if (!batchReview || !canPublish) return;
+    if (periodPresentation.requiresApproval) {
+      const proposed = periodPresentation.proposedValue || proposedPayrollPeriodValue(year, month);
+      const periodAccepted = await confirm({
+        title: t('accountant.bulk.publish.confirmPeriodsTitle'),
+        message: t('accountant.bulk.publish.confirmPeriodsMessage', { period: proposed }),
+        confirmLabel: t('accountant.bulk.publish.confirmPeriodsAction'),
+        cancelLabel: t('common.cancel'),
+        variant: 'warning',
+      });
+      if (!periodAccepted) return;
+      setPayPeriodApproved(true);
+      flow.updateFieldDraft('pay_period', proposed);
+    }
     const accepted = await confirm({
       title: t('accountant.bulk.publish.title'),
       message: t('accountant.bulk.publish.message'),
@@ -115,8 +141,8 @@ function PayslipMonthWorkspace({
     }
   };
 
-  const validationMap = useMemo(() => {
-    if (!flow.report && !flow.identityCheck && !flow.periodCheck) return undefined;
+  const baseValidationMap = useMemo(() => {
+    if (!flow.report && !flow.identityCheck && !flow.periodCheck) return {};
     const map = buildEmployeeFieldValidationMap(flow.fields, flow.report, {
       identity: flow.identityCheck,
       period: flow.periodCheck,
@@ -126,6 +152,39 @@ function PayslipMonthWorkspace({
     }
     return map;
   }, [flow.report, flow.fields, flow.fieldDrafts, flow.identityCheck, flow.periodCheck]);
+
+  const periodPresentation = useMemo(
+    () =>
+      applyPayrollPeriodPresentation({
+        fields: flow.fields,
+        drafts: flow.fieldDrafts,
+        validationMap: baseValidationMap,
+        periodApproved: payPeriodApproved,
+        periodCheck: flow.periodCheck,
+        workspaceYear: year,
+        workspaceMonth: month,
+        proposedExplanation: t('employee.digitalForm.payrollPeriodProposedExplain', {
+          period: proposedPayrollPeriodValue(year, month),
+        }),
+      }),
+    [
+      baseValidationMap,
+      flow.fieldDrafts,
+      flow.fields,
+      flow.periodCheck,
+      month,
+      payPeriodApproved,
+      t,
+      year,
+    ],
+  );
+
+  const validationMap = periodPresentation.validationMap;
+  const digitalFormDrafts = periodPresentation.displayDrafts;
+
+  useEffect(() => {
+    setPayPeriodApproved(false);
+  }, [flow.documentId]);
 
   const stepIndex = TIMELINE.findIndex((item) => item.id === flow.timelineStep);
 
@@ -303,7 +362,7 @@ function PayslipMonthWorkspace({
                   <>
                     <EmployeeDigitalForm
                       fields={flow.fields}
-                      drafts={flow.fieldDrafts}
+                      drafts={digitalFormDrafts}
                       editable
                       audience={batchReview ? 'accountant' : 'employee'}
                       collapseSecondaryFields={Boolean(batchReview)}
@@ -316,6 +375,13 @@ function PayslipMonthWorkspace({
                       onClearField={flow.clearFieldDraft}
                       onRemoveField={flow.removeField}
                       onAddField={flow.addField}
+                      onApproveField={(key) => {
+                        if (key !== 'pay_period') return;
+                        const proposed =
+                          periodPresentation.proposedValue || proposedPayrollPeriodValue(year, month);
+                        setPayPeriodApproved(true);
+                        flow.updateFieldDraft('pay_period', proposed);
+                      }}
                     />
                     {!(batchReview && flow.report) && (
                     <div className="employee-payslip-wizard__actions employee-digital-validate">
@@ -518,6 +584,7 @@ function ValidationTab({
   checkGroup?: 'employee_checks' | 'law_checks';
 }) {
   const { t, i18n } = useTranslation();
+  const { confirm } = useConfirmDialog();
   const { batchReview, api: workspaceApi } = useEmployeeWorkspace();
   const history = flow.detail?.validation_history ?? [];
 
@@ -616,19 +683,21 @@ function ValidationTab({
             },
             onManualApprove: async ({ ruleId, findingId }) => {
               if (!flow.documentId || !flow.report?.runId) return;
-              const reason = window.prompt(
-                t('employee.validation.actions.approveReasonPrompt'),
-              );
-              if (reason == null) return;
-              const trimmed = reason.trim();
-              if (!trimmed) return;
+              const accepted = await confirm({
+                title: t('employee.validation.actions.approveConfirmTitle'),
+                message: t('employee.validation.actions.approveConfirmMessage'),
+                confirmLabel: t('employee.validation.actions.approveConfirm'),
+                cancelLabel: t('common.cancel'),
+                variant: 'warning',
+              });
+              if (!accepted) return;
               await workspaceApi.approveFinding({
                 documentId: flow.documentId,
                 validationRunId: flow.report.runId,
                 findingId: findingId ?? undefined,
                 ruleId,
                 acknowledgement: true,
-                reason: trimmed.slice(0, 500),
+                reason: t('employee.validation.actions.approveDefaultReason').slice(0, 500),
               });
               await flow.runValidation();
             },

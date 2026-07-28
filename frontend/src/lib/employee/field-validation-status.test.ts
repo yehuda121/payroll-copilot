@@ -76,16 +76,16 @@ describe('buildEmployeeFieldValidationMap', () => {
       findings: [
         finding({
           id: '1',
-          rule_id: 'sanity.required.employer_name',
+          rule_id: 'sanity.required.employee_name',
           severity: 'info',
           message_key: 'validation.sanity.required_field_missing',
         }),
       ],
-      ruleOutcomes: [{ rule_id: 'sanity.required.employer_name', outcome: 'failed' }],
+      ruleOutcomes: [{ rule_id: 'sanity.required.employee_name', outcome: 'failed' }],
     } as GuestValidationReport;
-    const map = buildEmployeeFieldValidationMap([field('employer_name', null, 'MISSING')], report);
-    expect(map.employer_name.status).toBe('uncertain');
-    expect(map.employer_name.neutralKind).toBe('missing_required');
+    const map = buildEmployeeFieldValidationMap([field('employee_name', null, 'MISSING')], report);
+    expect(map.employee_name.status).toBe('uncertain');
+    expect(map.employee_name.neutralKind).toBe('missing_required');
   });
 
   it('marks bound fields passed only when rule_outcomes say passed', () => {

@@ -229,6 +229,7 @@
 
 .birth-date-field__text {
   min-width: 0;
+  width: 100%;
 }
 
 .birth-date-field__picker {
@@ -260,6 +261,114 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+
+/* Shared polish for ID Card / Appendix / Contract edit dialogs */
+.document-edit-modal--fixed.modal-dialog {
+  width: min(36rem, calc(100vw - 2rem));
+}
+
+.document-edit-modal--fixed .modal-dialog__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  padding-block-start: 0.35rem;
+}
+
+.document-edit-modal--fixed .modal-dialog__footer .btn {
+  min-inline-size: 6.5rem;
+}
+
+.document-edit-modal--fixed .document-fixed-edit-form,
+.document-edit-modal .document-fixed-edit-form {
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--color-surface, #fff);
+  box-shadow: none;
+  gap: var(--space-4, 1rem);
+  min-width: 0;
+}
+
+.document-fixed-edit-form {
+  display: grid;
+  gap: var(--space-4, 1rem);
+  min-width: 0;
+}
+
+.document-fixed-edit-form__notice {
+  margin: 0;
+}
+
+.document-fixed-edit-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4, 1rem) var(--space-5, 1.25rem);
+  align-items: start;
+  width: 100%;
+  max-width: 100%;
+}
+
+.document-fixed-edit-form .digital-form__field,
+.document-fixed-edit-form .employee-digital-form__field {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.document-fixed-edit-form .digital-form__label {
+  display: block;
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text);
+}
+
+.document-fixed-edit-form .digital-form__input,
+.document-fixed-edit-form .birth-date-field__text,
+.document-fixed-edit-form select.digital-form__input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 2.4rem;
+  box-sizing: border-box;
+}
+
+.document-fixed-edit-form .birth-date-field__controls {
+  width: 100%;
+}
+
+.document-fixed-edit-form .digital-form__error {
+  margin: 0;
+}
+
+.document-edit-modal--fixed .appendix-children-form__item {
+  background: var(--color-surface, #fff);
+  border-color: var(--color-border);
+}
+
+@media (max-width: 640px) {
+  .document-fixed-edit-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .document-edit-modal--fixed .modal-dialog__footer {
+    justify-content: stretch;
+  }
+
+  .document-edit-modal--fixed .modal-dialog__footer .btn {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+  }
 }
 
 .document-delete-choices {

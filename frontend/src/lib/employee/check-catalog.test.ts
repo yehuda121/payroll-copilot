@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { TFunction } from 'i18next';
 import {
+  IMPLEMENTED_LAW_CHECK_RULE_IDS,
   LABOR_LAW_RULE_IDS,
+  PRIMARY_LAW_CHECK_RULE_IDS,
+  SECONDARY_LAW_CHECK_RULE_IDS,
   buildCheckCatalogRows,
   checkRowStatusVisual,
+  partitionLawCheckRows,
   summarizeCheckRows,
+  summarizeCoreLaborLawRows,
 } from './check-catalog';
 import type { GuestValidationReport } from '../../types/validation-report';
 
@@ -12,21 +17,101 @@ const t = ((key: string, opts?: { defaultValue?: string }) =>
   opts?.defaultValue ?? key) as TFunction;
 
 describe('buildCheckCatalogRows', () => {
-  it('renders all 17 labor-law catalog checks', () => {
+  it('never displays NOT_READY labor-law placeholders', () => {
     expect(LABOR_LAW_RULE_IDS).toHaveLength(17);
     const report = {
       findings: [],
       ruleOutcomes: LABOR_LAW_RULE_IDS.map((rule_id) => ({
         rule_id,
         outcome: 'not_run',
-        reason_code: 'RULE_NOT_READY',
-        message: 'Not ready',
+        reason_code: IMPLEMENTED_LAW_CHECK_RULE_IDS.has(rule_id)
+          ? 'NOT_APPLICABLE'
+          : 'RULE_NOT_READY',
+        message: 'skip',
       })),
     } as unknown as GuestValidationReport;
     const rows = buildCheckCatalogRows(report, t, 'law_checks');
     for (const id of LABOR_LAW_RULE_IDS) {
-      expect(rows.find((row) => row.ruleId === id)).toBeTruthy();
+      if (IMPLEMENTED_LAW_CHECK_RULE_IDS.has(id)) continue;
+      expect(rows.find((row) => row.ruleId === id)).toBeFalsy();
     }
+  });
+
+  it('includes primary and secondary executable law checks in the raw catalog', () => {
+    const report = {
+      findings: [],
+      ruleOutcomes: [...PRIMARY_LAW_CHECK_RULE_IDS, ...SECONDARY_LAW_CHECK_RULE_IDS].map(
+        (rule_id) => ({
+          rule_id,
+          outcome: 'not_run',
+          reason_code: 'NOT_APPLICABLE',
+          message: 'N/A',
+        }),
+      ),
+    } as unknown as GuestValidationReport;
+    const rows = buildCheckCatalogRows(report, t, 'law_checks');
+    expect(rows.map((row) => row.ruleId)).toEqual([
+      ...PRIMARY_LAW_CHECK_RULE_IDS,
+      ...SECONDARY_LAW_CHECK_RULE_IDS,
+    ]);
+  });
+
+  it('partitions default view to exactly the three production rules', () => {
+    const report = {
+      findings: [],
+      ruleOutcomes: [...PRIMARY_LAW_CHECK_RULE_IDS, ...SECONDARY_LAW_CHECK_RULE_IDS].map(
+        (rule_id) => ({
+          rule_id,
+          outcome: rule_id === 'legal.minimum_wage' ? 'passed' : 'not_run',
+          reason_code: rule_id === 'legal.minimum_wage' ? undefined : 'NOT_APPLICABLE',
+          message: rule_id === 'legal.minimum_wage' ? undefined : 'N/A',
+        }),
+      ),
+    } as unknown as GuestValidationReport;
+    const rows = buildCheckCatalogRows(report, t, 'law_checks');
+    const { primary, secondary } = partitionLawCheckRows(rows);
+    expect(primary.map((row) => row.ruleId)).toEqual([...PRIMARY_LAW_CHECK_RULE_IDS]);
+    expect(primary).toHaveLength(3);
+    expect(secondary.map((row) => row.ruleId)).toEqual([...SECONDARY_LAW_CHECK_RULE_IDS]);
+    const core = summarizeCoreLaborLawRows(primary);
+    expect(core.total).toBe(3);
+    expect(core.executed).toBe(1);
+    expect(core.skipped).toBe(2);
+  });
+
+  it('shows implemented law checks with Not Run + backend reason when they cannot execute', () => {
+    const report = {
+      findings: [],
+      ruleOutcomes: [
+        {
+          rule_id: 'legal.minimum_wage',
+          outcome: 'not_run',
+          reason_code: 'MISSING_PAY_PERIOD',
+          skip_reason: 'missing_pay_period',
+          message: 'Pay period missing',
+        },
+        {
+          rule_id: 'legal.overtime.daily_limit',
+          outcome: 'not_run',
+          reason_code: 'NOT_APPLICABLE',
+          message: 'Not applicable',
+        },
+        {
+          rule_id: 'legal.overtime.weekly_limit',
+          outcome: 'not_run',
+          reason_code: 'RULE_NOT_READY',
+          message: 'Not ready',
+        },
+      ],
+    } as unknown as GuestValidationReport;
+    const rows = buildCheckCatalogRows(report, t, 'law_checks');
+    expect(rows.find((row) => row.ruleId === 'legal.overtime.weekly_limit')).toBeFalsy();
+    const minWage = rows.find((row) => row.ruleId === 'legal.minimum_wage');
+    expect(minWage?.status).toBe('not_run');
+    expect(minWage?.explanation).toBe('Pay period missing');
+    const overtime = rows.find((row) => row.ruleId === 'legal.overtime.daily_limit');
+    expect(overtime?.status).toBe('not_run');
+    expect(overtime?.explanation).toBe('Not applicable');
   });
 
   it('does not fabricate PASS without authoritative outcomes', () => {
@@ -122,6 +207,12 @@ describe('buildCheckCatalogRows', () => {
           reason_code: 'RULE_NOT_READY',
           message: 'Not ready',
         },
+        {
+          rule_id: 'legal.minimum_wage',
+          outcome: 'not_run',
+          reason_code: 'MISSING_PAY_PERIOD',
+          message: 'Missing period',
+        },
       ],
     } as unknown as GuestValidationReport;
     const rows = buildCheckCatalogRows(report, t, 'all');
@@ -129,22 +220,36 @@ describe('buildCheckCatalogRows', () => {
     expect(summary.passed).toBe(1);
     expect(summary.failed).toBe(1);
     expect(summary.uncertain).toBe(1);
-    expect(summary.not_run).toBeGreaterThanOrEqual(1);
+    expect(rows.find((row) => row.ruleId === 'legal.overtime.weekly_limit')).toBeFalsy();
+    expect(rows.find((row) => row.ruleId === 'legal.minimum_wage')?.status).toBe('not_run');
     expect(summary.executed).toBe(summary.passed + summary.failed + summary.uncertain);
     expect(summary.total).toBe(summary.executed + summary.not_run);
   });
 
-  it('preserves stable catalog order', () => {
+  it('preserves stable catalog order for primary production law checks', () => {
     const report = {
       findings: [],
-      ruleOutcomes: LABOR_LAW_RULE_IDS.map((rule_id) => ({
-        rule_id,
-        outcome: 'not_run',
-        reason_code: 'RULE_NOT_READY',
-      })),
+      ruleOutcomes: [
+        {
+          rule_id: 'legal.youth.minimum_age',
+          outcome: 'not_run',
+          reason_code: 'NOT_APPLICABLE',
+          message: 'N/A',
+        },
+        {
+          rule_id: 'legal.minimum_wage',
+          outcome: 'passed',
+        },
+        {
+          rule_id: 'legal.overtime.daily_limit',
+          outcome: 'not_run',
+          reason_code: 'NOT_APPLICABLE',
+          message: 'N/A',
+        },
+      ],
     } as unknown as GuestValidationReport;
     const rows = buildCheckCatalogRows(report, t, 'law_checks');
-    const lawRows = rows.filter((row) => row.ruleId.startsWith('legal.'));
-    expect(lawRows.map((row) => row.ruleId)).toEqual([...LABOR_LAW_RULE_IDS]);
+    const { primary } = partitionLawCheckRows(rows);
+    expect(primary.map((row) => row.ruleId)).toEqual([...PRIMARY_LAW_CHECK_RULE_IDS]);
   });
 });

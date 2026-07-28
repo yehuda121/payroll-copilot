@@ -316,7 +316,14 @@ export function DocumentTypeCard({ documentType }: { documentType: PersistentDoc
       {editOpen ? (
         <ModalDialog
           title={t('employee.documents.editTitle', { type: title })}
-          className="document-edit-modal"
+          className={`document-edit-modal${
+            documentType === 'national_id' ||
+            documentType === 'id_appendix' ||
+            documentType === 'contract'
+              ? ' document-edit-modal--fixed'
+              : ''
+          }`}
+          closeLabel={t('common.close')}
           onClose={() => {
             void requestCloseEdit();
           }}

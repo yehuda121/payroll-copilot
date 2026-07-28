@@ -11,6 +11,7 @@ import logging
 
 from celery import Celery
 
+from payroll_copilot.domain.rules import ensure_validation_rules_registered
 from payroll_copilot.infrastructure.config.service_resolver import (
     get_resolved_celery_broker_url,
     get_resolved_celery_result_backend,
@@ -18,6 +19,10 @@ from payroll_copilot.infrastructure.config.service_resolver import (
 from payroll_copilot.infrastructure.config.settings import get_settings
 
 logger = logging.getLogger(__name__)
+
+# Match API process registration (presentation.main) so Batch Upload validation
+# evaluates SANITY / EMPLOYEE / CONTRACT / LEGAL rules in the worker.
+ensure_validation_rules_registered()
 
 settings = get_settings()
 

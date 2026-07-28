@@ -581,10 +581,21 @@
         "manuallyApproved": "אושר ידנית"
       },
       "coverageSummary": "{{executed}} מתוך {{total}} בדיקות הורצו",
+      "coreLaborLawTitle": "בדיקות ליבה בדיני עבודה",
+      "coreLaborLawTotal": "סה״כ",
+      "coreLaborLawExecuted": "בוצעו",
+      "coreLaborLawSkipped": "דולגו",
+      "additionalLawChecks": "בדיקות נוספות",
+      "showMore": "הצג עוד",
+      "showLess": "הצג פחות",
       "originalCheck": "תוצאה מקורית: {{status}}",
       "actions": {
         "runAgain": "הרץ שוב",
         "approveManually": "אשר ידנית",
+        "approveConfirmTitle": "לאשר את הבדיקה ידנית?",
+        "approveConfirmMessage": "פעולה זו מסמנת את הבדיקה כמאושרת ידנית לסקירה. התוצאה הדטרמיניסטית המקורית נשמרת ואינה משתנה על ידי AI.",
+        "approveConfirm": "אשר",
+        "approveDefaultReason": "אושר ידנית לאחר סקירה",
         "approveReasonPrompt": "סיבה קצרה לאישור ידני:",
         "approveReasonRequired": "נדרשת סיבה קצרה.",
         "rerunFailed": "הרצת הבדיקה מחדש נכשלה.",
@@ -651,7 +662,15 @@
       "missingRequiredHint": "שדה זה צפוי בתלוש אך לא חולץ. ניתן להזין אותו אם הערך ידוע.",
       "missingRequiredExplain": "{{field}} לא נמצא בתלוש זה. לא הומצא ערך. ניתן למלא אותו אם ניתן לאמת מול המסמך המקורי.",
       "failedFieldExplain": "ל־{{field}} יש בדיקה שנכשלה. פתחו בדיקות עובד או בדיקות חוק לממצא הדטרמיניסטי. AI יכול להסביר אך אינו משנה עבר/נכשל.",
-      "uncertainFieldExplain": "{{field}} אינו ודאי. בדקו את הראיות שחולצו ואת הבדיקות הקשורות. AI מסביר רק לפי ראיות זמינות."
+      "uncertainFieldExplain": "{{field}} אינו ודאי. בדקו את הראיות שחולצו ואת הבדיקות הקשורות. AI מסביר רק לפי ראיות זמינות.",
+      "requiresApproval": "דורש אישור",
+      "approveField": "אשר",
+      "addFieldTitle": "הוספת שדה",
+      "addFieldName": "שם השדה",
+      "addFieldValue": "ערך השדה",
+      "addFieldConfirm": "הוסף",
+      "addFieldNameRequired": "יש להזין שם שדה.",
+      "payrollPeriodProposedExplain": "תקופת השכר לא נמצאה בתלוש.\n\nהמערכת הציעה:\n{{period}}\n\nנא לוודא שתקופת השכר הזו נכונה."
     },
     "compare": {
       "title": "בדיקת זהות ותקופה",
@@ -880,6 +899,23 @@
         "child_name": "שם הילד/ה",
         "child_birth_date": "תאריך לידה"
       },
+      "contract": {
+        "termsHint": "אשרו את תאריך תחילת ההעסקה המקורי ואת תנאי השכר החוזיים. אין להשתמש בתאריכי רישום במערכת.",
+        "fields": {
+          "employment_commencement_date": "תאריך תחילת העסקה",
+          "salary_basis": "בסיס שכר",
+          "contractual_monthly_salary": "שכר חודשי חוזי",
+          "contractual_hourly_rate": "תעריף שעתי חוזי",
+          "contractual_daily_rate": "תעריף יומי חוזי",
+          "effective_from": "בתוקף מ־",
+          "effective_to": "בתוקף עד"
+        },
+        "salaryBasis": {
+          "monthly": "חודשי",
+          "hourly": "שעתי",
+          "daily": "יומי"
+        }
+      },
       "appendix": {
         "children": "ילדים",
         "childLabel": "ילד/ה {{index}}",
@@ -920,6 +956,7 @@
         "nationalIdDigits": "מספר הזהות חייב להכיל ספרות בלבד.",
         "nationalIdLength": "מספר הזהות חייב להיות בן 9 ספרות בדיוק.",
         "nationalIdChecksum": "ספרת הביקורת של מספר הזהות אינה תקינה.",
+        "nationalIdInvalid": "נא להזין מספר זהות תקין.",
         "dateInvalid": "נא להזין תאריך תקין.",
         "dateUnrecognized": "פורמט תאריך לא מזוהה. השתמשו בבורר התאריך או בפורמט נפוץ כמו DD.MM.YYYY.",
         "datePlaceholder": "YYYY-MM-DD או DD.MM.YYYY",

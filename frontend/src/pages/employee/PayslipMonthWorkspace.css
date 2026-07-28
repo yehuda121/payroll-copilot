@@ -405,6 +405,33 @@ html[data-theme='dark'] .employee-month-workspace__upload-shell .drag-drop__zone
   min-width: 0;
 }
 
+.employee-digital-form__card-header-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 0.2rem;
+}
+
+.employee-digital-form__approval-badge {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.employee-digital-form__approve-btn {
+  flex-shrink: 0;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  min-height: 0;
+}
+
+.employee-field-edit--stack {
+  display: grid;
+  gap: 0.85rem;
+}
+
 .employee-digital-form__card-header .digital-form__label {
   min-width: 0;
   overflow: hidden;

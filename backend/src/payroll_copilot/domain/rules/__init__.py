@@ -150,6 +150,7 @@ class BaseRule(ABC):
 
 # Global rule registry populated at startup via decorator
 _RULE_REGISTRY: dict[str, type[BaseRule]] = {}
+_RULE_MODULES_IMPORTED = False
 
 
 def register_rule(cls: type[BaseRule]) -> type[BaseRule]:
@@ -160,3 +161,23 @@ def register_rule(cls: type[BaseRule]) -> type[BaseRule]:
 
 def get_registered_rules() -> dict[str, type[BaseRule]]:
     return dict(_RULE_REGISTRY)
+
+
+def ensure_validation_rules_registered() -> None:
+    """Import rule modules so ``@register_rule`` populates the global registry.
+
+    Single entry used by API (``presentation.main``) and Celery worker
+    (``infrastructure.tasks.celery_app``). Idempotent.
+    """
+    global _RULE_MODULES_IMPORTED
+    if _RULE_MODULES_IMPORTED and _RULE_REGISTRY:
+        return
+    # Side-effect imports — keep this list the SoT for process registration.
+    import payroll_copilot.domain.rules.contract  # noqa: F401
+    import payroll_copilot.domain.rules.departments  # noqa: F401
+    import payroll_copilot.domain.rules.employee  # noqa: F401
+    import payroll_copilot.domain.rules.historical  # noqa: F401
+    import payroll_copilot.domain.rules.legal  # noqa: F401
+    import payroll_copilot.domain.rules.sanity  # noqa: F401
+
+    _RULE_MODULES_IMPORTED = True
