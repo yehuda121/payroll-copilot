@@ -297,3 +297,41 @@
   font-style: italic;
   font-size: var(--text-md);
 }
+
+.admin-dashboard-section {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.admin-dashboard-section__header {
+  display: grid;
+  gap: 0.25rem;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-dashboard-section__header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.admin-dashboard-section__header p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: var(--leading-snug);
+}
+
+.admin-dashboard-section__body {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.admin-ai-card h3 {
+  margin: 0 0 0.75rem;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}

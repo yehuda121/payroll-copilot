@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
 import { ModalDialog } from '../../components/ui/Dialog';
 import {
@@ -38,47 +39,48 @@ type TabId =
   | 'sync'
   | 'vector';
 
-const TABS: Array<{ id: TabId; label: string }> = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'rules', label: 'Rules' },
-  { id: 'sources', label: 'Sources' },
-  { id: 'proposals', label: 'Pending Changes' },
-  { id: 'sync', label: 'Sync History' },
-  { id: 'vector', label: 'Vector Index' },
+const TABS: Array<{ id: TabId; labelKey: string }> = [
+  { id: 'overview', labelKey: 'admin.legal.tabs.overview' },
+  { id: 'rules', labelKey: 'admin.legal.tabs.rules' },
+  { id: 'sources', labelKey: 'admin.legal.tabs.sources' },
+  { id: 'proposals', labelKey: 'admin.legal.tabs.proposals' },
+  { id: 'sync', labelKey: 'admin.legal.tabs.sync' },
+  { id: 'vector', labelKey: 'admin.legal.tabs.vector' },
 ];
 
 function VectorHealthCard({ health }: { health: VectorIndexHealth }) {
+  const { t } = useTranslation();
   return (
     <section className="admin-ai-card">
-      <h2>Vector index</h2>
+      <h2>{t('admin.legal.vector.title')}</h2>
       <dl className="admin-ai-detail">
         <div>
-          <dt>Status</dt>
+          <dt>{t('admin.legal.vector.status')}</dt>
           <dd>
             <span className={statusBadgeClass(health.status)}>{health.status}</span>
           </dd>
         </div>
         <div>
-          <dt>Backend</dt>
+          <dt>{t('admin.legal.vector.backend')}</dt>
           <dd>{health.backend}</dd>
         </div>
         <div>
-          <dt>Embedding model</dt>
-          <dd>{health.embedding_model ?? '—'}</dd>
+          <dt>{t('admin.legal.vector.embeddingModel')}</dt>
+          <dd>{health.embedding_model ?? t('common.emDash')}</dd>
         </div>
         <div>
-          <dt>Indexed rules / versions / chunks</dt>
+          <dt>{t('admin.legal.vector.indexedCounts')}</dt>
           <dd>
             {health.indexed_rules} / {health.indexed_versions} / {health.chunk_count}
           </dd>
         </div>
         <div>
-          <dt>Last indexed</dt>
+          <dt>{t('admin.legal.vector.lastIndexed')}</dt>
           <dd>{formatDateTime(health.last_indexed_at)}</dd>
         </div>
         {health.last_error ? (
           <div>
-            <dt>Last error</dt>
+            <dt>{t('admin.legal.vector.lastError')}</dt>
             <dd className="admin-ai-error">{health.last_error}</dd>
           </div>
         ) : null}
@@ -88,19 +90,20 @@ function VectorHealthCard({ health }: { health: VectorIndexHealth }) {
 }
 
 function OverviewTab() {
+  const { t } = useTranslation();
   const overview = useAnalyticsResource(
     useCallback((signal: AbortSignal) => legalKnowledgeService.overview(signal), []),
     [],
-    'Unable to load legal knowledge overview.',
+    t('admin.legal.errors.overview'),
   );
 
   if (overview.loading && !overview.data) {
-    return <AnalyticsLoadingState cards={6} label="Loading overview" />;
+    return <AnalyticsLoadingState cards={6} label={t('admin.legal.loading.overview')} />;
   }
   if (overview.error) {
     return (
       <AnalyticsErrorState
-        title="Unable to load overview"
+        title={t('admin.legal.errors.overview')}
         message={overview.error}
         onRetry={overview.reload}
       />
@@ -113,43 +116,52 @@ function OverviewTab() {
     <div className="admin-ai">
       <div className="admin-ai-kpis">
         <div className="admin-ai-kpi">
-          <span>Active rules</span>
+          <span>{t('admin.legal.kpi.activeRules')}</span>
           <strong>{data.active_rules.toLocaleString()}</strong>
         </div>
         <div className="admin-ai-kpi">
-          <span>Historical versions</span>
+          <span>{t('admin.legal.kpi.historicalVersions')}</span>
           <strong>{data.historical_versions.toLocaleString()}</strong>
         </div>
         <div className="admin-ai-kpi">
-          <span>Watched sources</span>
+          <span>{t('admin.legal.kpi.watchedSources')}</span>
           <strong>{data.watched_sources.toLocaleString()}</strong>
         </div>
         <div className="admin-ai-kpi">
-          <span>Discovery sources</span>
+          <span>{t('admin.legal.kpi.discoverySources')}</span>
           <strong>{data.discovery_sources.toLocaleString()}</strong>
         </div>
         <div className="admin-ai-kpi">
-          <span>Pending changes</span>
+          <span>{t('admin.legal.kpi.pendingChanges')}</span>
           <strong>{data.pending_changes.toLocaleString()}</strong>
         </div>
         <div className="admin-ai-kpi">
-          <span>Last sync</span>
-          <strong>{data.last_sync ? formatDateTime(data.last_sync.completed_at ?? data.last_sync.started_at) : 'Never'}</strong>
+          <span>{t('admin.legal.kpi.lastSync')}</span>
+          <strong>
+            {data.last_sync
+              ? formatDateTime(data.last_sync.completed_at ?? data.last_sync.started_at)
+              : t('admin.legal.never')}
+          </strong>
         </div>
       </div>
       <VectorHealthCard health={data.vector_index} />
       {data.last_sync ? (
         <section className="admin-ai-card">
-          <h2>Latest sync run</h2>
+          <h2>{t('admin.legal.latestSync')}</h2>
           <p className="admin-ai-muted">
-            {data.last_sync.run_id} · {data.last_sync.status} · checked {data.last_sync.sources_checked}{' '}
-            sources · {data.last_sync.material_change_count} material · {data.last_sync.error_count} errors
+            {t('admin.legal.latestSyncSummary', {
+              runId: data.last_sync.run_id,
+              status: data.last_sync.status,
+              checked: data.last_sync.sources_checked,
+              material: data.last_sync.material_change_count,
+              errors: data.last_sync.error_count,
+            })}
           </p>
         </section>
       ) : (
         <AnalyticsEmptyState
-          title="No sync runs yet"
-          description="Trigger a manual sync from Sync History or Vector Index tabs."
+          title={t('admin.legal.empty.sync')}
+          description={t('admin.legal.empty.syncHint')}
         />
       )}
     </div>
@@ -157,10 +169,11 @@ function OverviewTab() {
 }
 
 function RulesTab() {
+  const { t } = useTranslation();
   const rules = useAnalyticsResource(
     useCallback((signal: AbortSignal) => legalKnowledgeService.listRules(signal), []),
     [],
-    'Unable to load rules.',
+    t('admin.legal.errors.rules'),
   );
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
   const [detail, setDetail] = useState<LegalRuleDetail | null>(null);
@@ -184,17 +197,25 @@ function RulesTab() {
   }, [selectedRuleId]);
 
   const rows = rules.data ?? [];
+  const unavailable = t('admin.legal.unavailable');
 
   return (
     <div className="admin-ai">
       {rules.loading && rows.length === 0 ? (
-        <AnalyticsLoadingState cards={2} label="Loading rules" />
+        <AnalyticsLoadingState cards={2} label={t('admin.legal.loading.rules')} />
       ) : null}
       {rules.error ? (
-        <AnalyticsErrorState title="Unable to load rules" message={rules.error} onRetry={rules.reload} />
+        <AnalyticsErrorState
+          title={t('admin.legal.errors.rules')}
+          message={rules.error}
+          onRetry={rules.reload}
+        />
       ) : null}
       {!rules.loading && !rules.error && rows.length === 0 ? (
-        <AnalyticsEmptyState title="No rules found" description="Rule catalog is empty or not seeded yet." />
+        <AnalyticsEmptyState
+          title={t('admin.legal.empty.rules')}
+          description={t('admin.legal.empty.rulesHint')}
+        />
       ) : null}
       {rows.length > 0 ? (
         <div className="admin-ai-split">
@@ -202,11 +223,11 @@ function RulesTab() {
             <table className="admin-ai-table">
               <thead>
                 <tr>
-                  <th>Rule</th>
-                  <th>Version</th>
-                  <th>Validation</th>
-                  <th>Source monitoring</th>
-                  <th>Vector</th>
+                  <th>{t('admin.legal.cols.rule')}</th>
+                  <th>{t('admin.legal.cols.version')}</th>
+                  <th>{t('admin.legal.cols.validation')}</th>
+                  <th>{t('admin.legal.cols.sourceMonitoring')}</th>
+                  <th>{t('admin.legal.cols.vector')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -221,7 +242,7 @@ function RulesTab() {
                       <div className="admin-ai-muted">{row.title}</div>
                     </td>
                     <td>{row.current_version}</td>
-                    <td>{row.validation_readiness ?? 'Unavailable'}</td>
+                    <td>{row.validation_readiness ?? unavailable}</td>
                     <td>{row.source_coverage}</td>
                     <td>{row.index_status}</td>
                   </tr>
@@ -230,54 +251,56 @@ function RulesTab() {
             </table>
           </div>
           <aside className="admin-ai-detail">
-            <h3>Rule detail</h3>
-            {!selectedRuleId ? <p className="admin-ai-muted">Select a rule to view version timeline.</p> : null}
-            {detailLoading ? <p className="admin-ai-muted">Loading…</p> : null}
+            <h3>{t('admin.legal.ruleDetail')}</h3>
+            {!selectedRuleId ? (
+              <p className="admin-ai-muted">{t('admin.legal.selectRule')}</p>
+            ) : null}
+            {detailLoading ? <p className="admin-ai-muted">{t('common.loading')}</p> : null}
             {detailError ? <p className="admin-ai-error">{detailError}</p> : null}
             {detail ? (
               <>
                 <dl>
                   <div>
-                    <dt>Validation readiness</dt>
-                    <dd>{detail.validation_readiness ?? 'Unavailable'}</dd>
+                    <dt>{t('admin.legal.fields.validationReadiness')}</dt>
+                    <dd>{detail.validation_readiness ?? unavailable}</dd>
                   </div>
                   <div>
-                    <dt>Readiness reason</dt>
-                    <dd>{detail.validation_readiness_reason ?? 'Unavailable'}</dd>
+                    <dt>{t('admin.legal.fields.readinessReason')}</dt>
+                    <dd>{detail.validation_readiness_reason ?? unavailable}</dd>
                   </div>
                   <div>
-                    <dt>Required inputs</dt>
+                    <dt>{t('admin.legal.fields.requiredInputs')}</dt>
                     <dd>
                       {(detail.required_fields && detail.required_fields.length > 0
                         ? detail.required_fields.join(', ')
-                        : null) ?? 'Unavailable'}
+                        : null) ?? unavailable}
                     </dd>
                   </div>
                   <div>
-                    <dt>Active version</dt>
-                    <dd>{detail.active?.version ?? '—'}</dd>
+                    <dt>{t('admin.legal.fields.activeVersion')}</dt>
+                    <dd>{detail.active?.version ?? t('common.emDash')}</dd>
                   </div>
                   <div>
-                    <dt>Valid from / to</dt>
+                    <dt>{t('admin.legal.fields.validFromTo')}</dt>
                     <dd>
                       {formatDate(detail.active?.valid_from ?? null)} →{' '}
                       {formatDate(detail.active?.valid_to ?? null)}
                     </dd>
                   </div>
                   <div>
-                    <dt>Source monitoring</dt>
-                    <dd>{detail.source_monitoring_status ?? 'Unavailable'}</dd>
+                    <dt>{t('admin.legal.fields.sourceMonitoring')}</dt>
+                    <dd>{detail.source_monitoring_status ?? unavailable}</dd>
                   </div>
                   <div>
-                    <dt>Last source sync</dt>
+                    <dt>{t('admin.legal.fields.lastSourceSync')}</dt>
                     <dd>{formatDate(detail.last_source_sync ?? null)}</dd>
                   </div>
                   <div>
-                    <dt>Vector index</dt>
-                    <dd>{detail.vector_index_status ?? 'Unavailable'}</dd>
+                    <dt>{t('admin.legal.fields.vectorIndex')}</dt>
+                    <dd>{detail.vector_index_status ?? unavailable}</dd>
                   </div>
                 </dl>
-                <h3>Version timeline</h3>
+                <h3>{t('admin.legal.versionTimeline')}</h3>
                 <ul className="admin-ai-timeline">
                   {detail.versions.map((version) => (
                     <li key={`${version.rule_id}-${version.version}`}>
@@ -299,35 +322,43 @@ function RulesTab() {
 }
 
 function SourcesTab() {
+  const { t } = useTranslation();
   const sources = useAnalyticsResource(
     useCallback((signal: AbortSignal) => legalKnowledgeService.listSources(signal), []),
     [],
-    'Unable to load sources.',
+    t('admin.legal.errors.sources'),
   );
   const rows = sources.data ?? [];
 
   return (
     <div className="admin-ai">
       {sources.loading && rows.length === 0 ? (
-        <AnalyticsLoadingState cards={2} label="Loading sources" />
+        <AnalyticsLoadingState cards={2} label={t('admin.legal.loading.sources')} />
       ) : null}
       {sources.error ? (
-        <AnalyticsErrorState title="Unable to load sources" message={sources.error} onRetry={sources.reload} />
+        <AnalyticsErrorState
+          title={t('admin.legal.errors.sources')}
+          message={sources.error}
+          onRetry={sources.reload}
+        />
       ) : null}
       {!sources.loading && !sources.error && rows.length === 0 ? (
-        <AnalyticsEmptyState title="No sources configured" description="Add sources in the legal source registry." />
+        <AnalyticsEmptyState
+          title={t('admin.legal.empty.sources')}
+          description={t('admin.legal.empty.sourcesHint')}
+        />
       ) : null}
       {rows.length > 0 ? (
         <div className="admin-ai-table-wrap">
           <table className="admin-ai-table">
             <thead>
               <tr>
-                <th>Source</th>
-                <th>Type</th>
-                <th>Authority</th>
-                <th>Enabled</th>
-                <th>Last checked</th>
-                <th>Related rules</th>
+                <th>{t('admin.legal.cols.source')}</th>
+                <th>{t('admin.legal.cols.type')}</th>
+                <th>{t('admin.legal.cols.authority')}</th>
+                <th>{t('admin.legal.cols.enabled')}</th>
+                <th>{t('admin.legal.cols.lastChecked')}</th>
+                <th>{t('admin.legal.cols.relatedRules')}</th>
               </tr>
             </thead>
             <tbody>
@@ -344,9 +375,9 @@ function SourcesTab() {
                   </td>
                   <td>{source.source_type}</td>
                   <td>{source.authority_level}</td>
-                  <td>{source.enabled ? 'Yes' : 'No'}</td>
+                  <td>{source.enabled ? t('admin.legal.yes') : t('admin.legal.no')}</td>
                   <td>{formatDateTime(source.last_checked_at)}</td>
-                  <td>{source.related_rule_ids.join(', ') || '—'}</td>
+                  <td>{source.related_rule_ids.join(', ') || t('common.emDash')}</td>
                 </tr>
               ))}
             </tbody>
@@ -360,11 +391,12 @@ function SourcesTab() {
 type ProposalDialogMode = 'approve' | 'reject' | null;
 
 function ProposalsTab() {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const proposals = useAnalyticsResource(
     useCallback((signal: AbortSignal) => legalKnowledgeService.listProposals('PENDING_REVIEW', signal), []),
     [],
-    'Unable to load proposals.',
+    t('admin.legal.errors.proposals'),
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<LegalProposalDetail | null>(null);
@@ -404,7 +436,7 @@ function ProposalsTab() {
   const submitApprove = async () => {
     if (!selectedId || !effectiveDate) return;
     if (!confirmDate) {
-      showToast({ message: 'Confirm the effective date before approving.', tone: 'warning' });
+      showToast({ message: t('admin.legal.toasts.confirmDate'), tone: 'warning' });
       return;
     }
     setSubmitting(true);
@@ -413,12 +445,15 @@ function ProposalsTab() {
         effective_date: effectiveDate,
         confirm_effective_date: true,
       });
-      showToast({ message: 'Proposal approved.', tone: 'success' });
+      showToast({ message: t('admin.legal.toasts.approved'), tone: 'success' });
       closeDialog();
       setSelectedId(null);
       proposals.reload();
     } catch (err) {
-      showToast({ message: err instanceof Error ? err.message : 'Approval failed.', tone: 'error' });
+      showToast({
+        message: err instanceof Error ? err.message : t('admin.legal.toasts.approveFailed'),
+        tone: 'error',
+      });
     } finally {
       setSubmitting(false);
     }
@@ -429,12 +464,15 @@ function ProposalsTab() {
     setSubmitting(true);
     try {
       await legalKnowledgeService.rejectProposal(selectedId, { reason: rejectReason || undefined });
-      showToast({ message: 'Proposal rejected.', tone: 'success' });
+      showToast({ message: t('admin.legal.toasts.rejected'), tone: 'success' });
       closeDialog();
       setSelectedId(null);
       proposals.reload();
     } catch (err) {
-      showToast({ message: err instanceof Error ? err.message : 'Rejection failed.', tone: 'error' });
+      showToast({
+        message: err instanceof Error ? err.message : t('admin.legal.toasts.rejectFailed'),
+        tone: 'error',
+      });
     } finally {
       setSubmitting(false);
     }
@@ -443,17 +481,20 @@ function ProposalsTab() {
   return (
     <div className="admin-ai">
       {proposals.loading && rows.length === 0 ? (
-        <AnalyticsLoadingState cards={2} label="Loading proposals" />
+        <AnalyticsLoadingState cards={2} label={t('admin.legal.loading.proposals')} />
       ) : null}
       {proposals.error ? (
         <AnalyticsErrorState
-          title="Unable to load proposals"
+          title={t('admin.legal.errors.proposals')}
           message={proposals.error}
           onRetry={proposals.reload}
         />
       ) : null}
       {!proposals.loading && !proposals.error && rows.length === 0 ? (
-        <AnalyticsEmptyState title="No pending changes" description="All proposals are reviewed." />
+        <AnalyticsEmptyState
+          title={t('admin.legal.empty.proposals')}
+          description={t('admin.legal.empty.proposalsHint')}
+        />
       ) : null}
       {rows.length > 0 ? (
         <div className="admin-ai-split">
@@ -461,10 +502,10 @@ function ProposalsTab() {
             <table className="admin-ai-table">
               <thead>
                 <tr>
-                  <th>Proposal</th>
-                  <th>Classification</th>
-                  <th>Rules</th>
-                  <th>Created</th>
+                  <th>{t('admin.legal.cols.proposal')}</th>
+                  <th>{t('admin.legal.cols.classification')}</th>
+                  <th>{t('admin.legal.cols.rules')}</th>
+                  <th>{t('admin.legal.cols.created')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -479,7 +520,7 @@ function ProposalsTab() {
                       <div className="admin-ai-muted">{proposal.source_id}</div>
                     </td>
                     <td>{proposal.classification}</td>
-                    <td>{proposal.affected_rule_ids.join(', ') || '—'}</td>
+                    <td>{proposal.affected_rule_ids.join(', ') || t('common.emDash')}</td>
                     <td>{formatDateTime(proposal.created_at)}</td>
                   </tr>
                 ))}
@@ -487,41 +528,43 @@ function ProposalsTab() {
             </table>
           </div>
           <aside className="admin-ai-detail">
-            <h3>Proposal detail</h3>
-            {!selectedId ? <p className="admin-ai-muted">Select a proposal to review.</p> : null}
-            {detailLoading ? <p className="admin-ai-muted">Loading…</p> : null}
+            <h3>{t('admin.legal.proposalDetail')}</h3>
+            {!selectedId ? (
+              <p className="admin-ai-muted">{t('admin.legal.selectProposal')}</p>
+            ) : null}
+            {detailLoading ? <p className="admin-ai-muted">{t('common.loading')}</p> : null}
             {detail ? (
               <>
                 <dl>
                   <div>
-                    <dt>AI summary</dt>
-                    <dd>{detail.proposal.ai_summary || '—'}</dd>
+                    <dt>{t('admin.legal.fields.aiSummary')}</dt>
+                    <dd>{detail.proposal.ai_summary || t('common.emDash')}</dd>
                   </div>
                   <div>
-                    <dt>Candidate effective date</dt>
+                    <dt>{t('admin.legal.fields.candidateEffectiveDate')}</dt>
                     <dd>{formatDate(detail.proposal.candidate_effective_date)}</dd>
                   </div>
                   <div>
-                    <dt>Confidence</dt>
+                    <dt>{t('admin.legal.fields.confidence')}</dt>
                     <dd>
                       {detail.proposal.confidence != null
                         ? `${(detail.proposal.confidence * 100).toFixed(0)}%`
-                        : '—'}
+                        : t('common.emDash')}
                     </dd>
                   </div>
                 </dl>
                 {detail.proposal.diff_text ? (
                   <>
-                    <h3>Diff</h3>
+                    <h3>{t('admin.legal.diff')}</h3>
                     <pre className="admin-ai-pre">{detail.proposal.diff_text}</pre>
                   </>
                 ) : null}
                 <div className="admin-ai-actions">
                   <button type="button" className="btn btn--primary" onClick={() => setDialogMode('approve')}>
-                    Approve
+                    {t('admin.legal.approve')}
                   </button>
                   <button type="button" className="btn btn--danger" onClick={() => setDialogMode('reject')}>
-                    Reject
+                    {t('admin.legal.reject')}
                   </button>
                 </div>
               </>
@@ -532,17 +575,22 @@ function ProposalsTab() {
 
       {dialogMode === 'approve' ? (
         <ModalDialog
-          title="Approve proposal"
+          title={t('admin.legal.approveTitle')}
           variant="warning"
           size="md"
           onClose={closeDialog}
           footer={
             <>
               <button type="button" className="btn btn--secondary" onClick={closeDialog} disabled={submitting}>
-                Cancel
+                {t('admin.legal.cancel')}
               </button>
-              <button type="button" className="btn btn--primary" onClick={() => void submitApprove()} disabled={submitting}>
-                Approve
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={() => void submitApprove()}
+                disabled={submitting}
+              >
+                {t('admin.legal.approve')}
               </button>
             </>
           }
@@ -551,21 +599,21 @@ function ProposalsTab() {
             aside={
               <FormInfoPanel
                 tone="warning"
-                eyebrow="Review"
-                title="Confirm before approving"
+                eyebrow={t('admin.legal.approveEyebrow')}
+                title={t('admin.legal.approveConfirmTitle')}
                 icon={<SparklesIcon size={14} aria-hidden="true" />}
               >
-                <p>Effective date changes apply to payroll rule evaluation. Confirm carefully.</p>
+                <p>{t('admin.legal.approveConfirmBody')}</p>
               </FormInfoPanel>
             }
           >
             <FormSection
-              title="Approval details"
-              description="Set when this proposal becomes effective."
+              title={t('admin.legal.approvalDetails')}
+              description={t('admin.legal.approvalDetailsDesc')}
               icon={<CalendarIcon size={18} />}
               columns={1}
             >
-              <FormField label="Effective date" htmlFor="legal-effective-date" span={2}>
+              <FormField label={t('admin.legal.effectiveDate')} htmlFor="legal-effective-date" span={2}>
                 <FormControl
                   id="legal-effective-date"
                   type="date"
@@ -583,7 +631,7 @@ function ProposalsTab() {
                   checked={confirmDate}
                   onChange={(event) => setConfirmDate(event.target.checked)}
                 />
-                <span>I confirm this effective date is correct for payroll rules.</span>
+                <span>{t('admin.legal.confirmDate')}</span>
               </label>
             </FormSection>
           </FormShell>
@@ -592,28 +640,33 @@ function ProposalsTab() {
 
       {dialogMode === 'reject' ? (
         <ModalDialog
-          title="Reject proposal"
+          title={t('admin.legal.rejectTitle')}
           variant="danger"
           size="md"
           onClose={closeDialog}
           footer={
             <>
               <button type="button" className="btn btn--secondary" onClick={closeDialog} disabled={submitting}>
-                Cancel
+                {t('admin.legal.cancel')}
               </button>
-              <button type="button" className="btn btn--danger" onClick={() => void submitReject()} disabled={submitting}>
-                Reject
+              <button
+                type="button"
+                className="btn btn--danger"
+                onClick={() => void submitReject()}
+                disabled={submitting}
+              >
+                {t('admin.legal.reject')}
               </button>
             </>
           }
         >
           <FormShell>
             <FormSection
-              title="Rejection"
-              description="Optional context for the audit trail."
+              title={t('admin.legal.rejectionTitle')}
+              description={t('admin.legal.rejectionDesc')}
               columns={1}
             >
-              <FormField label="Reason (optional)" htmlFor="legal-reject-reason" span={2}>
+              <FormField label={t('admin.legal.reasonOptional')} htmlFor="legal-reject-reason" span={2}>
                 <FormTextarea
                   id="legal-reject-reason"
                   rows={4}
@@ -630,11 +683,12 @@ function ProposalsTab() {
 }
 
 function SyncHistoryTab() {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const syncRuns = useAnalyticsResource(
     useCallback((signal: AbortSignal) => legalKnowledgeService.listSyncRuns(50, signal), []),
     [],
-    'Unable to load sync history.',
+    t('admin.legal.errors.sync'),
   );
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedRun, setSelectedRun] = useState<LegalSyncRun | null>(null);
@@ -659,11 +713,14 @@ function SyncHistoryTab() {
     setSyncing(true);
     try {
       const run = await legalKnowledgeService.triggerSync();
-      showToast({ message: `Sync started (${run.run_id}).`, tone: 'success' });
+      showToast({ message: t('admin.legal.toasts.syncStarted', { runId: run.run_id }), tone: 'success' });
       syncRuns.reload();
       setSelectedRunId(run.run_id);
     } catch (err) {
-      showToast({ message: err instanceof Error ? err.message : 'Sync failed.', tone: 'error' });
+      showToast({
+        message: err instanceof Error ? err.message : t('admin.legal.toasts.syncFailed'),
+        tone: 'error',
+      });
     } finally {
       setSyncing(false);
     }
@@ -673,21 +730,24 @@ function SyncHistoryTab() {
     <div className="admin-ai">
       <div className="admin-ai-toolbar">
         <button type="button" className="btn btn--primary" onClick={() => void triggerSync()} disabled={syncing}>
-          {syncing ? 'Syncing…' : 'Run sync now'}
+          {syncing ? t('admin.legal.syncing') : t('admin.legal.runSync')}
         </button>
       </div>
       {syncRuns.loading && rows.length === 0 ? (
-        <AnalyticsLoadingState cards={2} label="Loading sync history" />
+        <AnalyticsLoadingState cards={2} label={t('admin.legal.loading.sync')} />
       ) : null}
       {syncRuns.error ? (
         <AnalyticsErrorState
-          title="Unable to load sync history"
+          title={t('admin.legal.errors.sync')}
           message={syncRuns.error}
           onRetry={syncRuns.reload}
         />
       ) : null}
       {!syncRuns.loading && !syncRuns.error && rows.length === 0 ? (
-        <AnalyticsEmptyState title="No sync runs yet" description="Trigger a manual sync to populate history." />
+        <AnalyticsEmptyState
+          title={t('admin.legal.empty.sync')}
+          description={t('admin.legal.empty.syncManualHint')}
+        />
       ) : null}
       {rows.length > 0 ? (
         <div className="admin-ai-split">
@@ -695,10 +755,10 @@ function SyncHistoryTab() {
             <table className="admin-ai-table">
               <thead>
                 <tr>
-                  <th>Run</th>
-                  <th>Status</th>
-                  <th>Started</th>
-                  <th>Sources</th>
+                  <th>{t('admin.legal.cols.run')}</th>
+                  <th>{t('admin.legal.cols.status')}</th>
+                  <th>{t('admin.legal.cols.started')}</th>
+                  <th>{t('admin.legal.cols.sourcesCount')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -720,33 +780,38 @@ function SyncHistoryTab() {
             </table>
           </div>
           <aside className="admin-ai-detail">
-            <h3>Run detail</h3>
-            {!selectedRun ? <p className="admin-ai-muted">Select a sync run.</p> : null}
+            <h3>{t('admin.legal.runDetail')}</h3>
+            {!selectedRun ? <p className="admin-ai-muted">{t('admin.legal.selectSyncRun')}</p> : null}
             {selectedRun ? (
               <>
                 <dl>
                   <div>
-                    <dt>Trigger</dt>
+                    <dt>{t('admin.legal.fields.trigger')}</dt>
                     <dd>{selectedRun.trigger}</dd>
                   </div>
                   <div>
-                    <dt>Completed</dt>
+                    <dt>{t('admin.legal.fields.completed')}</dt>
                     <dd>{formatDateTime(selectedRun.completed_at)}</dd>
                   </div>
                   <div>
-                    <dt>Counts</dt>
+                    <dt>{t('admin.legal.fields.counts')}</dt>
                     <dd>
-                      material {selectedRun.material_change_count} · new {selectedRun.new_relevant_count} ·
-                      errors {selectedRun.error_count}
+                      {t('admin.legal.syncCounts', {
+                        material: selectedRun.material_change_count,
+                        newCount: selectedRun.new_relevant_count,
+                        errors: selectedRun.error_count,
+                      })}
                     </dd>
                   </div>
                 </dl>
-                <h3>Outcomes</h3>
+                <h3>{t('admin.legal.outcomes')}</h3>
                 <ul className="admin-ai-timeline">
                   {selectedRun.outcomes.map((outcome) => (
                     <li key={`${outcome.source_id}-${outcome.classification}`}>
                       <strong>{outcome.source_id}</strong> — {outcome.classification}
-                      <div className="admin-ai-muted">{outcome.message || outcome.error || '—'}</div>
+                      <div className="admin-ai-muted">
+                        {outcome.message || outcome.error || t('common.emDash')}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -760,11 +825,12 @@ function SyncHistoryTab() {
 }
 
 function VectorIndexTab() {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const health = useAnalyticsResource(
     useCallback((signal: AbortSignal) => legalKnowledgeService.vectorIndexHealth(signal), []),
     [],
-    'Unable to load vector index health.',
+    t('admin.legal.errors.vector'),
   );
   const [rebuilding, setRebuilding] = useState(false);
 
@@ -772,22 +838,25 @@ function VectorIndexTab() {
     setRebuilding(true);
     try {
       await legalKnowledgeService.rebuildVectorIndex();
-      showToast({ message: 'Vector index rebuild completed.', tone: 'success' });
+      showToast({ message: t('admin.legal.toasts.rebuildDone'), tone: 'success' });
       health.reload();
     } catch (err) {
-      showToast({ message: err instanceof Error ? err.message : 'Rebuild failed.', tone: 'error' });
+      showToast({
+        message: err instanceof Error ? err.message : t('admin.legal.toasts.rebuildFailed'),
+        tone: 'error',
+      });
     } finally {
       setRebuilding(false);
     }
   };
 
   if (health.loading && !health.data) {
-    return <AnalyticsLoadingState cards={2} label="Loading vector index" />;
+    return <AnalyticsLoadingState cards={2} label={t('admin.legal.loading.vector')} />;
   }
   if (health.error) {
     return (
       <AnalyticsErrorState
-        title="Unable to load vector index"
+        title={t('admin.legal.errors.vector')}
         message={health.error}
         onRetry={health.reload}
       />
@@ -799,7 +868,7 @@ function VectorIndexTab() {
     <div className="admin-ai">
       <div className="admin-ai-toolbar">
         <button type="button" className="btn btn--primary" onClick={() => void rebuild()} disabled={rebuilding}>
-          {rebuilding ? 'Rebuilding…' : 'Rebuild index'}
+          {rebuilding ? t('admin.legal.rebuilding') : t('admin.legal.rebuildIndex')}
         </button>
       </div>
       <VectorHealthCard health={health.data} />
@@ -808,6 +877,7 @@ function VectorIndexTab() {
 }
 
 export function LegalKnowledgePage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<TabId>('overview');
 
   const panel = useMemo(() => {
@@ -830,11 +900,8 @@ export function LegalKnowledgePage() {
   }, [tab]);
 
   return (
-    <PortalPage
-      title="Legal Knowledge"
-      description="Versioned legal rules, source sync, change proposals, and vector index health."
-    >
-      <div className="admin-ai-tabs" role="tablist" aria-label="Legal knowledge sections">
+    <PortalPage title={t('admin.legal.title')} description={t('admin.legal.description')}>
+      <div className="admin-ai-tabs" role="tablist" aria-label={t('admin.legal.title')}>
         {TABS.map((item) => (
           <button
             key={item.id}
@@ -843,7 +910,7 @@ export function LegalKnowledgePage() {
             aria-selected={tab === item.id}
             onClick={() => setTab(item.id)}
           >
-            {item.label}
+            {t(item.labelKey)}
           </button>
         ))}
       </div>

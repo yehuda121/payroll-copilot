@@ -1,4 +1,4 @@
-import type { PortalConfig } from '../types/navigation';
+import type { NavGroup, PortalConfig } from '../types/navigation';
 import { env } from '../config/env';
 
 export const EMPLOYEE_PORTAL: PortalConfig = {
@@ -26,31 +26,51 @@ export const ACCOUNTANT_PORTAL: PortalConfig = {
   ],
 };
 
-const ADMIN_NAV_CORE = [
-  { label: 'System Dashboard', path: '/admin' },
-  { label: 'Organization Analytics', path: '/admin/analytics' },
-  { label: 'AI Quality Analytics', path: '/admin/analytics/quality' },
-  { label: 'AI Models', path: '/admin/ai-models' },
-  { label: 'Legal Knowledge', path: '/admin/legal-knowledge' },
-  { label: 'RAG Evaluation', path: '/admin/rag-evaluation' },
-] as const;
+const ADMIN_NAV_GROUPS_CORE: NavGroup[] = [
+  {
+    labelKey: 'admin.nav.groups.monitoring',
+    items: [{ labelKey: 'admin.nav.dashboard', path: '/admin' }],
+  },
+  {
+    labelKey: 'admin.nav.groups.analytics',
+    items: [
+      { labelKey: 'admin.nav.orgAnalytics', path: '/admin/analytics' },
+      { labelKey: 'admin.nav.qualityAnalytics', path: '/admin/analytics/quality' },
+    ],
+  },
+  {
+    labelKey: 'admin.nav.groups.aiPlatform',
+    items: [{ labelKey: 'admin.nav.aiModels', path: '/admin/ai-models' }],
+  },
+  {
+    labelKey: 'admin.nav.groups.knowledge',
+    items: [
+      { labelKey: 'admin.nav.legalKnowledge', path: '/admin/legal-knowledge' },
+      { labelKey: 'admin.nav.ragEvaluation', path: '/admin/rag-evaluation' },
+    ],
+  },
+];
 
-/** Unfinished / lab surfaces — available in Vite DEV only, never in production builds. */
-const ADMIN_NAV_DEV_ONLY = [
-  { label: 'Users & Roles', path: '/admin/users' },
-  { label: 'Rule Packs', path: '/admin/rule-packs' },
-  { label: 'Department Rules', path: '/admin/department-rules' },
-  { label: 'System Configuration', path: '/admin/configuration' },
-  { label: 'Audit Logs', path: '/admin/audit-logs' },
-  { label: 'Document Lab', path: '/admin/document-lab' },
-] as const;
+const ADMIN_NAV_GROUPS_DEV: NavGroup[] = [
+  {
+    labelKey: 'admin.nav.groups.documentProcessing',
+    items: [{ labelKey: 'admin.nav.documentLab', path: '/admin/document-lab' }],
+  },
+];
+
+function flattenGroups(groups: NavGroup[]) {
+  return groups.flatMap((group) => group.items);
+}
+
+const adminGroups = [
+  ...ADMIN_NAV_GROUPS_CORE,
+  ...(env.isDevRuntime ? ADMIN_NAV_GROUPS_DEV : []),
+];
 
 export const ADMIN_PORTAL: PortalConfig = {
-  portalName: 'Admin Portal',
-  portalSubtitle: 'System configuration & compliance',
+  portalNameKey: 'admin.navigation.portalName',
+  portalSubtitleKey: 'admin.navigation.portalSubtitle',
   basePath: '/admin',
-  navItems: [
-    ...ADMIN_NAV_CORE,
-    ...(env.isDevRuntime ? [...ADMIN_NAV_DEV_ONLY] : []),
-  ],
+  navGroups: adminGroups,
+  navItems: flattenGroups(adminGroups),
 };

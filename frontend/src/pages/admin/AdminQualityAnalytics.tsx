@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
 import {
   AnalyticsDashboardLayout,
@@ -6,20 +7,19 @@ import {
   QualityAnalyticsPanel,
 } from '../../features/analytics';
 import { useAdminQualityAnalytics } from '../../hooks/useAdminQualityAnalytics';
+import './admin-ai.css';
 
 export function AdminQualityAnalyticsPage() {
+  const { t } = useTranslation();
   const [year, setYear] = useState(new Date().getFullYear());
   const { data, loading, error, reload } = useAdminQualityAnalytics(year);
 
   return (
-    <PortalPage
-      title="AI Quality Analytics"
-      description="Cross-organization extraction, OCR, validation, and confidence quality metrics by payroll month."
-    >
+    <PortalPage title={t('admin.quality.title')} description={t('admin.quality.description')}>
       <AnalyticsDashboardLayout
         toolbar={
           <AnalyticsYearFilter
-            label="Payroll year"
+            label={t('admin.quality.year')}
             year={year}
             years={data?.available_years ?? [year]}
             onChange={setYear}
@@ -27,44 +27,49 @@ export function AdminQualityAnalyticsPage() {
           />
         }
       >
-        <QualityAnalyticsPanel
-          months={data?.months ?? []}
-          confidenceDistribution={data?.confidence_distribution ?? []}
-          totals={data?.totals}
-          loading={loading}
-          error={error}
-          onRetry={reload}
-          titleKeys={{
-            errorTitle: 'Unable to load quality analytics',
-            emptyTitle: 'No quality analytics yet',
-            emptyDescription:
-              'Quality metrics appear after payslips are extracted with a payroll period.',
-          }}
-          labels={{
-            documentsProcessed: 'Documents processed',
-            extractionSuccessRate: 'Extraction success rate',
-            validationSuccessRate: 'Validation success rate',
-            averageConfidence: 'Average confidence',
-            manualReviewRate: 'Manual review rate',
-            failedDocuments: 'Failed documents',
-            ratesByMonthTitle: 'Quality rates by payroll month',
-            volumesByMonthTitle: 'OCR / review / failures by payroll month',
-            confidenceDistributionTitle: 'Confidence distribution',
-            ocrSuccess: 'OCR success',
-            ocrFailed: 'OCR failed',
-            manualReview: 'Manual review',
-            extractionRateSeries: 'Extraction success %',
-            validationRateSeries: 'Validation success %',
-            manualReviewRateSeries: 'Manual review %',
-            confidenceSeries: 'Avg confidence %',
-          }}
-        />
         {data && data.organizations_count > 0 ? (
-          <p className="analytics-stat-card" style={{ margin: 0 }}>
-            <span>Organizations included</span>
+          <p className="analytics-stat-card" style={{ margin: '0 0 1rem' }}>
+            <span>{t('admin.quality.organizationsCovered')}</span>
             <strong>{data.organizations_count}</strong>
           </p>
         ) : null}
+        <section className="admin-dashboard-section">
+          <header className="admin-dashboard-section__header">
+            <h2>{t('admin.quality.sectionTrends')}</h2>
+            <p>{t('admin.quality.sectionTrendsDesc')}</p>
+          </header>
+          <QualityAnalyticsPanel
+            months={data?.months ?? []}
+            confidenceDistribution={data?.confidence_distribution ?? []}
+            totals={data?.totals}
+            loading={loading}
+            error={error}
+            onRetry={reload}
+            titleKeys={{
+              errorTitle: t('common.error'),
+              emptyTitle: t('admin.dashboard.empty'),
+              emptyDescription: t('admin.quality.description'),
+            }}
+            labels={{
+              documentsProcessed: t('admin.quality.documentsProcessed'),
+              extractionSuccessRate: t('admin.quality.extractionSuccessRate'),
+              validationSuccessRate: t('admin.quality.validationSuccessRate'),
+              averageConfidence: t('admin.quality.averageConfidence'),
+              manualReviewRate: t('admin.quality.manualReviewRate'),
+              failedDocuments: t('admin.quality.failedDocuments'),
+              ratesByMonthTitle: t('admin.quality.ratesByMonthTitle'),
+              volumesByMonthTitle: t('admin.quality.volumesByMonthTitle'),
+              confidenceDistributionTitle: t('admin.quality.confidenceDistributionTitle'),
+              ocrSuccess: t('admin.quality.ocrSuccess'),
+              ocrFailed: t('admin.quality.ocrFailed'),
+              manualReview: t('admin.quality.manualReview'),
+              extractionRateSeries: t('admin.quality.extractionRateSeries'),
+              validationRateSeries: t('admin.quality.validationRateSeries'),
+              manualReviewRateSeries: t('admin.quality.manualReviewRateSeries'),
+              confidenceSeries: t('admin.quality.confidenceSeries'),
+            }}
+          />
+        </section>
       </AnalyticsDashboardLayout>
     </PortalPage>
   );

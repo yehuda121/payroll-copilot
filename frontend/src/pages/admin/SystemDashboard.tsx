@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PortalPage } from '../../components/PortalPage';
 import {
   AnalyticsEmptyState,
@@ -26,17 +27,19 @@ function pct(rate: number): string {
 function BarList({
   title,
   data,
+  emptyLabel,
 }: {
   title: string;
   data: Record<string, number>;
+  emptyLabel: string;
 }) {
   const entries = Object.entries(data);
   const max = Math.max(1, ...entries.map(([, value]) => value));
   return (
     <section className="admin-ai-card">
-      <h2>{title}</h2>
+      <h3>{title}</h3>
       {entries.length === 0 ? (
-        <p className="admin-ai-muted">No data yet. Usage appears after AI calls.</p>
+        <p className="admin-ai-muted">{emptyLabel}</p>
       ) : (
         <ul className="admin-ai-bars">
           {entries.map(([label, value]) => (
@@ -59,7 +62,28 @@ function BarList({
   );
 }
 
+function DashboardSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="admin-dashboard-section">
+      <header className="admin-dashboard-section__header">
+        <h2>{title}</h2>
+        <p>{description}</p>
+      </header>
+      <div className="admin-dashboard-section__body">{children}</div>
+    </section>
+  );
+}
+
 export function SystemDashboardPage() {
+  const { t } = useTranslation();
   const [windowHours, setWindowHours] = useState(24);
   const dashboard = useAiDashboard(windowHours);
   const history = useAiHistory(windowHours);
@@ -87,32 +111,32 @@ export function SystemDashboardPage() {
   const error = dashboard.error || history.error;
 
   return (
-    <PortalPage
-      title="System Dashboard"
-      description="Developer AI monitoring: tokens, cost, latency, reliability, and historical trends."
-    >
+    <PortalPage title={t('admin.dashboard.title')} description={t('admin.dashboard.description')}>
       <div className="admin-ai-toolbar">
         <label className="admin-ai-window">
-          <span>Window</span>
+          <span>{t('admin.dashboard.window')}</span>
           <select
+            className="pc-form-control pc-form-control--select"
             value={windowHours}
             disabled={loading}
             onChange={(event) => setWindowHours(Number(event.target.value))}
           >
             {WINDOW_OPTIONS.map((hours) => (
               <option key={hours} value={hours}>
-                Last {hours}h
+                {t('admin.dashboard.windowHours', { hours })}
               </option>
             ))}
           </select>
         </label>
       </div>
 
-      {loading ? <AnalyticsLoadingState cards={4} label="Loading AI metrics" /> : null}
+      {loading ? (
+        <AnalyticsLoadingState cards={4} label={t('admin.dashboard.loading')} />
+      ) : null}
 
       {error ? (
         <AnalyticsErrorState
-          title="Unable to load AI monitoring"
+          title={t('common.error')}
           message={error}
           onRetry={() => {
             dashboard.reload();
@@ -123,153 +147,181 @@ export function SystemDashboardPage() {
 
       {!loading && !error && summary && summary.request_count === 0 && !hasTrends ? (
         <AnalyticsEmptyState
-          title="No AI metrics yet"
-          description="Metrics appear after AI calls. Historical trends use CloudWatch when enabled, otherwise this process."
+          title={t('admin.dashboard.empty')}
+          description={t('admin.dashboard.emptyHint')}
         />
       ) : null}
 
       {summary && (summary.request_count > 0 || hasTrends) ? (
         <div className="admin-ai">
-          <div className="admin-ai-kpis">
-            <div className="admin-ai-kpi">
-              <span>Total tokens</span>
-              <strong>{summary.total_tokens.toLocaleString()}</strong>
+          <DashboardSection
+            title={t('admin.dashboard.sections.overview.title')}
+            description={t('admin.dashboard.sections.overview.description')}
+          >
+            <div className="admin-ai-kpis">
+              <div className="admin-ai-kpi">
+                <span>{t('admin.dashboard.kpi.tokens')}</span>
+                <strong>{summary.total_tokens.toLocaleString()}</strong>
+              </div>
+              <div className="admin-ai-kpi">
+                <span>{t('admin.dashboard.kpi.cost')}</span>
+                <strong>${summary.estimated_cost_usd.toFixed(4)}</strong>
+              </div>
+              <div className="admin-ai-kpi">
+                <span>{t('admin.dashboard.kpi.avgLatency')}</span>
+                <strong>{summary.average_latency_ms.toFixed(0)} ms</strong>
+              </div>
+              <div className="admin-ai-kpi">
+                <span>{t('admin.dashboard.kpi.errorRate')}</span>
+                <strong>{pct(summary.error_rate)}</strong>
+              </div>
+              <div className="admin-ai-kpi">
+                <span>{t('admin.dashboard.kpi.retries')}</span>
+                <strong>{pct(summary.retry_rate)}</strong>
+              </div>
+              <div className="admin-ai-kpi">
+                <span>{t('admin.dashboard.kpi.fallbacks')}</span>
+                <strong>{pct(summary.fallback_rate)}</strong>
+              </div>
             </div>
-            <div className="admin-ai-kpi">
-              <span>Estimated cost</span>
-              <strong>${summary.estimated_cost_usd.toFixed(4)}</strong>
-            </div>
-            <div className="admin-ai-kpi">
-              <span>Average latency</span>
-              <strong>{summary.average_latency_ms.toFixed(0)} ms</strong>
-            </div>
-            <div className="admin-ai-kpi">
-              <span>Error rate</span>
-              <strong>{pct(summary.error_rate)}</strong>
-            </div>
-            <div className="admin-ai-kpi">
-              <span>Retry rate</span>
-              <strong>{pct(summary.retry_rate)}</strong>
-            </div>
-            <div className="admin-ai-kpi">
-              <span>Fallback rate</span>
-              <strong>{pct(summary.fallback_rate)}</strong>
-            </div>
-          </div>
+          </DashboardSection>
 
-          <div className="admin-ai-grid">
-            <BarList title="Tokens by provider" data={summary.tokens_by_provider} />
-            <BarList title="Tokens by model" data={summary.tokens_by_model} />
-            <BarList
-              title="Tokens by capability"
-              data={summary.tokens_by_capability ?? {}}
-            />
-            {summary.prompt_versions && Object.keys(summary.prompt_versions).length > 0 ? (
-              <BarList title="Prompt versions" data={summary.prompt_versions} />
-            ) : null}
-          </div>
+          <DashboardSection
+            title={t('admin.dashboard.sections.usage.title')}
+            description={t('admin.dashboard.sections.usage.description')}
+          >
+            <div className="admin-ai-grid">
+              <BarList
+                title={t('admin.dashboard.charts.byProvider')}
+                data={summary.tokens_by_provider}
+                emptyLabel={t('admin.dashboard.emptyHint')}
+              />
+              <BarList
+                title={t('admin.dashboard.charts.byModel')}
+                data={summary.tokens_by_model}
+                emptyLabel={t('admin.dashboard.emptyHint')}
+              />
+              <BarList
+                title={t('admin.dashboard.charts.byCapability')}
+                data={summary.tokens_by_capability ?? {}}
+                emptyLabel={t('admin.dashboard.emptyHint')}
+              />
+              {summary.prompt_versions && Object.keys(summary.prompt_versions).length > 0 ? (
+                <BarList
+                  title={t('admin.dashboard.charts.byPrompt')}
+                  data={summary.prompt_versions}
+                  emptyLabel={t('admin.dashboard.emptyHint')}
+                />
+              ) : null}
+            </div>
+          </DashboardSection>
 
-          {hasTrends ? (
-            <>
-              <LineChartCard
-                title="Tokens & cost trends"
-                data={trendRows}
-                xKey="time"
+          <DashboardSection
+            title={t('admin.dashboard.sections.trends.title')}
+            description={t('admin.dashboard.sections.trends.description')}
+          >
+            {hasTrends ? (
+              <>
+                <LineChartCard
+                  title={t('admin.dashboard.charts.tokensCost')}
+                  data={trendRows}
+                  xKey="time"
+                  series={[
+                    {
+                      dataKey: 'tokens',
+                      name: t('admin.dashboard.series.tokens'),
+                      color: ANALYTICS_CHART_COLORS.primary,
+                    },
+                    {
+                      dataKey: 'cost',
+                      name: t('admin.dashboard.series.cost'),
+                      color: ANALYTICS_CHART_COLORS.secondary,
+                    },
+                  ]}
+                />
+                <LineChartCard
+                  title={t('admin.dashboard.charts.latency')}
+                  data={trendRows}
+                  xKey="time"
+                  yLabel="ms"
+                  series={[
+                    {
+                      dataKey: 'latency',
+                      name: t('admin.dashboard.series.latency'),
+                      color: ANALYTICS_CHART_COLORS.warning,
+                    },
+                  ]}
+                />
+                <LineChartCard
+                  title={t('admin.dashboard.charts.reliability')}
+                  data={trendRows}
+                  xKey="time"
+                  series={[
+                    {
+                      dataKey: 'successes',
+                      name: t('admin.dashboard.series.successes'),
+                      color: ANALYTICS_CHART_COLORS.secondary,
+                    },
+                    {
+                      dataKey: 'errors',
+                      name: t('admin.dashboard.series.errors'),
+                      color: ANALYTICS_CHART_COLORS.danger,
+                    },
+                    {
+                      dataKey: 'retries',
+                      name: t('admin.dashboard.series.retries'),
+                      color: ANALYTICS_CHART_COLORS.warning,
+                    },
+                    {
+                      dataKey: 'fallbacks',
+                      name: t('admin.dashboard.series.fallbacks'),
+                      color: ANALYTICS_CHART_COLORS.primary,
+                    },
+                  ]}
+                />
+              </>
+            ) : (
+              <AnalyticsEmptyState
+                title={t('admin.dashboard.charts.noTrend')}
+                description={t('admin.dashboard.emptyHint')}
+              />
+            )}
+          </DashboardSection>
+
+          {providerRows.length > 0 ? (
+            <DashboardSection
+              title={t('admin.dashboard.sections.providers.title')}
+              description={t('admin.dashboard.sections.providers.description')}
+            >
+              <BarChartCard
+                title={t('admin.dashboard.charts.providerCompare')}
+                data={providerRows}
+                xKey="name"
                 series={[
                   {
                     dataKey: 'tokens',
-                    name: 'Tokens',
+                    name: t('admin.dashboard.series.tokens'),
                     color: ANALYTICS_CHART_COLORS.primary,
                   },
                   {
-                    dataKey: 'cost',
-                    name: 'Cost USD',
-                    color: ANALYTICS_CHART_COLORS.secondary,
-                  },
-                ]}
-              />
-              <LineChartCard
-                title="Latency trend"
-                data={trendRows}
-                xKey="time"
-                yLabel="ms"
-                series={[
-                  {
-                    dataKey: 'latency',
-                    name: 'Avg latency',
-                    color: ANALYTICS_CHART_COLORS.warning,
-                  },
-                ]}
-              />
-              <LineChartCard
-                title="Success / error / retry / fallback"
-                data={trendRows}
-                xKey="time"
-                series={[
-                  {
-                    dataKey: 'successes',
-                    name: 'Success',
+                    dataKey: 'requests',
+                    name: t('admin.dashboard.series.requests'),
                     color: ANALYTICS_CHART_COLORS.secondary,
                   },
                   {
                     dataKey: 'errors',
-                    name: 'Errors',
+                    name: t('admin.dashboard.series.errors'),
                     color: ANALYTICS_CHART_COLORS.danger,
                   },
                   {
                     dataKey: 'retries',
-                    name: 'Retries',
+                    name: t('admin.dashboard.series.retries'),
                     color: ANALYTICS_CHART_COLORS.warning,
-                  },
-                  {
-                    dataKey: 'fallbacks',
-                    name: 'Fallbacks',
-                    color: ANALYTICS_CHART_COLORS.primary,
                   },
                 ]}
               />
-            </>
-          ) : (
-            <AnalyticsEmptyState
-              title="No historical trend points yet"
-              description="Trends populate from CloudWatch when enabled, or from hourly process-local buckets after AI traffic."
-            />
-          )}
-
-          {providerRows.length > 0 ? (
-            <BarChartCard
-              title="Provider comparison (window)"
-              data={providerRows}
-              xKey="name"
-              series={[
-                {
-                  dataKey: 'tokens',
-                  name: 'Tokens',
-                  color: ANALYTICS_CHART_COLORS.primary,
-                },
-                {
-                  dataKey: 'requests',
-                  name: 'Requests',
-                  color: ANALYTICS_CHART_COLORS.secondary,
-                },
-                {
-                  dataKey: 'errors',
-                  name: 'Errors',
-                  color: ANALYTICS_CHART_COLORS.danger,
-                },
-                {
-                  dataKey: 'retries',
-                  name: 'Retries',
-                  color: ANALYTICS_CHART_COLORS.warning,
-                },
-              ]}
-            />
+            </DashboardSection>
           ) : null}
-
-          <p className="admin-ai-muted">
-            Requests observed: {summary.request_count.toLocaleString()}. Snapshot source:{' '}
-            {summary.source}. History source: {history.data?.source ?? '—'}.
-          </p>
         </div>
       ) : null}
     </PortalPage>

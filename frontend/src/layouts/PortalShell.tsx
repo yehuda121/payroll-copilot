@@ -115,26 +115,44 @@ export function PortalShell({ config }: PortalShellProps) {
           </p>
         ) : null}
         <nav className="portal-shell__nav" aria-label={portalName}>
-          {config.navItems.map((item) => {
-            const label = item.labelKey ? t(item.labelKey) : (item.label ?? item.path);
-            const badge =
-              item.badgeKey === 'vacationsUnseen' && vacationsUnseen > 0
-                ? vacationsUnseen
-                : item.badgeKey === 'sickLeavesUnseen' && sickLeavesUnseen > 0
-                  ? sickLeavesUnseen
-                  : null;
+          {(config.navGroups ?? [{ labelKey: '', items: config.navItems }]).map((group, groupIndex) => {
+            const groupLabel = group.labelKey ? t(group.labelKey) : null;
             return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.path === config.basePath}
-                className={({ isActive }) =>
-                  `portal-shell__nav-link${isActive ? ' portal-shell__nav-link--active' : ''}`
-                }
-                onClick={(event) => void handleNavClick(event, item.path)}
-              >
-                {badge != null ? `${label} (${badge})` : label}
-              </NavLink>
+              <div key={group.labelKey || `nav-group-${groupIndex}`} className="portal-shell__nav-group">
+                {groupLabel ? (
+                  <p className="portal-shell__nav-group-label" id={`portal-nav-group-${groupIndex}`}>
+                    {groupLabel}
+                  </p>
+                ) : null}
+                <div
+                  className="portal-shell__nav-group-items"
+                  role={groupLabel ? 'group' : undefined}
+                  aria-labelledby={groupLabel ? `portal-nav-group-${groupIndex}` : undefined}
+                >
+                  {group.items.map((item) => {
+                    const label = item.labelKey ? t(item.labelKey) : (item.label ?? item.path);
+                    const badge =
+                      item.badgeKey === 'vacationsUnseen' && vacationsUnseen > 0
+                        ? vacationsUnseen
+                        : item.badgeKey === 'sickLeavesUnseen' && sickLeavesUnseen > 0
+                          ? sickLeavesUnseen
+                          : null;
+                    return (
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        end={item.path === config.basePath}
+                        className={({ isActive }) =>
+                          `portal-shell__nav-link${isActive ? ' portal-shell__nav-link--active' : ''}`
+                        }
+                        onClick={(event) => void handleNavClick(event, item.path)}
+                      >
+                        {badge != null ? `${label} (${badge})` : label}
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </nav>

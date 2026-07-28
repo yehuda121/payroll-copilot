@@ -108,15 +108,7 @@ const SickLeavesPage = lazyPage(
   'SickLeavesPage',
 );
 
-const AdminAuditLogsPage = lazyPage(
-  () => import('../pages/admin/AdminAuditLogs'),
-  'AdminAuditLogsPage',
-);
 const AiModelsPage = lazyPage(() => import('../pages/admin/AiModels'), 'AiModelsPage');
-const DepartmentRulesPage = lazyPage(
-  () => import('../pages/admin/DepartmentRules'),
-  'DepartmentRulesPage',
-);
 const DocumentLabPage = lazyPage(() => import('../pages/admin/DocumentLab'), 'DocumentLabPage');
 const LegalKnowledgePage = lazyPage(
   () => import('../pages/admin/LegalKnowledgePage'),
@@ -125,11 +117,6 @@ const LegalKnowledgePage = lazyPage(
 const RagEvaluationPage = lazyPage(
   () => import('../pages/admin/RagEvaluationPage'),
   'RagEvaluationPage',
-);
-const RulePacksPage = lazyPage(() => import('../pages/admin/RulePacks'), 'RulePacksPage');
-const SystemConfigurationPage = lazyPage(
-  () => import('../pages/admin/SystemConfiguration'),
-  'SystemConfigurationPage',
 );
 const SystemDashboardPage = lazyPage(
   () => import('../pages/admin/SystemDashboard'),
@@ -142,10 +129,6 @@ const OrgCensusAnalyticsPage = lazyPage(
 const AdminQualityAnalyticsPage = lazyPage(
   () => import('../pages/admin/AdminQualityAnalytics'),
   'AdminQualityAnalyticsPage',
-);
-const UsersAndRolesPage = lazyPage(
-  () => import('../pages/admin/UsersAndRoles'),
-  'UsersAndRolesPage',
 );
 
 function RouteFallback() {
@@ -285,14 +268,7 @@ export const appRouteElements = (
         <Route path="/admin/mcp-sync" element={<Navigate to="/admin/legal-knowledge" replace />} />
         <Route path="/admin/rag" element={<Navigate to="/admin/rag-evaluation" replace />} />
         {import.meta.env.DEV ? (
-          <>
-            <Route path="/admin/users" element={<L><UsersAndRolesPage /></L>} />
-            <Route path="/admin/rule-packs" element={<L><RulePacksPage /></L>} />
-            <Route path="/admin/department-rules" element={<L><DepartmentRulesPage /></L>} />
-            <Route path="/admin/configuration" element={<L><SystemConfigurationPage /></L>} />
-            <Route path="/admin/audit-logs" element={<L><AdminAuditLogsPage /></L>} />
-            <Route path="/admin/document-lab" element={<L><DocumentLabPage /></L>} />
-          </>
+          <Route path="/admin/document-lab" element={<L><DocumentLabPage /></L>} />
         ) : null}
       </Route>
     </Route>
