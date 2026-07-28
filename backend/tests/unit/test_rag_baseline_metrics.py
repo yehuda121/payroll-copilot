@@ -67,3 +67,34 @@ def test_aggregate_skips_nan_scores() -> None:
 def test_aggregate_all_nan_is_unavailable() -> None:
     agg = _aggregate([RagEvalMetricValue(value=float("nan"), status="ok")])
     assert agg.status == "unavailable"
+
+
+def test_temporal_check_accepts_chroma_none_sentinel() -> None:
+    from datetime import date
+
+    from payroll_copilot.application.services.rag_evaluation import _temporal_check
+
+    ok, detail = _temporal_check(
+        expected_rules=["legal.minimum_wage"],
+        hits=[
+            {
+                "rule_id": "legal.minimum_wage",
+                "rule_version": "1",
+                "valid_from": "2026-01-01",
+                "valid_to": "none",
+            }
+        ],
+        effective_date=date(2026, 6, 1),
+    )
+    assert ok is True
+    assert "matched:legal.minimum_wage" in detail
+
+
+def test_resolve_runtime_data_path_uses_cwd(tmp_path, monkeypatch) -> None:
+    from payroll_copilot.infrastructure.rag.data_paths import resolve_runtime_data_path
+
+    monkeypatch.chdir(tmp_path)
+    resolved = resolve_runtime_data_path("data/chroma_legal")
+    assert resolved == (tmp_path / "data" / "chroma_legal").resolve()
+    absolute = resolve_runtime_data_path(tmp_path / "abs")
+    assert absolute == (tmp_path / "abs").resolve()

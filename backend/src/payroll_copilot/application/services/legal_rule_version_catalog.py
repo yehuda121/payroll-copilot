@@ -37,8 +37,12 @@ class LegalRuleVersionCatalog:
         self._rules_root = Path(rules_root)
         self._catalog_path = self._rules_root / ".versions" / "rule_temporal_catalog.json"
         self._snapshots_root = self._rules_root / ".versions" / "rule_snapshots"
-        self._snapshots_root.mkdir(parents=True, exist_ok=True)
-        self._catalog_path.parent.mkdir(parents=True, exist_ok=True)
+        # Docker mounts config read-only; mkdir is best-effort when dirs already exist.
+        try:
+            self._snapshots_root.mkdir(parents=True, exist_ok=True)
+            self._catalog_path.parent.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            pass
 
     def ensure_seeded_from_yaml(self) -> list[LegalRuleVersion]:
         """Seed ACTIVE versions from current YAML if catalog is empty. Idempotent."""
@@ -71,7 +75,7 @@ class LegalRuleVersionCatalog:
                             scope=str(rule_data.get("scope") or "general"),
                             content_hash=content_hash,
                             source_file=yaml_file.name,
-                            snapshot_path=str(snap_path.relative_to(self._rules_root)),
+                            snapshot_path=snap_path.relative_to(self._rules_root).as_posix(),
                             created_at=now,
                             approved_at=now,
                             approved_by="system_seed",
@@ -170,7 +174,7 @@ class LegalRuleVersionCatalog:
             scope=scope,
             content_hash=content_hash,
             source_file=source_file or (open_actives[0].source_file if open_actives else "unknown.yaml"),
-            snapshot_path=str(snap_path.relative_to(self._rules_root)),
+            snapshot_path=snap_path.relative_to(self._rules_root).as_posix(),
             created_at=now,
             approved_at=now,
             approved_by=approved_by,
@@ -202,9 +206,19 @@ class LegalRuleVersionCatalog:
     def _load(self) -> dict[str, Any]:
         if not self._catalog_path.exists():
             return {"catalog_version": "1", "versions": []}
-        return json.loads(self._catalog_path.read_text(encoding="utf-8"))
+        data = json.loads(self._catalog_path.read_text(encoding="utf-8"))
+        # Normalize Windows-seeded snapshot paths for Linux/Docker mounts.
+        for raw in data.get("versions") or []:
+            snap = raw.get("snapshot_path")
+            if isinstance(snap, str) and "\\" in snap:
+                raw["snapshot_path"] = snap.replace("\\", "/")
+        return data
 
     def _save(self, catalog: dict[str, Any]) -> None:
+        for raw in catalog.get("versions") or []:
+            snap = raw.get("snapshot_path")
+            if isinstance(snap, str) and "\\" in snap:
+                raw["snapshot_path"] = snap.replace("\\", "/")
         self._catalog_path.write_text(
             json.dumps(catalog, indent=2, ensure_ascii=False),
             encoding="utf-8",

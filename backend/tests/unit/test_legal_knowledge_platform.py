@@ -451,6 +451,58 @@ def test_ragas_no_contexts_unavailable() -> None:
     assert scores["faithfulness"].value is None
 
 
+def test_nest_asyncio_uvloop_safe_is_idempotent() -> None:
+    from payroll_copilot.application.services import ragas_adapter as mod
+
+    mod._NEST_ASYNCIO_UVLOOP_SAFE = False
+    mod._ensure_nest_asyncio_uvloop_safe()
+    assert mod._NEST_ASYNCIO_UVLOOP_SAFE is True
+    first = __import__("nest_asyncio").apply
+    mod._ensure_nest_asyncio_uvloop_safe()
+    assert __import__("nest_asyncio").apply is first
+    assert getattr(first, "_payroll_uvloop_safe", False) is True
+
+
+def test_score_case_isolates_when_event_loop_running() -> None:
+    """Under a running loop, scoring must not call RAGAS on that loop directly."""
+    import asyncio
+
+    from payroll_copilot.application.dto.legal_knowledge import RagEvalMetricValue
+
+    adapter = RagasAdapter(enabled=False)
+    adapter._enabled = True
+    adapter._ragas_version = "0.2.15"
+    adapter._import_error = None
+
+    sentinel = {
+        "faithfulness": RagEvalMetricValue(value=0.9, status="ok"),
+        "context_precision": RagEvalMetricValue(value=0.8, status="ok"),
+        "context_recall": RagEvalMetricValue(value=0.7, status="ok"),
+        "answer_relevancy": RagEvalMetricValue(value=0.6, status="ok"),
+    }
+    threads: list[str] = []
+
+    def fake_body(**kwargs):  # noqa: ANN003
+        import threading
+
+        threads.append(threading.current_thread().name)
+        return sentinel
+
+    adapter._score_case_body = fake_body  # type: ignore[method-assign]
+
+    async def run() -> dict:
+        return adapter.score_case(
+            question="q",
+            reference_answer="r",
+            generated_answer="answer",
+            retrieved_contexts=["ctx"],
+        )
+
+    result = asyncio.run(run())
+    assert result["faithfulness"].value == 0.9
+    assert any(name.startswith("ragas-eval") for name in threads)
+
+
 def test_temporal_metric_helpers() -> None:
     from payroll_copilot.application.services.rag_evaluation import _temporal_check
 
@@ -467,6 +519,21 @@ def test_temporal_metric_helpers() -> None:
         effective_date=date(2026, 6, 1),
     )
     assert ok is True
+    # Chroma persists open-ended valid_to as the string sentinel "none".
+    ok_chroma, detail_chroma = _temporal_check(
+        expected_rules=["legal.minimum_wage"],
+        hits=[
+            {
+                "rule_id": "legal.minimum_wage",
+                "rule_version": "1",
+                "valid_from": "2026-01-01",
+                "valid_to": "none",
+            }
+        ],
+        effective_date=date(2026, 6, 1),
+    )
+    assert ok_chroma is True
+    assert detail_chroma.startswith("matched:")
     bad, _ = _temporal_check(
         expected_rules=["legal.minimum_wage"],
         hits=[

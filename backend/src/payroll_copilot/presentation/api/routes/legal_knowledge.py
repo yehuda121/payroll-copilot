@@ -351,11 +351,18 @@ async def rebuild_vector_index(
 ) -> dict[str, Any]:
     settings = get_settings()
     model = AIProviderRouter(settings).provider_for(AICapability.ASSISTANT)
+    embedding_model_name = (
+        getattr(model, "_embedding_model", None)
+        or getattr(model, "embedding_model", None)
+        or getattr(settings, "ollama_embedding_model", None)
+        or getattr(settings, "openai_embedding_model", None)
+        or "configured_provider"
+    )
     indexer = LegalRagIndexer(
         rules_path=settings.legal_rules_path,
         model=model,
         store=get_legal_knowledge_store(),
-        embedding_model_name=getattr(model, "embedding_model", None) or "configured_provider",
+        embedding_model_name=str(embedding_model_name),
     )
     try:
         return await indexer.rebuild_all()

@@ -95,6 +95,10 @@ YAML packs remain filesystem SoT for validation. Temporal catalog remains filesy
 
 **Production:** ChromaDB persistent (`LEGAL_VECTOR_BACKEND=chroma`, path `data/chroma_legal`, collection `approved_legal_knowledge_v1`).
 
+Relative persist paths resolve against process CWD (`WORKDIR=/app` in Docker) so the named volume `legal_chroma_data` → `/app/data/chroma_legal` is used. Do not resolve via `Path(__file__)` — that points into `site-packages` when the package is installed and silently writes outside the volume.
+
+On API startup, if the live vector count is empty, the service fail-open bootstraps via `LegalRagIndexer.rebuild_all()` (Admin rebuild remains available).
+
 **Why Chroma:** persistent, cosine HNSW, metadata filters, Docker volume friendly, no revived Postgres, no managed SaaS required.
 
 **Tests/local:** `LEGAL_VECTOR_BACKEND=numpy`.

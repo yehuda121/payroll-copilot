@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import math
 import sys
 import types
-from typing import Any
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Callable, TypeVar
 
 from payroll_copilot.application.dto.legal_knowledge import RagEvalMetricValue
 
@@ -14,6 +16,10 @@ logger = logging.getLogger(__name__)
 
 # Pinned conceptually; actual import verified at runtime.
 RAGAS_VERSION_PIN = "0.2.15"
+
+_NEST_ASYNCIO_UVLOOP_SAFE = False
+
+T = TypeVar("T")
 
 
 def _ensure_ragas_langchain_compat() -> None:
@@ -40,6 +46,83 @@ def _ensure_ragas_langchain_compat() -> None:
         pass
 
 
+def _ensure_nest_asyncio_uvloop_safe() -> None:
+    """Prevent ragas' import-time nest_asyncio.apply() from failing under uvloop.
+
+    uvicorn[standard] runs FastAPI on uvloop. ragas 0.2 calls nest_asyncio.apply()
+    when executor.py is imported; nest_asyncio cannot patch uvloop and raises
+    ValueError, which made Admin summary report RAGAS unavailable even though
+    evaluation can succeed off the server loop.
+    """
+    global _NEST_ASYNCIO_UVLOOP_SAFE
+    if _NEST_ASYNCIO_UVLOOP_SAFE:
+        return
+    try:
+        import nest_asyncio
+    except ImportError:
+        _NEST_ASYNCIO_UVLOOP_SAFE = True
+        return
+
+    if getattr(nest_asyncio.apply, "_payroll_uvloop_safe", False):
+        _NEST_ASYNCIO_UVLOOP_SAFE = True
+        return
+
+    original = nest_asyncio.apply
+
+    def safe_apply(loop: Any = None) -> Any:
+        target = loop
+        if target is None:
+            try:
+                target = asyncio.get_running_loop()
+            except RuntimeError:
+                try:
+                    target = asyncio.get_event_loop()
+                except RuntimeError:
+                    target = None
+        if target is not None:
+            loop_type = type(target)
+            if "uvloop" in loop_type.__module__.lower() or "uvloop" in loop_type.__name__.lower():
+                logger.debug("nest_asyncio.apply skipped for %s", loop_type)
+                return None
+        try:
+            return original(loop=loop)
+        except ValueError as exc:
+            if "patch loop" in str(exc).lower():
+                logger.debug("nest_asyncio.apply skipped: %s", exc)
+                return None
+            raise
+
+    safe_apply._payroll_uvloop_safe = True  # type: ignore[attr-defined]
+    nest_asyncio.apply = safe_apply  # type: ignore[assignment]
+    _NEST_ASYNCIO_UVLOOP_SAFE = True
+
+
+def _call_in_standard_event_loop(fn: Callable[[], T]) -> T:
+    """Run sync RAGAS work on a dedicated stdlib asyncio loop (never the server uvloop)."""
+
+    def runner() -> T:
+        # Force stdlib loops even if the process policy is uvloop (uvicorn[standard]).
+        asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return fn()
+        finally:
+            try:
+                loop.close()
+            finally:
+                asyncio.set_event_loop(None)
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        # No running loop (CLI / unit tests): run inline.
+        return fn()
+
+    with ThreadPoolExecutor(max_workers=1, thread_name_prefix="ragas-eval") as pool:
+        return pool.submit(runner).result()
+
+
 class RagasAdapter:
     """Thin adapter around RAGAS metrics. Unit tests mock this class."""
 
@@ -56,6 +139,7 @@ class RagasAdapter:
 
     def _try_import(self) -> None:
         try:
+            _ensure_nest_asyncio_uvloop_safe()
             _ensure_ragas_langchain_compat()
             import ragas  # noqa: F401
 
@@ -106,6 +190,26 @@ class RagasAdapter:
                 k: RagEvalMetricValue(status="unavailable", reason="generated_answer_empty")
                 for k in base
             }
+
+        # RAGAS evaluate() nests event-loop work. Under FastAPI/uvloop that raises
+        # "loop already running" / nest_asyncio errors — isolate on a stdlib loop.
+        return _call_in_standard_event_loop(
+            lambda: self._score_case_body(
+                question=question,
+                reference_answer=reference_answer,
+                generated_answer=generated_answer,
+                retrieved_contexts=retrieved_contexts,
+            )
+        )
+
+    def _score_case_body(
+        self,
+        *,
+        question: str,
+        reference_answer: str,
+        generated_answer: str,
+        retrieved_contexts: list[str],
+    ) -> dict[str, RagEvalMetricValue]:
         if not retrieved_contexts:
             # Faithfulness/precision/recall need contexts; answer relevancy may still run.
             partial = {
@@ -378,4 +482,3 @@ class RagasAdapter:
         dataset = Dataset.from_list([row])
         result = evaluate(dataset, metrics=[metric], llm=llm, embeddings=embeddings)
         return self._extract_scores(result, (name,)).get(name)
-

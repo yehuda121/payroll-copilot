@@ -105,7 +105,10 @@ class LegalRagIndexer:
         from pathlib import Path
 
         if version.snapshot_path:
-            path = Path(self._rules_path) / version.snapshot_path
+            # Catalog may have been seeded on Windows (backslash paths) and then
+            # mounted into Linux Docker — normalize separators before resolve.
+            relative = str(version.snapshot_path).replace("\\", "/")
+            path = Path(self._rules_path) / relative
             if path.exists():
                 return path.read_text(encoding="utf-8")
         # Fallback: current YAML rule body

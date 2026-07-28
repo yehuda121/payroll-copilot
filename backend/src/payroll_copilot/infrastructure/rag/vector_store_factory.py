@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any, Protocol
 
 from payroll_copilot.application.dto.legal_knowledge import IndexedChunkMeta
 from payroll_copilot.infrastructure.config.settings import get_settings
 from payroll_copilot.infrastructure.persistence.legal_knowledge_store import get_legal_knowledge_store
 from payroll_copilot.infrastructure.rag.chroma_vector_store import ChromaLegalVectorStore
+from payroll_copilot.infrastructure.rag.data_paths import resolve_runtime_data_path
 from payroll_copilot.infrastructure.rag.numpy_vector_store import NumpyLegalVectorStore
 
 
@@ -53,17 +53,12 @@ def get_legal_vector_store() -> LegalVectorStorePort:
             )
 
             root = getattr(settings, "legal_knowledge_data_path", None) or "data/legal_knowledge"
-            path = Path(root)
-            if not path.is_absolute():
-                path = Path(__file__).resolve().parents[3] / path
-            file_store = LegalKnowledgeStore(path)
+            file_store = LegalKnowledgeStore(resolve_runtime_data_path(root))
             _VECTOR = NumpyLegalVectorStore(file_store)
         return _VECTOR
 
     persist = getattr(settings, "legal_vector_persist_path", None) or "data/chroma_legal"
-    path = Path(persist)
-    if not path.is_absolute():
-        path = Path(__file__).resolve().parents[3] / path
+    path = resolve_runtime_data_path(persist)
     collection = getattr(settings, "legal_vector_collection", None) or "approved_legal_knowledge_v1"
     _VECTOR = ChromaLegalVectorStore(
         persist_path=path,

@@ -30,7 +30,9 @@ class LegalKnowledgeStore:
 
     def __init__(self, root: Path | str | None = None) -> None:
         if root is None:
-            root = Path(__file__).resolve().parents[4] / "data" / "legal_knowledge"
+            from payroll_copilot.infrastructure.rag.data_paths import resolve_runtime_data_path
+
+            root = resolve_runtime_data_path("data/legal_knowledge")
         self._root = Path(root)
         self._root.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
@@ -304,10 +306,9 @@ def get_legal_knowledge_store():
     backend = (getattr(settings, "legal_knowledge_store", None) or "dynamodb").strip().lower()
     if backend in {"file", "filesystem", "local"}:
         root = getattr(settings, "legal_knowledge_data_path", None) or "data/legal_knowledge"
-        path = Path(root)
-        if not path.is_absolute():
-            path = Path(__file__).resolve().parents[3] / path
-        _STORE = LegalKnowledgeStore(path)
+        from payroll_copilot.infrastructure.rag.data_paths import resolve_runtime_data_path
+
+        _STORE = LegalKnowledgeStore(resolve_runtime_data_path(root))
         return _STORE
 
     # Production / default — DynamoDB. Failures must be observable (no silent file fallback).

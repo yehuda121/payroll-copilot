@@ -73,12 +73,17 @@ class VersionAwareLegalRetriever:
 
         health = self._store.vector_health()
         chunk_count = health.chunk_count
+        live_count: int | None = None
         if hasattr(self._vectors, "count"):
             try:
-                chunk_count = max(chunk_count, int(self._vectors.count()))
+                live_count = int(self._vectors.count())
             except Exception:  # noqa: BLE001
-                pass
-        if chunk_count <= 0 or health.status == "empty":
+                live_count = None
+        # Live vector backend is authoritative when available — Dynamo/file health can
+        # be stale after a volume recreate while metadata still says "ready".
+        if live_count is not None:
+            chunk_count = live_count
+        if chunk_count <= 0 or (live_count is None and health.status == "empty"):
             diagnostics["retrieval_mode"] = "unavailable"
             diagnostics["reason"] = "vector_index_empty"
             diagnostics["retrieval_candidate_count"] = 0

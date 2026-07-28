@@ -19,6 +19,71 @@ from payroll_copilot.presentation.api.router import api_router
 ensure_validation_rules_registered()
 
 
+async def _bootstrap_legal_vector_index_if_empty() -> None:
+    """Populate Chroma when the persistent volume is empty (common after first compose up).
+
+    Fail-open: never block API startup if embeddings or catalog are unavailable.
+    """
+    settings = get_settings()
+    if not bool(getattr(settings, "legal_rag_enabled", True)):
+        return
+    try:
+        from payroll_copilot.application.ports.ai_capabilities import AICapability
+        from payroll_copilot.application.services.legal_rag_indexer import LegalRagIndexer
+        from payroll_copilot.infrastructure.ai.provider_router import AIProviderRouter
+        from payroll_copilot.infrastructure.persistence.legal_knowledge_store import (
+            get_legal_knowledge_store,
+        )
+        from payroll_copilot.infrastructure.rag.vector_store_factory import (
+            get_legal_vector_store,
+        )
+
+        store = get_legal_knowledge_store()
+        health = store.vector_health()
+        vectors = get_legal_vector_store()
+        live_count: int | None = None
+        if hasattr(vectors, "count"):
+            try:
+                live_count = int(vectors.count())
+            except Exception:  # noqa: BLE001
+                live_count = None
+        # Prefer live Chroma/numpy count. Stale Dynamo health must not skip rebuild.
+        if live_count is not None:
+            if live_count > 0:
+                return
+        else:
+            chunk_count = int(getattr(health, "chunk_count", 0) or 0)
+            if chunk_count > 0 and getattr(health, "status", None) != "empty":
+                return
+
+        model = AIProviderRouter(settings).provider_for(AICapability.ASSISTANT)
+        embedding_model_name = (
+            getattr(model, "_embedding_model", None)
+            or getattr(settings, "ollama_embedding_model", None)
+            or getattr(settings, "openai_embedding_model", None)
+            or "configured_provider"
+        )
+        indexer = LegalRagIndexer(
+            rules_path=settings.legal_rules_path,
+            model=model,
+            store=store,
+            vector_store=vectors,
+            embedding_model_name=str(embedding_model_name),
+        )
+        result = await indexer.rebuild_all()
+        structlog.get_logger().info(
+            "legal_vector_index_bootstrapped",
+            chunk_count=result.get("chunk_count"),
+            status=result.get("status"),
+            backend=result.get("backend"),
+        )
+    except Exception as exc:  # noqa: BLE001 — fail-open
+        structlog.get_logger().warning(
+            "legal_vector_index_bootstrap_skipped",
+            error=f"{type(exc).__name__}: {exc}",
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
@@ -31,6 +96,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             else structlog.dev.ConsoleRenderer(),
         ],
     )
+    await _bootstrap_legal_vector_index_if_empty()
     yield
 
 

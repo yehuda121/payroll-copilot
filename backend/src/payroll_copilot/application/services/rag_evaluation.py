@@ -333,12 +333,22 @@ def _temporal_check(
             continue
         vf_raw = hit.get("valid_from")
         vt_raw = hit.get("valid_to")
+        # Chroma metadata stores open-ended valid_to as the sentinel "none".
+        def _is_open(raw: object) -> bool:
+            if raw is None:
+                return True
+            return str(raw).strip().lower() in {"", "none", "null"}
+
         try:
-            vf = date.fromisoformat(str(vf_raw)[:10]) if vf_raw else date.min
+            vf = (
+                date.min
+                if _is_open(vf_raw)
+                else date.fromisoformat(str(vf_raw)[:10])
+            )
         except ValueError:
             return False, f"invalid_valid_from:{vf_raw}"
         try:
-            vt = date.fromisoformat(str(vt_raw)[:10]) if vt_raw else None
+            vt = None if _is_open(vt_raw) else date.fromisoformat(str(vt_raw)[:10])
         except ValueError:
             return False, f"invalid_valid_to:{vt_raw}"
         eligible = vf <= effective_date and (vt is None or vt >= effective_date)
