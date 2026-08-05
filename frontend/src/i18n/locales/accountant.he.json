@@ -672,7 +672,23 @@
       "searchLabel": "חיפוש עובדים שחולצו",
       "searchPlaceholder": "חיפוש לפי שם, מספר עובד, ת.ז. או תקופה",
       "serialLabel": "תלוש {{value}}",
-      "unnamedSlip": "עובד לא זוהה",
+      "unnamedSlip": "לא ידוע",
+      "identifierWarnings": {
+        "national_id_matched_employee_number_mismatch": "יש התאמה בתעודת הזהות, אך אין התאמה במספר העובד.",
+        "employee_number_matched_national_id_mismatch": "יש התאמה במספר העובד, אך אין התאמה בתעודת הזהות.",
+        "identifiers_match_different_employees": "תעודת הזהות ומספר העובד מזהים עובדים שונים.",
+        "employee_number_unavailable_for_verification": "ההתאמה בוצעה לפי תעודת זהות; מספר העובד לא היה זמין לאימות.",
+        "national_id_unavailable_for_verification": "ההתאמה בוצעה לפי מספר עובד; תעודת הזהות לא הייתה זמינה לאימות."
+      },
+      "assign": {
+        "searchLabel": "שיוך עובד",
+        "searchPlaceholder": "חיפוש לפי שם, ת.ז. או מספר עובד",
+        "idLabel": "ת.ז",
+        "numberLabel": "מס׳ עובד",
+        "confirmTitle": "אישור שיוך עובד",
+        "confirmMessage": "האם אתה בטוח שברצונך לשייך את התלוש הנוכחי לעובד \"{{employee_name}}\", ת.ז {{national_id}}?",
+        "confirmAction": "אישור ושיוך"
+      },
       "uploadWorkspace": {
         "title": "העלאת קובץ שכר",
         "description": "גררו לכאן קובץ PDF עם מספר עובדים. העיבוד מתחיל מהפעולה בראש המסך כשהקובץ מוכן."

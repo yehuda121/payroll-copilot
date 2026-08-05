@@ -8,7 +8,7 @@ from payroll_copilot.application.use_cases.documents import UploadDocumentComman
 from payroll_copilot.domain.enums import DocumentType
 
 _ALLOWED_MIME_TYPES: dict[DocumentType, frozenset[str]] = {
-    DocumentType.PAYSLIP: frozenset({"application/pdf", "image/png", "image/jpeg"}),
+    DocumentType.PAYSLIP: frozenset({"application/pdf"}),
     DocumentType.ATTENDANCE: frozenset(
         {
             "application/pdf",
@@ -18,8 +18,8 @@ _ALLOWED_MIME_TYPES: dict[DocumentType, frozenset[str]] = {
         }
     ),
     DocumentType.CONTRACT: frozenset({"application/pdf"}),
-    DocumentType.NATIONAL_ID: frozenset({"application/pdf", "image/png", "image/jpeg"}),
-    DocumentType.ID_APPENDIX: frozenset({"application/pdf", "image/png", "image/jpeg"}),
+    DocumentType.NATIONAL_ID: frozenset({"application/pdf"}),
+    DocumentType.ID_APPENDIX: frozenset({"application/pdf"}),
     DocumentType.EMPLOYEE_EXCEL: frozenset(
         {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
     ),

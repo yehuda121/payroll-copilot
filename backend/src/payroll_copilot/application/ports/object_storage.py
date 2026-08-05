@@ -15,3 +15,11 @@ class ObjectStoragePort(Protocol):
 
     async def delete(self, key: str) -> None:
         ...
+
+    async def list_keys(self, prefix: str) -> list[str]:
+        """List object keys under a prefix (empty list when unsupported/empty)."""
+        ...
+
+    async def delete_prefix(self, prefix: str) -> int:
+        """Delete all objects under prefix; return deleted count."""
+        ...

@@ -162,13 +162,34 @@ class DynamoEmployeeRepository(EmployeeRepository):
             employees = [e for e in employees if e.department_id == filters.department_id]
         if filters.query:
             needle = filters.query.strip().lower()
-            employees = [
-                e
-                for e in employees
-                if needle in e.employee_number.lower()
-                or needle in e.first_name.lower()
-                or needle in e.last_name.lower()
-            ]
+            needle_digits = "".join(ch for ch in needle if ch.isdigit())
+            if needle:
+                filtered: list[Employee] = []
+                for e in employees:
+                    hay = " ".join(
+                        [
+                            e.employee_number,
+                            e.first_name,
+                            e.last_name,
+                            e.full_name,
+                            str((e.metadata or {}).get("national_id_masked") or ""),
+                        ]
+                    ).lower()
+                    if needle in hay:
+                        filtered.append(e)
+                        continue
+                    if needle_digits:
+                        masked_digits = "".join(
+                            ch
+                            for ch in str((e.metadata or {}).get("national_id_masked") or "")
+                            if ch.isdigit()
+                        )
+                        if needle_digits in masked_digits or (
+                            len(needle_digits) >= 4
+                            and masked_digits.endswith(needle_digits[-4:])
+                        ):
+                            filtered.append(e)
+                employees = filtered
         employees.sort(key=lambda e: (e.last_name.lower(), e.first_name.lower()))
         start = max(0, filters.offset)
         end = start + min(max(1, filters.limit), 500)

@@ -18,6 +18,7 @@ function periodLabel(item: BatchExtractedEmployee): string {
 export function batchItemSearchHaystack(item: BatchExtractedEmployee): string {
   return normalizeBatchSearchText(
     [
+      item.extracted_employee_name ?? '',
       item.employee_name ?? '',
       item.employee_number ?? '',
       item.national_id_masked ?? '',

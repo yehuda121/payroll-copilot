@@ -340,7 +340,14 @@ class ManageEmployeesUseCase:
     async def match_by_national_id(
         self, organization_id: UUID, national_id: str
     ) -> dict[str, Any] | None:
+        from payroll_copilot.application.services.national_id_privacy import (
+            normalize_national_id_digits,
+        )
+
+        digits = normalize_national_id_digits(national_id)
+        if not digits:
+            return None
         employee = await self._employees.get_by_national_id_hash(
-            organization_id, hash_national_id(national_id)
+            organization_id, hash_national_id(digits)
         )
         return serialize_employee(employee) if employee else None

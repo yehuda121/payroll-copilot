@@ -66,6 +66,9 @@ class BatchExtractedItem:
     status: str = "processing"
     employee_number: str | None = None
     employee_name: str | None = None
+    extracted_employee_name: str | None = None
+    match_status: str | None = None
+    identifier_match_warning: str | None = None
     document_id: str | None = None
     national_id_masked: str | None = None
     payroll_year: int | None = None
@@ -90,6 +93,9 @@ class BatchExtractedItem:
             "status": self.status,
             "employee_number": self.employee_number,
             "employee_name": self.employee_name,
+            "extracted_employee_name": self.extracted_employee_name,
+            "match_status": self.match_status,
+            "identifier_match_warning": self.identifier_match_warning,
             "document_id": self.document_id,
             "national_id_masked": self.national_id_masked,
             "payroll_year": self.payroll_year,
@@ -116,6 +122,9 @@ class BatchExtractedItem:
             status=str(payload.get("status", "processing")),
             employee_number=payload.get("employee_number"),
             employee_name=payload.get("employee_name"),
+            extracted_employee_name=payload.get("extracted_employee_name"),
+            match_status=payload.get("match_status"),
+            identifier_match_warning=payload.get("identifier_match_warning"),
             document_id=payload.get("document_id"),
             national_id_masked=payload.get("national_id_masked"),
             payroll_year=payload.get("payroll_year"),

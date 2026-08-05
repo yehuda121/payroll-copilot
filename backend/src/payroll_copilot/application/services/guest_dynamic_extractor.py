@@ -397,6 +397,11 @@ class GuestDynamicDocumentExtractor:
         language: str = "auto",
         pages_text: list[str] | None = None,
     ) -> tuple[list[DynamicDocumentEntry], str, list[str]]:
+        raise PayslipParserUnavailableError(
+            "AI guest document extraction is disabled. "
+            "Use extract_document_from_pdf / DeterministicPdfDocumentExtractor."
+        )
+        _ = ocr_text, language, pages_text
         if not (ocr_text or "").strip():
             raise PayslipParserEmptyOcrError()
 

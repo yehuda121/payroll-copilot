@@ -284,6 +284,9 @@ class Settings(BaseSettings):
     # RAGAS evaluation (developer-triggered only; never during ordinary chat).
     ragas_enabled: bool = True
 
+    # Destructive admin reset of company employee data. Off by default.
+    admin_employee_reset_enabled: bool = False
+
     mcp_enabled: bool = True
     kol_zchut_base_url: str = "https://www.kolzchut.org.il"
 

@@ -1206,6 +1206,38 @@
         "requests": "Requests"
       }
     },
+    "employeeReset": {
+      "title": "Reset Company Employee Data",
+      "description": "Permanently delete all employees and employee-related business data for the single company. The company, administrators, accountants, and admin area are preserved.",
+      "warning": "Destructive action. This cannot be undone. All employees, payslips, documents, extractions, validations, leave records, related files, and matching Redis keys will be deleted.",
+      "preserves": "Preserved: System Administrator account, admin area, the company record, accountants, departments, vacation settings, integrations, and shared legal knowledge.",
+      "phraseLabel": "Type {{phrase}} to enable the reset button",
+      "button": "Reset Company Employee Data",
+      "running": "Resetting…",
+      "confirmTitle": "Confirm employee data reset",
+      "confirmMessage": "This permanently deletes all employees and related payroll data for the company. Continue?",
+      "confirmButton": "Yes, delete employee data",
+      "resultsTitle": "Deleted counts",
+      "organizationId": "Organization: {{id}}",
+      "errorPhrase": "Enter the exact confirmation phrase to continue.",
+      "errorGeneric": "Reset failed. Check that the feature flag is enabled and try again.",
+      "counts": {
+        "employees": "Employees",
+        "employee_user_bindings": "Employee user accounts",
+        "documents": "Documents",
+        "extractions": "Extractions",
+        "validation_runs": "Validation runs",
+        "validation_findings": "Validation findings",
+        "vacations": "Vacation records",
+        "sick_leaves": "Sick leave records",
+        "leave_idempotency": "Leave idempotency keys",
+        "s3_objects": "Storage objects (S3/MinIO)",
+        "s3_orphan_prefix_objects": "Orphan storage objects",
+        "redis_manual_review_items": "Redis manual review items",
+        "redis_batch_progress_jobs": "Redis batch jobs",
+        "redis_guest_session_keys": "Redis guest session keys"
+      }
+    },
     "orgAnalytics": {
       "title": "Organization Analytics",
       "description": "Employee distribution across payroll accountants and organizations.",

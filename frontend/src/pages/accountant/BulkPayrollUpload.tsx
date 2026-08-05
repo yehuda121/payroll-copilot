@@ -8,6 +8,11 @@ import { TrashIcon } from '../../components/ui/icons';
 import { useBatchNavigationGuard } from '../../features/accountant/BatchNavigationGuard';
 import { getAccountantErrorMessage } from '../../i18n/accountantLabels';
 import { matchesBatchSearchQuery } from '../../lib/accountant/batch-search';
+import {
+  bulkCardDisplayName,
+  identifierMatchWarningKey,
+} from '../../lib/accountant/bulk-card-display';
+import { EmployeeAssignCombobox } from '../../components/accountant/EmployeeAssignCombobox';
 import { FREE_TEXT_MAX_LENGTH, clampFreeTextInput } from '../../lib/validation';
 import { batchService } from '../../services/batch';
 import type { BatchEmployeeStatus, BatchExtractedEmployee } from '../../types/api';
@@ -463,12 +468,14 @@ export function BulkPayrollUploadPage() {
                   <div>
                     <span>{t('accountant.bulk.progress.current')}</span>
                     <strong>
-                      {processingItem?.employee_name ||
-                        (processingItem
-                          ? t('accountant.bulk.progress.slip', {
+                      {processingItem
+                        ? bulkCardDisplayName(
+                            processingItem,
+                            t('accountant.bulk.progress.slip', {
                               value: processingItem.slip_index + 1,
-                            })
-                          : t('common.emDash'))}
+                            }),
+                          )
+                        : t('common.emDash')}
                     </strong>
                   </div>
                   <div>
@@ -593,11 +600,19 @@ export function BulkPayrollUploadPage() {
                 <div className="accountant-bulk__list" role="list">
                   {filteredItems.map((item) => {
                     const serial = item.slip_index + 1;
-                    const displayName =
-                      item.employee_name?.trim() || t('accountant.bulk.unnamedSlip');
+                    const displayName = bulkCardDisplayName(
+                      item,
+                      t('accountant.bulk.unnamedSlip'),
+                    );
                     const period = periodMeta(item, i18n.language);
                     const selectable = canBulkDeleteItem(item);
                     const checked = selectedIds.has(item.id);
+                    const idWarningKey = identifierMatchWarningKey(
+                      item.identifier_match_warning,
+                    );
+                    const idWarningText = idWarningKey
+                      ? t(idWarningKey, { defaultValue: item.identifier_match_warning || '' })
+                      : null;
                     return (
                       <div
                         key={item.id}
@@ -647,16 +662,39 @@ export function BulkPayrollUploadPage() {
                             {t(statusLabelKey(item.status), { defaultValue: item.status })}
                           </span>
                           <span className="accountant-bulk__employee-meta">
-                            {item.error_message ||
-                              (item.status === 'processing'
-                                ? t(`accountant.bulk.phases.${item.processing_stage}`, {
-                                    defaultValue: item.processing_stage,
-                                  })
-                                : item.publication_status === 'published'
-                                  ? t('accountant.bulk.publish.published')
-                                  : t('accountant.bulk.publish.pendingReview'))}
+                            {[
+                              idWarningText,
+                              item.error_message ||
+                                (item.status === 'processing'
+                                  ? t(`accountant.bulk.phases.${item.processing_stage}`, {
+                                      defaultValue: item.processing_stage,
+                                    })
+                                  : item.publication_status === 'published'
+                                    ? t('accountant.bulk.publish.published')
+                                    : t('accountant.bulk.publish.pendingReview')),
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')}
                           </span>
                         </button>
+                        {item.status === 'unknown_employee' && item.document_id && batch.activeJobId && (
+                          <div
+                            className="accountant-bulk__assign"
+                            onClick={(event) => event.stopPropagation()}
+                            onKeyDown={(event) => event.stopPropagation()}
+                          >
+                            <EmployeeAssignCombobox
+                              disabled={bulkBusy}
+                              onAssigned={async (employee) => {
+                                await batchService.resolveItem(batch.activeJobId!, item.id, {
+                                  action: 'attach_employee',
+                                  employee_number: employee.employeeNumber,
+                                });
+                                await batch.refreshBatch();
+                              }}
+                            />
+                          </div>
+                        )}
                       </div>
                     );
                   })}

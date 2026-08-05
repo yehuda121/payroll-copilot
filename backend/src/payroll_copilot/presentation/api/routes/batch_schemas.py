@@ -27,6 +27,9 @@ class BatchExtractedItemResponse(BaseModel):
     status: str
     employee_number: str | None = None
     employee_name: str | None = None
+    extracted_employee_name: str | None = None
+    match_status: str | None = None
+    identifier_match_warning: str | None = None
     document_id: str | None = None
     national_id_masked: str | None = None
     payroll_year: int | None = None

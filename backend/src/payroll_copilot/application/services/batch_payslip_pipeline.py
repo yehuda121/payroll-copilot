@@ -20,6 +20,7 @@ from payroll_copilot.application.ports.repositories import (
     DocumentRepository,
 )
 from payroll_copilot.application.services.payslip_identity_comparison import (
+    normalize_employee_number,
     parse_pay_period,
 )
 from payroll_copilot.application.use_cases.extract_guest_payslip import (
@@ -41,9 +42,30 @@ from payroll_copilot.domain.value_objects import PayPeriod
 from payroll_copilot.application.services.national_id_privacy import (
     hash_national_id,
     mask_national_id,
+    normalize_national_id_digits,
 )
 
 SlipProgressCallback = Callable[[str, dict[str, Any] | None], None]
+
+# Stable codes for accountant bulk card warnings (frontend i18n).
+WARN_NATIONAL_ID_OK_NUMBER_MISMATCH = "national_id_matched_employee_number_mismatch"
+WARN_NUMBER_OK_NATIONAL_ID_MISMATCH = "employee_number_matched_national_id_mismatch"
+WARN_IDENTIFIERS_CONFLICT = "identifiers_match_different_employees"
+WARN_NUMBER_UNAVAILABLE = "employee_number_unavailable_for_verification"
+WARN_NATIONAL_ID_UNAVAILABLE = "national_id_unavailable_for_verification"
+
+MATCH_STATUS_MATCHED = "matched"
+MATCH_STATUS_UNKNOWN = "unknown"
+MATCH_STATUS_CONFLICT = "conflict"
+
+
+@dataclass(frozen=True, slots=True)
+class BatchEmployeeMatchOutcome:
+    """Result of matching a payslip to an organization employee by identifiers only."""
+
+    employee: Employee | None
+    match_status: str
+    warning_code: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,6 +75,9 @@ class BatchSlipPipelineResult:
     processing_stage: str
     employee_number: str | None = None
     employee_name: str | None = None
+    extracted_employee_name: str | None = None
+    match_status: str | None = None
+    identifier_match_warning: str | None = None
     national_id_masked: str | None = None
     payroll_year: int | None = None
     payroll_month: int | None = None
@@ -125,24 +150,69 @@ class BatchPayslipPipelineService:
                 processing_stage=(
                     "ocr" if extracted.ocr_status != "completed" else "extracting"
                 ),
+                extracted_employee_name=self._field_text(
+                    extracted.fields, "employee_name", "full_name"
+                ),
+                match_status=MATCH_STATUS_UNKNOWN,
                 error_message=extracted.error_message
                 or "Payslip OCR or structured extraction failed.",
             )
 
         self._notify(progress, "matching")
-        national_id = self._field_text(
+        extracted_employee_name = self._field_text(
+            extracted.fields,
+            "employee_name",
+            "full_name",
+        )
+        national_id_raw = self._field_text(
             extracted.fields,
             "national_id",
             "employee_id",
         )
+        national_id = normalize_national_id_digits(national_id_raw)
         employee_number = self._field_text(extracted.fields, "employee_number")
-        employee = await self._match_employee(
+        self._notify(
+            progress,
+            "matching",
+            {
+                "extracted_employee_name": extracted_employee_name,
+                "employee_number": employee_number,
+            },
+        )
+        match = await self._match_employee(
             organization_id=organization_id,
             national_id=national_id,
             employee_number=employee_number,
         )
         year, month = self._pay_period(extracted.fields)
-        if employee is None:
+        # Same SoT as digital form: fall back to structured Document Model when
+        # the field view list is incomplete (legacy / partial projections).
+        if not extracted_employee_name or year is None or month is None:
+            structured = {}
+            try:
+                latest = await self._extractions.get_latest_for_document(
+                    extracted.document_id
+                )
+                if latest is not None and isinstance(latest.structured_data, dict):
+                    structured = latest.structured_data
+            except Exception:  # noqa: BLE001
+                structured = {}
+            form_fields = self._fields_from_extraction(structured)
+            if not extracted_employee_name:
+                extracted_employee_name = self._field_text(
+                    form_fields, "employee_name", "full_name"
+                )
+            if year is None or month is None:
+                year, month = self._pay_period(form_fields)
+        masked = mask_national_id(national_id or national_id_raw)
+
+        if match.match_status == MATCH_STATUS_CONFLICT or match.employee is None:
+            status = "unknown_employee"
+            error_message = (
+                "National ID and employee number match different employees."
+                if match.match_status == MATCH_STATUS_CONFLICT
+                else "No employee matched inside this organization."
+            )
             try:
                 validation = await self._prepare_and_validate_draft(
                     document_id=extracted.document_id,
@@ -153,39 +223,50 @@ class BatchPayslipPipelineService:
                 )
                 warnings, critical = self._finding_counts(validation)
                 return BatchSlipPipelineResult(
-                    status="unknown_employee",
+                    status=status,
                     document_id=extracted.document_id,
                     processing_stage="completed",
                     employee_number=employee_number,
-                    national_id_masked=mask_national_id(national_id),
+                    extracted_employee_name=extracted_employee_name,
+                    match_status=match.match_status,
+                    identifier_match_warning=match.warning_code,
+                    national_id_masked=masked,
                     payroll_year=year,
                     payroll_month=month,
                     warnings=warnings,
                     critical_issues=critical,
                     validation_run_id=validation.id,
-                    error_message="No employee matched inside this organization.",
+                    error_message=error_message,
                 )
             except Exception as exc:  # noqa: BLE001 - preserve reviewable extraction
                 return BatchSlipPipelineResult(
-                    status="unknown_employee",
+                    status=status,
                     document_id=extracted.document_id,
                     processing_stage="validation",
                     employee_number=employee_number,
-                    national_id_masked=mask_national_id(national_id),
+                    extracted_employee_name=extracted_employee_name,
+                    match_status=match.match_status,
+                    identifier_match_warning=match.warning_code,
+                    national_id_masked=masked,
                     payroll_year=year,
                     payroll_month=month,
                     error_message=(
-                        "No employee matched; initial validation failed: "
+                        f"{error_message} Initial validation failed: "
                         f"{str(exc) or exc.__class__.__name__}"
                     ),
                 )
 
+        employee = match.employee
+        assert employee is not None
         self._notify(
             progress,
             "matching",
             {
                 "employee_number": employee.employee_number,
                 "employee_name": self._employee_name(employee),
+                "extracted_employee_name": extracted_employee_name,
+                "match_status": match.match_status,
+                "identifier_match_warning": match.warning_code,
             },
         )
         try:
@@ -195,6 +276,10 @@ class BatchPayslipPipelineService:
                 actor_user_id=actor_user_id,
                 progress=progress,
                 period=(year, month),
+                extracted_employee_name=extracted_employee_name,
+                match_status=match.match_status,
+                identifier_match_warning=match.warning_code,
+                national_id_masked=masked,
             )
         except Exception as exc:  # noqa: BLE001 - preserve item identity for the batch
             return BatchSlipPipelineResult(
@@ -203,7 +288,10 @@ class BatchPayslipPipelineService:
                 processing_stage="validation",
                 employee_number=employee.employee_number,
                 employee_name=self._employee_name(employee),
-                national_id_masked=mask_national_id(national_id),
+                extracted_employee_name=extracted_employee_name,
+                match_status=match.match_status,
+                identifier_match_warning=match.warning_code,
+                national_id_masked=masked,
                 payroll_year=year,
                 payroll_month=month,
                 error_message=str(exc) or exc.__class__.__name__,
@@ -217,6 +305,10 @@ class BatchPayslipPipelineService:
         actor_user_id: UUID,
         progress: SlipProgressCallback | None = None,
         period: tuple[int | None, int | None] | None = None,
+        extracted_employee_name: str | None = None,
+        match_status: str | None = MATCH_STATUS_MATCHED,
+        identifier_match_warning: str | None = None,
+        national_id_masked: str | None = None,
     ) -> BatchSlipPipelineResult:
         """Provisionally match an extracted document and place it in accountant review."""
         validation = await self._prepare_and_validate_draft(
@@ -237,6 +329,10 @@ class BatchPayslipPipelineService:
                 processing_stage="extracting",
                 employee_number=employee.employee_number,
                 employee_name=self._employee_name(employee),
+                extracted_employee_name=extracted_employee_name,
+                match_status=match_status,
+                identifier_match_warning=identifier_match_warning,
+                national_id_masked=national_id_masked,
                 error_message="The payroll period could not be extracted.",
             )
         return self._result_from_validation(
@@ -244,6 +340,10 @@ class BatchPayslipPipelineService:
             employee=employee,
             period=(year, month),
             record=validation,
+            extracted_employee_name=extracted_employee_name,
+            match_status=match_status,
+            identifier_match_warning=identifier_match_warning,
+            national_id_masked=national_id_masked,
         )
 
     async def _prepare_and_validate_draft(
@@ -336,14 +436,97 @@ class BatchPayslipPipelineService:
         await self._documents.save(document)
         return validation
 
+    async def apply_manual_employee_identity(
+        self,
+        *,
+        document_id: UUID,
+        employee: Employee,
+        actor_user_id: UUID,
+        encryption_key: str,
+    ) -> dict[str, Any]:
+        """Replace active identity fields with the selected employee system values.
+
+        Original extracted identity is preserved under document metadata and as
+        ``original_value`` on corrected fields. Returns audit detail payload.
+        """
+        from payroll_copilot.application.use_cases.correct_guest_extraction import (
+            CorrectGuestExtractionUseCase,
+            FieldCorrection,
+        )
+        from payroll_copilot.infrastructure.security.field_crypto import (
+            decrypt_national_id,
+        )
+
+        document = await self._documents.get_by_id(document_id)
+        latest = await self._extractions.get_latest_for_document(document_id)
+        if document is None or latest is None:
+            raise ValueError("Batch payslip document or extraction was not found.")
+        if document.organization_id != employee.organization_id:
+            raise PermissionError("Employee is outside the batch organization.")
+
+        form_fields = self._fields_from_extraction(
+            latest.structured_data if isinstance(latest.structured_data, dict) else {}
+        )
+        original = {
+            "employee_name": self._field_text(form_fields, "employee_name", "full_name"),
+            "national_id": normalize_national_id_digits(
+                self._field_text(form_fields, "national_id", "employee_id")
+            ),
+            "employee_number": self._field_text(form_fields, "employee_number"),
+        }
+
+        encrypted = await self._employees.get_national_id_encrypted(employee.id)
+        plaintext = decrypt_national_id(encrypted, encryption_key=encryption_key)
+        system_nid = normalize_national_id_digits(plaintext)
+        system_name = self._employee_name(employee)
+        system_number = employee.employee_number
+
+        corrections = [
+            FieldCorrection(key="employee_name", value=system_name),
+            FieldCorrection(key="employee_number", value=system_number),
+        ]
+        if system_nid:
+            corrections.append(FieldCorrection(key="national_id", value=system_nid))
+            corrections.append(FieldCorrection(key="employee_id", value=system_nid))
+
+        corrector = CorrectGuestExtractionUseCase(
+            document_repository=self._documents,
+            extraction_repository=self._extractions,
+        )
+        await corrector.execute(document_id=document_id, corrections=corrections)
+
+        applied = {
+            "employee_id": str(employee.id),
+            "employee_name": system_name,
+            "national_id": system_nid,
+            "employee_number": system_number,
+        }
+        metadata = dict(document.metadata or {})
+        metadata["batch_original_extracted_identity"] = original
+        metadata["batch_applied_system_identity"] = applied
+        metadata["manual_employee_assignment"] = True
+        document.metadata = metadata
+        await self._documents.save(document)
+
+        return {
+            "document_id": str(document_id),
+            "selected_employee_id": str(employee.id),
+            "original_extracted_identity": original,
+            "applied_system_identity": applied,
+            "actor_user_id": str(actor_user_id),
+        }
+
     async def find_employee_by_national_id(
         self,
         organization_id: UUID,
         national_id: str,
     ) -> Employee | None:
+        digits = normalize_national_id_digits(national_id)
+        if not digits:
+            return None
         return await self._employees.get_by_national_id_hash(
             organization_id,
-            hash_national_id(national_id),
+            hash_national_id(digits),
         )
 
     async def find_employee_by_number(
@@ -362,20 +545,70 @@ class BatchPayslipPipelineService:
         organization_id: UUID,
         national_id: str | None,
         employee_number: str | None,
-    ) -> Employee | None:
-        if national_id:
-            matched = await self.find_employee_by_national_id(
-                organization_id,
-                national_id,
+    ) -> BatchEmployeeMatchOutcome:
+        """Match by national ID and/or employee number only — never by name."""
+        nid = normalize_national_id_digits(national_id)
+        number = (employee_number or "").strip() or None
+
+        by_nid: Employee | None = None
+        by_number: Employee | None = None
+        if nid:
+            by_nid = await self.find_employee_by_national_id(organization_id, nid)
+        if number:
+            by_number = await self.find_employee_by_number(organization_id, number)
+
+        if by_nid is not None and by_number is not None:
+            if by_nid.id != by_number.id:
+                return BatchEmployeeMatchOutcome(
+                    employee=None,
+                    match_status=MATCH_STATUS_CONFLICT,
+                    warning_code=WARN_IDENTIFIERS_CONFLICT,
+                )
+            return BatchEmployeeMatchOutcome(
+                employee=by_nid,
+                match_status=MATCH_STATUS_MATCHED,
+                warning_code=None,
             )
-            if matched is not None:
-                return matched
-        if employee_number:
-            return await self.find_employee_by_number(
-                organization_id,
-                employee_number,
+
+        if by_nid is not None:
+            warning: str | None = None
+            if number is None:
+                warning = WARN_NUMBER_UNAVAILABLE
+            elif not self._employee_numbers_equal(number, by_nid.employee_number):
+                warning = WARN_NATIONAL_ID_OK_NUMBER_MISMATCH
+            return BatchEmployeeMatchOutcome(
+                employee=by_nid,
+                match_status=MATCH_STATUS_MATCHED,
+                warning_code=warning,
             )
-        return None
+
+        if by_number is not None:
+            warning = (
+                WARN_NATIONAL_ID_UNAVAILABLE
+                if nid is None
+                else WARN_NUMBER_OK_NATIONAL_ID_MISMATCH
+            )
+            return BatchEmployeeMatchOutcome(
+                employee=by_number,
+                match_status=MATCH_STATUS_MATCHED,
+                warning_code=warning,
+            )
+
+        return BatchEmployeeMatchOutcome(
+            employee=None,
+            match_status=MATCH_STATUS_UNKNOWN,
+            warning_code=None,
+        )
+
+    @staticmethod
+    def _employee_numbers_equal(left: str | None, right: str | None) -> bool:
+        a = normalize_employee_number(left)
+        b = normalize_employee_number(right)
+        if a and b:
+            return a == b
+        left_s = (left or "").strip()
+        right_s = (right or "").strip()
+        return bool(left_s) and left_s == right_s
 
     @staticmethod
     def _field_text(
@@ -445,6 +678,10 @@ class BatchPayslipPipelineService:
         employee: Employee,
         period: tuple[int, int],
         record: ValidationRunRecord,
+        extracted_employee_name: str | None = None,
+        match_status: str | None = MATCH_STATUS_MATCHED,
+        identifier_match_warning: str | None = None,
+        national_id_masked: str | None = None,
     ) -> BatchSlipPipelineResult:
         overall = (
             record.overall_result.value
@@ -465,6 +702,10 @@ class BatchPayslipPipelineService:
             processing_stage="completed",
             employee_number=employee.employee_number,
             employee_name=cls._employee_name(employee),
+            extracted_employee_name=extracted_employee_name,
+            match_status=match_status,
+            identifier_match_warning=identifier_match_warning,
+            national_id_masked=national_id_masked,
             payroll_year=period[0],
             payroll_month=period[1],
             warnings=warning_count,

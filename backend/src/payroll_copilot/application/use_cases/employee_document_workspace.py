@@ -8,14 +8,20 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from payroll_copilot.application.exceptions import (
     DocumentNotFoundError,
     DocumentNotOwnedError,
     PayslipParserSemanticError,
 )
-from payroll_copilot.application.services.dynamic_document import entries_have_usable_values
+from payroll_copilot.application.services.deterministic_pdf import (
+    DeterministicExtractionStatus,
+    DeterministicPdfDocumentExtractor,
+    EXTRACTOR_VERSION,
+    fields_to_dynamic_entries,
+    fields_to_fixed_structured,
+)
 from payroll_copilot.application.services.employee_document_form_schemas import (
     empty_fixed_structured,
     fixed_keys_for,
@@ -29,33 +35,22 @@ from payroll_copilot.application.services.employee_document_lifecycle import (
     build_employee_storage_key,
     fields_from_structured,
 )
-from payroll_copilot.application.services.employee_dynamic_document_extractor import (
-    EmployeeDynamicDocumentExtractor,
-)
 from payroll_copilot.application.services.employee_fixed_document_extractor import (
-    EmployeeFixedDocumentExtractor,
     fixed_structured_has_usable_values,
 )
 from payroll_copilot.application.use_cases.documents import (
     UploadDocumentCommand,
 )
-from payroll_copilot.application.use_cases.ocr_extract import (
-    ExtractDocumentTextCommand,
-)
 from payroll_copilot.domain.entities import Document, DocumentExtraction
 from payroll_copilot.domain.enums import DocumentStatus, DocumentType
-from payroll_copilot.application.services.text_normalize import normalize_extracted_text
 
 if TYPE_CHECKING:
-    from uuid import UUID
-
     from payroll_copilot.application.ports.object_storage import ObjectStoragePort
     from payroll_copilot.application.ports.repositories import (
         DocumentExtractionRepository,
         DocumentRepository,
     )
     from payroll_copilot.application.use_cases.documents import UploadDocumentUseCase
-    from payroll_copilot.application.use_cases.ocr_extract import ExtractDocumentTextUseCase
 
 logger = logging.getLogger(__name__)
 
@@ -133,17 +128,18 @@ class EmployeeDocumentWorkspaceUseCase:
         extractions: DocumentExtractionRepository,
         storage: ObjectStoragePort,
         upload_document: UploadDocumentUseCase,
-        ocr: ExtractDocumentTextUseCase,
-        extractor: EmployeeDynamicDocumentExtractor | None = None,
-        fixed_extractor: EmployeeFixedDocumentExtractor | None = None,
+        ocr: Any = None,
+        extractor: Any = None,
+        fixed_extractor: Any = None,
+        deterministic_extractor: DeterministicPdfDocumentExtractor | None = None,
     ) -> None:
         self._documents = documents
         self._extractions = extractions
         self._storage = storage
         self._upload_document = upload_document
-        self._ocr = ocr
-        self._extractor = extractor or EmployeeDynamicDocumentExtractor()
-        self._fixed_extractor = fixed_extractor or EmployeeFixedDocumentExtractor()
+        # Legacy AI/OCR kwargs kept for DI compatibility; unused.
+        _ = ocr, extractor, fixed_extractor
+        self._deterministic = deterministic_extractor or DeterministicPdfDocumentExtractor()
 
     async def extract_and_replace(
         self,
@@ -152,25 +148,37 @@ class EmployeeDocumentWorkspaceUseCase:
         if command.document_type not in PERSISTENT_TYPES:
             raise ValueError("Unsupported Employee Documents type.")
 
-        # Run OCR + AI before changing the currently active document.
-        ocr_result = await self._ocr.execute(
-            ExtractDocumentTextCommand(
-                content=command.content,
-                filename=command.original_filename,
-                content_type=command.mime_type,
-                language=command.language,
-            )
+        result = self._deterministic.extract(
+            command.content,
+            document_type=command.document_type,
+            filename=command.original_filename,
+            mime_type=command.mime_type,
         )
-        raw_text = normalize_extracted_text(ocr_result.raw_text)
-        language = ocr_result.language_effective or command.language
-        pages_text = [page.text for page in ocr_result.pages]
-        if fixed_keys_for(command.document_type) is not None:
-            structured, model_name, warnings = await self._fixed_extractor.extract(
-                ocr_text=raw_text,
-                language=language,
-                document_type=command.document_type,
-                pages_text=pages_text,
+        if result.status is DeterministicExtractionStatus.OCR_REQUIRED:
+            raise PayslipParserSemanticError(
+                result.error_message
+                or "This PDF has no usable text layer. OCR is required.",
+                warning_code="OCR_REQUIRED",
             )
+        if result.status is DeterministicExtractionStatus.REJECTED:
+            raise PayslipParserSemanticError(
+                result.error_message or "PDF extraction rejected.",
+                warning_code=result.error_code or "pdf_rejected",
+            )
+        if result.status is not DeterministicExtractionStatus.COMPLETED:
+            raise PayslipParserSemanticError(
+                result.error_message
+                or "We could not extract usable information from this document.",
+                warning_code=result.error_code or "deterministic_extractor_failed",
+            )
+
+        raw_text = result.raw_text
+        language = command.language
+        warnings = list(result.warnings)
+        model_name = result.extractor_version
+
+        if fixed_keys_for(command.document_type) is not None:
+            structured = fields_to_fixed_structured(command.document_type, result.fields)
             if not fixed_structured_has_usable_values(structured):
                 raise PayslipParserSemanticError(
                     "We could not extract usable information from this document.",
@@ -178,18 +186,17 @@ class EmployeeDocumentWorkspaceUseCase:
                 )
             confidences = _confidences_from_fixed(structured)
         else:
-            entries, model_name, warnings = await self._extractor.extract(
-                ocr_text=raw_text,
-                language=language,
-                document_type=command.document_type.value,
-                pages_text=pages_text,
-            )
-            if not entries_have_usable_values(entries):
+            entries = fields_to_dynamic_entries(result.fields)
+            if not entries:
                 raise PayslipParserSemanticError(
                     "We could not extract usable information from this document.",
                     warning_code="document_extractor_no_usable_entries",
                 )
             structured, confidences = _structured_from_entries(entries)
+            structured["extractor_meta"] = {
+                "extractor_version": EXTRACTOR_VERSION,
+                "engine": result.engine,
+            }
 
         old_documents = [
             document
@@ -218,19 +225,23 @@ class EmployeeDocumentWorkspaceUseCase:
             extraction = DocumentExtraction(
                 id=uuid4(),
                 document_id=new_document.id,
-                engine=ocr_result.engine or "unknown",
+                engine=result.engine or EXTRACTOR_VERSION,
                 raw_text=raw_text,
                 structured_data=structured,
-                overall_confidence=ocr_result.overall_confidence,
+                overall_confidence=None,
                 field_confidences=confidences,
                 extraction_version=1,
                 created_at=now,
-                ocr_result={"warnings": list(ocr_result.warnings)},
+                ocr_result={
+                    "warnings": warnings,
+                    "deterministic_status": result.status.value,
+                    "error_code": result.error_code,
+                },
                 parser_model=model_name,
-                language=ocr_result.language_effective or command.language,
+                language=language,
                 ocr_status="completed",
                 parser_status="completed",
-                warnings=list(dict.fromkeys([*ocr_result.warnings, *warnings])),
+                warnings=list(dict.fromkeys(warnings)),
                 updated_at=now,
                 confirmation_status="review_required",
             )
@@ -250,7 +261,6 @@ class EmployeeDocumentWorkspaceUseCase:
             new_document.status = DocumentStatus.PROCESSED
             await self._documents.save(new_document)
         except Exception:
-            # Compensate any partially persisted replacement; old state remains untouched.
             if new_document is not None:
                 try:
                     await self._extractions.delete_for_document_ids([new_document.id])
@@ -263,7 +273,6 @@ class EmployeeDocumentWorkspaceUseCase:
                     )
             raise
 
-        # New object + metadata + extraction are durable. Only now retire previous versions.
         for old_document in old_documents:
             try:
                 await self._storage.delete(old_document.storage_key)

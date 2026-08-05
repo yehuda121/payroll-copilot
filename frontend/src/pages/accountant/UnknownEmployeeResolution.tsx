@@ -12,7 +12,7 @@ import {
   FormShell,
 } from '../../components/ui/form/FormPrimitives';
 import { IdCardIcon, SparklesIcon, UserIcon } from '../../components/ui/icons';
-import { TruncatedText } from '../../components/ui/TruncatedText';
+import { EmployeeAssignCombobox } from '../../components/accountant/EmployeeAssignCombobox';
 import { useBatchNavigationGuard } from '../../features/accountant/BatchNavigationGuard';
 import { FIELD_MAX_LENGTH, validatePersonName } from '../../lib/employee/field-text';
 import { validateNationalId } from '../../lib/employee/israeli-id';
@@ -24,7 +24,6 @@ import {
 } from '../../lib/validation';
 import { batchService } from '../../services/batch';
 import { employeesService } from '../../services/employees';
-import type { EmployeeRecord } from '../../types/employee';
 import './UnknownEmployeeResolution.css';
 
 type ResolutionAction = 'create' | 'search' | 'edit_id' | 'ignore';
@@ -48,8 +47,6 @@ export function UnknownEmployeeResolutionPage() {
   const [action, setAction] = useState<ResolutionAction>('search');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<EmployeeRecord[]>([]);
   const [nationalId, setNationalId] = useState('');
   const [createValues, setCreateValues] = useState<CreateValues>({
     employeeNumber: '',
@@ -82,23 +79,6 @@ export function UnknownEmployeeResolutionPage() {
     try {
       await batchService.resolveItem(jobId, itemId, payload);
       await finish();
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : t('common.error'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const search = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      setResults(
-        await employeesService.list({
-          q: query.trim() || undefined,
-          includeDisabled: false,
-        }),
-      );
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t('common.error'));
     } finally {
@@ -275,49 +255,16 @@ export function UnknownEmployeeResolutionPage() {
               icon={<UserIcon size={18} />}
               columns={1}
             >
-              <FormField label={t('accountant.unknown.searchLabel')} htmlFor="unknown-search" span={2}>
-                <FormControl
-                  id="unknown-search"
-                  type="search"
-                  maxLength={FREE_TEXT_MAX_LENGTH.searchQuery}
-                  value={query}
-                  onChange={(event) =>
-                    setQuery(clampFreeTextInput(event.target.value, FREE_TEXT_MAX_LENGTH.searchQuery))
-                  }
-                  placeholder={t('accountant.unknown.searchPlaceholder')}
-                />
-              </FormField>
-              <div className="form-actions pc-form-field--span-2">
-                <button
-                  type="button"
-                  className="btn btn--primary"
+              <div className="pc-form-field--span-2">
+                <EmployeeAssignCombobox
                   disabled={busy}
-                  onClick={() => void search()}
-                >
-                  {t('common.search')}
-                </button>
-              </div>
-              <div className="unknown-resolution__results pc-form-field--span-2">
-                {results.map((employee) => (
-                  <button
-                    key={employee.employeeNumber}
-                    type="button"
-                    className="unknown-resolution__employee"
-                    disabled={busy}
-                    onClick={() =>
-                      void resolve({
-                        action: 'attach_employee',
-                        employee_number: employee.employeeNumber,
-                      })
-                    }
-                  >
-                    <strong>
-                      <TruncatedText>{employee.fullName}</TruncatedText>
-                    </strong>
-                    <span>#{employee.employeeNumber}</span>
-                    <span>{employee.nationalIdMasked || t('common.emDash')}</span>
-                  </button>
-                ))}
+                  onAssigned={async (employee) => {
+                    await resolve({
+                      action: 'attach_employee',
+                      employee_number: employee.employeeNumber,
+                    });
+                  }}
+                />
               </div>
             </FormSection>
           </FormShell>

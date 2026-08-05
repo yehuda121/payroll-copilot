@@ -170,9 +170,9 @@ async def extract_guest_payslip(
     guest: GuestPrincipal = Depends(require_guest),
     use_case: ExtractGuestPayslipUseCase = Depends(get_extract_guest_payslip_use_case),
 ) -> GuestPayslipExtractionResponse:
-    """Upload a payslip, run OCR + AI parser, persist results, return fields.
+    """Upload a payslip PDF, run deterministic extraction, persist results.
 
-    Does not run payroll validation / Rule Engine.
+    Does not run payroll validation / Rule Engine. No AI / OCR in this path.
     """
     settings = get_settings()
     max_size = settings.max_upload_size_mb * 1024 * 1024
@@ -1082,3 +1082,68 @@ async def accountant_confirm_employee_extraction(
         request=request,
         bound=await _accountant_selected_context(employee_number, principal),
     )
+
+
+@router.post("/deterministic/pdf")
+async def extract_deterministic_pdf(
+    file: UploadFile = File(...),
+    document_type: DocumentType = Form(DocumentType.PAYSLIP),
+    _: None = Depends(limit_employee_upload),
+    bound: BoundEmployeeContext = Depends(require_bound_employee),
+) -> dict:
+    """Authorized deterministic PDF extraction (no AI / no OCR).
+
+    Tenant ownership: requires a bound employee principal. Does not persist;
+    upload/batch flows that need persistence use the existing extract endpoints,
+    which call the same ``extract_document_from_pdf`` SoT.
+    """
+    _ = bound  # authorization side-effect via require_bound_employee
+    if document_type not in {
+        DocumentType.PAYSLIP,
+        DocumentType.NATIONAL_ID,
+        DocumentType.ID_APPENDIX,
+        DocumentType.CONTRACT,
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "unsupported_document_type",
+                "message": "Unsupported document type for deterministic PDF extraction.",
+            },
+        )
+    settings = get_settings()
+    max_size = settings.max_upload_size_mb * 1024 * 1024
+    content = await read_upload_with_size_limit(file, max_size)
+    if not content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "empty_document", "message": "Empty file"},
+        )
+    command = UploadDocumentCommand(
+        content=content,
+        original_filename=file.filename or "document.pdf",
+        mime_type=file.content_type or "application/octet-stream",
+        document_type=document_type,
+    )
+    try:
+        _upload_guardrail.validate(command)
+    except DocumentUploadRejectedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "upload_rejected", "message": exc.message},
+        ) from exc
+
+    from payroll_copilot.application.services.deterministic_pdf import (
+        extract_document_from_pdf,
+    )
+
+    result = extract_document_from_pdf(
+        content,
+        document_type=document_type,
+        filename=command.original_filename,
+        mime_type=command.mime_type,
+    )
+    payload = result.to_dict()
+    payload["organization_id"] = str(bound.employee.organization_id)
+    payload["employee_id"] = str(bound.employee.id)
+    return payload

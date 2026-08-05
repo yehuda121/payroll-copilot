@@ -130,6 +130,40 @@ class S3ObjectStorage:
     async def delete(self, key: str) -> None:
         self._client.delete_object(Bucket=self._bucket, Key=key)
 
+    async def list_keys(self, prefix: str) -> list[str]:
+        """List all object keys under ``prefix`` (paginated)."""
+        cleaned = (prefix or "").lstrip("/")
+        keys: list[str] = []
+        continuation: str | None = None
+        while True:
+            kwargs: dict[str, Any] = {
+                "Bucket": self._bucket,
+                "Prefix": cleaned,
+                "MaxKeys": 1000,
+            }
+            if continuation:
+                kwargs["ContinuationToken"] = continuation
+            response = self._client.list_objects_v2(**kwargs)
+            for obj in response.get("Contents") or []:
+                key = obj.get("Key")
+                if isinstance(key, str) and key:
+                    keys.append(key)
+            if not response.get("IsTruncated"):
+                break
+            continuation = response.get("NextContinuationToken")
+            if not continuation:
+                break
+        return keys
+
+    async def delete_prefix(self, prefix: str) -> int:
+        """Delete every object under ``prefix``; returns deleted count."""
+        keys = await self.list_keys(prefix)
+        deleted = 0
+        for key in keys:
+            await self.delete(key)
+            deleted += 1
+        return deleted
+
     async def generate_presigned_url(self, key: str, expires_seconds: int = 300) -> str:
         return self._client.generate_presigned_url(
             "get_object",

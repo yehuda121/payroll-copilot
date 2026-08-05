@@ -163,20 +163,28 @@ class BatchPayslipProcessor:
                     ) -> None:
                         nonlocal item, current_phase
                         current_phase = phase
+                        details = details or {}
                         item = BatchExtractedItem(
                             **{
                                 **item.to_dict(),
                                 "processing_stage": phase,
                                 "status": "processing",
-                                "employee_number": (
-                                    details.get("employee_number")
-                                    if details
-                                    else item.employee_number
+                                "employee_number": details.get(
+                                    "employee_number", item.employee_number
                                 ),
-                                "employee_name": (
-                                    details.get("employee_name")
-                                    if details
-                                    else item.employee_name
+                                "employee_name": details.get(
+                                    "employee_name", item.employee_name
+                                ),
+                                "extracted_employee_name": details.get(
+                                    "extracted_employee_name",
+                                    item.extracted_employee_name,
+                                ),
+                                "match_status": details.get(
+                                    "match_status", item.match_status
+                                ),
+                                "identifier_match_warning": details.get(
+                                    "identifier_match_warning",
+                                    item.identifier_match_warning,
                                 ),
                             }
                         )
@@ -334,6 +342,9 @@ class BatchPayslipProcessor:
             status=result.status,
             employee_number=result.employee_number,
             employee_name=result.employee_name,
+            extracted_employee_name=result.extracted_employee_name,
+            match_status=result.match_status,
+            identifier_match_warning=result.identifier_match_warning,
             document_id=str(result.document_id),
             national_id_masked=result.national_id_masked,
             payroll_year=result.payroll_year,

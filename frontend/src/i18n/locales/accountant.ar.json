@@ -672,7 +672,23 @@
       "searchLabel": "البحث في الموظفين المستخرجين",
       "searchPlaceholder": "ابحث بالاسم أو رقم الموظف أو الهوية أو الفترة",
       "serialLabel": "قسيمة {{value}}",
-      "unnamedSlip": "موظف غير معروف",
+      "unnamedSlip": "غير معروف",
+      "identifierWarnings": {
+        "national_id_matched_employee_number_mismatch": "هناك تطابق في بطاقة الهوية، لكن لا يوجد تطابق في رقم الموظف.",
+        "employee_number_matched_national_id_mismatch": "هناك تطابق في رقم الموظف، لكن لا يوجد تطابق في بطاقة الهوية.",
+        "identifiers_match_different_employees": "بطاقة الهوية ورقم الموظف يشيران إلى موظفين مختلفين.",
+        "employee_number_unavailable_for_verification": "تمت المطابقة بواسطة بطاقة الهوية؛ رقم الموظف لم يكن متاحًا للتحقق.",
+        "national_id_unavailable_for_verification": "تمت المطابقة بواسطة رقم الموظف؛ بطاقة الهوية لم تكن متاحة للتحقق."
+      },
+      "assign": {
+        "searchLabel": "تعيين موظف",
+        "searchPlaceholder": "ابحث بالاسم أو بطاقة الهوية أو رقم الموظف",
+        "idLabel": "الهوية",
+        "numberLabel": "رقم الموظف",
+        "confirmTitle": "تأكيد تعيين الموظف",
+        "confirmMessage": "هل أنت متأكد أنك تريد ربط قسيمة الراتب الحالية بالموظف \"{{employee_name}}\"، الهوية {{national_id}}؟",
+        "confirmAction": "تأكيد والتعيين"
+      },
       "uploadWorkspace": {
         "title": "رفع ملف الرواتب",
         "description": "أسقط هنا ملف PDF متعدد الموظفين. تبدأ المعالجة من عنصر التحكم أعلاه عندما يكون الملف جاهزًا."

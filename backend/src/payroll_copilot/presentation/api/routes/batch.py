@@ -18,6 +18,11 @@ from payroll_copilot.application.services.batch_progress_store import (
     BatchExtractedItem,
     get_batch_progress_store,
 )
+from payroll_copilot.application.services.batch_payslip_pipeline import (
+    MATCH_STATUS_MATCHED,
+    BatchPayslipPipelineService,
+)
+from payroll_copilot.application.services.national_id_privacy import mask_national_id
 from payroll_copilot.application.services.document_upload_guardrail import (
     DocumentUploadGuardrailService,
 )
@@ -589,19 +594,78 @@ async def resolve_batch_item(
             )
         else:
             try:
+                from payroll_copilot.infrastructure.config.settings import get_settings
+
+                settings = get_settings()
+                audit_details = await pipeline.apply_manual_employee_identity(
+                    document_id=UUID(item.document_id),
+                    employee=employee,
+                    actor_user_id=principal.user_id,
+                    encryption_key=settings.encryption_key,
+                )
+                await get_audit_log_repository().append(
+                    AuditLogEntry(
+                        action="batch.manual_employee_assignment",
+                        resource_type="document",
+                        resource_id=UUID(item.document_id),
+                        organization_id=principal.organization_id,
+                        user_id=principal.user_id,
+                        details={
+                            "batch_job_id": batch_job_id,
+                            "item_id": item_id,
+                            **audit_details,
+                        },
+                    )
+                )
+                # Period from the same Document Model the digital form uses.
+                latest = await get_document_extraction_repository().get_latest_for_document(
+                    UUID(item.document_id)
+                )
+                period: tuple[int | None, int | None] | None = None
+                extracted_name = item.extracted_employee_name
+                if latest is not None and isinstance(latest.structured_data, dict):
+                    form_fields = BatchPayslipPipelineService._fields_from_extraction(
+                        latest.structured_data
+                    )
+                    period = BatchPayslipPipelineService._pay_period(form_fields)
+                    extracted_name = (
+                        BatchPayslipPipelineService._field_text(
+                            form_fields, "employee_name", "full_name"
+                        )
+                        or extracted_name
+                    )
                 result = await pipeline.finalize_document(
                     document_id=UUID(item.document_id),
                     employee=employee,
                     actor_user_id=principal.user_id,
+                    period=period,
+                    extracted_employee_name=extracted_name,
+                    match_status=MATCH_STATUS_MATCHED,
+                    identifier_match_warning=None,
+                    national_id_masked=mask_national_id(
+                        (audit_details.get("applied_system_identity") or {}).get(
+                            "national_id"
+                        )
+                    ),
+                )
+                system_name = (
+                    (audit_details.get("applied_system_identity") or {}).get(
+                        "employee_name"
+                    )
+                    or result.employee_name
                 )
                 updated = BatchExtractedItem(
                     id=item.id,
                     slip_index=item.slip_index,
                     status=result.status,
                     employee_number=result.employee_number,
-                    employee_name=result.employee_name,
+                    employee_name=system_name,
+                    extracted_employee_name=system_name,
+                    match_status=MATCH_STATUS_MATCHED,
+                    identifier_match_warning=None,
                     document_id=str(result.document_id),
-                    national_id_masked=result.national_id_masked,
+                    national_id_masked=result.national_id_masked
+                    or item.national_id_masked,
                     payroll_year=result.payroll_year,
                     payroll_month=result.payroll_month,
                     warnings=result.warnings,
@@ -615,6 +679,14 @@ async def resolve_batch_item(
                     error_message=result.error_message,
                     resolution_status="attached",
                 )
+            except PermissionError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={
+                        "code": "employee_org_mismatch",
+                        "message": str(exc) or "Employee is outside this organization.",
+                    },
+                ) from exc
             except Exception as exc:  # noqa: BLE001 - resolution result is persisted
                 updated = replace(
                     item,

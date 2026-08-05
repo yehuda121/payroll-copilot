@@ -201,7 +201,12 @@ export type BatchExtractedEmployee = {
   slip_index: number;
   status: BatchEmployeeStatus | string;
   employee_number?: string | null;
+  /** Matched employee profile name when identified (optional). */
   employee_name?: string | null;
+  /** Name extracted from this payslip — preferred for card titles. */
+  extracted_employee_name?: string | null;
+  match_status?: string | null;
+  identifier_match_warning?: string | null;
   document_id?: string | null;
   national_id_masked?: string | null;
   payroll_year?: number | null;

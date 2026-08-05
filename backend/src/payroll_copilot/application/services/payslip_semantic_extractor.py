@@ -650,6 +650,11 @@ class PayslipSemanticExtractor:
         pages_text: list[str] | None = None,
         evidence_bundle: dict[str, Any] | None = None,
     ) -> SemanticExtractionResult:
+        raise PayslipParserUnavailableError(
+            "AI payslip semantic extraction is disabled. "
+            "Use extract_document_from_pdf / DeterministicPdfDocumentExtractor."
+        )
+        _ = ocr_text, language, pages_text, evidence_bundle
         if not (ocr_text or "").strip():
             raise PayslipParserEmptyOcrError()
 

@@ -565,3 +565,8 @@ html[data-theme='dark'] .accountant-bulk__upload-shell .drag-drop__zone:focus-vi
       'meta meta';
   }
 }
+
+.accountant-bulk__assign {
+  grid-column: 1 / -1;
+  padding: 0 0.75rem 0.75rem;
+}

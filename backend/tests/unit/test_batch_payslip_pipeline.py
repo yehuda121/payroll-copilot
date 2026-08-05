@@ -154,7 +154,7 @@ async def test_batch_slip_reuses_extract_confirm_and_validation_use_cases() -> N
     assert document.metadata["publication_status"] == "draft"
     assert document.metadata["review_status"] == "pending_review"
     validation.execute.assert_awaited_once()
-    assert phases == ["matching", "matching", "validation"]
+    assert phases == ["matching", "matching", "matching", "validation"]
 
 
 @pytest.mark.asyncio

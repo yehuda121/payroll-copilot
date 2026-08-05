@@ -11,7 +11,10 @@ import unicodedata
 from dataclasses import dataclass, field
 from typing import Any
 
-from payroll_copilot.application.services.national_id_privacy import mask_national_id
+from payroll_copilot.application.services.national_id_privacy import (
+    mask_national_id,
+    normalize_national_id_digits,
+)
 
 # Below this confidence (when status is FOUND), treat as uncertain — never as mismatch alone.
 LOW_CONFIDENCE_THRESHOLD = 0.7
@@ -83,13 +86,6 @@ class PayslipComparisonResult:
     @property
     def blocks_confirmation(self) -> bool:
         return self.identity_check.blocks_confirmation or self.period_check.blocks_confirmation
-
-
-def normalize_national_id_digits(value: Any) -> str | None:
-    if value is None:
-        return None
-    digits = "".join(ch for ch in str(value) if ch.isdigit())
-    return digits or None
 
 
 def normalize_employee_number(value: Any) -> str | None:

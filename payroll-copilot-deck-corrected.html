@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Payroll Copilot — AI Payroll Compliance Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* type scales with BOTH width and height — big on a projector */
+html{font-size:clamp(17px, calc(0.85vw + 0.85vh + 7px), 34px)}
+
+:root{
+  --bg:#0B1024;
+  --bg2:#141B3D;
+  --card:#161E42;
+  --card2:#1B2450;
+  --fg:#F4F7FF;
+  --fg-soft:#B6C0E4;
+  --rule:#3DE0A0;      /* deterministic  */
+  --ai:#9D8CFF;        /* ai-assisted    */
+  --stop:#FF7A66;      /* refusal / gate */
+  --line:rgba(180,196,255,.20);
+  --line2:rgba(180,196,255,.38);
+  --display:"Space Grotesk","Arial Black",system-ui,sans-serif;
+  --body:"Inter","Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);overflow:hidden;-webkit-font-smoothing:antialiased}
+
+.deck{position:fixed;inset:0;overflow:hidden}
+.deck::before{
+  content:"";position:absolute;inset:-20%;z-index:0;
+  background:
+    radial-gradient(38% 40% at 12% 8%,  rgba(61,224,160,.20), transparent 70%),
+    radial-gradient(42% 45% at 88% 92%, rgba(157,140,255,.22), transparent 70%),
+    radial-gradient(60% 60% at 50% 50%, rgba(20,27,61,.9), transparent 75%);
+  animation:drift 22s ease-in-out infinite alternate;
+}
+@keyframes drift{from{transform:translate3d(-1.5%,-1%,0) scale(1)}to{transform:translate3d(1.5%,1.5%,0) scale(1.06)}}
+.deck::after{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-image:radial-gradient(circle, rgba(180,196,255,.10) .9px, transparent 1px);
+  background-size:2.4rem 2.4rem;mask-image:linear-gradient(to bottom,rgba(0,0,0,.55),rgba(0,0,0,.12));
+}
+
+.slide{
+  position:absolute;inset:0;z-index:2;padding:2.4rem 3rem 3.4rem;
+  display:flex;flex-direction:column;justify-content:center;
+  opacity:0;visibility:hidden;transition:opacity .38s ease,visibility .38s;
+}
+.slide.active{opacity:1;visibility:visible}
+[data-anim]{opacity:0;transform:translateY(1.1rem)}
+.slide.active [data-anim]{animation:rise .6s cubic-bezier(.2,.75,.2,1) forwards;animation-delay:calc(var(--i,0)*85ms + 90ms)}
+@keyframes rise{to{opacity:1;transform:none}}
+
+/* ---------------- type ---------------- */
+.eyebrow{font-family:var(--mono);font-size:.78rem;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--rule);display:flex;align-items:center;gap:.8rem}
+.eyebrow::after{content:"";height:2px;flex:1;max-width:8rem;background:linear-gradient(90deg,var(--rule),transparent)}
+h1{font-family:var(--display);font-weight:700;font-size:4.6rem;line-height:.94;letter-spacing:-.035em;margin:.22em 0 0}
+h2{font-family:var(--display);font-weight:700;font-size:2.9rem;line-height:1.03;letter-spacing:-.03em;margin:.3em 0 0;max-width:20ch}
+.lede{font-size:1.15rem;line-height:1.4;color:var(--fg-soft);max-width:34ch;margin:1rem 0 0;font-weight:400}
+.hl{color:var(--rule)} .hl-v{color:var(--ai)} .hl-s{color:var(--stop)}
+
+.tag{font-family:var(--mono);font-size:.68rem;font-weight:700;letter-spacing:.12em;padding:.22rem .5rem;border-radius:.25rem}
+.tag.d{background:rgba(61,224,160,.16);color:var(--rule)}
+.tag.ai{background:rgba(157,140,255,.18);color:var(--ai)}
+.ico{width:2.4rem;height:2.4rem;display:block;margin-bottom:.7rem;color:var(--rule)}
+.ico.v{color:var(--ai)} .ico.s{color:var(--stop)}
+
+/* ---------------- 1 ---------------- */
+.s1{display:grid;grid-template-columns:1.35fr .82fr;gap:3rem;align-items:center}
+.brand{display:flex;align-items:center;gap:.8rem}
+.brand b{font-family:var(--display);font-weight:700;font-size:1.5rem;letter-spacing:-.02em}
+.brand i{width:.6rem;height:.6rem;border-radius:50%;background:var(--rule);box-shadow:0 0 0 .35rem rgba(61,224,160,.18);animation:beat 2.4s ease-in-out infinite}
+@keyframes beat{0%,100%{box-shadow:0 0 0 .3rem rgba(61,224,160,.16)}50%{box-shadow:0 0 0 .62rem rgba(61,224,160,.05)}}
+.brand span{font-family:var(--mono);font-size:.76rem;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-soft)}
+.title-rule{height:.22rem;width:0;margin:1.3rem 0 0;background:linear-gradient(90deg,var(--rule),var(--ai));transition:width 1s cubic-bezier(.2,.75,.2,1) .55s}
+.slide.active .title-rule{width:min(22rem,42vw)}
+.byline{display:flex;flex-wrap:wrap;gap:.6rem 1.6rem;margin-top:1.5rem;font-family:var(--mono);font-size:.86rem;color:var(--fg-soft)}
+.byline b{color:var(--fg);font-weight:700}
+
+.stub{background:linear-gradient(160deg,var(--card2),var(--card));border:1px solid var(--line2);border-radius:.8rem;padding:1.3rem 1.4rem 1.6rem;position:relative;box-shadow:0 1.4rem 3rem rgba(0,0,0,.45)}
+.stub h4{font-family:var(--mono);font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-soft);margin:0 0 1rem;font-weight:500}
+.stub-row{display:flex;justify-content:space-between;gap:.8rem;padding:.55rem 0;border-bottom:1px solid rgba(180,196,255,.12);font-family:var(--mono);font-size:.95rem}
+.stub-row span{color:var(--fg-soft)}
+.stub-row b{font-weight:700;font-variant-numeric:tabular-nums}
+.stub-row.total{border:0;border-top:2px solid var(--rule);margin-top:.5rem;padding-top:.8rem;font-size:1.1rem}
+.miss{color:var(--stop);font-weight:700}
+.stamp{
+  position:absolute;right:-.6rem;bottom:1rem;padding:.55rem .85rem;text-align:center;line-height:1.25;
+  border:.16rem solid var(--stop);color:var(--stop);border-radius:.4rem;background:rgba(11,16,36,.85);
+  font-family:var(--mono);font-weight:700;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;
+  opacity:0;transform:rotate(-8deg) scale(1.8);
+}
+.slide.active .stamp{animation:thud .5s cubic-bezier(.2,1.15,.3,1) 1.9s forwards}
+@keyframes thud{0%{opacity:0;transform:rotate(-8deg) scale(1.8)}55%{opacity:1;transform:rotate(-8deg) scale(.93)}100%{opacity:1;transform:rotate(-8deg) scale(1)}}
+
+/* ---------------- cards ---------------- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.6rem}
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:.7rem;padding:1.1rem 1.25rem;
+  cursor:pointer;position:relative;overflow:hidden;
+  transition:transform .22s cubic-bezier(.2,.8,.2,1),border-color .22s,background .22s;
+}
+.card::after{content:"";position:absolute;left:0;top:0;bottom:0;width:.22rem;background:var(--rule);transform:scaleY(0);transform-origin:top;transition:transform .3s}
+.card:hover{transform:translateY(-.28rem);border-color:var(--line2);background:var(--card2)}
+.card:hover::after,.card.open::after{transform:scaleY(1)}
+.card.s::after{background:var(--stop)} .card.v::after{background:var(--ai)}
+.card h3{font-family:var(--display);font-weight:700;font-size:1.45rem;margin:0 0 .35rem;letter-spacing:-.02em}
+.card p{margin:0;font-size:1rem;line-height:1.38;color:var(--fg-soft)}
+.more{
+  max-height:0;opacity:0;overflow:hidden;font-family:var(--mono);font-size:.85rem;line-height:1.4;color:var(--rule);
+  transition:max-height .35s ease,opacity .3s ease,margin .35s ease;
+}
+.card.open .more{max-height:6rem;opacity:1;margin-top:.7rem}
+.card.s .more{color:var(--stop)} .card.v .more{color:var(--ai)}
+.tap{position:absolute;right:.9rem;top:.9rem;font-family:var(--mono);font-size:.68rem;color:var(--fg-soft);opacity:.55}
+.card.open .tap{opacity:0}
+.kicker{margin-top:1.5rem;border-left:.25rem solid var(--stop);padding:.6rem 0 .6rem 1.1rem;font-family:var(--display);font-weight:600;font-size:1.5rem;letter-spacing:-.02em;max-width:38ch}
+
+/* ---------------- 3 ---------------- */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:2.2rem;margin-top:1.2rem}
+.col-head{display:flex;align-items:center;gap:.7rem;margin-bottom:.6rem}
+.col-head h3{font-family:var(--display);font-size:1.4rem;margin:0;font-weight:700;letter-spacing:-.02em}
+.cant{list-style:none;margin:0;padding:0}
+.cant li{font-size:1rem;line-height:1.3;color:var(--fg-soft);padding:.55rem 0 .55rem 1.4rem;position:relative;border-bottom:1px solid rgba(180,196,255,.12)}
+.cant li::before{content:"";position:absolute;left:0;top:1.1rem;width:.7rem;height:.14rem;background:var(--stop);border-radius:2px}
+.demo{margin-top:1.2rem;background:var(--card);border:1px solid var(--line2);border-radius:.7rem;padding:1rem 1.2rem 1.1rem}
+.demo-top{display:flex;flex-wrap:wrap;align-items:center;gap:1rem;justify-content:space-between}
+.demo-top p{margin:0;font-family:var(--mono);font-size:.88rem;color:var(--fg-soft)}
+.btn{
+  font-family:var(--mono);font-size:.85rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  background:var(--rule);color:#06210F;border:0;border-radius:.4rem;padding:.7rem 1.1rem;cursor:pointer;
+  transition:transform .15s,box-shadow .2s,opacity .2s;box-shadow:0 .4rem 1.4rem rgba(61,224,160,.28);
+}
+.btn:hover{transform:translateY(-.12rem);box-shadow:0 .6rem 1.8rem rgba(61,224,160,.4)}
+.btn:disabled{opacity:.35;box-shadow:none;transform:none;cursor:default}
+.runs{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem;margin-top:.9rem;min-height:7rem}
+.runs h5{margin:0 0 .5rem}
+.run{font-family:var(--mono);font-size:.88rem;padding:.5rem .7rem;margin-bottom:.35rem;border-radius:.3rem;display:flex;justify-content:space-between;gap:.7rem;opacity:0;transform:translateX(-.6rem);animation:runIn .32s forwards}
+@keyframes runIn{to{opacity:1;transform:none}}
+.run.varies{background:rgba(157,140,255,.13);border-left:.2rem solid var(--ai)}
+.run.same{background:rgba(61,224,160,.12);border-left:.2rem solid var(--rule)}
+.v-fail{color:var(--stop);font-weight:700}
+.v-pass{color:var(--rule);font-weight:700}
+.thesis{margin-top:1.1rem;font-family:var(--display);font-weight:700;font-size:1.9rem;letter-spacing:-.025em}
+.thesis u{text-decoration:none;color:var(--ai)}
+
+/* ---------------- 4 pipeline ---------------- */
+.pipe-wrap{display:grid;grid-template-columns:1fr 15rem;gap:2.2rem;margin-top:1.1rem;align-items:start}
+.pipe-head{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.8rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding-bottom:.6rem;border-bottom:1px solid var(--line)}
+.pipe-head .l{color:var(--rule)} .pipe-head .r{color:var(--ai)}
+.pipe{position:relative;padding-top:.5rem}
+.spine{position:absolute;left:calc(50% - .08rem);top:0;width:.16rem;height:0;border-radius:2px;background:linear-gradient(var(--rule),var(--ai));box-shadow:0 0 1rem rgba(61,224,160,.5);transition:height 2.4s linear}
+.stage{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1rem;padding:.24rem 0}
+.stage .box{
+  background:var(--card);border:1px solid var(--line);border-radius:.5rem;padding:.6rem .9rem;
+  font-size:1rem;font-weight:500;display:flex;align-items:center;gap:.6rem;cursor:pointer;
+  opacity:0;transition:opacity .4s,transform .45s cubic-bezier(.2,.8,.2,1),border-color .2s,background .2s;
+}
+.stage.left .box{grid-column:1;justify-self:end;border-left:.25rem solid var(--rule);transform:translateX(1.6rem)}
+.stage.right .box{grid-column:3;justify-self:start;border-left:.25rem solid var(--ai);transform:translateX(-1.6rem)}
+.stage.on .box{opacity:1;transform:none}
+.stage .box:hover{border-color:var(--line2);background:var(--card2)}
+.stage.sel .box{background:var(--card2);border-color:var(--rule)}
+.stage.right.sel .box{border-color:var(--ai)}
+.stage .dot{grid-column:2;width:.6rem;height:.6rem;border-radius:50%;background:var(--line);transition:background .3s,box-shadow .3s}
+.stage.on.left .dot{background:var(--rule);box-shadow:0 0 0 .35rem rgba(61,224,160,.18)}
+.stage.on.right .dot{background:var(--ai);box-shadow:0 0 0 .35rem rgba(157,140,255,.18)}
+.stage.gate .box{border:.14rem solid var(--stop);border-left-width:.25rem}
+.gate-btn{font-family:var(--mono);font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--stop);color:#2A0A04;border:0;border-radius:.3rem;padding:.4rem .7rem;cursor:pointer;margin-left:.3rem}
+.stage.on .gate-btn{animation:pulse 1.6s infinite .4s}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,122,102,.55)}70%{box-shadow:0 0 0 .7rem rgba(255,122,102,0)}}
+.gate-btn.done{background:var(--rule);color:#06210F;animation:none;cursor:default}
+.detail{background:var(--card);border:1px solid var(--line);border-left:.25rem solid var(--rule);border-radius:.6rem;padding:1rem 1.1rem;min-height:9rem}
+.detail b{display:block;font-family:var(--mono);font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--rule);margin-bottom:.5rem}
+.detail p{margin:0;font-size:.98rem;line-height:1.4;color:var(--fg-soft)}
+.detail.ai{border-left-color:var(--ai)} .detail.ai b{color:var(--ai)}
+
+/* ---------------- 5 ---------------- */
+.forbid{margin-top:1.5rem;border:.14rem solid var(--stop);border-radius:.6rem;padding:.9rem 1.2rem;display:flex;flex-wrap:wrap;align-items:center;gap:.7rem 1.3rem;background:rgba(255,122,102,.07)}
+.forbid > b{font-family:var(--mono);font-size:.82rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--stop)}
+.forbid ul{display:flex;flex-wrap:wrap;gap:.55rem;list-style:none;margin:0;padding:0}
+.forbid li{font-family:var(--mono);font-size:.86rem;padding:.4rem .7rem;border:1px dashed rgba(255,122,102,.55);border-radius:.3rem;color:var(--fg)}
+.chip-miss{font-family:var(--mono);font-size:.9rem;background:rgba(255,122,102,.18);color:var(--stop);padding:.1rem .4rem;border-radius:.25rem}
+
+/* ---------------- 6 ---------------- */
+.s6{display:grid;grid-template-columns:1.1fr .9fr;gap:2.4rem;align-items:start}
+.stack{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:1.1rem}
+.chipbox{background:var(--card);border:1px solid var(--line);border-radius:.5rem;padding:.65rem .8rem;font-family:var(--mono);font-size:.84rem;transition:border-color .2s,transform .2s}
+.chipbox:hover{border-color:var(--rule);transform:translateY(-.15rem)}
+.chipbox b{display:block;font-weight:700;font-size:.94rem;margin-bottom:.15rem}
+.chipbox span{color:var(--fg-soft)}
+.status{display:flex;flex-direction:column;gap:.7rem}
+.st{border:1px solid var(--line);border-radius:.6rem;background:var(--card);padding:.8rem 1rem;border-left:.25rem solid var(--rule)}
+.st.part{border-left-color:var(--ai)} .st.non{border-left-color:var(--stop)}
+.st b{font-family:var(--mono);font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:.35rem;color:var(--rule)}
+.st.part b{color:var(--ai)} .st.non b{color:var(--stop)}
+.st p{margin:0;font-size:.94rem;line-height:1.4;color:var(--fg-soft)}
+.close{margin-top:1.5rem;display:flex;flex-wrap:wrap;align-items:baseline;gap:.7rem 1.6rem}
+.close .q{font-family:var(--display);font-weight:700;font-size:2.8rem;letter-spacing:-.03em}
+.close a{font-family:var(--mono);font-size:.92rem;color:var(--rule);text-decoration:none;border-bottom:.14rem solid rgba(61,224,160,.45);padding-bottom:.12rem}
+
+/* ---------------- chrome ---------------- */
+.rail{position:fixed;top:0;left:0;right:0;height:.22rem;z-index:20;background:rgba(180,196,255,.12)}
+.rail i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--rule),var(--ai));transition:width .45s cubic-bezier(.2,.75,.2,1)}
+.hud{position:fixed;bottom:.8rem;left:0;right:0;z-index:20;display:flex;justify-content:center;align-items:center;gap:1.1rem;pointer-events:none}
+.hud>*{pointer-events:auto}
+.nav button{width:2.2rem;height:1.9rem;border:1px solid var(--line2);background:var(--card);color:var(--fg);border-radius:.35rem;cursor:pointer;font-family:var(--mono);font-size:.9rem;margin-right:.3rem}
+.nav button:hover{border-color:var(--rule)}
+.dots{display:flex;gap:.35rem}
+.dots button{width:1.5rem;height:.3rem;border:0;border-radius:2px;background:rgba(180,196,255,.28);cursor:pointer;padding:0;transition:width .25s,background .25s}
+.dots button[aria-current="true"]{background:var(--rule);width:2.8rem}
+.counter{font-family:var(--mono);font-size:.8rem;color:var(--fg-soft);letter-spacing:.1em}
+.hint{position:fixed;top:1rem;right:1.6rem;z-index:20;font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-soft);opacity:.75}
+.pnotes{position:fixed;left:1.2rem;right:1.2rem;bottom:0;z-index:25;background:#060A18;border-top:.14rem solid var(--rule);color:var(--fg);padding:1rem 1.3rem 1.2rem;font-family:var(--mono);font-size:.92rem;line-height:1.5;transform:translateY(105%);transition:transform .28s ease}
+.pnotes.open{transform:none}
+.pnotes b{color:var(--rule);font-size:.76rem;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:.4rem}
+:focus-visible{outline:.16rem solid var(--ai);outline-offset:.2rem}
+
+@media (max-width:900px){
+  .s1,.s6,.split,.pipe-wrap{grid-template-columns:1fr}
+  .grid2,.stack,.runs{grid-template-columns:1fr}
+  .slide{padding:3rem 1.6rem 4rem}
+  .stub,.detail{display:none}
+  .stage{grid-template-columns:1fr}
+  .stage .box{grid-column:1!important;justify-self:stretch!important;transform:none}
+  .stage .dot,.spine{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.1s!important}}
+</style>
+</head>
+<body>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3"/><path d="M7 9.5h10M7 13h10M7 16.5h6"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 9h18M3 14.5h18M9 4v16M15 4v16"/></symbol>
+  <symbol id="i-head" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 21v-2.6a5.5 5.5 0 0 0 3.3-8.1L17.6 8A6 6 0 1 0 7 12.6V21"/><path d="M10.5 12.4a2 2 0 0 1 3.2-1.5"/></symbol>
+  <symbol id="i-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="2.5"/><path d="M12 3.5V7M9 12v1.6M15 12v1.6M9.5 16.2h5"/></symbol>
+  <symbol id="i-gap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4H5.5A1.5 1.5 0 0 0 4 5.5V7M4 11.5v1M4 17v1.5A1.5 1.5 0 0 0 5.5 20H7M11.5 20h1M17 20h1.5a1.5 1.5 0 0 0 1.5-1.5V17M20 12.5v-1M20 7V5.5A1.5 1.5 0 0 0 18.5 4H17M12.5 4h-1"/><path d="M8.5 12h7"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H19v3H6.5A2.5 2.5 0 0 1 4 20.5z"/><path d="M8 7.5h7"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14.6v2.6"/></symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-7 4 14L16 12h5"/></symbol>
+</svg>
+
+<div class="rail"><i id="rail"></i></div>
+<div class="hint">← → move · N notes · F full screen</div>
+
+<main class="deck">
+
+  <!-- 1 -->
+  <section class="slide s1" data-note="Open with the project and introduce yourself. Payroll Copilot is a production-style AI payroll compliance platform. The key design decision is simple: AI handles extraction and explanation, while deterministic rules own compliance outcomes.">
+    <div>
+      <div class="brand" data-anim style="--i:0"><i></i><b>Payroll Copilot</b><span>AI payroll compliance platform</span></div>
+      <h1 data-anim style="--i:1">Payroll compliance,<br><span class="hl-v">made explainable.</span></h1>
+      <div class="title-rule"></div>
+      <p class="lede" data-anim style="--i:3">A production-style platform that extracts payroll documents, validates them with deterministic rules, and explains every finding with traceable evidence.</p>
+      <div class="byline" data-anim style="--i:4"><span><b>Yehuda Shmulevitz</b> · Software Engineer</span><span>Oz VeRuach · Final AI Engineering Project</span></div>
+    </div>
+    <div class="stub" data-anim style="--i:2">
+      <h4>Digital payslip · 06 / 2026</h4>
+      <div class="stub-row"><span>Base salary</span><b class="tick" data-to="18400">—</b></div>
+      <div class="stub-row"><span>Overtime 125%</span><b class="tick" data-to="1265">—</b></div>
+      <div class="stub-row"><span>Pension · employer</span><b class="miss">MISSING</b></div>
+      <div class="stub-row total"><span>Net</span><b class="tick" data-to="15208">—</b></div>
+      <div class="stamp">Deterministic rules<br>decide pass / fail</div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="slide" data-note="Present the operational problem: inconsistent documents, manual review, expert dependency and ungrounded chatbot answers. Emphasize that the challenge is not only automation, but producing a result that can be reviewed and reproduced.">
+    <div class="eyebrow" data-anim style="--i:0">01 · The problem</div>
+    <h2 data-anim style="--i:1">Payroll review is still manual, fragmented and difficult to audit.</h2>
+    <div class="grid2">
+      <div class="card" data-anim style="--i:2"><span class="tap">click</span><svg class="ico"><use href="#i-scan"/></svg><h3>Read by hand</h3><p>Payslips and employee documents arrive in inconsistent formats.</p><div class="more">→ repetitive work across every payroll cycle</div></div>
+      <div class="card v" data-anim style="--i:3"><span class="tap">click</span><svg class="ico v"><use href="#i-grid"/></svg><h3>Checked in spreadsheets</h3><p>Manual checks are difficult to reproduce later.</p><div class="more">→ no stable record of the exact check and evidence</div></div>
+      <div class="card v" data-anim style="--i:4"><span class="tap">click</span><svg class="ico v"><use href="#i-head"/></svg><h3>Held in one head</h3><p>Critical knowledge often depends on specific payroll experts.</p><div class="more">→ difficult to scale across employees and organizations</div></div>
+      <div class="card s" data-anim style="--i:5"><span class="tap">click</span><svg class="ico s"><use href="#i-bot"/></svg><h3>Or given to a chatbot</h3><p>Which may produce confident answers without deterministic validation.</p><div class="more">→ explanations alone are not a compliance engine</div></div>
+    </div>
+    <p class="kicker" data-anim style="--i:6">The result: slower payroll operations, inconsistent checks, and limited evidence when someone asks <span class="hl-s">why</span>.</p>
+  </section>
+
+  <!-- 3 -->
+  <section class="slide" data-note="Use the comparison as a conceptual illustration, not as measured benchmark data. Explain that probabilistic models are valuable for understanding language and documents, but compliance decisions require deterministic execution.">
+    <div class="eyebrow" data-anim style="--i:0">02 · The insight</div>
+    <h2 data-anim style="--i:1">AI and deterministic validation solve different parts of the problem.</h2>
+    <div class="split">
+      <div data-anim style="--i:2">
+        <div class="col-head"><span class="tag d">RULES ONLY</span><h3>Cannot understand raw documents</h3></div>
+        <ul class="cant"><li>Read a scanned or photographed slip</li><li>Rebuild an unfamiliar layout</li><li>Explain complex findings to employees and payroll teams</li></ul>
+      </div>
+      <div data-anim style="--i:3">
+        <div class="col-head"><span class="tag ai">AI ONLY</span><h3>Cannot own compliance decisions</h3></div>
+        <ul class="cant"><li>Probabilistic output is not a stable compliance verdict</li><li>May hallucinate facts, rules or document fields</li><li>Cannot provide a deterministic audit result by itself</li></ul>
+      </div>
+    </div>
+    <div class="demo" data-anim style="--i:4">
+      <div class="demo-top"><p>Conceptual comparison: probabilistic judgment versus deterministic validation.</p><button class="btn" id="runBtn">▶ Run validation 3×</button></div>
+      <div class="runs">
+        <div><h5><span class="tag ai">AI-ONLY JUDGMENT</span></h5><div id="aiRuns"></div></div>
+        <div><h5><span class="tag d">DETERMINISTIC ENGINE</span></h5><div id="ruleRuns"></div></div>
+      </div>
+    </div>
+    <p class="thesis" data-anim style="--i:5">AI extracts, investigates and explains — deterministic rules own the verdict.</p>
+  </section>
+
+  <!-- 4 -->
+  <section class="slide" data-note="This is the core architecture slide. Stop at Human Review and explain that unconfirmed extraction never reaches validation. Continue through canonical mapping, deterministic rules, AI explanation and immutable persistence.">
+    <div class="eyebrow" data-anim style="--i:0">03 · The pipeline</div>
+    <h2 data-anim style="--i:1">A document-first pipeline with explicit trust boundaries.</h2>
+    <div class="pipe-wrap">
+      <div data-anim style="--i:2">
+        <div class="pipe-head"><span class="l">◀ Deterministic</span><span class="r">AI-assisted ▶</span></div>
+        <div class="pipe" id="pipe">
+          <div class="spine" id="spine"></div>
+          <div class="stage left"  data-t="Upload"        data-x="Type and size guardrails run before a single byte is stored."><div class="box"><span class="tag d">D</span> Upload</div><div class="dot"></div></div>
+          <div class="stage right" data-t="OCR"           data-x="Embedded PDF text is preferred; OCR is used when the document is scanned or photographed."><div class="dot"></div><div class="box"><span class="tag ai">AI</span> OCR</div></div>
+          <div class="stage right" data-t="Extraction"    data-x="AI-assisted extraction rebuilds the document as evidence. Unknown fields remain MISSING instead of being guessed."><div class="dot"></div><div class="box"><span class="tag ai">AI</span> Document Model</div></div>
+          <div class="stage left gate" data-t="Human review" data-x="A human confirms identity, payroll period and extracted fields before validation can run."><div class="box"><span class="tag d">D</span> Human review <button class="gate-btn" id="gateBtn">Confirm</button></div><div class="dot"></div></div>
+          <div class="stage left"  data-t="Canonical mapping" data-x="The confirmed document is projected into the engine's stable schema. Layout quirks never reach the rules."><div class="box"><span class="tag d">D</span> Canonical mapping</div><div class="dot"></div></div>
+          <div class="stage left"  data-t="Validation"    data-x="Versioned deterministic rules in Python and YAML decide pass or fail. The same confirmed input produces the same result."><div class="box"><span class="tag d">D</span> Validation · YAML rules</div><div class="dot"></div></div>
+          <div class="stage right" data-t="Explanation"   data-x="AI converts validated findings into clear explanations. It cannot change the underlying rule outcome."><div class="dot"></div><div class="box"><span class="tag ai">AI</span> Explain findings</div></div>
+          <div class="stage left"  data-t="Persistence"   data-x="Validation runs are stored as immutable records. Re-validation creates a new run while preserving previous results."><div class="box"><span class="tag d">D</span> Immutable run</div><div class="dot"></div></div>
+        </div>
+      </div>
+      <div class="detail" id="detail" data-anim style="--i:3">
+        <b id="dTitle">Click any stage</b>
+        <p id="dText">Green stages are deterministic code. Purple stages are AI. The engine never sees anything a human hasn't confirmed.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="slide" data-note="Explain the anti-hallucination strategy: missing values remain missing, legal answers are source-bound, identity context comes from authorization, and AI behavior is monitored and evaluated.">
+    <div class="eyebrow" data-anim style="--i:0">04 · Why it's defensible</div>
+    <h2 data-anim style="--i:1">Reliable AI requires evidence, guardrails and measurable evaluation.</h2>
+    <div class="grid2">
+      <div class="card s" data-anim style="--i:2"><span class="tap">click</span><svg class="ico s"><use href="#i-gap"/></svg><h3>Honest partiality</h3><p>An unverifiable field stays <span class="chip-miss">MISSING</span>.</p><div class="more">→ partial beats a plausible invented number</div></div>
+      <div class="card" data-anim style="--i:3"><span class="tap">click</span><svg class="ico"><use href="#i-book"/></svg><h3>Source-bound answers</h3><p>Legal answers are retrieved from an approved, versioned knowledge base.</p><div class="more">→ legal RAG explains; deterministic rules remain the validation source of truth</div></div>
+      <div class="card v" data-anim style="--i:4"><span class="tap">click</span><svg class="ico v"><use href="#i-lock"/></svg><h3>Context from auth</h3><p>Chat context is loaded server-side.</p><div class="more">→ a browser-supplied employee ID is never trusted</div></div>
+      <div class="card v" data-anim style="--i:5"><span class="tap">click</span><svg class="ico v"><use href="#i-pulse"/></svg><h3>AI usage is observable</h3><p>Tokens, latency, failures and evaluation results are tracked across AI capabilities.</p><div class="more">→ prompts and model behavior are governed through a versioned catalog</div></div>
+    </div>
+    <div class="forbid" data-anim style="--i:6">
+      <b>AI must not</b>
+      <ul><li>Decide pass / fail</li><li>Approve a rule change</li><li>Trust a browser ID</li><li>Invent a source URL</li></ul>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="slide s6" data-note="Close with the technology stack, current implementation scope and explicit boundaries. The project is broad, but it does not claim that AI replaces payroll professionals or deterministic compliance logic.">
+    <div>
+      <div class="eyebrow" data-anim style="--i:0">05 · Stack &amp; status</div>
+      <h2 data-anim style="--i:1">Production architecture with replaceable AI providers.</h2>
+      <p class="lede" data-anim style="--i:2">A modular platform with isolated domain logic. OCR, storage, authentication and LLM providers sit behind interfaces, so infrastructure can evolve without rewriting payroll rules.</p>
+      <div class="stack">
+        <div class="chipbox" data-anim style="--i:3"><b>FastAPI · React 19</b><span>API + four portals</span></div>
+        <div class="chipbox" data-anim style="--i:3"><b>LangGraph</b><span>Assistant graphs</span></div>
+        <div class="chipbox" data-anim style="--i:4"><b>Ollama · OpenAI</b><span>Routed per capability</span></div>
+        <div class="chipbox" data-anim style="--i:4"><b>DynamoDB · S3 · PostgreSQL</b><span>Operational data, documents + analytics</span></div>
+        <div class="chipbox" data-anim style="--i:5"><b>Celery · Redis</b><span>Batch pipeline</span></div>
+        <div class="chipbox" data-anim style="--i:5"><b>ChromaDB</b><span>Version-aware legal index</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="status">
+        <div class="st impl" data-anim style="--i:3"><b>Implemented</b><p>Document-first extraction · deterministic validation with immutable runs · employee, accountant, admin and guest experiences · legal RAG · investigation agent · AI telemetry.</p></div>
+        <div class="st part" data-anim style="--i:4"><b>Partial</b><p>Broader attendance and contract validation · scheduled legal-source synchronization · external production configuration for evaluation and monitored sources.</p></div>
+        <div class="st non" data-anim style="--i:5"><b>Not claimed</b><p>The system does not let an LLM decide compliance outcomes, does not treat unconfirmed extraction as trusted data, and does not claim complete coverage of every payroll and labor-law scenario.</p></div>
+      </div>
+      <div class="close" data-anim style="--i:6"><span class="q">Questions?</span><a href="https://github.com/yehuda121/payroll-copilot" target="_blank" rel="noopener">github.com/yehuda121/payroll-copilot</a></div>
+    </div>
+  </section>
+
+</main>
+
+<div class="hud">
+  <div class="nav"><button id="prev" aria-label="Previous">←</button><button id="next" aria-label="Next">→</button></div>
+  <div class="dots" id="dots"></div>
+  <span class="counter" id="counter">01 / 06</span>
+</div>
+<div class="pnotes" id="pnotes"><b>Presenter note</b><span id="pnoteText"></span></div>
+
+<script>
+(function(){
+  const slides=[...document.querySelectorAll('.slide')];
+  const dots=document.getElementById('dots'), rail=document.getElementById('rail');
+  const counter=document.getElementById('counter'), pnotes=document.getElementById('pnotes');
+  const pnoteText=document.getElementById('pnoteText');
+  let i=0, notesOpen=false;
+
+  slides.forEach((s,n)=>{const b=document.createElement('button');b.setAttribute('aria-label','Slide '+(n+1));b.onclick=()=>go(n);dots.appendChild(b);});
+  const dotBtns=[...dots.children];
+
+  function go(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    dotBtns.forEach((b,k)=>b.setAttribute('aria-current',k===i));
+    rail.style.width=((i+1)/slides.length*100)+'%';
+    counter.textContent=String(i+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');
+    pnoteText.textContent=slides[i].dataset.note||'';
+    if(i===0) tickNumbers();
+    if(i===3) startPipe();
+  }
+
+  document.addEventListener('keydown',e=>{
+    const k=e.key.toLowerCase();
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();go(i+1);}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(i-1);}
+    else if(e.key==='Home'){go(0);} else if(e.key==='End'){go(slides.length-1);}
+    else if(k==='n'){notesOpen=!notesOpen;pnotes.classList.toggle('open',notesOpen);}
+    else if(k==='f'){document.fullscreenElement?document.exitFullscreen?.():document.documentElement.requestFullscreen?.();}
+  });
+  document.getElementById('next').onclick=()=>go(i+1);
+  document.getElementById('prev').onclick=()=>go(i-1);
+  let tx=0;
+  addEventListener('touchstart',e=>tx=e.changedTouches[0].clientX,{passive:true});
+  addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>60)go(d<0?i+1:i-1);},{passive:true});
+
+  /* clickable cards */
+  document.querySelectorAll('.card').forEach(c=>c.onclick=()=>c.classList.toggle('open'));
+
+  /* slide 1 — figures resolve */
+  let ticked=false;
+  function tickNumbers(){
+    if(ticked)return; ticked=true;
+    document.querySelectorAll('.tick').forEach((el,k)=>{
+      const to=+el.dataset.to, dur=900, start=performance.now()+800+k*150;
+      (function frame(t){
+        if(t<start){requestAnimationFrame(frame);return;}
+        const p=Math.min(1,(t-start)/dur), e=1-Math.pow(1-p,3);
+        el.textContent='₪ '+Math.round(to*e).toLocaleString('en-US');
+        if(p<1) requestAnimationFrame(frame);
+      })(performance.now());
+    });
+  }
+
+  /* slide 3 — determinism demo */
+  const aiOut=[['run 1','<span class="v-pass">PASS</span>'],
+               ['run 2','<span class="v-fail">FAIL</span> · invented rule'],
+               ['run 3','<span class="v-pass">PASS</span> · with a warning']];
+  const ruleOut=[['run_01','<span class="v-fail">FAIL</span> · OT_RATE_125'],
+                 ['run_02','<span class="v-fail">FAIL</span> · OT_RATE_125'],
+                 ['run_03','<span class="v-fail">FAIL</span> · OT_RATE_125']];
+  const btn=document.getElementById('runBtn');
+  btn.onclick=()=>{
+    const a=document.getElementById('aiRuns'), r=document.getElementById('ruleRuns');
+    a.innerHTML='';r.innerHTML='';btn.disabled=true;
+    [0,1,2].forEach(k=>setTimeout(()=>{
+      a.insertAdjacentHTML('beforeend','<div class="run varies"><span>'+aiOut[k][0]+'</span><span>'+aiOut[k][1]+'</span></div>');
+      r.insertAdjacentHTML('beforeend','<div class="run same"><span>'+ruleOut[k][0]+'</span><span>'+ruleOut[k][1]+'</span></div>');
+      if(k===2) setTimeout(()=>btn.disabled=false,400);
+    },k*520));
+  };
+
+  /* slide 4 — pipeline */
+  const pipe=document.getElementById('pipe');
+  const stages=[...pipe.querySelectorAll('.stage')];
+  const spine=document.getElementById('spine'), gateBtn=document.getElementById('gateBtn');
+  const detail=document.getElementById('detail'), dTitle=document.getElementById('dTitle'), dText=document.getElementById('dText');
+  let piped=false, confirmed=false;
+
+  stages.forEach(s=>{
+    s.querySelector('.box').addEventListener('click',e=>{
+      if(e.target.classList.contains('gate-btn'))return;
+      stages.forEach(x=>x.classList.remove('sel'));
+      s.classList.add('sel');
+      detail.classList.toggle('ai',s.classList.contains('right'));
+      dTitle.textContent=s.dataset.t; dText.textContent=s.dataset.x;
+    });
+  });
+  function light(from,to){
+    let k=from;
+    (function step(){ if(k>to)return; stages[k].classList.add('on'); k++; setTimeout(step,500); })();
+  }
+  function spineTo(idx){
+    const b=stages[idx].getBoundingClientRect(), top=pipe.getBoundingClientRect().top;
+    spine.style.height=(b.bottom-top)+'px';
+  }
+  function startPipe(){
+    if(piped)return; piped=true;
+    setTimeout(()=>{spine.style.transitionDuration='1.9s';spineTo(3);light(0,3);},550);
+  }
+  gateBtn.onclick=()=>{
+    if(confirmed)return; confirmed=true;
+    gateBtn.textContent='Confirmed ✓'; gateBtn.classList.add('done');
+    spine.style.transitionDuration='2.2s'; spineTo(stages.length-1); light(4,stages.length-1);
+  };
+
+  go(0);
+})();
+</script>
+</body>
+</html>

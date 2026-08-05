@@ -95,6 +95,11 @@ class EmployeeDynamicDocumentExtractor:
         document_type: str,
         pages_text: list[str] | None = None,
     ) -> tuple[list[DynamicDocumentEntry], str, list[str]]:
+        raise PayslipParserUnavailableError(
+            "AI employee dynamic extraction is disabled. "
+            "Use extract_document_from_pdf / DeterministicPdfDocumentExtractor."
+        )
+        _ = ocr_text, language, document_type, pages_text
         if not (ocr_text or "").strip():
             raise PayslipParserEmptyOcrError()
 

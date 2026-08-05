@@ -16,6 +16,7 @@ import {
   mergeAiHistorySeries,
   providerHistoryToChartRows,
 } from '../../lib/ai-monitoring/chart-series';
+import { AdminEmployeeResetPanel } from './AdminEmployeeResetPanel';
 import './admin-ai.css';
 
 const WINDOW_OPTIONS = [6, 24, 72, 168] as const;
@@ -324,6 +325,13 @@ export function SystemDashboardPage() {
           ) : null}
         </div>
       ) : null}
+
+      <AdminEmployeeResetPanel
+        onSuccess={() => {
+          dashboard.reload();
+          history.reload();
+        }}
+      />
     </PortalPage>
   );
 }

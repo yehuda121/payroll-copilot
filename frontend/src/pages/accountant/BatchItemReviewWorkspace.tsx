@@ -16,7 +16,8 @@ import {
 import { SparklesIcon, TrashIcon, UserIcon } from '../../components/ui/icons';
 import { EmployeeDigitalForm } from '../../features/employee/EmployeeDigitalForm';
 import { EmployeeValidationResults } from '../../features/employee/EmployeeValidationResults';
-import { Search, UserPlus } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
+import { EmployeeAssignCombobox } from '../../components/accountant/EmployeeAssignCombobox';
 import type { FieldDraft } from '../../hooks/useEmployeePayslipFlow';
 import {
   batchService,
@@ -39,7 +40,6 @@ import {
 import { reviewFieldsFromExtractionPayload } from '../../lib/guest/extraction-review';
 import { getDisplayError } from '../../lib/getDisplayError';
 import type { GuestValidationReport } from '../../types/validation-report';
-import { TruncatedText } from '../../components/ui/TruncatedText';
 import './UnknownEmployeeResolution.css';
 import '../employee/PayslipMonthWorkspace.css';
 import '../../features/employee/employee-payslip.css';
@@ -141,8 +141,6 @@ export function BatchItemReviewWorkspacePage() {
   const [drafts, setDrafts] = useState<Record<string, FieldDraft>>({});
   const [tab, setTab] = useState<PrimaryTab>('digital');
   const [resolutionMode, setResolutionMode] = useState<ResolutionMode>('search');
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<EmployeeRecord[]>([]);
   const [busy, setBusy] = useState(false);
   const [busyRuleId, setBusyRuleId] = useState<string | null>(null);
   /** Load/refresh failures — page chrome only (not duplicated in Validation). */
@@ -378,32 +376,17 @@ export function BatchItemReviewWorkspacePage() {
         action: 'attach_employee',
         employee_number: employee.employeeNumber,
       });
-      if (!item.payroll_year || !item.payroll_month || !item.document_id) {
-        throw new Error(t('common.error'));
+      if (item.payroll_year && item.payroll_month && item.document_id) {
+        navigate(
+          `/accountant/employees/${encodeURIComponent(employee.employeeNumber)}/workspace/payslips/${item.payroll_year}/${item.payroll_month}?batchJobId=${encodeURIComponent(jobId)}&batchItemId=${encodeURIComponent(itemId)}&batchDocumentId=${encodeURIComponent(item.document_id)}`,
+          { state: { backTo: '/accountant/bulk-upload' } },
+        );
+        return;
       }
-      navigate(
-        `/accountant/employees/${encodeURIComponent(employee.employeeNumber)}/workspace/payslips/${item.payroll_year}/${item.payroll_month}?batchJobId=${encodeURIComponent(jobId)}&batchItemId=${encodeURIComponent(itemId)}&batchDocumentId=${encodeURIComponent(item.document_id)}`,
-        { state: { backTo: '/accountant/bulk-upload' } },
-      );
+      await refresh();
     } catch (reason) {
       setWorkspaceError(mapError(reason, t('common.error')));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const search = async () => {
-    setBusy(true);
-    setWorkspaceError(null);
-    try {
-      setResults(
-        await employeesService.list({
-          q: query.trim() || undefined,
-          includeDisabled: false,
-        }),
-      );
-    } catch (reason) {
-      setWorkspaceError(mapError(reason, t('common.error')));
+      throw reason;
     } finally {
       setBusy(false);
     }
@@ -574,62 +557,12 @@ export function BatchItemReviewWorkspacePage() {
           </div>
           {resolutionMode === 'search' ? (
             <div className="batch-resolution-search">
-              <div className="batch-resolution-search__integrated">
-                <label className="batch-resolution-search__field batch-resolution-search__field--integrated">
-                  <span className="visually-hidden">{t('accountant.unknown.searchLabel')}</span>
-                  <button
-                    type="button"
-                    className="batch-resolution-search__icon-btn"
-                    disabled={busy}
-                    onClick={() => void search()}
-                    aria-label={t('common.search')}
-                  >
-                    <Search size={16} aria-hidden="true" />
-                  </button>
-                  <input
-                    className="pc-form-control"
-                    type="search"
-                    maxLength={FREE_TEXT_MAX_LENGTH.searchQuery}
-                    value={query}
-                    onChange={(event) =>
-                      setQuery(
-                        clampFreeTextInput(event.target.value, FREE_TEXT_MAX_LENGTH.searchQuery),
-                      )
-                    }
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        void search();
-                      }
-                    }}
-                    placeholder={t('accountant.unknown.searchPlaceholder')}
-                    aria-label={t('accountant.unknown.searchLabel')}
-                  />
-                </label>
-              </div>
-              <div className="unknown-resolution__results" aria-live="polite">
-                {results.length === 0 ? (
-                  <p className="employee-workspace-hint">{t('accountant.unknown.noResults', {
-                    defaultValue: t('common.emDash'),
-                  })}</p>
-                ) : (
-                  results.map((employee) => (
-                    <button
-                      key={employee.employeeNumber}
-                      type="button"
-                      className="unknown-resolution__employee"
-                      disabled={busy}
-                      onClick={() => void attach(employee)}
-                    >
-                      <strong>
-                        <TruncatedText>{employee.fullName}</TruncatedText>
-                      </strong>
-                      <span>#{employee.employeeNumber}</span>
-                      <span>{employee.nationalIdMasked || t('common.emDash')}</span>
-                    </button>
-                  ))
-                )}
-              </div>
+              <EmployeeAssignCombobox
+                disabled={busy}
+                onAssigned={async (employee) => {
+                  await attach(employee);
+                }}
+              />
             </div>
           ) : (
             <FormShell

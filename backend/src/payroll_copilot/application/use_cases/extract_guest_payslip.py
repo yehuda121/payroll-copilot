@@ -1,10 +1,7 @@
-"""Guest/Employee/Batch payslip extraction (OCR → semantic Document Model → persist).
+"""Guest/Employee/Batch payslip extraction (deterministic PDF text → Document Model).
 
-Stage-1 (semantic_v1, default): Field Catalog + evidence candidates → grounded
-canonical DynamicDocumentEntry rows (shared by Guest / Employee / Batch).
-
-Stage-1 rollback: GuestDynamicDocumentExtractor completeness reconstruction when
-``payslip_semantic_extraction_enabled=False``.
+Stage-1: shared ``extract_document_from_pdf`` (PyMuPDF text layer + regex parsers).
+No OpenAI / LLM / OCR / agent participates in extraction.
 
 Stage-2 canonical mapping runs for durable paths so validation/matching work;
 Document Model is always preserved under structured_data.dynamic_entries.
@@ -21,60 +18,34 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID, uuid4
 
-from payroll_copilot.application.exceptions import (
-    ExtractionCancelledError,
-    OcrError,
-    PayslipParserError,
-)
-from payroll_copilot.application.ports.layout import LayoutBuildRequest, LayoutSnapshotConfig
+from payroll_copilot.application.exceptions import ExtractionCancelledError
 from payroll_copilot.application.ports.object_storage import ObjectStoragePort
 from payroll_copilot.application.ports.organization_bootstrap import OrganizationBootstrapPort
 from payroll_copilot.application.ports.repositories import (
     DocumentExtractionRepository,
     DocumentRepository,
 )
+from payroll_copilot.application.services.deterministic_pdf import (
+    DeterministicExtractionStatus,
+    DeterministicPdfDocumentExtractor,
+    EXTRACTOR_VERSION,
+    fields_to_dynamic_entries,
+)
 from payroll_copilot.application.services.dynamic_document import (
     DynamicDocumentEntry,
     STRUCTURED_META_KEYS,
     entries_have_usable_values,
     is_document_origin_entry,
-    map_dynamic_entries_to_structured,
     project_structured_from_entries,
 )
-from payroll_copilot.application.services.guest_dynamic_extractor import GuestDynamicDocumentExtractor
-from payroll_copilot.application.services.evidence_binder import bind_evidence_candidates
-from payroll_copilot.application.services.ocr_line_evidence import (
-    build_ocr_line_evidence_bundle,
-    merge_evidence_bundles,
-)
-from payroll_copilot.application.services.payslip_semantic_catalog import EXTRACTOR_VERSION
-from payroll_copilot.application.services.payslip_semantic_extractor import PayslipSemanticExtractor
+from payroll_copilot.application.ports.payslip_parser import PAYSLIP_FIELD_KEYS
 from payroll_copilot.application.services.guest_ephemeral_store import (
     GuestEphemeralSession,
     get_guest_ephemeral_store,
 )
-from payroll_copilot.application.services.layout_analysis_pipeline import (
-    build_layout_analysis,
-    create_layout_structure_config,
-)
-from payroll_copilot.application.use_cases.ocr_extract import (
-    ExtractDocumentTextCommand,
-    ExtractDocumentTextUseCase,
-)
-from payroll_copilot.domain.seed_ids import DEMO_ORGANIZATION_ID
 from payroll_copilot.domain.entities import Document, DocumentExtraction
 from payroll_copilot.domain.enums import DocumentStatus, DocumentType
-from payroll_copilot.application.services.text_normalize import normalize_extracted_text
-from payroll_copilot.application.ports import AICapability
-from payroll_copilot.infrastructure.ai.guardrails.ocr_text_guardrail import (
-    reject_ocr_injection,
-)
-from payroll_copilot.infrastructure.ai.provider_router import AIProviderRouter
-from payroll_copilot.infrastructure.config.settings import get_settings
-from payroll_copilot.infrastructure.layout.hybrid_layout_provider import (
-    HybridLayoutProvider,
-    create_layout_provider,
-)
+from payroll_copilot.domain.seed_ids import DEMO_ORGANIZATION_ID
 from payroll_copilot.infrastructure.ocr.extraction_timing import ExtractionTimer
 
 CancelCheck = Callable[[], bool] | None
@@ -118,7 +89,6 @@ class GuestPayslipExtractionCommand:
     original_filename: str
     mime_type: str
     language: str = "auto"
-    # Optional employee binding — used by employee extract path; guest leaves unset.
     employee_id: UUID | None = None
     organization_id: UUID | None = None
     uploaded_by: UUID | None = None
@@ -135,7 +105,7 @@ class GuestPayslipExtractionCommand:
 
 
 class ExtractGuestPayslipUseCase:
-    """Upload payslip bytes, run shared Document Model extraction, persist results."""
+    """Upload payslip bytes, run shared deterministic Document Model extraction, persist results."""
 
     def __init__(
         self,
@@ -144,23 +114,18 @@ class ExtractGuestPayslipUseCase:
         extraction_repository: DocumentExtractionRepository,
         object_storage: ObjectStoragePort,
         organization_bootstrap: OrganizationBootstrapPort,
-        ocr_use_case: ExtractDocumentTextUseCase,
-        document_extractor: GuestDynamicDocumentExtractor | None = None,
-        semantic_extractor: PayslipSemanticExtractor | None = None,
+        ocr_use_case: Any = None,
+        document_extractor: Any = None,
+        semantic_extractor: Any = None,
         parse_use_case: Any = None,
+        deterministic_extractor: DeterministicPdfDocumentExtractor | None = None,
     ) -> None:
         self._documents = document_repository
         self._extractions = extraction_repository
         self._storage = object_storage
         self._org_bootstrap = organization_bootstrap
-        self._ocr = ocr_use_case
-        # Explicit DI of the legacy completeness extractor is treated as a test/rollback
-        # override when semantic_extractor is not also injected.
-        self._document_extractor_override = document_extractor is not None
-        self._document_extractor = document_extractor or GuestDynamicDocumentExtractor()
-        self._semantic_extractor = semantic_extractor
-        # parse_use_case retained as unused kwarg so older factories keep working.
-        _ = parse_use_case
+        _ = ocr_use_case, document_extractor, semantic_extractor, parse_use_case
+        self._deterministic = deterministic_extractor or DeterministicPdfDocumentExtractor()
 
     async def execute(self, command: GuestPayslipExtractionCommand) -> GuestPayslipExtractionResult:
         timer = ExtractionTimer(document_type="payslip")
@@ -198,7 +163,6 @@ class ExtractGuestPayslipUseCase:
                 document = await self._documents.get_by_id(command.reuse_document_id)
                 if document is None:
                     raise ValueError(f"Document not found: {command.reuse_document_id}")
-                # Keep existing storage object; content is used only for OCR/parser.
                 meta = dict(document.metadata or {})
                 meta["lifecycle_status"] = "processing"
                 if command.metadata_extra:
@@ -211,128 +175,79 @@ class ExtractGuestPayslipUseCase:
 
         try:
             self._check_cancelled(command.cancel_check)
-            self._notify_progress(command.progress_callback, "ocr")
-            ocr_result = await self._ocr.execute(
-                ExtractDocumentTextCommand(
-                    content=command.content,
-                    filename=command.original_filename,
-                    content_type=command.mime_type,
-                    language=command.language,
-                )
+            self._notify_progress(command.progress_callback, "extracting")
+            result = self._deterministic.extract(
+                command.content,
+                document_type=DocumentType.PAYSLIP,
+                filename=command.original_filename,
+                mime_type=command.mime_type,
             )
             timer.log_stage(
-                "ocr_completed" if "tesseract" in (ocr_result.engine or "") and "pdf_text" not in (ocr_result.engine or "") else "embedded_pdf_text",
-                page_count=len(ocr_result.pages),
-                extracted_text_length=len(ocr_result.raw_text or ""),
+                "deterministic_pdf_text",
+                page_count=result.page_count,
+                extracted_text_length=len(result.raw_text or ""),
             )
-            ocr_status = "completed"
-            ocr_engine = ocr_result.engine
-            language = ocr_result.language_effective or ocr_result.language_requested or command.language
-            raw_text = normalize_extracted_text(ocr_result.raw_text)
-            warnings.extend(list(ocr_result.warnings))
-            ocr_payload = _ocr_payload_from_result(ocr_result, raw_text=raw_text)
-            settings = get_settings()
-            semantic_enabled = bool(
-                getattr(settings, "payslip_semantic_extraction_enabled", True)
-            )
-            use_semantic = semantic_enabled and (
-                self._semantic_extractor is not None or not self._document_extractor_override
-            )
-            force_layout = use_semantic and bool(
-                getattr(settings, "payslip_semantic_force_layout", True)
-            )
-            layout_snapshot = _build_layout_snapshot(
-                content=command.content,
-                mime_type=command.mime_type,
-                filename=command.original_filename,
-                ocr_result=ocr_result,
-                force=force_layout,
-            )
-            layout_analysis = _build_layout_analysis(
-                layout_snapshot=layout_snapshot,
-                content=command.content,
-                mime_type=command.mime_type,
-                filename=command.original_filename,
-                ocr_result=ocr_result,
-                force=force_layout,
-            )
-            timer.log_stage("text_normalization", extracted_text_length=len(raw_text))
-
-            # Reject prompt-injection-like OCR text before any LLM extraction call.
-            reject_ocr_injection(raw_text)
-
-            self._check_cancelled(command.cancel_check)
-            try:
-                self._notify_progress(command.progress_callback, "extracting")
-                pages_text = (
-                    [page.text for page in ocr_result.pages] if ocr_result.pages else None
-                )
-                extractor_meta: dict[str, Any] = {}
-                if use_semantic:
-                    # Shared semantic_v1: evidence candidates → Field Catalog LLM → grounding.
-                    layout_bundle = bind_evidence_candidates(layout_analysis or None)
-                    ocr_bundle = build_ocr_line_evidence_bundle(
-                        ocr_text=raw_text,
-                        pages_text=pages_text,
-                        ocr_pages=list(ocr_payload.get("pages") or []),
-                    )
-                    evidence_bundle = merge_evidence_bundles(layout_bundle, ocr_bundle)
-                    document_extractor = (
-                        self._semantic_extractor or self._resolve_semantic_extractor(command)
-                    )
-                    semantic_result = await document_extractor.extract(
-                        ocr_text=raw_text,
-                        language=language,
-                        pages_text=pages_text,
-                        evidence_bundle=evidence_bundle,
-                    )
-                    dynamic_entries = semantic_result.entries
-                    parser_model = semantic_result.model_name
-                    warnings.extend(semantic_result.warnings)
-                    extractor_meta = {
-                        **semantic_result.meta,
-                        "extractor_version": semantic_result.extractor_version
-                        or EXTRACTOR_VERSION,
-                        "evidence_binder": evidence_bundle.get("binder"),
-                        "evidence_candidate_count": evidence_bundle.get("candidate_count"),
+            raw_text = result.raw_text
+            ocr_engine = result.engine
+            parser_model = result.extractor_version
+            warnings.extend(list(result.warnings))
+            ocr_payload = {
+                "engine": result.engine,
+                "language_requested": command.language,
+                "language_effective": language,
+                "overall_confidence": None,
+                "raw_text": raw_text,
+                "warnings": list(result.warnings),
+                "pages": [
+                    {
+                        "page": index,
+                        "language": language,
+                        "text": page_text,
+                        "confidence": None,
+                        "lines": [],
+                        "words": [],
                     }
-                    dyn_warnings = []
-                else:
-                    # Legacy completeness reconstruction (rollback / explicit DI).
-                    document_extractor = self._resolve_document_extractor(command)
-                    dynamic_entries, model_name, dyn_warnings = await document_extractor.extract(
-                        ocr_text=raw_text,
-                        language=language,
-                        pages_text=pages_text,
-                    )
-                    parser_model = model_name
-                    extractor_meta = {"extractor_version": "completeness_legacy"}
-                warnings.extend(dyn_warnings)
+                    for index, page_text in enumerate(result.page_texts, start=1)
+                ],
+                "deterministic_status": result.status.value,
+                "error_code": result.error_code,
+            }
 
+            if result.status is DeterministicExtractionStatus.OCR_REQUIRED:
+                ocr_status = "ocr_required"
+                parser_status = "skipped"
+                error_message = result.error_message
+                warnings.append(result.error_code or "OCR_REQUIRED")
+            elif result.status is DeterministicExtractionStatus.REJECTED:
+                ocr_status = "failed"
+                parser_status = "skipped"
+                error_message = result.error_message
+                if result.error_code:
+                    warnings.append(result.error_code)
+            elif result.status is DeterministicExtractionStatus.FAILED:
+                ocr_status = "completed"
+                parser_status = "failed"
+                error_message = result.error_message
+                if result.error_code:
+                    warnings.append(result.error_code)
+                structured = dict(result.structured or {})
+            else:
+                ocr_status = "completed"
+                dynamic_entries = fields_to_dynamic_entries(result.fields)
+                extractor_meta = dict((result.structured or {}).get("extractor_meta") or {})
+                extractor_meta.setdefault("extractor_version", EXTRACTOR_VERSION)
                 if not entries_have_usable_values(dynamic_entries):
                     parser_status = "failed"
                     error_message = "We could not extract usable information from this document."
-                    warnings.append("dynamic_extractor_no_usable_entries")
-                    fields = []
-                    field_confidences = {}
+                    warnings.append("deterministic_extractor_no_usable_entries")
                     structured = {
                         "dynamic_entries": [e.to_dict() for e in dynamic_entries],
                         "extractor_meta": extractor_meta,
                     }
-                    timer.log_stage(
-                        "document_reconstruction",
-                        page_count=len(ocr_result.pages),
-                        extracted_text_length=len(raw_text),
-                        extracted_field_count=0,
-                        error_code="dynamic_extractor_no_usable_entries",
-                        extractor_version=extractor_meta.get("extractor_version"),
-                    )
                 else:
                     parser_status = "completed"
                     review_fields = _fields_from_entries(dynamic_entries)
                     if use_ephemeral:
-                        # Guest: canonical mapping deferred until confirm.
-                        # semantic_v1 entries already use canonical keys for Required slots.
                         structured = {
                             "dynamic_entries": [e.to_dict() for e in dynamic_entries],
                             "extractor_meta": extractor_meta,
@@ -344,46 +259,22 @@ class ExtractGuestPayslipUseCase:
                             if entry.confidence is not None and entry.key
                         }
                     else:
-                        # Durable: Stage-2 projection for validation/matching.
-                        structured, map_warnings = project_structured_from_entries(
-                            dynamic_entries
-                        )
+                        structured, map_warnings = project_structured_from_entries(dynamic_entries)
                         structured["extractor_meta"] = extractor_meta
                         warnings.extend(map_warnings)
                         fields, field_confidences = _fields_from_structured(structured)
                     timer.log_stage(
                         "document_reconstruction",
-                        page_count=len(ocr_result.pages),
+                        page_count=result.page_count,
                         extracted_text_length=len(raw_text),
                         extracted_field_count=len(
                             [e for e in dynamic_entries if is_document_origin_entry(e)]
                         ),
                         extractor_version=extractor_meta.get("extractor_version"),
-                        grounded_canonical_count=extractor_meta.get(
-                            "grounded_canonical_count"
-                        ),
                     )
-            except PayslipParserError as exc:
-                parser_status = "failed"
-                error_message = exc.message
-                warnings.append(exc.message)
-                dynamic_entries = []
-                timer.log_stage(
-                    "parser_failed",
-                    page_count=len(ocr_result.pages),
-                    extracted_text_length=len(raw_text),
-                    extracted_field_count=0,
-                    error_code="parser_error",
-                )
         except ExtractionCancelledError:
             timer.log_stage("extraction_cancelled", error_code="extraction_cancelled")
             raise
-        except OcrError as exc:
-            ocr_status = "failed"
-            parser_status = "skipped"
-            error_message = exc.message
-            warnings.append(exc.message)
-            timer.log_stage("ocr_failed", error_code=exc.code)
 
         if use_ephemeral:
             session = GuestEphemeralSession(
@@ -399,88 +290,73 @@ class ExtractGuestPayslipUseCase:
                 parser_model=parser_model,
                 raw_text=raw_text,
                 structured_data=structured,
-                dynamic_entries=[entry.to_dict() for entry in dynamic_entries],
                 ocr_result=ocr_payload,
                 warnings=list(dict.fromkeys(warnings)),
                 error_message=error_message,
                 field_confidences=field_confidences,
-                owner_guest_id=(command.owner_guest_id or "").strip() or None,
+                dynamic_entries=[e.to_dict() for e in dynamic_entries],
+                owner_guest_id=command.owner_guest_id,
             )
-            get_guest_ephemeral_store(ttl_hours=get_settings().guest_ephemeral_ttl_hours).save(session)
-            timer.log_stage("persistence_ephemeral")
-        else:
-            assert document is not None
-            from payroll_copilot.application.services.employee_document_lifecycle import (
-                LIFECYCLE_EXTRACTION_COMPLETED,
-                LIFECYCLE_EXTRACTION_FAILED,
-                LIFECYCLE_REVIEW_REQUIRED,
-            )
-
-            document.status = (
-                DocumentStatus.PROCESSED
-                if ocr_status == "completed" and parser_status == "completed"
-                else DocumentStatus.FAILED
-                if ocr_status == "failed" or parser_status == "failed"
-                else DocumentStatus.PROCESSING
-            )
-            lifecycle = (
-                LIFECYCLE_REVIEW_REQUIRED
-                if parser_status == "completed"
-                else LIFECYCLE_EXTRACTION_FAILED
-                if parser_status == "failed" or ocr_status == "failed"
-                else LIFECYCLE_EXTRACTION_COMPLETED
-            )
-            document.metadata = {
-                **document.metadata,
-                "document_language": language,
-                "ocr_status": ocr_status,
-                "parser_status": parser_status,
-                "extraction_connected": parser_status == "completed",
-                "lifecycle_status": lifecycle,
-            }
-            await self._documents.save(document)
-
-            previous = await self._extractions.get_latest_for_document(document.id)
-            version = (previous.extraction_version + 1) if previous else 1
-            now = _utcnow()
-            extraction = DocumentExtraction(
-                id=extraction_id,
-                document_id=document.id,
-                engine=ocr_engine or "unknown",
-                raw_text=raw_text,
-                structured_data=structured,
-                overall_confidence=None,
-                field_confidences=field_confidences,
-                extraction_version=version,
-                created_at=now,
-                ocr_result=ocr_payload,
-                layout_snapshot=layout_snapshot,
-                layout_analysis=layout_analysis,
-                parser_model=parser_model,
-                language=language,
+            get_guest_ephemeral_store().save(session)
+            timer.log_summary()
+            return GuestPayslipExtractionResult(
+                document_id=document_id,
+                extraction_id=extraction_id,
                 ocr_status=ocr_status,
                 parser_status=parser_status,
+                language=language,
+                ocr_engine=ocr_engine,
+                parser_model=parser_model,
                 warnings=list(dict.fromkeys(warnings)),
+                fields=fields,
+                raw_text=raw_text,
                 error_message=error_message,
-                updated_at=now,
-                confirmation_status="review_required",
+                entries=dynamic_entries,
             )
-            await self._extractions.save(extraction)
-            document.metadata = {
-                **document.metadata,
-                "current_extraction_id": str(extraction.id),
-                "current_extraction_version": version,
-            }
-            await self._documents.save(document)
-            timer.log_stage("persistence")
 
+        assert document is not None
+        now = _utcnow()
+        version = 1
+        latest = await self._extractions.get_latest_for_document(document.id)
+        if latest is not None:
+            version = int(latest.extraction_version or 1) + 1
+        extraction = DocumentExtraction(
+            id=extraction_id,
+            document_id=document.id,
+            engine=ocr_engine or EXTRACTOR_VERSION,
+            raw_text=raw_text,
+            structured_data=structured,
+            overall_confidence=None,
+            field_confidences=field_confidences,
+            extraction_version=version,
+            created_at=now,
+            ocr_result=ocr_payload,
+            layout_snapshot=layout_snapshot,
+            layout_analysis=layout_analysis,
+            parser_model=parser_model,
+            language=language,
+            ocr_status=ocr_status,
+            parser_status=parser_status,
+            warnings=list(dict.fromkeys(warnings)),
+            error_message=error_message,
+            updated_at=now,
+            confirmation_status="review_required",
+        )
+        await self._extractions.save(extraction)
+        document.metadata = {
+            **(document.metadata or {}),
+            "current_extraction_id": str(extraction.id),
+            "current_extraction_version": version,
+        }
+        await self._documents.save(document)
+        timer.log_stage("persistence")
         timer.log_summary()
 
         if not fields and structured:
             fields, _ = _fields_from_structured(structured)
 
         return GuestPayslipExtractionResult(
-            document_id=document.id if document is not None else document_id,
+            document_id=document.id,
             extraction_id=extraction_id,
             ocr_status=ocr_status,
             parser_status=parser_status,
@@ -501,11 +377,6 @@ class ExtractGuestPayslipUseCase:
         structured_data: dict[str, Any] | None = None,
         dynamic_entries: list[dict[str, Any]] | None = None,
     ) -> tuple[Document, DocumentExtraction]:
-        """Map confirmed dynamic entries → canonical structured_data, then freeze.
-
-        Never writes permanent S3/DB. Validation reads the mapped structured_data.
-        Document Model rows remain under structured_data.dynamic_entries.
-        """
         store = get_guest_ephemeral_store()
         session = store.get(document_id)
         if session is None:
@@ -519,7 +390,6 @@ class ExtractGuestPayslipUseCase:
         ]
         mapped, map_warnings = project_structured_from_entries(entries)
         if structured_data is not None:
-            # Caller-supplied structured must still retain Document Model SoT.
             mapped = dict(structured_data)
             mapped["dynamic_entries"] = [e.to_dict() for e in entries]
         if map_warnings:
@@ -533,54 +403,6 @@ class ExtractGuestPayslipUseCase:
         if confirmed is None:
             raise ValueError(f"Guest ephemeral session not found: {document_id}")
         return store.build_document(confirmed), store.build_extraction(confirmed)
-
-    def _resolve_document_extractor(
-        self, command: GuestPayslipExtractionCommand
-    ) -> GuestDynamicDocumentExtractor:
-        """Use the injected extractor unless an allowlisted override is requested."""
-        override = (command.model_provider_override or "").strip().lower()
-        if not override:
-            return self._document_extractor
-        settings = get_settings()
-        allowed = {
-            part.strip().lower()
-            for part in str(getattr(settings, "extraction_model_choices", "") or "").split(",")
-            if part.strip()
-        }
-        if override not in allowed:
-            return self._document_extractor
-        route = AIProviderRouter(settings).route_provider(
-            AICapability.DOCUMENT_EXTRACTION,
-            override,
-        )
-        return GuestDynamicDocumentExtractor(
-            model_provider=route.provider,
-            model=route.model,
-        )
-
-    def _resolve_semantic_extractor(
-        self, command: GuestPayslipExtractionCommand
-    ) -> PayslipSemanticExtractor:
-        """Shared semantic_v1 extractor; same DOCUMENT_EXTRACTION capability / overrides."""
-        override = (command.model_provider_override or "").strip().lower()
-        if not override:
-            return PayslipSemanticExtractor()
-        settings = get_settings()
-        allowed = {
-            part.strip().lower()
-            for part in str(getattr(settings, "extraction_model_choices", "") or "").split(",")
-            if part.strip()
-        }
-        if override not in allowed:
-            return PayslipSemanticExtractor()
-        route = AIProviderRouter(settings).route_provider(
-            AICapability.DOCUMENT_EXTRACTION,
-            override,
-        )
-        return PayslipSemanticExtractor(
-            model_provider=route.provider,
-            model=route.model,
-        )
 
     @staticmethod
     def _check_cancelled(cancel_check: CancelCheck) -> None:
@@ -599,14 +421,13 @@ class ExtractGuestPayslipUseCase:
         document_id: UUID | None = None,
     ) -> Document:
         from payroll_copilot.domain.value_objects import PayPeriod
-
-        document_id = document_id or uuid4()
-        checksum = hashlib.sha256(command.content).hexdigest()
         from payroll_copilot.application.services.employee_document_lifecycle import (
             LIFECYCLE_PROCESSING,
             build_employee_storage_key,
         )
 
+        document_id = document_id or uuid4()
+        checksum = hashlib.sha256(command.content).hexdigest()
         org_id = command.organization_id or DEMO_ORGANIZATION_ID
         if command.employee_id is not None:
             storage_key = build_employee_storage_key(
@@ -657,236 +478,112 @@ class ExtractGuestPayslipUseCase:
         return await self._documents.save(document)
 
 
-def _ocr_payload_from_result(ocr_result, *, raw_text: str) -> dict[str, Any]:
-    return {
-        "engine": ocr_result.engine,
-        "language_requested": ocr_result.language_requested,
-        "language_effective": ocr_result.language_effective,
-        "overall_confidence": ocr_result.overall_confidence,
-        "raw_text": raw_text,
-        "warnings": list(ocr_result.warnings),
-        "pages": [
-            {
-                "page": page.page,
-                "language": page.language,
-                "text": page.text,
-                "confidence": page.confidence,
-                "lines": [
-                    {
-                        "text": line.text,
-                        "confidence": line.confidence,
-                        "bbox": list(line.bbox) if line.bbox else None,
-                        "words": [
-                            {
-                                "text": word.text,
-                                "confidence": word.confidence,
-                                "bbox": list(word.bbox),
-                                "block_number": word.block_number,
-                                "paragraph_number": word.paragraph_number,
-                                "line_number": word.line_number,
-                                "word_number": word.word_number,
-                            }
-                            for word in line.words
-                        ],
-                    }
-                    for line in page.lines
-                ],
-                "words": [
-                    {
-                        "text": word.text,
-                        "confidence": word.confidence,
-                        "bbox": list(word.bbox),
-                        "block_number": word.block_number,
-                        "paragraph_number": word.paragraph_number,
-                        "line_number": word.line_number,
-                        "word_number": word.word_number,
-                    }
-                    for word in page.words
-                ],
-            }
-            for page in ocr_result.pages
-        ],
-    }
-
-
-def _build_layout_snapshot(
-    *,
-    content: bytes,
-    mime_type: str,
-    filename: str | None,
-    ocr_result,
-    force: bool = False,
-) -> dict[str, Any]:
-    """Layout metadata for evidence. Forced on when semantic_v1 needs candidates."""
-    settings = get_settings()
-    if not force and not getattr(settings, "layout_snapshot_enabled", False):
-        return {}
-    try:
-        provider = create_layout_provider(settings)
-        return provider.build(
-            LayoutBuildRequest(
-                content=content,
-                media_type=mime_type,
-                ocr_result=ocr_result,
-                filename=filename,
-            )
-        )
-    except Exception:  # noqa: BLE001
-        # Layout must never fail extraction. Empty snapshot keeps consumers stable.
-        return {
-            "schema_version": 1,
-            "provider": "hybrid_layout_v1",
-            "source": "unavailable",
-            "coordinate_format": "xywh",
-            "coordinate_space": "unknown",
-            "engine": getattr(ocr_result, "engine", None),
-            "page_count": 0,
-            "truncated": False,
-            "pages": [],
-            "warnings": ["layout_snapshot_build_failed"],
-        }
-
-
-def _build_layout_analysis(
-    *,
-    layout_snapshot: dict[str, Any],
-    content: bytes,
-    mime_type: str,
-    filename: str | None,
-    ocr_result,
-    force: bool = False,
-) -> dict[str, Any]:
-    """Structure + associations for evidence candidates (semantic_v1 / Phase 3)."""
-    settings = get_settings()
-    structure_config = create_layout_structure_config(settings)
-    evidence_bound = bool(getattr(settings, "payslip_parser_evidence_bound_enabled", False))
-    if not force and not structure_config.enabled and not evidence_bound:
-        return {}
-
-    # Force / Phase 3 may enable analysis without persisting Phase 2 flag permanently.
-    if (force or evidence_bound) and not structure_config.enabled:
-        from payroll_copilot.application.ports.structure_association import LayoutStructureConfig
-
-        structure_config = LayoutStructureConfig(enabled=True)
-
-    snapshot = layout_snapshot
-    # Build an in-memory layout when Phase 1 persist flag is off.
-    if not snapshot or not (snapshot.get("pages") or []):
-        try:
-            provider = HybridLayoutProvider(
-                LayoutSnapshotConfig(
-                    enabled=True,
-                    include_words=bool(getattr(settings, "layout_snapshot_include_words", True)),
-                    max_pages=int(getattr(settings, "layout_snapshot_max_pages", 20)),
-                    max_words=int(getattr(settings, "layout_snapshot_max_words", 8_000)),
-                    max_lines=int(getattr(settings, "layout_snapshot_max_lines", 2_000)),
-                )
-            )
-            snapshot = provider.build(
-                LayoutBuildRequest(
-                    content=content,
-                    media_type=mime_type,
-                    ocr_result=ocr_result,
-                    filename=filename,
-                )
-            )
-        except Exception:  # noqa: BLE001
-            snapshot = {}
-
-    return build_layout_analysis(snapshot, config=structure_config)
+def _count_usable_fields(fields: list[ExtractedFieldView]) -> int:
+    """Count review fields that have a non-empty extracted value."""
+    count = 0
+    for field in fields:
+        if field.status == "MISSING":
+            continue
+        value = field.value
+        if value is None:
+            continue
+        if isinstance(value, str) and not value.strip():
+            continue
+        count += 1
+    return count
 
 
 def _fields_from_entries(entries: list[DynamicDocumentEntry]) -> list[ExtractedFieldView]:
-    """Document Model → API field views (canonical keys when semantic_v1)."""
-    fields: list[ExtractedFieldView] = []
+    views: list[ExtractedFieldView] = []
     for entry in entries:
         if not is_document_origin_entry(entry):
             continue
-        empty = entry.value in (None, "")
-        if empty:
-            status = "MISSING"
-        elif entry.kind in {"canonical_field_low_confidence", "canonical_field_ungrounded"} or (
-            entry.confidence is not None and entry.confidence < 0.6
-        ):
-            status = "UNCERTAIN"
-        else:
-            status = "FOUND"
-        fields.append(
+        status = "FOUND" if entry.value not in (None, "") else "MISSING"
+        views.append(
             ExtractedFieldView(
                 key=entry.key,
                 value=entry.value,
                 confidence=entry.confidence,
                 source_text=entry.source_text,
                 status=status,
-                edited_by_user=entry.source == "user",
+                edited_by_user=False,
+                original_value=entry.value,
             )
         )
-    return fields
+    return views
 
 
-def _count_usable_fields(fields: list[ExtractedFieldView]) -> int:
-    """Count fields with a non-empty value (FOUND or UNCERTAIN)."""
-    usable = 0
-    for field in fields:
-        if field.status not in {"FOUND", "UNCERTAIN"}:
-            continue
-        if field.value is None or field.value == "":
-            continue
-        usable += 1
-    return usable
-
-
-def _fields_from_structured(structured: dict[str, Any]) -> tuple[list[ExtractedFieldView], dict[str, float]]:
-    fields: list[ExtractedFieldView] = []
-    confidences: dict[str, float] = {}
-
-    additional = structured.get("additional_fields") or {}
-    keys = [k for k in structured.keys() if k not in STRUCTURED_META_KEYS]
-    for key in keys:
-        payload = structured.get(key)
-        if isinstance(payload, list):
-            continue
-        view = _field_view(key, payload)
-        fields.append(view)
-        if view.confidence is not None and view.status in {"FOUND", "UNCERTAIN"}:
-            confidences[key] = view.confidence
-
-    if isinstance(additional, dict):
-        for key, payload in additional.items():
-            view = _field_view(str(key), payload)
-            fields.append(view)
-            if view.confidence is not None and view.status in {"FOUND", "UNCERTAIN"}:
-                confidences[str(key)] = view.confidence
-
-    return fields, confidences
-
-
-def _field_view(key: str, payload: Any) -> ExtractedFieldView:
-    if not isinstance(payload, dict):
-        return ExtractedFieldView(
-            key=key,
-            value=payload,
-            confidence=None,
-            source_text=None,
-            status="MISSING",
-        )
-    status = str(payload.get("status") or "MISSING").upper()
+def _payload_to_field_view(key: str, payload: dict[str, Any]) -> ExtractedFieldView:
     conf = payload.get("confidence")
-    confidence: float | None
     try:
-        confidence = float(conf) if conf is not None and conf != "" else None
-        if confidence is not None and (confidence < 0 or confidence > 1):
-            confidence = None
+        conf_f = float(conf) if conf is not None else None
     except (TypeError, ValueError):
-        confidence = None
-    if status == "MISSING":
-        confidence = None
+        conf_f = None
     return ExtractedFieldView(
         key=key,
         value=payload.get("value"),
-        confidence=confidence,
+        confidence=conf_f,
         source_text=payload.get("source_text"),
-        status=status,
-        edited_by_user=bool(payload.get("edited_by_user", False)),
-        original_value=payload.get("original_value"),
+        status=str(payload.get("status") or "FOUND"),
+        edited_by_user=bool(payload.get("edited_by_user")),
+        original_value=payload.get("original_value", payload.get("value")),
     )
+
+
+def _fields_from_structured(
+    structured: dict[str, Any],
+) -> tuple[list[ExtractedFieldView], dict[str, float]]:
+    """Build field views for pipeline/review — same SoT as the digital form.
+
+    Prefer ``dynamic_entries`` (Document Model). Fall back to top-level canonical
+    keys plus ``additional_fields`` for legacy payloads without entries.
+    """
+    entries_raw = structured.get("dynamic_entries")
+    if isinstance(entries_raw, list) and entries_raw:
+        entries = [
+            DynamicDocumentEntry.from_dict(item)
+            for item in entries_raw
+            if isinstance(item, dict)
+        ]
+        fields = _fields_from_entries(entries)
+        if fields:
+            confidences = {
+                e.key: float(e.confidence)
+                for e in entries
+                if e.confidence is not None and e.key and is_document_origin_entry(e)
+            }
+            return fields, confidences
+
+    fields: list[ExtractedFieldView] = []
+    confidences: dict[str, float] = {}
+    seen: set[str] = set()
+
+    for key in PAYSLIP_FIELD_KEYS:
+        if key in STRUCTURED_META_KEYS:
+            continue
+        payload = structured.get(key)
+        if not isinstance(payload, dict):
+            continue
+        view = _payload_to_field_view(key, payload)
+        fields.append(view)
+        seen.add(key)
+        if view.confidence is not None:
+            confidences[key] = view.confidence
+
+    additional = structured.get("additional_fields")
+    if isinstance(additional, dict):
+        for key, payload in additional.items():
+            if (
+                not isinstance(payload, dict)
+                or key in seen
+                or key in STRUCTURED_META_KEYS
+                or key == "dynamic_entries"
+            ):
+                continue
+            view = _payload_to_field_view(str(key), payload)
+            fields.append(view)
+            seen.add(str(key))
+            if view.confidence is not None:
+                confidences[str(key)] = view.confidence
+
+    return fields, confidences

@@ -101,3 +101,13 @@ class DynamoUserStore:
             await self._table.delete_item({"PK": old_pk, "SK": keys.user_sk(user.id)})
         await self._table.put_item(self._item_from_record(user))
         return user
+
+    async def delete(self, user: UserRecord) -> bool:
+        """Delete a user binding by its primary key. Returns True when a key was removed."""
+        pk = (
+            keys.org_pk(user.organization_id)
+            if user.organization_id is not None
+            else f"USERROOT#{user.id}"
+        )
+        await self._table.delete_item({"PK": pk, "SK": keys.user_sk(user.id)})
+        return True

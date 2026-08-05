@@ -672,7 +672,23 @@
       "searchLabel": "Search extracted employees",
       "searchPlaceholder": "Search by name, employee #, ID, or period",
       "serialLabel": "Payslip {{value}}",
-      "unnamedSlip": "Unrecognized employee",
+      "unnamedSlip": "Unknown",
+      "identifierWarnings": {
+        "national_id_matched_employee_number_mismatch": "National ID matches, but the employee number does not.",
+        "employee_number_matched_national_id_mismatch": "Employee number matches, but the national ID does not.",
+        "identifiers_match_different_employees": "National ID and employee number match different employees.",
+        "employee_number_unavailable_for_verification": "Matched by national ID; employee number was not available to verify.",
+        "national_id_unavailable_for_verification": "Matched by employee number; national ID was not available to verify."
+      },
+      "assign": {
+        "searchLabel": "Assign employee",
+        "searchPlaceholder": "Search by name, national ID, or employee number",
+        "idLabel": "ID",
+        "numberLabel": "Employee No",
+        "confirmTitle": "Confirm employee assignment",
+        "confirmMessage": "Are you sure you want to assign the current payslip to employee \"{{employee_name}}\", ID {{national_id}}?",
+        "confirmAction": "Confirm and assign"
+      },
       "uploadWorkspace": {
         "title": "Upload payroll PDF",
         "description": "Drop a multi-employee PDF here. Processing starts from the control above when a file is ready."

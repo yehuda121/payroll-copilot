@@ -410,6 +410,11 @@ class EmployeeFixedDocumentExtractor:
         document_type: DocumentType | str,
         pages_text: list[str] | None = None,
     ) -> tuple[dict[str, Any], str, list[str]]:
+        raise PayslipParserUnavailableError(
+            "AI fixed-document extraction is disabled. "
+            "Use extract_document_from_pdf / DeterministicPdfDocumentExtractor."
+        )
+        _ = ocr_text, language, document_type, pages_text
         dtype = document_type.value if hasattr(document_type, "value") else str(document_type)
         if dtype not in {
             DocumentType.NATIONAL_ID.value,

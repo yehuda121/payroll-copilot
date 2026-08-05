@@ -155,18 +155,31 @@ class InvestigationDataAdapter:
                     enrichment_notes="enrichment_failed:empty_s3_object",
                 )
             filename = snapshot.storage_key.rsplit("/", 1)[-1] or "payslip.pdf"
-            ocr = await self._ocr.execute(
-                ExtractDocumentTextCommand(
-                    content=content,
-                    filename=filename,
-                    content_type=None,
-                    language="auto",
-                )
+            from payroll_copilot.application.services.deterministic_pdf import (
+                DeterministicExtractionStatus,
+                extract_document_from_pdf,
             )
-            pages_text = [
-                page.text for page in (ocr.pages or ()) if getattr(page, "text", None)
-            ]
-            ocr_text = (ocr.raw_text or "").strip() or "\n".join(pages_text).strip()
+            from payroll_copilot.domain.enums import DocumentType
+
+            extracted = extract_document_from_pdf(
+                content,
+                document_type=DocumentType.PAYSLIP,
+                filename=filename,
+                mime_type="application/pdf",
+            )
+            if extracted.status is not DeterministicExtractionStatus.COMPLETED:
+                return PeriodSnapshot(
+                    period=snapshot.period,
+                    document_id=snapshot.document_id,
+                    storage_key=snapshot.storage_key,
+                    structured_fields=dict(snapshot.structured_fields),
+                    finding_excerpts=list(snapshot.finding_excerpts),
+                    enrichment_applied=False,
+                    enrichment_notes=f"enrichment_failed:{extracted.error_code or extracted.status.value}",
+                )
+            parse_result = None
+            source_map_from_pdf = extracted.field_map()
+            ocr_text = extracted.raw_text
             if not ocr_text:
                 return PeriodSnapshot(
                     period=snapshot.period,
@@ -177,11 +190,7 @@ class InvestigationDataAdapter:
                     enrichment_applied=False,
                     enrichment_notes="enrichment_failed:empty_ocr",
                 )
-            parse_result = await self._parser.parse(
-                ocr_text=ocr_text,
-                language="auto",
-                pages_text=pages_text or None,
-            )
+            _ = self._ocr, self._parser  # retained for DI; enrichment uses deterministic PDF SoT
         except Exception as exc:  # noqa: BLE001 — Scenario C must never raise to chat
             logger.info(
                 "investigation ephemeral enrichment failed: %s: %s",
@@ -201,9 +210,9 @@ class InvestigationDataAdapter:
         try:
             merged = dict(snapshot.structured_fields)
             filled: list[str] = []
-            fields_obj = getattr(parse_result, "fields", None)
-            payload = getattr(parse_result, "parsed_payload", None)
-            source_map: dict[str, Any] = {}
+            source_map: dict[str, Any] = dict(source_map_from_pdf)
+            fields_obj = getattr(parse_result, "fields", None) if parse_result is not None else None
+            payload = getattr(parse_result, "parsed_payload", None) if parse_result is not None else None
             if isinstance(payload, dict):
                 source_map.update(payload)
             if fields_obj is not None and hasattr(fields_obj, "model_dump"):

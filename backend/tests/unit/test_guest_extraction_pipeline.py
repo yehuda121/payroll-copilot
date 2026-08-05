@@ -26,7 +26,6 @@ from payroll_copilot.application.services.parser_semantic import (
 from payroll_copilot.application.use_cases.extract_guest_payslip import (
     ExtractGuestPayslipUseCase,
     GuestPayslipExtractionCommand,
-    _count_usable_fields,
     _fields_from_structured,
 )
 from payroll_copilot.application.use_cases.ocr_extract import ExtractDocumentTextUseCase
@@ -294,6 +293,44 @@ class _OkDocumentExtractor:
         )
 
 
+class _OkDeterministicExtractor:
+    def extract(self, content: bytes, *, document_type, filename=None, mime_type=None):  # noqa: ANN001
+        from payroll_copilot.application.services.deterministic_pdf.types import (
+            DeterministicExtractionResult,
+            DeterministicExtractionStatus,
+            EXTRACTOR_VERSION,
+            NormalizedExtractedField,
+        )
+
+        _ = content, document_type, filename, mime_type
+        entry = new_entry(
+            key="Base salary",
+            value=12000,
+            confidence=0.9,
+            source_text="12000",
+        )
+        return DeterministicExtractionResult(
+            status=DeterministicExtractionStatus.COMPLETED,
+            document_type="payslip",
+            page_count=1,
+            page_texts=("Base salary 12000",),
+            raw_text="Base salary 12000",
+            fields=(
+                NormalizedExtractedField(
+                    key="base_salary",
+                    value=12000,
+                    confidence=0.9,
+                    source_text="12000",
+                ),
+            ),
+            structured={
+                "dynamic_entries": [entry.to_dict()],
+                "extractor_meta": {"extractor_version": EXTRACTOR_VERSION},
+            },
+            extractor_version=EXTRACTOR_VERSION,
+        )
+
+
 @pytest.mark.asyncio
 async def test_guest_ephemeral_not_persisted_to_db() -> None:
     from payroll_copilot.application.services.guest_ephemeral_store import (
@@ -308,12 +345,11 @@ async def test_guest_ephemeral_not_persisted_to_db() -> None:
         extraction_repository=_FakeExtractions(),
         object_storage=storage,
         organization_bootstrap=_FakeBootstrap(),
-        ocr_use_case=ExtractDocumentTextUseCase(_OkOcr(), timeout_seconds=5),
-        document_extractor=_OkDocumentExtractor(),
+        deterministic_extractor=_OkDeterministicExtractor(),
     )
     result = await use_case.execute(
         GuestPayslipExtractionCommand(
-            content=b"pdf",
+            content=b"%PDF-1.4 fake-content",
             original_filename="slip.pdf",
             mime_type="application/pdf",
             language="auto",
@@ -340,12 +376,11 @@ async def test_guest_confirm_freezes_without_permanent_write() -> None:
         extraction_repository=extractions,
         object_storage=storage,
         organization_bootstrap=_FakeBootstrap(),
-        ocr_use_case=ExtractDocumentTextUseCase(_OkOcr(), timeout_seconds=5),
-        document_extractor=_OkDocumentExtractor(),
+        deterministic_extractor=_OkDeterministicExtractor(),
     )
     result = await use_case.execute(
         GuestPayslipExtractionCommand(
-            content=b"pdf",
+            content=b"%PDF-1.4 fake-content",
             original_filename="slip.pdf",
             mime_type="application/pdf",
             language="auto",
@@ -367,11 +402,15 @@ async def test_guest_confirm_freezes_without_permanent_write() -> None:
 
 @pytest.mark.asyncio
 async def test_parser_retry_failure_raises_not_empty_success() -> None:
-    parser = AsyncMock(side_effect=PayslipParserSemanticError("bad", category="x", warning_code="y"))
+    async def _fail(**kwargs: Any) -> PayslipParseResult:
+        raise PayslipParserSemanticError("bad", category="x", warning_code="y")
+
+    parser = AsyncMock()
+    parser.parse = AsyncMock(side_effect=_fail)
     use_case = ParsePayslipFromOcrUseCase(parser, timeout_seconds=5, total_budget_seconds=10)
     with pytest.raises(PayslipParserSemanticError):
         await use_case.execute(ParsePayslipFromOcrCommand(raw_text="salary 100", language="en"))
-    assert parser.await_count == 2
+    assert parser.parse.await_count == 2
 
 
 @pytest.mark.asyncio
