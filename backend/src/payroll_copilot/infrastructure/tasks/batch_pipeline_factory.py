@@ -4,7 +4,7 @@ Single composition entry used by:
 - Celery ``BatchPayslipProcessor`` (async bulk jobs)
 - Batch review/edit routes that need the same pipeline synchronously
 
-Do not duplicate OCR/Document-Model/validation wiring elsewhere.
+Payslip extraction is deterministic PDF only (no OCR wiring here).
 """
 
 from payroll_copilot.application.services.batch_payslip_pipeline import (
@@ -16,9 +16,6 @@ from payroll_copilot.application.services.confirmed_employment_terms_loader impo
 from payroll_copilot.application.use_cases.extract_guest_payslip import (
     ExtractGuestPayslipUseCase,
 )
-from payroll_copilot.application.use_cases.ocr_extract import (
-    ExtractDocumentTextUseCase,
-)
 from payroll_copilot.application.use_cases.persisted_validation import (
     RunPersistedValidationUseCase,
 )
@@ -27,7 +24,6 @@ from payroll_copilot.application.validation.guest_extraction_context_builder imp
     GuestExtractionValidationContextBuilder,
 )
 from payroll_copilot.infrastructure.config.settings import get_settings
-from payroll_copilot.infrastructure.ocr.factory import create_ocr_provider
 from payroll_copilot.infrastructure.persistence.dynamodb.factory import (
     get_document_extraction_repository,
     get_document_repository,
@@ -52,16 +48,11 @@ def create_batch_payslip_pipeline() -> BatchPayslipPipelineService:
     employees = get_employee_repository()
     organization_bootstrap = get_organization_bootstrap()
 
-    ocr = ExtractDocumentTextUseCase(
-        create_ocr_provider(settings.ocr_provider, settings),
-        timeout_seconds=settings.ocr_timeout_seconds,
-    )
     extract = ExtractGuestPayslipUseCase(
         document_repository=documents,
         extraction_repository=extractions,
         object_storage=create_object_storage(settings),
         organization_bootstrap=organization_bootstrap,
-        ocr_use_case=ocr,
     )
 
     persisted_validation = RunPersistedValidationUseCase(

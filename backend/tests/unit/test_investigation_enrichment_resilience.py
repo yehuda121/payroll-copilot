@@ -82,8 +82,7 @@ def _adapter(*, storage, ocr, parser) -> InvestigationDataAdapter:
         extractions=SimpleNamespace(),
         validation_runs=SimpleNamespace(),
         validation_findings=SimpleNamespace(),
-        object_storage=storage,
-        ocr_use_case=ExtractDocumentTextUseCase(ocr, timeout_seconds=5)
+        object_storage=storage
         if not isinstance(ocr, ExtractDocumentTextUseCase)
         else ocr,
         payslip_parser=parser,

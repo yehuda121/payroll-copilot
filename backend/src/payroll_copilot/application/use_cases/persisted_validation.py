@@ -260,9 +260,18 @@ class RunPersistedValidationUseCase:
                     "skip_reason": item.skip_reason,
                     "reason_code": item.reason_code,
                     "message": item.message,
+                    "category": item.category,
+                    "display_category": item.display_category,
+                    "required_inputs": list(item.required_inputs),
+                    "legal_source": item.legal_source,
+                    "legal_version": item.legal_version,
                 }
                 for item in report.rule_outcomes
             ]
+            if report.legal_rules_version:
+                snapshot["legal_rules_version"] = report.legal_rules_version
+            if report.legal_rules_effective_from:
+                snapshot["legal_rules_effective_from"] = report.legal_rules_effective_from
         run_record.context_snapshot = snapshot
         run_record.extraction_id = command.extraction_id or bundle.extraction_id
 
@@ -325,9 +334,20 @@ class RunPersistedValidationUseCase:
                     "skip_reason": item.skip_reason,
                     "reason_code": item.reason_code,
                     "message": item.message,
+                    "category": item.category,
+                    "display_category": item.display_category,
+                    "required_inputs": list(item.required_inputs),
+                    "legal_source": item.legal_source,
+                    "legal_version": item.legal_version,
                 }
                 for item in report.rule_outcomes
             ]
+            if report.legal_rules_version:
+                guest_snapshot["legal_rules_version"] = report.legal_rules_version
+            if report.legal_rules_effective_from:
+                guest_snapshot["legal_rules_effective_from"] = (
+                    report.legal_rules_effective_from
+                )
         run_record.context_snapshot = guest_snapshot
         run_record.extraction_id = command.extraction_id or bundle.extraction_id
         finding_records = report_to_finding_records(report, run_record.id)

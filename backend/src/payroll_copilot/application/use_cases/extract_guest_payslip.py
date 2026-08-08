@@ -33,12 +33,12 @@ from payroll_copilot.application.services.deterministic_pdf import (
 )
 from payroll_copilot.application.services.dynamic_document import (
     DynamicDocumentEntry,
-    STRUCTURED_META_KEYS,
     entries_have_usable_values,
     is_document_origin_entry,
     project_structured_from_entries,
+    review_rows_from_structured,
 )
-from payroll_copilot.application.ports.payslip_parser import PAYSLIP_FIELD_KEYS
+
 from payroll_copilot.application.services.guest_ephemeral_store import (
     GuestEphemeralSession,
     get_guest_ephemeral_store,
@@ -114,17 +114,12 @@ class ExtractGuestPayslipUseCase:
         extraction_repository: DocumentExtractionRepository,
         object_storage: ObjectStoragePort,
         organization_bootstrap: OrganizationBootstrapPort,
-        ocr_use_case: Any = None,
-        document_extractor: Any = None,
-        semantic_extractor: Any = None,
-        parse_use_case: Any = None,
         deterministic_extractor: DeterministicPdfDocumentExtractor | None = None,
     ) -> None:
         self._documents = document_repository
         self._extractions = extraction_repository
         self._storage = object_storage
         self._org_bootstrap = organization_bootstrap
-        _ = ocr_use_case, document_extractor, semantic_extractor, parse_use_case
         self._deterministic = deterministic_extractor or DeterministicPdfDocumentExtractor()
 
     async def execute(self, command: GuestPayslipExtractionCommand) -> GuestPayslipExtractionResult:
@@ -513,77 +508,31 @@ def _fields_from_entries(entries: list[DynamicDocumentEntry]) -> list[ExtractedF
     return views
 
 
-def _payload_to_field_view(key: str, payload: dict[str, Any]) -> ExtractedFieldView:
-    conf = payload.get("confidence")
-    try:
-        conf_f = float(conf) if conf is not None else None
-    except (TypeError, ValueError):
-        conf_f = None
-    return ExtractedFieldView(
-        key=key,
-        value=payload.get("value"),
-        confidence=conf_f,
-        source_text=payload.get("source_text"),
-        status=str(payload.get("status") or "FOUND"),
-        edited_by_user=bool(payload.get("edited_by_user")),
-        original_value=payload.get("original_value", payload.get("value")),
-    )
-
-
 def _fields_from_structured(
     structured: dict[str, Any],
 ) -> tuple[list[ExtractedFieldView], dict[str, float]]:
-    """Build field views for pipeline/review — same SoT as the digital form.
-
-    Prefer ``dynamic_entries`` (Document Model). Fall back to top-level canonical
-    keys plus ``additional_fields`` for legacy payloads without entries.
-    """
-    entries_raw = structured.get("dynamic_entries")
-    if isinstance(entries_raw, list) and entries_raw:
-        entries = [
-            DynamicDocumentEntry.from_dict(item)
-            for item in entries_raw
-            if isinstance(item, dict)
-        ]
-        fields = _fields_from_entries(entries)
-        if fields:
-            confidences = {
-                e.key: float(e.confidence)
-                for e in entries
-                if e.confidence is not None and e.key and is_document_origin_entry(e)
-            }
-            return fields, confidences
-
-    fields: list[ExtractedFieldView] = []
-    confidences: dict[str, float] = {}
-    seen: set[str] = set()
-
-    for key in PAYSLIP_FIELD_KEYS:
-        if key in STRUCTURED_META_KEYS:
-            continue
-        payload = structured.get(key)
-        if not isinstance(payload, dict):
-            continue
-        view = _payload_to_field_view(key, payload)
-        fields.append(view)
-        seen.add(key)
-        if view.confidence is not None:
-            confidences[key] = view.confidence
-
-    additional = structured.get("additional_fields")
-    if isinstance(additional, dict):
-        for key, payload in additional.items():
-            if (
-                not isinstance(payload, dict)
-                or key in seen
-                or key in STRUCTURED_META_KEYS
-                or key == "dynamic_entries"
-            ):
-                continue
-            view = _payload_to_field_view(str(key), payload)
-            fields.append(view)
-            seen.add(str(key))
-            if view.confidence is not None:
-                confidences[str(key)] = view.confidence
-
+    """Build field views for pipeline/review via unified Document Model projection."""
+    rows = review_rows_from_structured(structured)
+    fields = [
+        ExtractedFieldView(
+            key=str(row["key"]),
+            value=row.get("value"),
+            confidence=(
+                float(row["confidence"])
+                if row.get("confidence") is not None
+                else None
+            ),
+            source_text=row.get("source_text"),
+            status=str(row.get("status") or "FOUND"),
+            edited_by_user=bool(row.get("edited_by_user")),
+            original_value=row.get("original_value", row.get("value")),
+        )
+        for row in rows
+        if row.get("key")
+    ]
+    confidences = {
+        str(row["key"]): float(row["confidence"])
+        for row in rows
+        if row.get("key") and row.get("confidence") is not None
+    }
     return fields, confidences

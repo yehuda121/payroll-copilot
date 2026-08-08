@@ -106,6 +106,12 @@ class RuleEvaluationOutcome:
     skip_reason: str | None = None
     reason_code: str | None = None
     message: str | None = None
+    # Additive metadata for UI / developer visibility (optional on legacy rows).
+    category: str | None = None
+    display_category: str | None = None
+    required_inputs: tuple[str, ...] = ()
+    legal_source: str | None = None
+    legal_version: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,6 +126,9 @@ class ValidationReport:
     rules_failed: int
     # Additive: empty on legacy constructors / older persisted runs.
     rule_outcomes: tuple[RuleEvaluationOutcome, ...] = ()
+    # Local YAML legal-rules bundle version used for this run (traceability).
+    legal_rules_version: str | None = None
+    legal_rules_effective_from: str | None = None
 
     @property
     def has_critical(self) -> bool:

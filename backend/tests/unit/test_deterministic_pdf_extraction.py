@@ -18,10 +18,6 @@ from payroll_copilot.application.services.deterministic_pdf import (
     DeterministicExtractionStatus,
     extract_document_from_pdf,
 )
-from payroll_copilot.application.services.payslip_semantic_extractor import (
-    PayslipSemanticExtractor,
-)
-from payroll_copilot.application.exceptions import PayslipParserUnavailableError
 from payroll_copilot.domain.enums import DocumentType
 from payroll_copilot.presentation.api.routes.extraction import router as extraction_router
 from payroll_copilot.presentation.api.security import (
@@ -32,10 +28,9 @@ from payroll_copilot.presentation.api.security import (
 FIXTURE_MULTI = (
     Path(__file__).resolve().parents[1]
     / "fixtures"
-    / "company_payslip"
     / "payslips"
-    / "primary_company"
-    / "payslips_valid_2026_06_multi.pdf"
+    / "valid_2026_06_multi_stub0"
+    / "input.pdf"
 )
 
 
@@ -167,10 +162,14 @@ def test_national_id_parser() -> None:
 
 
 @pytest.mark.asyncio
-async def test_ai_semantic_extractor_disabled() -> None:
-    extractor = PayslipSemanticExtractor.__new__(PayslipSemanticExtractor)
-    with pytest.raises(PayslipParserUnavailableError):
-        await PayslipSemanticExtractor.extract(extractor, ocr_text="anything")
+async def test_ai_semantic_extractor_removed_from_production_path() -> None:
+    """Semantic LLM payslip extractor was removed; deterministic path is SoT."""
+    import importlib.util
+
+    spec = importlib.util.find_spec(
+        "payroll_copilot.application.services.payslip_semantic_extractor"
+    )
+    assert spec is None
 
 
 def test_authorized_deterministic_endpoint_requires_auth() -> None:

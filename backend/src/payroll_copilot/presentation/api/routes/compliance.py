@@ -197,3 +197,111 @@ async def trigger_sync_check(
 
     task = sync_legal_rules_mcp.delay()
     return {"status": "queued", "task_id": task.id}
+
+
+class ExternalLegalCandidateRequest(BaseModel):
+    rule_id: str
+    parameter_key: str
+    proposed_value: Any
+    legal_source: str
+    effective_date: str | None = None
+    explanation: str = ""
+    rule_name: str | None = None
+
+
+class CheckLegalUpdatesRequest(BaseModel):
+    """Optional structured candidates (tests / MCP-normalized). Empty → text extract path."""
+
+    candidates: list[ExternalLegalCandidateRequest] = Field(default_factory=list)
+    external_text_by_source: dict[str, str] = Field(default_factory=dict)
+
+
+class ApplyLegalUpdatesRequest(BaseModel):
+    selected_change_ids: list[str] = Field(default_factory=list)
+    effective_changes: list[dict[str, Any]] = Field(default_factory=list)
+    future_changes: list[dict[str, Any]] = Field(default_factory=list)
+
+
+def _parse_candidate(raw: ExternalLegalCandidateRequest):
+    from datetime import date as date_cls
+
+    from payroll_copilot.application.services.legal_update_check import (
+        ExternalLegalCandidate,
+    )
+
+    eff = None
+    if raw.effective_date:
+        eff = date_cls.fromisoformat(raw.effective_date[:10])
+    return ExternalLegalCandidate(
+        rule_id=raw.rule_id,
+        parameter_key=raw.parameter_key,
+        proposed_value=raw.proposed_value,
+        legal_source=raw.legal_source,
+        effective_date=eff,
+        explanation=raw.explanation,
+        rule_name=raw.rule_name,
+    )
+
+
+@router.post("/check-legal-updates")
+async def check_legal_updates(
+    body: CheckLegalUpdatesRequest,
+    _: AuthPrincipal = Depends(require_org_operator),
+) -> dict[str, Any]:
+    """Accountant-triggered legal update check. Never runs during payslip validation."""
+    from payroll_copilot.application.services.legal_update_check import (
+        LegalUpdateCheckService,
+    )
+
+    settings = get_settings()
+    service = LegalUpdateCheckService(rules_path=settings.legal_rules_path)
+    candidates = [_parse_candidate(item) for item in body.candidates]
+    if candidates or body.external_text_by_source:
+        result = service.check(
+            external_candidates=candidates or None,
+            external_text_by_source=body.external_text_by_source or None,
+        )
+    else:
+        # Accountant button with no override payload: fetch configured legal sources.
+        result = await service.check_from_configured_sources()
+    return result.to_dict()
+
+
+@router.post("/apply-legal-updates")
+async def apply_legal_updates(
+    body: ApplyLegalUpdatesRequest,
+    principal: AuthPrincipal = Depends(require_org_operator),
+) -> dict[str, Any]:
+    """Apply selected effective legal changes as immutable new versions."""
+    from payroll_copilot.application.services.legal_update_check import (
+        LegalRuleDifference,
+        LegalUpdateCheckService,
+    )
+
+    settings = get_settings()
+    service = LegalUpdateCheckService(rules_path=settings.legal_rules_path)
+
+    def _to_diff(raw: dict[str, Any]) -> LegalRuleDifference:
+        return LegalRuleDifference(
+            change_id=str(raw.get("change_id") or ""),
+            rule_id=str(raw.get("rule_id") or ""),
+            rule_name=str(raw.get("rule_name") or ""),
+            parameter_key=str(raw.get("parameter_key") or ""),
+            current_value=raw.get("current_value"),
+            proposed_value=raw.get("proposed_value"),
+            legal_source=str(raw.get("legal_source") or ""),
+            effective_date=raw.get("effective_date"),
+            explanation=str(raw.get("explanation") or ""),
+            selectable=bool(raw.get("selectable")),
+            kind=str(raw.get("kind") or "effective"),
+        )
+
+    changes = [_to_diff(item) for item in body.effective_changes] + [
+        _to_diff(item) for item in body.future_changes
+    ]
+    result = service.apply_selected(
+        changes=changes,
+        selected_change_ids=list(body.selected_change_ids),
+        approved_by=str(principal.user_id),
+    )
+    return result.to_dict()

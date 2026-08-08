@@ -119,6 +119,11 @@ class RuleOutcomeResponse(BaseModel):
     skip_reason: str | None = None
     reason_code: str | None = None
     message: str | None = None
+    category: str | None = None
+    display_category: str | None = None
+    required_inputs: list[str] = Field(default_factory=list)
+    legal_source: str | None = None
+    legal_version: str | None = None
 
 
 class ValidationRunResponse(BaseModel):
@@ -139,6 +144,8 @@ class ValidationRunResponse(BaseModel):
     findings: list[FindingResponse] = Field(default_factory=list)
     rule_outcomes: list[RuleOutcomeResponse] = Field(default_factory=list)
     manual_approvals: list[dict] = Field(default_factory=list)
+    legal_rules_version: str | None = None
+    legal_rules_effective_from: str | None = None
 
 def _parse_uuid(value: str, field_name: str) -> UUID:
     try:
@@ -223,11 +230,19 @@ def _to_response(record: ValidationRunRecord, *, locale: str, document_metadata:
             skip_reason=item.get("skip_reason"),
             reason_code=item.get("reason_code"),
             message=item.get("message"),
+            category=item.get("category"),
+            display_category=item.get("display_category"),
+            required_inputs=[
+                str(x) for x in (item.get("required_inputs") or []) if x is not None
+            ],
+            legal_source=item.get("legal_source"),
+            legal_version=item.get("legal_version"),
         )
         for item in (record.context_snapshot or {}).get("rule_outcomes") or []
         if isinstance(item, dict) and item.get("rule_id")
     ]
 
+    snapshot = record.context_snapshot or {}
     response = ValidationRunResponse(
         id=str(record.id),
         document_id=str(record.document_id),
@@ -246,6 +261,8 @@ def _to_response(record: ValidationRunRecord, *, locale: str, document_metadata:
         findings=[FindingResponse(**row) for row in annotated],
         rule_outcomes=rule_outcomes,
         manual_approvals=approvals_from_document_metadata(document_metadata),
+        legal_rules_version=snapshot.get("legal_rules_version"),
+        legal_rules_effective_from=snapshot.get("legal_rules_effective_from"),
     )
 
     return response

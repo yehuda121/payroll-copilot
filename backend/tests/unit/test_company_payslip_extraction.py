@@ -36,10 +36,9 @@ from payroll_copilot.infrastructure.ai.deterministic_payslip_parser import Deter
 FIXTURE_MULTI = (
     Path(__file__).resolve().parents[1]
     / "fixtures"
-    / "company_payslip"
     / "payslips"
-    / "primary_company"
-    / "payslips_valid_2026_06_multi.pdf"
+    / "valid_2026_06_multi_stub0"
+    / "input.pdf"
 )
 
 

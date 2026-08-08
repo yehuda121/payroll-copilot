@@ -188,14 +188,12 @@ def get_extract_guest_payslip_use_case(
     ),
     object_storage: S3ObjectStorage = Depends(get_object_storage),
     organization_bootstrap: OrganizationBootstrapPort = Depends(get_organization_bootstrap),
-    ocr_use_case: ExtractDocumentTextUseCase = Depends(get_extract_document_text_use_case),
 ) -> ExtractGuestPayslipUseCase:
     return ExtractGuestPayslipUseCase(
         document_repository=document_repository,
         extraction_repository=extraction_repository,
         object_storage=object_storage,
         organization_bootstrap=organization_bootstrap,
-        ocr_use_case=ocr_use_case,
     )
 
 

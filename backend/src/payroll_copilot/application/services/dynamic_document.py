@@ -483,17 +483,218 @@ def entries_from_structured(structured: dict[str, Any] | None) -> list[DynamicDo
     return entries_from_payload(structured.get("dynamic_entries"))
 
 
+def entries_for_canonical_projection(
+    entries: list[DynamicDocumentEntry],
+    *,
+    structured_hint: dict[str, Any] | None = None,
+) -> list[DynamicDocumentEntry]:
+    """Restrict canonical mapping to the primary paystub when multiple slips exist.
+
+    Review UI keeps all ``dynamic_entries``. Validation/matching must not merge
+    fields across employees in a multi-payslip PDF.
+    """
+    stub_sections = {
+        str(entry.section)
+        for entry in entries
+        if entry.section and str(entry.section).startswith("paystub_")
+    }
+    if not stub_sections:
+        return entries
+
+    meta = {}
+    if isinstance(structured_hint, dict):
+        raw_meta = structured_hint.get("extractor_meta")
+        if isinstance(raw_meta, dict):
+            meta = raw_meta
+    idx = meta.get("canonical_paystub_index", 0)
+    try:
+        idx_i = int(idx)
+    except (TypeError, ValueError):
+        idx_i = 0
+    # Adapter uses 0-based index; section labels are typically paystub_1..N.
+    candidates = [f"paystub_{idx_i}", f"paystub_{idx_i + 1}"]
+    primary = next((c for c in candidates if c in stub_sections), None)
+    if primary is None:
+
+        def _stub_num(section: str) -> int:
+            try:
+                return int(section.split("_", 1)[1])
+            except (IndexError, ValueError):
+                return 10**9
+
+        primary = min(stub_sections, key=_stub_num)
+
+    return [
+        entry
+        for entry in entries
+        if entry.section == primary or entry.section is None
+    ]
+
+
 def project_structured_from_entries(
     entries: list[DynamicDocumentEntry],
+    *,
+    structured_hint: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
     """Stage-2: map Document Model → Canonical while retaining full entries.
 
     Document Model remains the source of truth under ``dynamic_entries``.
-    Canonical keys feed validation / identity matching only.
+    Canonical keys feed validation / identity matching only and are projected
+    from the primary paystub when multiple stubs are present.
     """
-    mapped, warnings = map_dynamic_entries_to_structured(entries)
+    canonical_entries = entries_for_canonical_projection(
+        entries, structured_hint=structured_hint
+    )
+    mapped, warnings = map_dynamic_entries_to_structured(canonical_entries)
     mapped["dynamic_entries"] = [entry.to_dict() for entry in entries]
     return mapped, warnings
+
+
+def ensure_canonical_projection(
+    structured: dict[str, Any] | None,
+) -> tuple[dict[str, Any], list[str]]:
+    """Single source of truth: project canonical keys from ``dynamic_entries`` when present.
+
+    Used by persistence, matching, validation input, and review chrome so all
+    consumers see the same mapped values for the same document.
+    """
+    if not isinstance(structured, dict):
+        return {}, []
+    entries = entries_from_structured(structured)
+    if not entries:
+        return dict(structured), []
+    projected, warnings = project_structured_from_entries(
+        entries, structured_hint=structured
+    )
+    # Preserve non-field metadata that projection does not rebuild.
+    for meta_key in STRUCTURED_META_KEYS:
+        if meta_key == "dynamic_entries" or meta_key == "additional_fields":
+            continue
+        if meta_key in structured and meta_key not in projected:
+            projected[meta_key] = structured[meta_key]
+    for extra_key in ("paystubs", "extractor_meta", "language", "parser_notes"):
+        if extra_key in structured and extra_key not in projected:
+            projected[extra_key] = structured[extra_key]
+    return projected, warnings
+
+
+def review_rows_from_structured(structured: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Unified review-field rows (Document Model first, else non-empty canonical).
+
+    Every UI surface that shows extracted payslip fields should use this helper
+    (or a thin wrapper around it) so cards and forms cannot diverge.
+    """
+    structured = structured or {}
+    entries = entries_from_structured(structured)
+    if entries:
+        rows: list[dict[str, Any]] = []
+        for entry in entries:
+            if not is_document_origin_entry(entry):
+                continue
+            rows.append(
+                {
+                    "key": entry.key,
+                    "value": entry.value,
+                    "extracted_value": entry.value,
+                    "corrected_value": None,
+                    "effective_value": entry.value,
+                    "confidence": entry.confidence,
+                    "status": "FOUND" if entry.value not in (None, "") else "MISSING",
+                    "extraction_status": (
+                        "FOUND" if entry.value not in (None, "") else "MISSING"
+                    ),
+                    "source_text": entry.source_text,
+                    "edited_by_user": entry.source == "user",
+                    "edited_by_employee": entry.source == "user",
+                    "confirmed": False,
+                    "section": entry.section,
+                    "kind": entry.kind,
+                    "table_id": entry.table_id,
+                    "row_index": entry.row_index,
+                    "column": entry.column,
+                    "entry_id": entry.id,
+                    "page": entry.page,
+                    "original_value": entry.value,
+                }
+            )
+        return rows
+
+    projected, _ = ensure_canonical_projection(structured)
+    rows = []
+    seen: set[str] = set()
+    for key, payload in projected.items():
+        if key in STRUCTURED_META_KEYS or not isinstance(payload, dict):
+            continue
+        status = str(payload.get("status") or "MISSING").upper()
+        value = payload.get("value")
+        if status not in {"FOUND", "UNCERTAIN"} and value in (None, ""):
+            continue
+        rows.append(
+            {
+                "key": str(key),
+                "value": value,
+                "extracted_value": value,
+                "corrected_value": payload.get("corrected_value"),
+                "effective_value": value,
+                "confidence": payload.get("confidence"),
+                "status": status,
+                "extraction_status": status,
+                "source_text": payload.get("source_text"),
+                "edited_by_user": bool(payload.get("edited_by_user")),
+                "edited_by_employee": bool(payload.get("edited_by_user")),
+                "confirmed": bool(payload.get("confirmed")),
+                "original_value": payload.get("original_value", value),
+            }
+        )
+        seen.add(str(key))
+    additional = projected.get("additional_fields")
+    if isinstance(additional, dict):
+        for key, payload in additional.items():
+            if not isinstance(payload, dict) or str(key) in seen or str(key) in STRUCTURED_META_KEYS:
+                continue
+            status = str(payload.get("status") or "MISSING").upper()
+            value = payload.get("value")
+            rows.append(
+                {
+                    "key": str(key),
+                    "value": value,
+                    "extracted_value": value,
+                    "corrected_value": payload.get("corrected_value"),
+                    "effective_value": value,
+                    "confidence": payload.get("confidence"),
+                    "status": status,
+                    "extraction_status": status,
+                    "source_text": payload.get("source_text"),
+                    "edited_by_user": bool(payload.get("edited_by_user")),
+                    "edited_by_employee": bool(payload.get("edited_by_user")),
+                    "confirmed": bool(payload.get("confirmed")),
+                    "original_value": payload.get("original_value", value),
+                    "label": payload.get("label"),
+                }
+            )
+    return rows
+
+
+def canonical_values_from_structured(structured: dict[str, Any] | None) -> dict[str, Any]:
+    """Flat canonical key → value map after ensuring projection from entries."""
+    projected, _ = ensure_canonical_projection(structured)
+    out: dict[str, Any] = {}
+    for key in PAYSLIP_FIELD_KEYS:
+        payload = projected.get(key)
+        if isinstance(payload, dict):
+            out[key] = payload.get("value")
+        elif payload is not None:
+            out[key] = payload
+    additional = projected.get("additional_fields")
+    if isinstance(additional, dict):
+        for key, payload in additional.items():
+            if key in out:
+                continue
+            if isinstance(payload, dict):
+                out[str(key)] = payload.get("value")
+            else:
+                out[str(key)] = payload
+    return out
 
 
 def apply_corrections_to_entries(

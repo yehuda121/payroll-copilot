@@ -8,6 +8,11 @@ export type RuleEvaluationOutcome = {
   skip_reason?: string | null;
   reason_code?: string | null;
   message?: string | null;
+  category?: string | null;
+  display_category?: string | null;
+  required_inputs?: string[];
+  legal_source?: string | null;
+  legal_version?: string | null;
 };
 
 export type ManualApprovalMeta = {

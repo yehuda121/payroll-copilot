@@ -1,0 +1,18 @@
+{
+  "canonical": {
+    "employee_name": "אורית סבירסקי",
+    "national_id": "30491361-9",
+    "pay_period": "2026-06",
+    "gross_salary": "8,872.30",
+    "net_salary": "7,921.30",
+    "national_insurance": "162.00",
+    "health_tax": "309.00",
+    "total_deductions": "951.00"
+  },
+  "canonical_contains": {
+    "regular_hours": "182"
+  },
+  "must_not_equal": {
+    "income_tax": "47,125.35"
+  }
+}

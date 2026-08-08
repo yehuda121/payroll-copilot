@@ -22,6 +22,7 @@ from payroll_copilot.application.services.validation_catalog import (
     map_legacy_skip_to_reason,
     reason_message,
 )
+from payroll_copilot.application.validation.rule_outcome_meta import enrich_outcome
 from payroll_copilot.domain.enums import ConfidenceSource, FindingSeverity, RuleCategory, ValidationResult
 from payroll_copilot.domain.rules import ValidationContext, get_registered_rules
 from payroll_copilot.domain.value_objects import (
@@ -62,8 +63,22 @@ def _not_run_outcome(
     )
 
 
+def _emit(
+    outcomes: list[RuleEvaluationOutcome],
+    outcome: RuleEvaluationOutcome,
+    *,
+    rule: object | None,
+    context: ValidationContext,
+) -> None:
+    outcomes.append(enrich_outcome(outcome, rule=rule, context=context))
+
+
 class ValidationOrchestrator:
-    """Evaluates all applicable rules against a validation context."""
+    """Evaluates all applicable rules against a validation context.
+
+    Deterministic only — never calls MCP, HTTP legal sources, or LLMs.
+    Legal parameters come exclusively from the locally loaded LegalRulesBundle.
+    """
 
     def run(self, context: ValidationContext) -> ValidationReport:
         rules = self._get_applicable_rules(context)
@@ -84,28 +99,39 @@ class ValidationOrchestrator:
             if cat is not None and cat.readiness == READINESS_NOT_READY and rule_id.startswith("legal."):
                 # Still respect applies_to=False path as RULE_NOT_READY, not silent skip.
                 if not rule.applies_to(context):
-                    outcomes.append(
-                        _not_run_outcome(rule_id, reason_code=REASON_RULE_NOT_READY, skip_reason="rule_not_ready")
+                    _emit(
+                        outcomes,
+                        _not_run_outcome(
+                            rule_id, reason_code=REASON_RULE_NOT_READY, skip_reason="rule_not_ready"
+                        ),
+                        rule=rule,
+                        context=context,
                     )
                     continue
 
             # Legal versioned evaluation requires a known payslip period — never invent today.
             if rule_id.startswith("legal.") and context.period is None:
                 if cat is not None and cat.readiness == READINESS_NOT_READY:
-                    outcomes.append(
+                    _emit(
+                        outcomes,
                         _not_run_outcome(
                             rule_id,
                             reason_code=REASON_RULE_NOT_READY,
                             skip_reason="rule_not_ready",
-                        )
+                        ),
+                        rule=rule,
+                        context=context,
                     )
                 else:
-                    outcomes.append(
+                    _emit(
+                        outcomes,
                         _not_run_outcome(
                             rule_id,
                             reason_code=REASON_MISSING_PAY_PERIOD,
                             skip_reason="missing_pay_period",
-                        )
+                        ),
+                        rule=rule,
+                        context=context,
                     )
                 continue
 
@@ -114,12 +140,15 @@ class ValidationOrchestrator:
                 reason_code = map_legacy_skip_to_reason(legacy)
                 if legacy is None:
                     reason_code = REASON_NOT_APPLICABLE
-                outcomes.append(
+                _emit(
+                    outcomes,
                     _not_run_outcome(
                         rule_id,
                         reason_code=reason_code,
                         skip_reason=legacy or reason_code,
-                    )
+                    ),
+                    rule=rule,
+                    context=context,
                 )
                 continue
 
@@ -127,12 +156,15 @@ class ValidationOrchestrator:
                 finding = rule.evaluate(context)
             except Exception:  # noqa: BLE001 — isolate rule failures
                 logger.exception("validation_rule_execution_error", extra={"rule_id": rule_id})
-                outcomes.append(
+                _emit(
+                    outcomes,
                     _not_run_outcome(
                         rule_id,
                         reason_code=REASON_EXECUTION_ERROR,
                         skip_reason="execution_error",
-                    )
+                    ),
+                    rule=rule,
+                    context=context,
                 )
                 continue
 
@@ -142,41 +174,53 @@ class ValidationOrchestrator:
                     finding.severity == FindingSeverity.INFO
                     and (finding.message_key or "").endswith("missing_data")
                 ):
-                    outcomes.append(
+                    _emit(
+                        outcomes,
                         RuleEvaluationOutcome(
                             rule_id=rule_id or finding.rule_id,
                             outcome=OUTCOME_UNCERTAIN,
                             skip_reason=None,
                             reason_code=REASON_MISSING_PAYSLIP_DATA,
                             message=reason_message(REASON_MISSING_PAYSLIP_DATA),
-                        )
+                        ),
+                        rule=rule,
+                        context=context,
                     )
                 else:
-                    outcomes.append(
+                    _emit(
+                        outcomes,
                         RuleEvaluationOutcome(
                             rule_id=rule_id or finding.rule_id,
                             outcome=OUTCOME_FAILED,
                             reason_code=None,
                             message=None,
-                        )
+                        ),
+                        rule=rule,
+                        context=context,
                     )
             else:
                 # evaluate returned None — only PASS if rule config / legal knowledge was available
                 # when the rule depends on YAML (legal.*) and config key missing → NOT_RUN
                 if rule_id.startswith("legal.") and self._legal_config_missing(rule, context):
-                    outcomes.append(
+                    _emit(
+                        outcomes,
                         _not_run_outcome(
                             rule_id,
                             reason_code=REASON_NO_APPLICABLE_LEGAL_VERSION,
                             skip_reason="no_applicable_legal_version",
-                        )
+                        ),
+                        rule=rule,
+                        context=context,
                     )
                 else:
-                    outcomes.append(
+                    _emit(
+                        outcomes,
                         RuleEvaluationOutcome(
                             rule_id=rule_id,
                             outcome=OUTCOME_PASSED,
-                        )
+                        ),
+                        rule=rule,
+                        context=context,
                     )
 
         # Ensure every catalog labor-law rule has an explicit outcome (even if no Python class).
@@ -187,8 +231,11 @@ class ValidationOrchestrator:
             reason = REASON_RULE_NOT_READY
             if cat and cat.readiness == READINESS_NOT_READY:
                 reason = REASON_RULE_NOT_READY
-            outcomes.append(
-                _not_run_outcome(law_id, reason_code=reason, skip_reason="rule_not_ready")
+            _emit(
+                outcomes,
+                _not_run_outcome(law_id, reason_code=reason, skip_reason="rule_not_ready"),
+                rule=None,
+                context=context,
             )
 
         overall_result = self._compute_result(findings)
@@ -211,6 +258,8 @@ class ValidationOrchestrator:
                 in (FindingSeverity.WARNING, FindingSeverity.CRITICAL)
             ),
             rule_outcomes=tuple(outcomes),
+            legal_rules_version=context.legal_rules.version,
+            legal_rules_effective_from=context.legal_rules.effective_from,
         )
 
     @staticmethod

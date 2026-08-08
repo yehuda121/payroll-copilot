@@ -160,8 +160,6 @@ async def test_ephemeral_correction_survives_confirm_into_canonical_structured()
         extraction_repository=MagicMock(),
         object_storage=MagicMock(),
         organization_bootstrap=MagicMock(),
-        ocr_use_case=MagicMock(),
-        document_extractor=MagicMock(),
     )
     _document, extraction = extract_uc.confirm_ephemeral_session(session.document_id)
     assert extraction.confirmation_status == "confirmed"

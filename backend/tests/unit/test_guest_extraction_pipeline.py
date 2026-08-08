@@ -420,8 +420,6 @@ async def test_cancellation_before_ocr() -> None:
         extraction_repository=_FakeExtractions(),
         object_storage=_FakeStorage(),
         organization_bootstrap=_FakeBootstrap(),
-        ocr_use_case=ExtractDocumentTextUseCase(_OkOcr(), timeout_seconds=5),
-        document_extractor=_OkDocumentExtractor(),
     )
     from payroll_copilot.application.exceptions import ExtractionCancelledError
 

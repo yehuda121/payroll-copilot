@@ -28,11 +28,12 @@ def _reset_ephemeral() -> None:
     reset_guest_ephemeral_store_for_tests()
 
 
-def _guest_auth_headers() -> dict[str, str]:
+def _guest_auth_headers(guest_id: str | None = None) -> dict[str, str]:
     settings = get_settings()
+    sub = guest_id or str(uuid4())
     token = jwt.encode(
         {
-            "sub": str(uuid4()),
+            "sub": sub,
             "type": "guest",
             "exp": datetime.now(UTC) + timedelta(hours=1),
             "iat": datetime.now(UTC),
@@ -43,9 +44,10 @@ def _guest_auth_headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def _seed_session() -> GuestEphemeralSession:
+def _seed_session(*, guest_id: str | None = None) -> GuestEphemeralSession:
     document_id = uuid4()
     extraction_id = uuid4()
+    owner = guest_id or str(uuid4())
     session = GuestEphemeralSession(
         document_id=document_id,
         extraction_id=extraction_id,
@@ -75,6 +77,7 @@ def _seed_session() -> GuestEphemeralSession:
             }
         ],
         confirmation_status="review_required",
+        owner_guest_id=owner,
     )
     get_guest_ephemeral_store().save(session)
     return session
@@ -82,14 +85,13 @@ def _seed_session() -> GuestEphemeralSession:
 
 @pytest.mark.asyncio
 async def test_guest_confirm_route_freezes_session() -> None:
-    session = _seed_session()
+    guest_id = str(uuid4())
+    session = _seed_session(guest_id=guest_id)
     use_case = ExtractGuestPayslipUseCase(
         document_repository=MagicMock(),
         extraction_repository=MagicMock(),
         object_storage=MagicMock(),
         organization_bootstrap=MagicMock(),
-        ocr_use_case=MagicMock(),
-        parse_use_case=MagicMock(),
     )
     app.dependency_overrides[get_extract_guest_payslip_use_case] = lambda: use_case
     try:
@@ -97,7 +99,7 @@ async def test_guest_confirm_route_freezes_session() -> None:
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
                 f"/api/v1/extraction/guest/{session.document_id}/confirm",
-                headers=_guest_auth_headers(),
+                headers=_guest_auth_headers(guest_id),
                 json={
                     "entries": [
                         {
@@ -132,8 +134,6 @@ async def test_guest_confirm_route_missing_session_returns_404() -> None:
         extraction_repository=MagicMock(),
         object_storage=MagicMock(),
         organization_bootstrap=MagicMock(),
-        ocr_use_case=MagicMock(),
-        parse_use_case=MagicMock(),
     )
     app.dependency_overrides[get_extract_guest_payslip_use_case] = lambda: use_case
     missing = uuid4()
